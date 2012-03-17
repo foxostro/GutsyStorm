@@ -6,6 +6,7 @@
 //  Copyright 2012 __MyCompanyName__. All rights reserved.
 //
 
+#import <ApplicationServices/ApplicationServices.h>
 #import <OpenGL/gl.h>
 #import <OpenGL/glu.h>
 #import "GutsyStormOpenGLView.h"
@@ -106,8 +107,16 @@ int checkGLErrors(void);
 
 - (void)mouseMoved: (NSEvent *)theEvent
 {
-	NSPoint p = [NSEvent mouseLocation];
-	NSLog(@"mouse is at (%.1f, %.1f)", p.x, p.y);
+	int32_t deltaX=0, deltaY=0;
+	CGGetLastMouseDelta(&deltaX, &deltaY);
+	NSLog(@"mouse moved by (%d, %d)", deltaX, deltaY);
+	
+	// Reset mouse to the center of the view so it can't leave the window.
+	NSRect bounds = [self bounds];
+	CGPoint viewCenter;
+	viewCenter.x = bounds.origin.x + bounds.size.width / 2;
+	viewCenter.x = bounds.origin.y + bounds.size.height / 2;
+	CGWarpMouseCursorPosition(viewCenter);
 }
 
 - (void) keyDown:(NSEvent *)theEvent
