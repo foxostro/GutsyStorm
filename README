@@ -1,0 +1,14 @@
+Gutsy Storm is the codename for an otherwise nameless game project which
+is basically me having fun with blocky/voxel, procedurally generated terrain
+similar to Minecraft. This is not intended to be a Minecraft clone. Instead,
+the plan is to use Minecraft-like terrain and terrain editing functionality for
+an Action-RPG style game. So, this will eventually be a bit of a Diablo clone
+with a Minecraft-style voxel world.
+
+GutsyStormCocoa is my effort to restart the Gutsy Storm project with the game
+written in Cocoa/Objective-C from the ground up. This was done in responsive
+to the truly horrendous performance I was getting out of Python even after
+investing a considerable amount of effort toward performance optimizations.
+
+Author: Andrew Fox <foxostro@gmail.com>
+Project Home: <http://github.com/foxostro/GutsyStormCocoa>
