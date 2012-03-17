@@ -9,7 +9,12 @@
 #import <Cocoa/Cocoa.h>
 
 @interface GutsyStormOpenGLView : NSOpenGLView
+{
+	GLuint vboCubeVerts;
+}
 
-- (void)prepare;
+- (void)drawDebugCubeAtX:(float)x
+					   Y:(float)y
+					   Z:(float)z;
 
 @end
