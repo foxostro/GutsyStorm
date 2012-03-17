@@ -64,8 +64,14 @@ int checkGLErrors(void);
 	cubeRotY = 0.0;
 	cubeRotSpeed = 10.0;
 	prevFrameTime = CFAbsoluteTimeGetCurrent();
+	keysDown = [[NSMutableDictionary alloc] init];
 	
-	renderTimer = [NSTimer timerWithTimeInterval:0.001   //a 1ms time interval
+	// Register with window to accept user input.
+	[[self window] makeFirstResponder: self];
+	[[self window] setAcceptsMouseMovedEvents: YES];
+	
+	// Register a timer to drive the game loop.
+	renderTimer = [NSTimer timerWithTimeInterval:0.001   // a 1ms time interval
 										  target:self
 										selector:@selector(timerFired:)
 										userInfo:nil
@@ -75,7 +81,7 @@ int checkGLErrors(void);
 								 forMode:NSDefaultRunLoopMode];
 	
 	[[NSRunLoop currentRunLoop] addTimer:renderTimer 
-								 forMode:NSEventTrackingRunLoopMode]; //Ensure timer fires during resize
+								 forMode:NSEventTrackingRunLoopMode]; // Ensure timer fires during resize
 }
 
 // Draw a white cube
@@ -91,6 +97,31 @@ int checkGLErrors(void);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	 
 	assert(checkGLErrors() == 0);
+}
+
+- (BOOL) acceptsFirstResponder
+{
+	return YES;
+}
+
+- (void)mouseMoved: (NSEvent *)theEvent
+{
+	NSPoint p = [NSEvent mouseLocation];
+	NSLog(@"mouse is at (%.1f, %.1f)", p.x, p.y);
+}
+
+- (void) keyDown:(NSEvent *)theEvent
+{
+	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+	NSLog(@"keyDown: %d", key);
+	[keysDown setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInt:key]];
+}
+
+- (void) keyUp:(NSEvent *)theEvent
+{
+	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+	NSLog(@"keyDown: %d", key);
+	[keysDown setObject:[NSNumber numberWithBool:NO] forKey:[NSNumber numberWithInt:key]];
 }
 
 - (void)reshape
@@ -125,6 +156,12 @@ int checkGLErrors(void);
 	[self drawDebugCube];
 	glPopMatrix();
 	glFlush();
+}
+
+-(void)dealloc
+{
+	[keysDown release];
+	[super dealloc];
 }
 
 @end
