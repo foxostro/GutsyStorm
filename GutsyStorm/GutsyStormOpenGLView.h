@@ -11,10 +11,14 @@
 @interface GutsyStormOpenGLView : NSOpenGLView
 {
 	GLuint vboCubeVerts;
+	NSTimer * renderTimer;
+	CFAbsoluteTime prevFrameTime;
+	float cubeRotSpeed;
+	float cubeRotY;
 }
 
-- (void)drawDebugCubeAtX:(float)x
-					   Y:(float)y
-					   Z:(float)z;
+- (void)drawDebugCube;
+
+- (void)timerFired:(id)sender;
 
 @end

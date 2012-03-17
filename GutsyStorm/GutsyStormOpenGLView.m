@@ -50,23 +50,38 @@ int checkGLErrors(void);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), cubeVerts, GL_STATIC_DRAW);
 	assert(checkGLErrors() == 0);
 	NSLog(@"Generated the VBO.");
+	
+	// enable vsync
+	GLint swapInt = 1;
+    [[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
 }
 
 -(void)awakeFromNib
 {
 	NSLog(@"awakeFromNib");
+	
 	vboCubeVerts = 0;
+	cubeRotY = 0.0;
+	cubeRotSpeed = 10.0;
+	prevFrameTime = CFAbsoluteTimeGetCurrent();
+	
+	renderTimer = [NSTimer timerWithTimeInterval:0.001   //a 1ms time interval
+										  target:self
+										selector:@selector(timerFired:)
+										userInfo:nil
+										 repeats:YES];
+				   
+	[[NSRunLoop currentRunLoop] addTimer:renderTimer 
+								 forMode:NSDefaultRunLoopMode];
+	
+	[[NSRunLoop currentRunLoop] addTimer:renderTimer 
+								 forMode:NSEventTrackingRunLoopMode]; //Ensure timer fires during resize
 }
 
-// Draw a white cube at the specified position.
-- (void)drawDebugCubeAtX:(float)x
-					   Y:(float)y
-					   Z:(float)z
+// Draw a white cube
+- (void)drawDebugCube
 {
 	assert(checkGLErrors() == 0);
-	
-	glPushMatrix();
-	glTranslatef(x, y, z);
 	
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
@@ -74,8 +89,6 @@ int checkGLErrors(void);
 	glVertexPointer(3, GL_FLOAT, 0, 0);
 	glDrawArrays(GL_TRIANGLES, 0, numCubeVerts);
 	glDisableClientState(GL_VERTEX_ARRAY);
-	
-	glPopMatrix();
 	 
 	assert(checkGLErrors() == 0);
 }
@@ -91,11 +104,26 @@ int checkGLErrors(void);
 	glMatrixMode(GL_MODELVIEW);
 }
 
+// Timer callback method
+- (void)timerFired:(id)sender
+{
+	CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
+	float dt = (float)(frameTime - prevFrameTime);
+	
+	cubeRotY += cubeRotSpeed * dt;
+	
+    [self setNeedsDisplay:YES];
+	prevFrameTime = frameTime;
+}
+
 - (void)drawRect:(NSRect)dirtyRect
 {
-	NSLog(@"drawRect");
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	[self drawDebugCubeAtX:0.0 Y:0.0 Z:-5.0];
+	glPushMatrix();
+	glTranslatef(0, 0, -5);
+	glRotatef(cubeRotY, 0, 1, 0);
+	[self drawDebugCube];
+	glPopMatrix();
 	glFlush();
 }
 
