@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 
 @interface GutsyStormAppDelegate : NSObject <NSApplicationDelegate> {
-    NSWindow *window;
+	NSWindow *window;
 }
 
 @property (assign) IBOutlet NSWindow *window;
