@@ -8,6 +8,7 @@
 
 #import <Cocoa/Cocoa.h>
 #import "GSCamera.h"
+#import "GLString.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
@@ -20,6 +21,8 @@
 	int32_t mouseDeltaX, mouseDeltaY;
 	float mouseSensitivity;
 	GSCamera* camera;
+	GLString * testStringTex;
+	NSMutableDictionary * stanStringAttrib; // attributes for string textures
 }
 
 - (void)drawDebugCube;

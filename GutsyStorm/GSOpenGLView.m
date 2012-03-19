@@ -53,7 +53,25 @@ int checkGLErrors(void);
 	glDisable(GL_LIGHTING);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	
+	// init fonts for use with strings
+	NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
+	stanStringAttrib = [[NSMutableDictionary dictionary] retain];
+	[stanStringAttrib setObject:font forKey:NSFontAttributeName];
+	[stanStringAttrib setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
+	[font release];
+	
+	testStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"test"]
+									  withAttributes:stanStringAttrib
+									   withTextColor:[NSColor whiteColor]
+										withBoxColor:[NSColor colorWithDeviceRed:0.0f
+																		   green:0.5f
+																			blue:0.0f
+																		   alpha:0.5f]
+									 withBorderColor:[NSColor colorWithDeviceRed:0.3f
+																		   green:0.8f
+																			blue:0.3f
+																		   alpha:0.8f]];
 			
 	[self generateVBOForDebugCube];
 	[self enableVSync];
@@ -214,14 +232,51 @@ int checkGLErrors(void);
 - (void)drawRect:(NSRect)dirtyRect
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
 	glPushMatrix();
 	[camera submitCameraTransform];
 	glTranslatef(0, 0, -5);
 	glRotatef(cubeRotY, 0, 1, 0);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	[self drawDebugCube];
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glPopMatrix();
-	glFlush();
 	
+	GLint matrixMode;
+	GLboolean depthTest = glIsEnabled (GL_DEPTH_TEST);
+	GLfloat height, width;
+	
+	NSRect r = [self bounds];
+	height = r.size.height;
+	width = r.size.width;
+	
+	// set orthograhic 1:1  pixel transform in local view coords
+	glGetIntegerv(GL_MATRIX_MODE, &matrixMode);
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glScalef(2.0f / width, -2.0f /  height, 1.0f);
+	glTranslatef(-width / 2.0f, -height / 2.0f, 0.0f);
+	
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	[testStringTex drawAtPoint:NSMakePoint(10.0f, height - [testStringTex frameSize].height - 10.0f)];
+	
+	// reset orginal martices
+	glPopMatrix(); // GL_MODELVIEW
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(matrixMode);
+	
+	glDisable(GL_TEXTURE_RECTANGLE_EXT);
+	glDisable(GL_BLEND);
+	if(depthTest) {
+		glEnable (GL_DEPTH_TEST);
+	}
+	
+	glFlush();
 	assert(checkGLErrors() == 0);
 }
 
