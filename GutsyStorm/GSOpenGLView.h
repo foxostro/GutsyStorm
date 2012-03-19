@@ -18,15 +18,16 @@
 	float cubeRotSpeed;
 	float cubeRotY;
 	NSMutableDictionary* keysDown;
+	int32_t mouseDeltaX, mouseDeltaY;
+	float mouseSensitivity;
 	float cameraSpeed, cameraRotSpeed;
 	GSQuaternion cameraRot;
 	GSVector3 cameraEye, cameraCenter, cameraUp;
 }
 
 - (void)drawDebugCube;
-
 - (void)timerFired:(id)sender;
-
 - (void)updateCameraLookVectors;
+- (void) setMouseAtCenter;
 
 @end

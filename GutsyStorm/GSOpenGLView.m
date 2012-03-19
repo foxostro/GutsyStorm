@@ -65,10 +65,17 @@ int checkGLErrors(void);
 	
 	vboCubeVerts = 0;
 	cubeRotY = 0.0;
-	cubeRotSpeed = 1.0;
+	cubeRotSpeed = 0.0;
 	prevFrameTime = CFAbsoluteTimeGetCurrent();
 	keysDown = [[NSMutableDictionary alloc] init];
 	
+	// Reset mouse input mechanism for camera.
+	mouseSensitivity = 0.2;
+	mouseDeltaX = 0;
+	mouseDeltaY = 0;
+	[self setMouseAtCenter];
+	
+	// Set up the default camera.
 	cameraSpeed = 5.0;
 	cameraRotSpeed = 1.0;
 	cameraEye = GSVector3_Make(0.0f, 0.0f, 0.0f);
@@ -120,10 +127,13 @@ int checkGLErrors(void);
 
 - (void)mouseMoved: (NSEvent *)theEvent
 {
-	int32_t deltaX=0, deltaY=0;
-	CGGetLastMouseDelta(&deltaX, &deltaY);
-	NSLog(@"mouse moved by (%d, %d)", deltaX, deltaY);
-	
+	CGGetLastMouseDelta(&mouseDeltaX, &mouseDeltaY);	
+	[self setMouseAtCenter];
+}
+
+
+- (void) setMouseAtCenter
+{
 	// Reset mouse to the center of the view so it can't leave the window.
 	NSRect bounds = [self bounds];
 	CGPoint viewCenter;
@@ -136,7 +146,6 @@ int checkGLErrors(void);
 - (void) keyDown:(NSEvent *)theEvent
 {
 	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-	NSLog(@"keyDown: %d", key);
 	[keysDown setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInt:key]];
 }
 
@@ -144,7 +153,6 @@ int checkGLErrors(void);
 - (void) keyUp:(NSEvent *)theEvent
 {
 	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-	NSLog(@"keyDown: %d", key);
 	[keysDown setObject:[NSNumber numberWithBool:NO] forKey:[NSNumber numberWithInt:key]];
 }
 
@@ -207,6 +215,22 @@ int checkGLErrors(void);
         cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
         wasCameraModified = YES;
 	}
+	
+	if(mouseDeltaX != 0) {
+		float mouseDirectionX = -mouseDeltaX / mouseSensitivity;
+		float angle = mouseDirectionX*dt;
+        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), angle);
+		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
+        wasCameraModified = YES;
+	}
+	
+	if(mouseDeltaY != 0) {
+		float mouseDirectionY = -mouseDeltaY / mouseSensitivity;
+		float angle = mouseDirectionY*dt;
+        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), angle);
+		cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
+        wasCameraModified = YES;
+	}
 
     if(wasCameraModified) {
         [self updateCameraLookVectors];
@@ -214,8 +238,10 @@ int checkGLErrors(void);
 
 	cubeRotY += cubeRotSpeed * dt;
 	
-    [self setNeedsDisplay:YES];
+	mouseDeltaX = 0;
+	mouseDeltaY = 0;
 	prevFrameTime = frameTime;
+	[self setNeedsDisplay:YES];
 }
 
 
