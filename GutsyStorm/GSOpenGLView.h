@@ -31,5 +31,6 @@
 - (void)setMouseAtCenter;
 - (void)generateVBOForDebugCube;
 - (void)enableVSync;
+- (void)setupDefaultCamera;
 
 @end

@@ -63,10 +63,22 @@ int checkGLErrors(void);
 }
 
 
+// Set the default camera and reset camera properties.
+- (void)setupDefaultCamera
+{	
+	cameraSpeed = 5.0;
+	cameraRotSpeed = 1.0;
+	cameraEye = GSVector3_Make(0.0f, 0.0f, 0.0f);
+	cameraCenter = GSVector3_Make(0.0f, 0.0f, -1.0f);
+	cameraUp = GSVector3_Make(0.0f, 1.0f, 0.0f);
+	cameraRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), 0);
+	[self updateCameraLookVectors];
+
+}
+
+
 -(void)awakeFromNib
 {
-	NSLog(@"awakeFromNib");
-	
 	vboCubeVerts = 0;
 	cubeRotY = 0.0;
 	cubeRotSpeed = 0.0;
@@ -79,14 +91,7 @@ int checkGLErrors(void);
 	mouseDeltaY = 0;
 	[self setMouseAtCenter];
 	
-	// Set up the default camera.
-	cameraSpeed = 5.0;
-	cameraRotSpeed = 1.0;
-	cameraEye = GSVector3_Make(0.0f, 0.0f, 0.0f);
-	cameraCenter = GSVector3_Make(0.0f, 0.0f, -1.0f);
-	cameraUp = GSVector3_Make(0.0f, 1.0f, 0.0f);
-	cameraRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), 0);
-	[self updateCameraLookVectors];
+	[self setupDefaultCamera];
 	
 	// Register with window to accept user input.
 	[[self window] makeFirstResponder: self];
