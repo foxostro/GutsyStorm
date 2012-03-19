@@ -8,6 +8,7 @@
 
 #import <Cocoa/Cocoa.h>
 #import "GSVector3.h"
+#import "GSQuaternion.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
@@ -17,11 +18,15 @@
 	float cubeRotSpeed;
 	float cubeRotY;
 	NSMutableDictionary* keysDown;
+	float cameraSpeed, cameraRotSpeed;
+	GSQuaternion cameraRot;
 	GSVector3 cameraEye, cameraCenter, cameraUp;
 }
 
 - (void)drawDebugCube;
 
 - (void)timerFired:(id)sender;
+
+- (void)updateCameraLookVectors;
 
 @end

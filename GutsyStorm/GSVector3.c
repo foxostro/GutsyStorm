@@ -11,7 +11,7 @@
 #include "GSVector3.h"
 
 
-float EPSILON = 1e-8;
+static const float EPSILON = 1e-8;
 
 
 float GSVector3_Length(GSVector3 v)

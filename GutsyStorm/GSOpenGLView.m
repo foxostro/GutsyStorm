@@ -11,6 +11,7 @@
 #import <OpenGL/glu.h>
 #import "GSOpenGLView.h"
 
+
 GLfloat cubeVerts[] = {
 	-1, +1, +1,   +1, +1, -1,   -1, +1, -1, // Top Face
 	-1, +1, +1,   +1, +1, +1,   +1, +1, -1,
@@ -57,19 +58,24 @@ int checkGLErrors(void);
     [[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
 }
 
+
 -(void)awakeFromNib
 {
 	NSLog(@"awakeFromNib");
 	
 	vboCubeVerts = 0;
 	cubeRotY = 0.0;
-	cubeRotSpeed = 10.0;
+	cubeRotSpeed = 1.0;
 	prevFrameTime = CFAbsoluteTimeGetCurrent();
 	keysDown = [[NSMutableDictionary alloc] init];
 	
+	cameraSpeed = 5.0;
+	cameraRotSpeed = 1.0;
 	cameraEye = GSVector3_Make(0.0f, 0.0f, 0.0f);
 	cameraCenter = GSVector3_Make(0.0f, 0.0f, -1.0f);
 	cameraUp = GSVector3_Make(0.0f, 1.0f, 0.0f);
+	cameraRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), 0);
+	[self updateCameraLookVectors];
 	
 	// Register with window to accept user input.
 	[[self window] makeFirstResponder: self];
@@ -89,6 +95,7 @@ int checkGLErrors(void);
 								 forMode:NSEventTrackingRunLoopMode]; // Ensure timer fires during resize
 }
 
+
 // Draw a white cube
 - (void)drawDebugCube
 {
@@ -104,10 +111,12 @@ int checkGLErrors(void);
 	assert(checkGLErrors() == 0);
 }
 
+
 - (BOOL) acceptsFirstResponder
 {
 	return YES;
 }
+
 
 - (void)mouseMoved: (NSEvent *)theEvent
 {
@@ -123,6 +132,7 @@ int checkGLErrors(void);
 	CGWarpMouseCursorPosition(viewCenter);
 }
 
+
 - (void) keyDown:(NSEvent *)theEvent
 {
 	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
@@ -130,12 +140,14 @@ int checkGLErrors(void);
 	[keysDown setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInt:key]];
 }
 
+
 - (void) keyUp:(NSEvent *)theEvent
 {
 	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
 	NSLog(@"keyDown: %d", key);
 	[keysDown setObject:[NSNumber numberWithBool:NO] forKey:[NSNumber numberWithInt:key]];
 }
+
 
 - (void)reshape
 {
@@ -148,17 +160,64 @@ int checkGLErrors(void);
 	glMatrixMode(GL_MODELVIEW);
 }
 
+
 // Timer callback method
 - (void)timerFired:(id)sender
 {
 	CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
 	float dt = (float)(frameTime - prevFrameTime);
-	
+	BOOL wasCameraModified = NO;
+
+	if([[keysDown objectForKey:[NSNumber numberWithInt:'w']] boolValue]) {
+        GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0, 0, -cameraSpeed*dt));
+        cameraEye = GSVector3_Add(cameraEye, velocity);
+        wasCameraModified = YES;
+	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'s']] boolValue]) {
+        GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0, 0, cameraSpeed*dt));
+        cameraEye = GSVector3_Add(cameraEye, velocity);
+        wasCameraModified = YES;
+	}
+
+	if([[keysDown objectForKey:[NSNumber numberWithInt:'a']] boolValue]) {
+        GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(-cameraSpeed*dt, 0, 0));
+        cameraEye = GSVector3_Add(cameraEye, velocity);
+        wasCameraModified = YES;
+	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'d']] boolValue]) {
+        GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(cameraSpeed*dt, 0, 0));
+		cameraEye = GSVector3_Add(cameraEye, velocity);
+        wasCameraModified = YES;
+	}
+
+	if([[keysDown objectForKey:[NSNumber numberWithInt:'j']] boolValue]) {
+        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), cameraRotSpeed*dt);
+		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
+        wasCameraModified = YES;
+	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'l']] boolValue]) {
+        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), -cameraRotSpeed*dt);
+		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
+        wasCameraModified = YES;
+	}
+
+	if([[keysDown objectForKey:[NSNumber numberWithInt:'i']] boolValue]) {
+        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), -cameraRotSpeed*dt);
+		cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
+        wasCameraModified = YES;
+	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'k']] boolValue]) {
+        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), cameraRotSpeed*dt);
+        cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
+        wasCameraModified = YES;
+	}
+
+    if(wasCameraModified) {
+        [self updateCameraLookVectors];
+	}
+
 	cubeRotY += cubeRotSpeed * dt;
 	
     [self setNeedsDisplay:YES];
 	prevFrameTime = frameTime;
 }
+
 
 - (void)drawRect:(NSRect)dirtyRect
 {
@@ -177,10 +236,19 @@ int checkGLErrors(void);
 	glFlush();
 }
 
+
 -(void)dealloc
 {
 	[keysDown release];
 	[super dealloc];
+}
+
+
+// Updated the camera look vectors.
+- (void)updateCameraLookVectors
+{	
+	cameraCenter = GSVector3_Add(cameraEye, GSVector3_Normalize(GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0,0,-1))));	
+    cameraUp = GSVector3_Normalize(GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0,1,0)));
 }
 
 @end

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4A1B69901516B889008934F6 /* GSQuaternion.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A1B698F1516B889008934F6 /* GSQuaternion.c */; };
 		4A2CCFF71513C3FC006C6551 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A2CCFF61513C3FC006C6551 /* Cocoa.framework */; };
 		4A2CD0011513C3FC006C6551 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CCFFF1513C3FC006C6551 /* InfoPlist.strings */; };
 		4A2CD0031513C3FC006C6551 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CD0021513C3FC006C6551 /* main.m */; };
@@ -19,6 +20,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4A1B698D1516B882008934F6 /* GSQuaternion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSQuaternion.h; sourceTree = "<group>"; };
+		4A1B698F1516B889008934F6 /* GSQuaternion.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSQuaternion.c; sourceTree = "<group>"; };
 		4A2CCFF21513C3FC006C6551 /* GutsyStorm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GutsyStorm.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A2CCFF61513C3FC006C6551 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		4A2CCFF91513C3FC006C6551 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -92,6 +95,8 @@
 		4A2CCFFC1513C3FC006C6551 /* GutsyStorm */ = {
 			isa = PBXGroup;
 			children = (
+				4A1B698D1516B882008934F6 /* GSQuaternion.h */,
+				4A1B698F1516B889008934F6 /* GSQuaternion.c */,
 				4A4E20751516B07E008745E0 /* GSVector3.h */,
 				4A4E20761516B086008745E0 /* GSVector3.c */,
 				4AD9531B15142B1800C2AF8E /* GSOpenGLView.h */,
@@ -184,6 +189,7 @@
 				4A4E20771516B086008745E0 /* GSVector3.c in Sources */,
 				4A2CD00A1513C3FC006C6551 /* GSAppDelegate.m in Sources */,
 				4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */,
+				4A1B69901516B889008934F6 /* GSQuaternion.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
