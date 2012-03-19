@@ -1,5 +1,5 @@
 //
-//  GutsyStormOpenGLView.h
+//  GSOpenGLView.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/12.
@@ -7,6 +7,7 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import "GSVector3.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
@@ -16,6 +17,7 @@
 	float cubeRotSpeed;
 	float cubeRotY;
 	NSMutableDictionary* keysDown;
+	GSVector3 cameraEye, cameraCenter, cameraUp;
 }
 
 - (void)drawDebugCube;

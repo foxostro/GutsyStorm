@@ -1,5 +1,5 @@
 //
-//  GutsyStormAppDelegate.h
+//  GSAppDelegate.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/12.

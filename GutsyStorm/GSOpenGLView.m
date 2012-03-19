@@ -1,5 +1,5 @@
 //
-//  GutsyStormOpenGLView.m
+//  GSOpenGLView.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/12.
@@ -66,6 +66,10 @@ int checkGLErrors(void);
 	cubeRotSpeed = 10.0;
 	prevFrameTime = CFAbsoluteTimeGetCurrent();
 	keysDown = [[NSMutableDictionary alloc] init];
+	
+	cameraEye = GSVector3_Make(0.0f, 0.0f, 0.0f);
+	cameraCenter = GSVector3_Make(0.0f, 0.0f, -1.0f);
+	cameraUp = GSVector3_Make(0.0f, 1.0f, 0.0f);
 	
 	// Register with window to accept user input.
 	[[self window] makeFirstResponder: self];
@@ -160,9 +164,15 @@ int checkGLErrors(void);
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
+	
+	gluLookAt(cameraEye.x,    cameraEye.y,    cameraEye.z,
+              cameraCenter.x, cameraCenter.y, cameraCenter.z,
+              cameraUp.x,     cameraUp.y,     cameraUp.z);
+
 	glTranslatef(0, 0, -5);
 	glRotatef(cubeRotY, 0, 1, 0);
 	[self drawDebugCube];
+	
 	glPopMatrix();
 	glFlush();
 }

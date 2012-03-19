@@ -13,6 +13,7 @@
 		4A2CD0071513C3FC006C6551 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD0051513C3FC006C6551 /* Credits.rtf */; };
 		4A2CD00A1513C3FC006C6551 /* GSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */; };
 		4A2CD00D1513C3FD006C6551 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD00B1513C3FD006C6551 /* MainMenu.xib */; };
+		4A4E20771516B086008745E0 /* GSVector3.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A4E20761516B086008745E0 /* GSVector3.c */; };
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
 /* End PBXBuildFile section */
@@ -31,6 +32,8 @@
 		4A2CD0081513C3FC006C6551 /* GSAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSAppDelegate.h; sourceTree = "<group>"; };
 		4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GSAppDelegate.m; sourceTree = "<group>"; };
 		4A2CD00C1513C3FD006C6551 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		4A4E20751516B07E008745E0 /* GSVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVector3.h; sourceTree = "<group>"; };
+		4A4E20761516B086008745E0 /* GSVector3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSVector3.c; sourceTree = "<group>"; };
 		4AD9531815142AA000C2AF8E /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = ../../../../../System/Library/Frameworks/OpenGL.framework; sourceTree = "<group>"; };
 		4AD9531B15142B1800C2AF8E /* GSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLView.h; sourceTree = "<group>"; };
 		4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLView.m; sourceTree = "<group>"; };
@@ -53,7 +56,6 @@
 			isa = PBXGroup;
 			children = (
 				4A2CCFFC1513C3FC006C6551 /* GutsyStorm */,
-				4A2CCFF51513C3FC006C6551 /* Frameworks */,
 				4A2CCFF31513C3FC006C6551 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -73,6 +75,7 @@
 				4A2CCFF81513C3FC006C6551 /* Other Frameworks */,
 			);
 			name = Frameworks;
+			path = ..;
 			sourceTree = "<group>";
 		};
 		4A2CCFF81513C3FC006C6551 /* Other Frameworks */ = {
@@ -89,11 +92,14 @@
 		4A2CCFFC1513C3FC006C6551 /* GutsyStorm */ = {
 			isa = PBXGroup;
 			children = (
+				4A4E20751516B07E008745E0 /* GSVector3.h */,
+				4A4E20761516B086008745E0 /* GSVector3.c */,
 				4AD9531B15142B1800C2AF8E /* GSOpenGLView.h */,
 				4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */,
 				4A2CD0081513C3FC006C6551 /* GSAppDelegate.h */,
 				4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */,
 				4A2CD00B1513C3FD006C6551 /* MainMenu.xib */,
+				4A2CCFF51513C3FC006C6551 /* Frameworks */,
 				4A2CCFFD1513C3FC006C6551 /* Supporting Files */,
 			);
 			path = GutsyStorm;
@@ -136,6 +142,9 @@
 /* Begin PBXProject section */
 		4A2CCFE91513C3FC006C6551 /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				ORGANIZATIONNAME = "Andrew Fox";
+			};
 			buildConfigurationList = 4A2CCFEC1513C3FC006C6551 /* Build configuration list for PBXProject "GutsyStorm" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
@@ -172,6 +181,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A2CD0031513C3FC006C6551 /* main.m in Sources */,
+				4A4E20771516B086008745E0 /* GSVector3.c in Sources */,
 				4A2CD00A1513C3FC006C6551 /* GSAppDelegate.m in Sources */,
 				4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */,
 			);
