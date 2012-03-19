@@ -107,7 +107,7 @@
 	}
 
 	if(mouseDeltaX != 0) {
-		float mouseDirectionX = -mouseDeltaX / mouseSensitivity;
+		float mouseDirectionX = -mouseDeltaX/mouseSensitivity/dt;
 		float angle = mouseDirectionX*dt;
 		GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), angle);
 		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
@@ -115,7 +115,7 @@
 	}
 
 	if(mouseDeltaY != 0) {
-		float mouseDirectionY = -mouseDeltaY / mouseSensitivity;
+		float mouseDirectionY = -mouseDeltaY/mouseSensitivity/dt;
 		float angle = mouseDirectionY*dt;
 		GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), angle);
 		cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
