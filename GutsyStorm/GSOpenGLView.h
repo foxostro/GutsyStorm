@@ -14,14 +14,16 @@
 {
 	GLuint vboCubeVerts;
 	NSTimer* renderTimer;
-	CFAbsoluteTime prevFrameTime;
+	CFAbsoluteTime prevFrameTime, lastRenderTime;
+	CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
+	size_t numFramesSinceLastFpsLabelUpdate;
 	float cubeRotSpeed;
 	float cubeRotY;
 	NSMutableDictionary* keysDown;
 	int32_t mouseDeltaX, mouseDeltaY;
 	float mouseSensitivity;
 	GSCamera* camera;
-	GLString * testStringTex;
+	GLString * fpsStringTex;
 	NSMutableDictionary * stringAttribs; // attributes for string textures
 }
 

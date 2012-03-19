@@ -61,7 +61,7 @@ int checkGLErrors(void);
 	[stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
 	[font release];
 	
-	testStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"test"]
+	fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"test"]
 									  withAttributes:stringAttribs
 									   withTextColor:[NSColor whiteColor]
 										withBoxColor:[NSColor colorWithDeviceRed:0.3f
@@ -84,7 +84,7 @@ int checkGLErrors(void);
 - (void)resetMouseInputSettings
 {
 	// Reset mouse input mechanism for camera.
-	mouseSensitivity = 0.2;
+	mouseSensitivity = 500;
 	mouseDeltaX = 0;
 	mouseDeltaY = 0;
 	[self setMouseAtCenter];
@@ -96,7 +96,9 @@ int checkGLErrors(void);
 	vboCubeVerts = 0;
 	cubeRotY = 0.0;
 	cubeRotSpeed = 0.0;
-	prevFrameTime = CFAbsoluteTimeGetCurrent();
+	prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
+	fpsLabelUpdateInterval = 0.3;
+	numFramesSinceLastFpsLabelUpdate = 0;
 	keysDown = [[NSMutableDictionary alloc] init];
 	
 	camera = [[GSCamera alloc] init];
@@ -107,7 +109,7 @@ int checkGLErrors(void);
 	[[self window] setAcceptsMouseMovedEvents: YES];
 	
 	// Register a timer to drive the game loop.
-	renderTimer = [NSTimer timerWithTimeInterval:0.001   // a 1ms time interval
+	renderTimer = [NSTimer timerWithTimeInterval:0.0167 // 60 FPS
 										  target:self
 										selector:@selector(timerFired:)
 										userInfo:nil
@@ -218,6 +220,14 @@ int checkGLErrors(void);
 	CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
 	float dt = (float)(frameTime - prevFrameTime);
 	
+	// Update the FPS label every so often.
+	if(frameTime - lastFpsLabelUpdateTime > fpsLabelUpdateInterval) {
+		float fps = numFramesSinceLastFpsLabelUpdate / (lastRenderTime - lastFpsLabelUpdateTime);
+		lastFpsLabelUpdateTime = frameTime;
+		numFramesSinceLastFpsLabelUpdate = 0;
+		[fpsStringTex setString:[NSString stringWithFormat:@"FPS: %.1f",fps] withAttributes:stringAttribs];
+	}
+	
 	// Handle user input and update the camera if it was modified.
 	[self handleUserInput:dt];
 
@@ -247,7 +257,7 @@ int checkGLErrors(void);
 	glTranslatef(-width / 2.0f, -height / 2.0f, 0.0f);
 	
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	[testStringTex drawAtPoint:NSMakePoint(10.0f, height - [testStringTex frameSize].height - 10.0f)];
+	[fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f)];
 	
 	// reset orginal martices
 	glPopMatrix(); // GL_MODELVIEW
@@ -258,7 +268,6 @@ int checkGLErrors(void);
 	glDisable(GL_TEXTURE_RECTANGLE_EXT);
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
-
 }
 
 
@@ -277,8 +286,16 @@ int checkGLErrors(void);
 	
 	[self drawHUD];
 
-	glFlush();
+	if ([self inLiveResize]) {
+		glFlush();
+	} else {
+		[[self openGLContext] flushBuffer];
+	}
+	
 	assert(checkGLErrors() == 0);
+	
+	lastRenderTime = CFAbsoluteTimeGetCurrent();
+	numFramesSinceLastFpsLabelUpdate++;
 }
 
 
