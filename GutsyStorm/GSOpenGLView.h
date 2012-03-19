@@ -22,9 +22,10 @@
 	float mouseSensitivity;
 	GSCamera* camera;
 	GLString * testStringTex;
-	NSMutableDictionary * stanStringAttrib; // attributes for string textures
+	NSMutableDictionary * stringAttribs; // attributes for string textures
 }
 
+- (void)drawHUD;
 - (void)drawDebugCube;
 - (void)setMouseAtCenter;
 - (void)generateVBOForDebugCube;

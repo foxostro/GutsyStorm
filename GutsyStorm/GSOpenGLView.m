@@ -56,22 +56,22 @@ int checkGLErrors(void);
 	
 	// init fonts for use with strings
 	NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
-	stanStringAttrib = [[NSMutableDictionary dictionary] retain];
-	[stanStringAttrib setObject:font forKey:NSFontAttributeName];
-	[stanStringAttrib setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
+	stringAttribs = [[NSMutableDictionary dictionary] retain];
+	[stringAttribs setObject:font forKey:NSFontAttributeName];
+	[stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
 	[font release];
 	
 	testStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"test"]
-									  withAttributes:stanStringAttrib
+									  withAttributes:stringAttribs
 									   withTextColor:[NSColor whiteColor]
-										withBoxColor:[NSColor colorWithDeviceRed:0.0f
-																		   green:0.5f
-																			blue:0.0f
-																		   alpha:0.5f]
-									 withBorderColor:[NSColor colorWithDeviceRed:0.3f
-																		   green:0.8f
+										withBoxColor:[NSColor colorWithDeviceRed:0.3f
+																		   green:0.3f
 																			blue:0.3f
-																		   alpha:0.8f]];
+																		   alpha:1.0f]
+									 withBorderColor:[NSColor colorWithDeviceRed:0.7f
+																		   green:0.7f
+																			blue:0.7f
+																		   alpha:1.0f]];
 			
 	[self generateVBOForDebugCube];
 	[self enableVSync];
@@ -229,29 +229,14 @@ int checkGLErrors(void);
 }
 
 
-- (void)drawRect:(NSRect)dirtyRect
+// Draws the HUD UI.
+- (void)drawHUD
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
-	glPushMatrix();
-	[camera submitCameraTransform];
-	glTranslatef(0, 0, -5);
-	glRotatef(cubeRotY, 0, 1, 0);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	[self drawDebugCube];
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glPopMatrix();
-	
-	GLint matrixMode;
-	GLboolean depthTest = glIsEnabled (GL_DEPTH_TEST);
-	GLfloat height, width;
-	
 	NSRect r = [self bounds];
-	height = r.size.height;
-	width = r.size.width;
+	GLfloat height = r.size.height;
+	GLfloat width = r.size.width;
 	
-	// set orthograhic 1:1  pixel transform in local view coords
-	glGetIntegerv(GL_MATRIX_MODE, &matrixMode);
+	// set orthograhic 1:1 pixel transform in local view coords
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
@@ -268,14 +253,30 @@ int checkGLErrors(void);
 	glPopMatrix(); // GL_MODELVIEW
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
-	glMatrixMode(matrixMode);
+	glMatrixMode(GL_MODELVIEW);
 	
 	glDisable(GL_TEXTURE_RECTANGLE_EXT);
 	glDisable(GL_BLEND);
-	if(depthTest) {
-		glEnable (GL_DEPTH_TEST);
-	}
+	glEnable(GL_DEPTH_TEST);
+
+}
+
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
+	glPushMatrix();
+	[camera submitCameraTransform];
+	glTranslatef(0, 0, -5);
+	glRotatef(cubeRotY, 0, 1, 0);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	[self drawDebugCube];
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glPopMatrix();
+	
+	[self drawHUD];
+
 	glFlush();
 	assert(checkGLErrors() == 0);
 }
