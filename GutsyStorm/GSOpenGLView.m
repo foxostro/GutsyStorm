@@ -116,9 +116,7 @@ int checkGLErrors(void);
 
 // Draw a white cube
 - (void)drawDebugCube
-{
-	assert(checkGLErrors() == 0);
-	
+{	
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 	glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
@@ -176,6 +174,8 @@ int checkGLErrors(void);
 	glLoadIdentity();
 	gluPerspective(60.0, r.size.width/r.size.height, 0.1, 400.0);
 	glMatrixMode(GL_MODELVIEW);
+	
+	assert(checkGLErrors() == 0);
 }
 
 
@@ -221,6 +221,8 @@ int checkGLErrors(void);
 	[self drawDebugCube];
 	glPopMatrix();
 	glFlush();
+	
+	assert(checkGLErrors() == 0);
 }
 
 
