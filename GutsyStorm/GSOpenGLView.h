@@ -8,7 +8,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface GutsyStormOpenGLView : NSOpenGLView
+@interface GSOpenGLView : NSOpenGLView
 {
 	GLuint vboCubeVerts;
 	NSTimer* renderTimer;

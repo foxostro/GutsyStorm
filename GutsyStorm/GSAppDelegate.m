@@ -6,9 +6,9 @@
 //  Copyright © 2012 Andrew Fox. All rights reserved.
 //
 
-#import "GutsyStormAppDelegate.h"
+#import "GSAppDelegate.h"
 
-@implementation GutsyStormAppDelegate
+@implementation GSAppDelegate
 
 @synthesize window;
 

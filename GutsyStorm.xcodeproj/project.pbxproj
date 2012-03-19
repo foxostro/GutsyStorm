@@ -11,10 +11,10 @@
 		4A2CD0011513C3FC006C6551 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CCFFF1513C3FC006C6551 /* InfoPlist.strings */; };
 		4A2CD0031513C3FC006C6551 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CD0021513C3FC006C6551 /* main.m */; };
 		4A2CD0071513C3FC006C6551 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD0051513C3FC006C6551 /* Credits.rtf */; };
-		4A2CD00A1513C3FC006C6551 /* GutsyStormAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CD0091513C3FC006C6551 /* GutsyStormAppDelegate.m */; };
+		4A2CD00A1513C3FC006C6551 /* GSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */; };
 		4A2CD00D1513C3FD006C6551 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD00B1513C3FD006C6551 /* MainMenu.xib */; };
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
-		4AD9531D15142B1800C2AF8E /* GutsyStormOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GutsyStormOpenGLView.m */; };
+		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,12 +28,12 @@
 		4A2CD0021513C3FC006C6551 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		4A2CD0041513C3FC006C6551 /* GutsyStorm-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GutsyStorm-Prefix.pch"; sourceTree = "<group>"; };
 		4A2CD0061513C3FC006C6551 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = en; path = en.lproj/Credits.rtf; sourceTree = "<group>"; };
-		4A2CD0081513C3FC006C6551 /* GutsyStormAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GutsyStormAppDelegate.h; sourceTree = "<group>"; };
-		4A2CD0091513C3FC006C6551 /* GutsyStormAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GutsyStormAppDelegate.m; sourceTree = "<group>"; };
+		4A2CD0081513C3FC006C6551 /* GSAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSAppDelegate.h; sourceTree = "<group>"; };
+		4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GSAppDelegate.m; sourceTree = "<group>"; };
 		4A2CD00C1513C3FD006C6551 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		4AD9531815142AA000C2AF8E /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = ../../../../../System/Library/Frameworks/OpenGL.framework; sourceTree = "<group>"; };
-		4AD9531B15142B1800C2AF8E /* GutsyStormOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GutsyStormOpenGLView.h; sourceTree = "<group>"; };
-		4AD9531C15142B1800C2AF8E /* GutsyStormOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GutsyStormOpenGLView.m; sourceTree = "<group>"; };
+		4AD9531B15142B1800C2AF8E /* GSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLView.h; sourceTree = "<group>"; };
+		4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLView.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,10 +89,10 @@
 		4A2CCFFC1513C3FC006C6551 /* GutsyStorm */ = {
 			isa = PBXGroup;
 			children = (
-				4AD9531B15142B1800C2AF8E /* GutsyStormOpenGLView.h */,
-				4AD9531C15142B1800C2AF8E /* GutsyStormOpenGLView.m */,
-				4A2CD0081513C3FC006C6551 /* GutsyStormAppDelegate.h */,
-				4A2CD0091513C3FC006C6551 /* GutsyStormAppDelegate.m */,
+				4AD9531B15142B1800C2AF8E /* GSOpenGLView.h */,
+				4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */,
+				4A2CD0081513C3FC006C6551 /* GSAppDelegate.h */,
+				4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */,
 				4A2CD00B1513C3FD006C6551 /* MainMenu.xib */,
 				4A2CCFFD1513C3FC006C6551 /* Supporting Files */,
 			);
@@ -172,8 +172,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A2CD0031513C3FC006C6551 /* main.m in Sources */,
-				4A2CD00A1513C3FC006C6551 /* GutsyStormAppDelegate.m in Sources */,
-				4AD9531D15142B1800C2AF8E /* GutsyStormOpenGLView.m in Sources */,
+				4A2CD00A1513C3FC006C6551 /* GSAppDelegate.m in Sources */,
+				4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -9,7 +9,7 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <OpenGL/gl.h>
 #import <OpenGL/glu.h>
-#import "GutsyStormOpenGLView.h"
+#import "GSOpenGLView.h"
 
 GLfloat cubeVerts[] = {
 	-1, +1, +1,   +1, +1, -1,   -1, +1, -1, // Top Face
@@ -32,7 +32,7 @@ GLsizei numCubeVerts = 12*3;
 int checkGLErrors(void);
 
 
-@implementation GutsyStormOpenGLView
+@implementation GSOpenGLView
 
 - (void)prepareOpenGL
 {
