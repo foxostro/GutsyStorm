@@ -26,12 +26,13 @@
 }
 
 - (void)drawDebugCube;
-- (void)timerFired:(id)sender;
-- (void)updateCameraLookVectors;
 - (void)setMouseAtCenter;
 - (void)generateVBOForDebugCube;
 - (void)enableVSync;
-- (void)resetCamera;
 - (void)resetMouseInputSettings;
+- (void)timerFired:(id)sender;
+- (void)handleUserInput:(float)dt;
+- (void)updateCameraLookVectors;
+- (void)resetCamera;
 
 @end

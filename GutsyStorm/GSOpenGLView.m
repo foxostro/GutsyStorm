@@ -73,7 +73,6 @@ int checkGLErrors(void);
 	cameraUp = GSVector3_Make(0.0f, 1.0f, 0.0f);
 	cameraRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), 0);
 	[self updateCameraLookVectors];
-
 }
 
 
@@ -81,11 +80,10 @@ int checkGLErrors(void);
 - (void)resetMouseInputSettings
 {
 	// Reset mouse input mechanism for camera.
-	  mouseSensitivity = 0.2;
+	mouseSensitivity = 0.2;
 	mouseDeltaX = 0;
 	mouseDeltaY = 0;
 	[self setMouseAtCenter];
-
 }
 
 
@@ -195,13 +193,11 @@ int checkGLErrors(void);
 }
 
 
-// Timer callback method
-- (void)timerFired:(id)sender
+// Handle user input and update the camera if it was modified.
+- (void)handleUserInput:(float)dt
 {
-	CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
-	float dt = (float)(frameTime - prevFrameTime);
 	BOOL wasCameraModified = NO;
-
+	
 	if([[keysDown objectForKey:[NSNumber numberWithInt:'w']] boolValue]) {
         GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0, 0, -cameraSpeed*dt));
         cameraEye = GSVector3_Add(cameraEye, velocity);
@@ -257,15 +253,27 @@ int checkGLErrors(void);
 		cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
         wasCameraModified = YES;
 	}
-
-    if(wasCameraModified) {
-        [self updateCameraLookVectors];
-	}
-
-	cubeRotY += cubeRotSpeed * dt;
 	
 	mouseDeltaX = 0;
 	mouseDeltaY = 0;
+	
+	if(wasCameraModified) {
+        [self updateCameraLookVectors];
+	}
+}
+
+
+// Timer callback method
+- (void)timerFired:(id)sender
+{
+	CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
+	float dt = (float)(frameTime - prevFrameTime);
+	
+	// Handle user input and update the camera if it was modified.
+	[self handleUserInput:dt];
+
+	cubeRotY += cubeRotSpeed * dt;
+	
 	prevFrameTime = frameTime;
 	[self setNeedsDisplay:YES];
 }
