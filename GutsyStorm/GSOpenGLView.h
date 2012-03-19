@@ -34,5 +34,6 @@
 - (void)handleUserInput:(float)dt;
 - (void)updateCameraLookVectors;
 - (void)resetCamera;
+- (void)submitCameraTransform;
 
 @end
