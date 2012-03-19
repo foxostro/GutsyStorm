@@ -35,12 +35,15 @@ int checkGLErrors(void);
 
 @implementation GSOpenGLView
 
-- (void)enableVSync {
+- (void)enableVSync
+{
 	// enable vsync
 	  GLint swapInt = 1;
     [[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
 
 }
+
+
 - (void)prepareOpenGL
 {
 	[[self openGLContext] makeCurrentContext];
@@ -53,11 +56,8 @@ int checkGLErrors(void);
 	glDisable(GL_CULL_FACE);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			
-	glGenBuffers(1, &vboCubeVerts);
-	glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), cubeVerts, GL_STATIC_DRAW);
-	assert(checkGLErrors() == 0);
-	NSLog(@"Generated the VBO.");
+	[self generateVBOForDebugCube];
+
 	
 	[self enableVSync];
 
@@ -105,6 +105,17 @@ int checkGLErrors(void);
 	
 	[[NSRunLoop currentRunLoop] addTimer:renderTimer 
 								 forMode:NSEventTrackingRunLoopMode]; // Ensure timer fires during resize
+}
+
+
+// Generates the VBO for the debug cube.
+- (void)generateVBOForDebugCube
+{
+	glGenBuffers(1, &vboCubeVerts);
+	glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), cubeVerts, GL_STATIC_DRAW);
+	
+	assert(checkGLErrors() == 0);
 }
 
 
