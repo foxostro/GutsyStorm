@@ -64,7 +64,7 @@ int checkGLErrors(void);
 
 
 // Set the default camera and reset camera properties.
-- (void)setupDefaultCamera
+- (void)resetCamera
 {	
 	cameraSpeed = 5.0;
 	cameraRotSpeed = 1.0;
@@ -77,6 +77,18 @@ int checkGLErrors(void);
 }
 
 
+// Reset mouse input mechanism for camera.
+- (void)resetMouseInputSettings
+{
+	// Reset mouse input mechanism for camera.
+	  mouseSensitivity = 0.2;
+	mouseDeltaX = 0;
+	mouseDeltaY = 0;
+	[self setMouseAtCenter];
+
+}
+
+
 -(void)awakeFromNib
 {
 	vboCubeVerts = 0;
@@ -85,13 +97,8 @@ int checkGLErrors(void);
 	prevFrameTime = CFAbsoluteTimeGetCurrent();
 	keysDown = [[NSMutableDictionary alloc] init];
 	
-	// Reset mouse input mechanism for camera.
-	mouseSensitivity = 0.2;
-	mouseDeltaX = 0;
-	mouseDeltaY = 0;
-	[self setMouseAtCenter];
-	
-	[self setupDefaultCamera];
+	[self resetMouseInputSettings];
+	[self resetCamera];
 	
 	// Register with window to accept user input.
 	[[self window] makeFirstResponder: self];
