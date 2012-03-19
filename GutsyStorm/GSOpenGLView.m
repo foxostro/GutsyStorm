@@ -61,7 +61,7 @@ int checkGLErrors(void);
 	[stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
 	[font release];
 	
-	fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"test"]
+	fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
 									  withAttributes:stringAttribs
 									   withTextColor:[NSColor whiteColor]
 										withBoxColor:[NSColor colorWithDeviceRed:0.3f
