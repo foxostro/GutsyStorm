@@ -12,7 +12,7 @@
 #import "GSOpenGLView.h"
 
 
-GLfloat cubeVerts[] = {
+static const GLfloat cubeVerts[] = {
 	-1, +1, +1,   +1, +1, -1,   -1, +1, -1, // Top Face
 	-1, +1, +1,   +1, +1, +1,   +1, +1, -1,
 	-1, -1, -1,   +1, -1, -1,   -1, -1, +1, // Bottom Face
@@ -27,7 +27,7 @@ GLfloat cubeVerts[] = {
 	-1, -1, +1,   -1, +1, -1,   -1, -1, -1
 };
 
-GLsizei numCubeVerts = 12*3;
+static const GLsizei numCubeVerts = 12*3;
 
 
 int checkGLErrors(void);
@@ -35,6 +35,12 @@ int checkGLErrors(void);
 
 @implementation GSOpenGLView
 
+- (void)enableVSync {
+	// enable vsync
+	  GLint swapInt = 1;
+    [[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
+
+}
 - (void)prepareOpenGL
 {
 	[[self openGLContext] makeCurrentContext];
@@ -53,9 +59,8 @@ int checkGLErrors(void);
 	assert(checkGLErrors() == 0);
 	NSLog(@"Generated the VBO.");
 	
-	// enable vsync
-	GLint swapInt = 1;
-    [[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
+	[self enableVSync];
+
 }
 
 
