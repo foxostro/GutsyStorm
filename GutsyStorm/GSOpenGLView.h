@@ -28,6 +28,8 @@
 - (void)drawDebugCube;
 - (void)timerFired:(id)sender;
 - (void)updateCameraLookVectors;
-- (void) setMouseAtCenter;
+- (void)setMouseAtCenter;
+- (void)generateVBOForDebugCube;
+- (void)enableVSync;
 
 @end

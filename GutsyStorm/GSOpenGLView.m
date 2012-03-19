@@ -57,10 +57,9 @@ int checkGLErrors(void);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			
 	[self generateVBOForDebugCube];
-
-	
 	[self enableVSync];
 
+	assert(checkGLErrors() == 0);
 }
 
 
