@@ -148,9 +148,9 @@ int checkGLErrors(void);
 }
 
 
+// Reset mouse to the center of the view so it can't leave the window.
 - (void) setMouseAtCenter
 {
-	// Reset mouse to the center of the view so it can't leave the window.
 	NSRect bounds = [self bounds];
 	CGPoint viewCenter;
 	viewCenter.x = bounds.origin.x + bounds.size.width / 2;
@@ -175,7 +175,6 @@ int checkGLErrors(void);
 
 - (void)reshape
 {
-	NSLog(@"reshape");
 	NSRect r = [self convertRectToBase:[self bounds]];
 	glViewport(0, 0, r.size.width, r.size.height);
 	glMatrixMode(GL_PROJECTION);
@@ -296,6 +295,7 @@ int checkGLErrors(void);
 @end
 
 
+// Checks for OpenGL errors and logs any that it find. Returns the number of errors.
 int checkGLErrors(void)
 {
 	int errCount = 0;
