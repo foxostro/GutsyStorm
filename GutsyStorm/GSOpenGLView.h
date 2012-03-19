@@ -7,8 +7,7 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import "GSVector3.h"
-#import "GSQuaternion.h"
+#import "GSCamera.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
@@ -20,9 +19,7 @@
 	NSMutableDictionary* keysDown;
 	int32_t mouseDeltaX, mouseDeltaY;
 	float mouseSensitivity;
-	float cameraSpeed, cameraRotSpeed;
-	GSQuaternion cameraRot;
-	GSVector3 cameraEye, cameraCenter, cameraUp;
+	GSCamera* camera;
 }
 
 - (void)drawDebugCube;
@@ -32,8 +29,5 @@
 - (void)resetMouseInputSettings;
 - (void)timerFired:(id)sender;
 - (void)handleUserInput:(float)dt;
-- (void)updateCameraLookVectors;
-- (void)resetCamera;
-- (void)submitCameraTransform;
 
 @end

@@ -35,12 +35,11 @@ int checkGLErrors(void);
 
 @implementation GSOpenGLView
 
+// Enables vertical sync for drawing to limit FPS to the screen's refresh rate.
 - (void)enableVSync
 {
-	// enable vsync
-	  GLint swapInt = 1;
+	GLint swapInt = 1;
     [[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
-
 }
 
 
@@ -63,19 +62,6 @@ int checkGLErrors(void);
 }
 
 
-// Set the default camera and reset camera properties.
-- (void)resetCamera
-{	
-	cameraSpeed = 5.0;
-	cameraRotSpeed = 1.0;
-	cameraEye = GSVector3_Make(0.0f, 0.0f, 0.0f);
-	cameraCenter = GSVector3_Make(0.0f, 0.0f, -1.0f);
-	cameraUp = GSVector3_Make(0.0f, 1.0f, 0.0f);
-	cameraRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), 0);
-	[self updateCameraLookVectors];
-}
-
-
 // Reset mouse input mechanism for camera.
 - (void)resetMouseInputSettings
 {
@@ -95,8 +81,8 @@ int checkGLErrors(void);
 	prevFrameTime = CFAbsoluteTimeGetCurrent();
 	keysDown = [[NSMutableDictionary alloc] init];
 	
+	camera = [[GSCamera alloc] init];
 	[self resetMouseInputSettings];
-	[self resetCamera];
 	
 	// Register with window to accept user input.
 	[[self window] makeFirstResponder: self];
@@ -144,13 +130,13 @@ int checkGLErrors(void);
 }
 
 
-- (BOOL) acceptsFirstResponder
+- (BOOL)acceptsFirstResponder
 {
 	return YES;
 }
 
 
-- (void)mouseMoved: (NSEvent *)theEvent
+- (void)mouseMoved:(NSEvent *)theEvent
 {
 	CGGetLastMouseDelta(&mouseDeltaX, &mouseDeltaY);	
 	[self setMouseAtCenter];
@@ -158,7 +144,7 @@ int checkGLErrors(void);
 
 
 // Reset mouse to the center of the view so it can't leave the window.
-- (void) setMouseAtCenter
+- (void)setMouseAtCenter
 {
 	NSRect bounds = [self bounds];
 	CGPoint viewCenter;
@@ -168,14 +154,14 @@ int checkGLErrors(void);
 }
 
 
-- (void) keyDown:(NSEvent *)theEvent
+- (void)keyDown:(NSEvent *)theEvent
 {
 	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
 	[keysDown setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInt:key]];
 }
 
 
-- (void) keyUp:(NSEvent *)theEvent
+- (void)keyUp:(NSEvent *)theEvent
 {
 	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
 	[keysDown setObject:[NSNumber numberWithBool:NO] forKey:[NSNumber numberWithInt:key]];
@@ -196,70 +182,15 @@ int checkGLErrors(void);
 // Handle user input and update the camera if it was modified.
 - (void)handleUserInput:(float)dt
 {
-	BOOL wasCameraModified = NO;
+	[camera handleUserInputForFlyingCameraWithDeltaTime:dt
+											   keysDown:keysDown
+											mouseDeltaX:mouseDeltaX
+											mouseDeltaY:mouseDeltaY
+									   mouseSensitivity:mouseSensitivity];
 	
-	if([[keysDown objectForKey:[NSNumber numberWithInt:'w']] boolValue]) {
-        GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0, 0, -cameraSpeed*dt));
-        cameraEye = GSVector3_Add(cameraEye, velocity);
-        wasCameraModified = YES;
-	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'s']] boolValue]) {
-        GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0, 0, cameraSpeed*dt));
-        cameraEye = GSVector3_Add(cameraEye, velocity);
-        wasCameraModified = YES;
-	}
-
-	if([[keysDown objectForKey:[NSNumber numberWithInt:'a']] boolValue]) {
-        GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(-cameraSpeed*dt, 0, 0));
-        cameraEye = GSVector3_Add(cameraEye, velocity);
-        wasCameraModified = YES;
-	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'d']] boolValue]) {
-        GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(cameraSpeed*dt, 0, 0));
-		cameraEye = GSVector3_Add(cameraEye, velocity);
-        wasCameraModified = YES;
-	}
-
-	if([[keysDown objectForKey:[NSNumber numberWithInt:'j']] boolValue]) {
-        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), cameraRotSpeed*dt);
-		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
-        wasCameraModified = YES;
-	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'l']] boolValue]) {
-        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), -cameraRotSpeed*dt);
-		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
-        wasCameraModified = YES;
-	}
-
-	if([[keysDown objectForKey:[NSNumber numberWithInt:'i']] boolValue]) {
-        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), -cameraRotSpeed*dt);
-		cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
-        wasCameraModified = YES;
-	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'k']] boolValue]) {
-        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), cameraRotSpeed*dt);
-        cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
-        wasCameraModified = YES;
-	}
-	
-	if(mouseDeltaX != 0) {
-		float mouseDirectionX = -mouseDeltaX / mouseSensitivity;
-		float angle = mouseDirectionX*dt;
-        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), angle);
-		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
-        wasCameraModified = YES;
-	}
-	
-	if(mouseDeltaY != 0) {
-		float mouseDirectionY = -mouseDeltaY / mouseSensitivity;
-		float angle = mouseDirectionY*dt;
-        GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), angle);
-		cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
-        wasCameraModified = YES;
-	}
-	
+	// Reset for the next update
 	mouseDeltaX = 0;
 	mouseDeltaY = 0;
-	
-	if(wasCameraModified) {
-        [self updateCameraLookVectors];
-	}
 }
 
 
@@ -272,6 +203,7 @@ int checkGLErrors(void);
 	// Handle user input and update the camera if it was modified.
 	[self handleUserInput:dt];
 
+	// The cube spins slowly around the Y-axis.
 	cubeRotY += cubeRotSpeed * dt;
 	
 	prevFrameTime = frameTime;
@@ -279,21 +211,11 @@ int checkGLErrors(void);
 }
 
 
-// Submits the camera transformation to OpenGL.
-- (void)submitCameraTransform
-{
-	gluLookAt(cameraEye.x,    cameraEye.y,    cameraEye.z,
-              cameraCenter.x, cameraCenter.y, cameraCenter.z,
-              cameraUp.x,     cameraUp.y,     cameraUp.z);
-
-}
-
-
 - (void)drawRect:(NSRect)dirtyRect
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
-	[self submitCameraTransform];
+	[camera submitCameraTransform];
 	glTranslatef(0, 0, -5);
 	glRotatef(cubeRotY, 0, 1, 0);
 	[self drawDebugCube];
@@ -305,15 +227,8 @@ int checkGLErrors(void);
 - (void)dealloc
 {
 	[keysDown release];
+	[camera release];
 	[super dealloc];
-}
-
-
-// Updated the camera look vectors.
-- (void)updateCameraLookVectors
-{	
-	cameraCenter = GSVector3_Add(cameraEye, GSVector3_Normalize(GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0,0,-1))));	
-    cameraUp = GSVector3_Normalize(GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0,1,0)));
 }
 
 @end
