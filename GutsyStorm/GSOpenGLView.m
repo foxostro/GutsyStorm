@@ -87,7 +87,7 @@ int checkGLErrors(void);
 }
 
 
--(void)awakeFromNib
+- (void)awakeFromNib
 {
 	vboCubeVerts = 0;
 	cubeRotY = 0.0;
@@ -279,25 +279,30 @@ int checkGLErrors(void);
 }
 
 
-- (void)drawRect:(NSRect)dirtyRect
+// Submits the camera transformation to OpenGL.
+- (void)submitCameraTransform
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glPushMatrix();
-	
 	gluLookAt(cameraEye.x,    cameraEye.y,    cameraEye.z,
               cameraCenter.x, cameraCenter.y, cameraCenter.z,
               cameraUp.x,     cameraUp.y,     cameraUp.z);
 
+}
+
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glPushMatrix();
+	[self submitCameraTransform];
 	glTranslatef(0, 0, -5);
 	glRotatef(cubeRotY, 0, 1, 0);
 	[self drawDebugCube];
-	
 	glPopMatrix();
 	glFlush();
 }
 
 
--(void)dealloc
+- (void)dealloc
 {
 	[keysDown release];
 	[super dealloc];
