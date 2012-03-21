@@ -113,8 +113,8 @@ int checkGLErrors(void);
     glEnable(GL_LIGHT0);
     
     GLfloat lightDir[] = {0.707, -0.707, 0.707, 0.0};
-    GLfloat lightAmbient[] = {0.5, 0.5, 0.5, 1.0};
-    GLfloat lightDiffuse[] = {0.9, 0.9, 0.9, 1.0};
+    GLfloat lightAmbient[] = {0.3, 0.3, 0.3, 1.0};
+    GLfloat lightDiffuse[] = {0.7, 0.7, 0.7, 1.0};
     GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
     
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
@@ -122,10 +122,10 @@ int checkGLErrors(void);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
     glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
     
-    GLfloat materialAmbient[] = {0.5, 0.5, 0.5, 1.0};
-    GLfloat materialDiffuse[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat materialAmbient[] = {0.3, 0.3, 0.3, 1.0};
+    GLfloat materialDiffuse[] = {0.7, 0.7, 0.7, 1.0};
     GLfloat materialSpecular[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat materialShininess = 10.0;
+    GLfloat materialShininess = 20.0;
     
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, materialAmbient);
     glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, materialDiffuse);
@@ -174,8 +174,8 @@ int checkGLErrors(void);
 {
 	vboCubeVerts = 0;
     vboCubeNorms = 0;
-	cubeRotY = 45.0;
-	cubeRotSpeed = 0.0;
+	cubeRotY = 0.0;
+	cubeRotSpeed = 10.0;
 	prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
 	fpsLabelUpdateInterval = 0.3;
 	numFramesSinceLastFpsLabelUpdate = 0;
@@ -376,8 +376,10 @@ int checkGLErrors(void);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
 	glPushMatrix();
-	// TODO: Transform light position into eye-space here?
 	[camera submitCameraTransform];
+    
+    GLfloat lightDir[] = {0.707, -0.707, 0.707, 0.0};    
+    glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
     
 	glTranslatef(0, 0, -5);
 	glRotatef(cubeRotY, 0, 1, 0);
