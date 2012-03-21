@@ -9,10 +9,11 @@
 #import <Cocoa/Cocoa.h>
 #import "GSCamera.h"
 #import "GLString.h"
+#import "GSShader.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
-	GLuint vboCubeVerts;
+	GLuint vboCubeVerts, vboCubeNorms;
 	NSTimer* renderTimer;
 	CFAbsoluteTime prevFrameTime, lastRenderTime;
 	CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
@@ -25,6 +26,7 @@
 	GSCamera* camera;
 	GLString * fpsStringTex;
 	NSMutableDictionary * stringAttribs; // attributes for string textures
+    GSShader *shader;
 }
 
 - (void)drawHUD;
@@ -35,5 +37,7 @@
 - (void)resetMouseInputSettings;
 - (void)timerFired:(id)sender;
 - (void)handleUserInput:(float)dt;
+- (NSString *)loadShaderSourceFileWithPath:(NSString *)path;
+- (void)buildShader;
 
 @end
