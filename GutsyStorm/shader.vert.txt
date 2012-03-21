@@ -1,0 +1,16 @@
+varying vec3 normal, lightDir0, eyeVec;
+
+void main()
+{
+    normal = gl_NormalMatrix * gl_Normal;
+    gl_TexCoord[0]  = gl_MultiTexCoord0;
+
+    // Vertex position in eye-space
+    vec3 vVertex = vec3(gl_ModelViewMatrix * gl_Vertex);
+    eyeVec = -vVertex;
+
+    // Light direction in eye-space
+    lightDir0 = -gl_LightSource[0].position.xyz;
+
+    gl_Position = ftransform();
+}

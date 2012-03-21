@@ -27,6 +27,22 @@ static const GLfloat cubeVerts[] = {
 	-1, -1, +1,   -1, +1, -1,   -1, -1, -1
 };
 
+
+static const GLfloat cubeNorms[] = {
+	 0, +1,  0,    0, +1,  0,    0, +1,  0, // Top Face
+     0, +1,  0,    0, +1,  0,    0, +1,  0,
+     0, -1,  0,    0, -1,  0,    0, -1,  0, // Bottom Face
+     0, -1,  0,    0, -1,  0,    0, -1,  0,
+	 0,  0, +1,    0,  0, +1,    0,  0, +1, // Front Face
+	 0,  0, +1,    0,  0, +1,    0,  0, +1,
+	 0,  0, -1,    0,  0, -1,    0,  0, -1, // Back Face
+	 0,  0, -1,    0,  0, -1,    0,  0, -1,
+	+1,  0,  0,   +1,  0,  0,   +1,  0,  0, // Right Face
+	+1,  0,  0,   +1,  0,  0,   +1,  0,  0,
+	-1,  0,  0,   -1,  0,  0,   -1,  0,  0, // Left Face
+	-1,  0,  0,   -1,  0,  0,   -1,  0,  0
+};
+
 static const GLsizei numCubeVerts = 12*3;
 
 
@@ -43,6 +59,44 @@ int checkGLErrors(void);
 }
 
 
+- (NSString *)loadShaderSourceFileWithPath:(NSString *)path
+{
+    NSError *error;
+    NSString *str = [[NSString alloc] initWithContentsOfFile:path
+                                                     encoding:NSMacOSRomanStringEncoding
+                                                        error:&error];
+    if (!str) {
+        NSLog(@"Error reading file at %@: %@", path, [error localizedFailureReason]);
+        return @"";
+    }
+    
+    return str;
+}
+
+
+- (void)buildShader
+{
+    if(shader) {
+        [shader release];
+    }
+    
+	assert(checkGLErrors() == 0);
+    
+    NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.vert" ofType:@"txt"];
+    NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.frag" ofType:@"txt"];
+    
+    NSString *vertSrc = [self loadShaderSourceFileWithPath:vertFn];
+    NSString *fragSrc = [self loadShaderSourceFileWithPath:fragFn];
+        
+    shader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+    
+    [fragSrc release];
+    [vertSrc release];
+    
+	assert(checkGLErrors() == 0);
+}
+
+
 - (void)prepareOpenGL
 {
 	[[self openGLContext] makeCurrentContext];
@@ -53,6 +107,30 @@ int checkGLErrors(void);
 	glDisable(GL_LIGHTING);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
+    
+    // Simple light setup.
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    
+    GLfloat lightDir[] = {0.707, -0.707, 0.707, 0.0};
+    GLfloat lightAmbient[] = {0.5, 0.5, 0.5, 1.0};
+    GLfloat lightDiffuse[] = {0.9, 0.9, 0.9, 1.0};
+    GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
+    
+    glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
+    
+    GLfloat materialAmbient[] = {0.5, 0.5, 0.5, 1.0};
+    GLfloat materialDiffuse[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat materialSpecular[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat materialShininess = 10.0;
+    
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, materialAmbient);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, materialDiffuse);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, materialSpecular);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, materialShininess);
 	
 	// init fonts for use with strings
 	NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
@@ -74,8 +152,9 @@ int checkGLErrors(void);
 																		   alpha:1.0f]];
 			
 	[self generateVBOForDebugCube];
+    [self buildShader];
 	[self enableVSync];
-
+    
 	assert(checkGLErrors() == 0);
 }
 
@@ -94,12 +173,14 @@ int checkGLErrors(void);
 - (void)awakeFromNib
 {
 	vboCubeVerts = 0;
-	cubeRotY = 0.0;
+    vboCubeNorms = 0;
+	cubeRotY = 45.0;
 	cubeRotSpeed = 0.0;
 	prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
 	fpsLabelUpdateInterval = 0.3;
 	numFramesSinceLastFpsLabelUpdate = 0;
 	keysDown = [[NSMutableDictionary alloc] init];
+    shader = nil;
 	
 	camera = [[GSCamera alloc] init];
 	[self resetMouseInputSettings];
@@ -129,6 +210,10 @@ int checkGLErrors(void);
 	glGenBuffers(1, &vboCubeVerts);
 	glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), cubeVerts, GL_STATIC_DRAW);
+    
+	glGenBuffers(1, &vboCubeNorms);
+	glBindBuffer(GL_ARRAY_BUFFER, vboCubeNorms);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeNorms), cubeNorms, GL_STATIC_DRAW);
 	
 	assert(checkGLErrors() == 0);
 }
@@ -137,11 +222,20 @@ int checkGLErrors(void);
 // Draw a white cube
 - (void)drawDebugCube
 {	
-	glEnableClientState(GL_VERTEX_ARRAY);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
+    
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+    
 	glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
 	glVertexPointer(3, GL_FLOAT, 0, 0);
+    
+	glBindBuffer(GL_ARRAY_BUFFER, vboCubeNorms);
+	glNormalPointer(GL_FLOAT, 0, 0);
+    
 	glDrawArrays(GL_TRIANGLES, 0, numCubeVerts);
+    
+	glEnableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	 
 	assert(checkGLErrors() == 0);
@@ -246,6 +340,11 @@ int checkGLErrors(void);
 	GLfloat height = r.size.height;
 	GLfloat width = r.size.width;
 	
+    glDisable(GL_LIGHTING);
+	glEnable(GL_TEXTURE_RECTANGLE_EXT);
+	glEnable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	
 	// set orthograhic 1:1 pixel transform in local view coords
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -265,6 +364,7 @@ int checkGLErrors(void);
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
 	
+    glEnable(GL_LIGHTING);
 	glDisable(GL_TEXTURE_RECTANGLE_EXT);
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -274,14 +374,16 @@ int checkGLErrors(void);
 - (void)drawRect:(NSRect)dirtyRect
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+    
 	glPushMatrix();
+	// TODO: Transform light position into eye-space here?
 	[camera submitCameraTransform];
+    
 	glTranslatef(0, 0, -5);
 	glRotatef(cubeRotY, 0, 1, 0);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    [shader bind];
 	[self drawDebugCube];
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    [shader unbind];
 	glPopMatrix();
 	
 	[self drawHUD];
