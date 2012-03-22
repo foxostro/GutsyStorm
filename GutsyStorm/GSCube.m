@@ -111,8 +111,8 @@ static const GLsizei numCubeVerts = 12*3;
     
 	glDrawArrays(GL_TRIANGLES, 0, numCubeVerts);
     
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
