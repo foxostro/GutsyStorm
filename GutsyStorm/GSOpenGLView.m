@@ -66,6 +66,30 @@ int checkGLErrors(void);
 }
 
 
+- (void)buildFontsAndStrings
+{
+	// init fonts for use with strings
+    NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
+	stringAttribs = [[NSMutableDictionary dictionary] retain];
+	[stringAttribs setObject:font forKey:NSFontAttributeName];
+	[stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
+	[font release];
+	
+	fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
+									  withAttributes:stringAttribs
+									   withTextColor:[NSColor whiteColor]
+										withBoxColor:[NSColor colorWithDeviceRed:0.3f
+																		   green:0.3f
+																			blue:0.3f
+																		   alpha:1.0f]
+									 withBorderColor:[NSColor colorWithDeviceRed:0.7f
+																		   green:0.7f
+																			blue:0.7f
+																		   alpha:1.0f]];
+
+}
+
+
 - (void)prepareOpenGL
 {
 	[[self openGLContext] makeCurrentContext];
@@ -104,26 +128,11 @@ int checkGLErrors(void);
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, materialSpecular);
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, materialShininess);
 	
-	// init fonts for use with strings
-	NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
-	stringAttribs = [[NSMutableDictionary dictionary] retain];
-	[stringAttribs setObject:font forKey:NSFontAttributeName];
-	[stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
-	[font release];
-	
-	fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
-									  withAttributes:stringAttribs
-									   withTextColor:[NSColor whiteColor]
-										withBoxColor:[NSColor colorWithDeviceRed:0.3f
-																		   green:0.3f
-																			blue:0.3f
-																		   alpha:1.0f]
-									 withBorderColor:[NSColor colorWithDeviceRed:0.7f
-																		   green:0.7f
-																			blue:0.7f
-																		   alpha:1.0f]];
-			
+    [self buildFontsAndStrings];
+    
 	cube = [[GSCube alloc] init];
+    chunk = [[GSChunk alloc] init];
+    
     [self buildShader];
     
     textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
@@ -159,6 +168,7 @@ int checkGLErrors(void);
     shader = nil;
     textureArray = nil;
     cube = nil;
+    chunk = nil;
 	
 	camera = [[GSCamera alloc] init];
 	[self resetMouseInputSettings];
@@ -330,12 +340,21 @@ int checkGLErrors(void);
     GLfloat lightDir[] = {0.707, -0.707, 0.707, 0.0};    
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
     
-	glTranslatef(0, 0, -5);
+	glPushMatrix();
+    glTranslatef(0, 0, +5);
+    [shader bind];
+	[chunk draw];
+    [shader unbind];
+	glPopMatrix(); // chunk
+    
+	glPushMatrix();
+    glTranslatef(0, 0, -5);
 	glRotatef(cubeRotY, 0, 1, 0);
     [shader bind];
 	[cube draw];
     [shader unbind];
-	glPopMatrix();
+	glPopMatrix(); // cube
+	glPopMatrix(); // camera transform
 	
 	[self drawHUD];
 
