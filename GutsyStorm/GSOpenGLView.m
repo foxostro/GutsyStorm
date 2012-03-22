@@ -43,6 +43,22 @@ static const GLfloat cubeNorms[] = {
 	-1,  0,  0,   -1,  0,  0,   -1,  0,  0
 };
 
+
+static const GLfloat cubeTexCoords[] = {
+    1, 1, 0,   0, 0, 0,   1, 0, 0, // Top Face
+    1, 1, 0,   0, 1, 0,   0, 0, 0,
+    1, 0, 1,   0, 0, 1,   1, 1, 1, // Bottom Face
+    0, 0, 1,   0, 1, 1,   1, 1, 1,
+    0, 1, 2,   1, 0, 2,   0, 0, 2, // Front Face
+    0, 1, 2,   1, 1, 2,   1, 0, 2,
+    0, 0, 2,   1, 0, 2,   0, 1, 2, // Back Face
+    1, 0, 2,   1, 1, 2,   0, 1, 2,
+    0, 0, 2,   1, 0, 2,   1, 1, 2, // Right Face
+    0, 1, 2,   0, 0, 2,   1, 1, 2,
+    1, 1, 2,   1, 0, 2,   0, 0, 2, // Left Face
+    1, 1, 2,   0, 0, 2,   0, 1, 2
+};
+
 static const GLsizei numCubeVerts = 12*3;
 
 
@@ -93,6 +109,9 @@ int checkGLErrors(void);
     [fragSrc release];
     [vertSrc release];
     
+    [shader bind];
+    [shader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
+    
 	assert(checkGLErrors() == 0);
 }
 
@@ -108,6 +127,9 @@ int checkGLErrors(void);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
     
+    glDisable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
+    
     // Simple light setup.
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
@@ -122,8 +144,8 @@ int checkGLErrors(void);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
     glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
     
-    GLfloat materialAmbient[] = {0.3, 0.3, 0.3, 1.0};
-    GLfloat materialDiffuse[] = {0.7, 0.7, 0.7, 1.0};
+    GLfloat materialAmbient[] = {0.5, 0.5, 0.5, 1.0};
+    GLfloat materialDiffuse[] = {0.8, 0.8, 0.8, 1.0};
     GLfloat materialSpecular[] = {1.0, 1.0, 1.0, 1.0};
     GLfloat materialShininess = 20.0;
     
@@ -153,6 +175,12 @@ int checkGLErrors(void);
 			
 	[self generateVBOForDebugCube];
     [self buildShader];
+    
+    textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
+                                                                             pathForResource:@"terrain"
+                                                                                      ofType:@"png"]
+                                                 numTextures:3];
+    
 	[self enableVSync];
     
 	assert(checkGLErrors() == 0);
@@ -174,6 +202,7 @@ int checkGLErrors(void);
 {
 	vboCubeVerts = 0;
     vboCubeNorms = 0;
+    vboCubeTexCoords = 0;
 	cubeRotY = 0.0;
 	cubeRotSpeed = 10.0;
 	prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
@@ -181,6 +210,7 @@ int checkGLErrors(void);
 	numFramesSinceLastFpsLabelUpdate = 0;
 	keysDown = [[NSMutableDictionary alloc] init];
     shader = nil;
+    textureArray = nil;
 	
 	camera = [[GSCamera alloc] init];
 	[self resetMouseInputSettings];
@@ -214,6 +244,10 @@ int checkGLErrors(void);
 	glGenBuffers(1, &vboCubeNorms);
 	glBindBuffer(GL_ARRAY_BUFFER, vboCubeNorms);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeNorms), cubeNorms, GL_STATIC_DRAW);
+    
+	glGenBuffers(1, &vboCubeTexCoords);
+	glBindBuffer(GL_ARRAY_BUFFER, vboCubeTexCoords);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeTexCoords), cubeTexCoords, GL_STATIC_DRAW);
 	
 	assert(checkGLErrors() == 0);
 }
@@ -226,6 +260,7 @@ int checkGLErrors(void);
     
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
 	glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
 	glVertexPointer(3, GL_FLOAT, 0, 0);
@@ -233,8 +268,12 @@ int checkGLErrors(void);
 	glBindBuffer(GL_ARRAY_BUFFER, vboCubeNorms);
 	glNormalPointer(GL_FLOAT, 0, 0);
     
+	glBindBuffer(GL_ARRAY_BUFFER, vboCubeTexCoords);
+	glTexCoordPointer(3, GL_FLOAT, 0, 0);
+    
 	glDrawArrays(GL_TRIANGLES, 0, numCubeVerts);
     
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	 
@@ -407,6 +446,8 @@ int checkGLErrors(void);
 {
 	[keysDown release];
 	[camera release];
+    [shader release];
+    [textureArray release];
 	[super dealloc];
 }
 

@@ -177,4 +177,12 @@ extern int checkGLErrors(void);
     glUseProgram(0);
 }
 
+
+- (void)bindUniformWithNSString:(NSString *)name val:(GLint)val
+{
+    const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
+    glUniform1i(glGetUniformLocation(handle, nameCStr), val);
+    assert(checkGLErrors() == 0);
+}
+
 @end

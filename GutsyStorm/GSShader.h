@@ -39,4 +39,6 @@
 
 - (void)unbind;
 
+- (void)bindUniformWithNSString:(NSString *)name val:(GLint)val;
+
 @end

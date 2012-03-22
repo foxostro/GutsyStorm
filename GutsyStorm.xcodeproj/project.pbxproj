@@ -22,6 +22,8 @@
 		AC9CCD701519A90E0081964D /* GSShader.m in Sources */ = {isa = PBXBuildFile; fileRef = AC9CCD6F1519A90E0081964D /* GSShader.m */; };
 		AC9CCD741519B8AA0081964D /* shader.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD721519B8AA0081964D /* shader.frag.txt */; };
 		AC9CCD751519B8AA0081964D /* shader.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD731519B8AA0081964D /* shader.vert.txt */; };
+		ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */; };
+		ACF27B03151AE486009FCAB9 /* terrain.png in Resources */ = {isa = PBXBuildFile; fileRef = ACF27B02151AE486009FCAB9 /* terrain.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,6 +55,9 @@
 		AC9CCD6F1519A90E0081964D /* GSShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSShader.m; sourceTree = "<group>"; };
 		AC9CCD721519B8AA0081964D /* shader.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.frag.txt; sourceTree = "<group>"; };
 		AC9CCD731519B8AA0081964D /* shader.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.vert.txt; sourceTree = "<group>"; };
+		ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextureArray.h; sourceTree = "<group>"; };
+		ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTextureArray.m; sourceTree = "<group>"; };
+		ACF27B02151AE486009FCAB9 /* terrain.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = terrain.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,6 +113,8 @@
 		4A2CCFFC1513C3FC006C6551 /* GutsyStorm */ = {
 			isa = PBXGroup;
 			children = (
+				ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */,
+				ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */,
 				AC9CCD6E1519A90E0081964D /* GSShader.h */,
 				AC9CCD6F1519A90E0081964D /* GSShader.m */,
 				4A9A3BAB1517252E00607B1A /* GLString.h */,
@@ -132,6 +139,7 @@
 		4A2CCFFD1513C3FC006C6551 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				ACF27B02151AE486009FCAB9 /* terrain.png */,
 				AC9CCD721519B8AA0081964D /* shader.frag.txt */,
 				AC9CCD731519B8AA0081964D /* shader.vert.txt */,
 				4A2CCFFE1513C3FC006C6551 /* GutsyStorm-Info.plist */,
@@ -198,6 +206,7 @@
 				4A2CD00D1513C3FD006C6551 /* MainMenu.xib in Resources */,
 				AC9CCD741519B8AA0081964D /* shader.frag.txt in Resources */,
 				AC9CCD751519B8AA0081964D /* shader.vert.txt in Resources */,
+				ACF27B03151AE486009FCAB9 /* terrain.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -216,6 +225,7 @@
 				4A9A3BA61517200E00607B1A /* GSCamera.m in Sources */,
 				4A9A3BAD1517252E00607B1A /* GLString.m in Sources */,
 				AC9CCD701519A90E0081964D /* GSShader.m in Sources */,
+				ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
