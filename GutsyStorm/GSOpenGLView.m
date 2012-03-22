@@ -12,56 +12,6 @@
 #import "GSOpenGLView.h"
 
 
-static const GLfloat cubeVerts[] = {
-	-1, +1, +1,   +1, +1, -1,   -1, +1, -1, // Top Face
-	-1, +1, +1,   +1, +1, +1,   +1, +1, -1,
-	-1, -1, -1,   +1, -1, -1,   -1, -1, +1, // Bottom Face
-	+1, -1, -1,   +1, -1, +1,   -1, -1, +1,
-	-1, -1, +1,   +1, +1, +1,   -1, +1, +1, // Front Face
-	-1, -1, +1,   +1, -1, +1,   +1, +1, +1,
-	-1, +1, -1,   +1, +1, -1,   -1, -1, -1, // Back Face
-	+1, +1, -1,   +1, -1, -1,   -1, -1, -1,
-	+1, +1, -1,   +1, +1, +1,   +1, -1, +1, // Right Face
-	+1, -1, -1,   +1, +1, -1,   +1, -1, +1,
-	-1, -1, +1,   -1, +1, +1,   -1, +1, -1, // Left Face
-	-1, -1, +1,   -1, +1, -1,   -1, -1, -1
-};
-
-
-static const GLfloat cubeNorms[] = {
-	 0, +1,  0,    0, +1,  0,    0, +1,  0, // Top Face
-     0, +1,  0,    0, +1,  0,    0, +1,  0,
-     0, -1,  0,    0, -1,  0,    0, -1,  0, // Bottom Face
-     0, -1,  0,    0, -1,  0,    0, -1,  0,
-	 0,  0, +1,    0,  0, +1,    0,  0, +1, // Front Face
-	 0,  0, +1,    0,  0, +1,    0,  0, +1,
-	 0,  0, -1,    0,  0, -1,    0,  0, -1, // Back Face
-	 0,  0, -1,    0,  0, -1,    0,  0, -1,
-	+1,  0,  0,   +1,  0,  0,   +1,  0,  0, // Right Face
-	+1,  0,  0,   +1,  0,  0,   +1,  0,  0,
-	-1,  0,  0,   -1,  0,  0,   -1,  0,  0, // Left Face
-	-1,  0,  0,   -1,  0,  0,   -1,  0,  0
-};
-
-
-static const GLfloat cubeTexCoords[] = {
-    1, 1, 0,   0, 0, 0,   1, 0, 0, // Top Face
-    1, 1, 0,   0, 1, 0,   0, 0, 0,
-    1, 0, 1,   0, 0, 1,   1, 1, 1, // Bottom Face
-    0, 0, 1,   0, 1, 1,   1, 1, 1,
-    0, 1, 2,   1, 0, 2,   0, 0, 2, // Front Face
-    0, 1, 2,   1, 1, 2,   1, 0, 2,
-    0, 0, 2,   1, 0, 2,   0, 1, 2, // Back Face
-    1, 0, 2,   1, 1, 2,   0, 1, 2,
-    0, 0, 2,   1, 0, 2,   1, 1, 2, // Right Face
-    0, 1, 2,   0, 0, 2,   1, 1, 2,
-    1, 1, 2,   1, 0, 2,   0, 0, 2, // Left Face
-    1, 1, 2,   0, 0, 2,   0, 1, 2
-};
-
-static const GLsizei numCubeVerts = 12*3;
-
-
 int checkGLErrors(void);
 
 
@@ -173,7 +123,7 @@ int checkGLErrors(void);
 																			blue:0.7f
 																		   alpha:1.0f]];
 			
-	[self generateVBOForDebugCube];
+	cube = [[GSCube alloc] init];
     [self buildShader];
     
     textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
@@ -200,9 +150,6 @@ int checkGLErrors(void);
 
 - (void)awakeFromNib
 {
-	vboCubeVerts = 0;
-    vboCubeNorms = 0;
-    vboCubeTexCoords = 0;
 	cubeRotY = 0.0;
 	cubeRotSpeed = 10.0;
 	prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
@@ -211,6 +158,7 @@ int checkGLErrors(void);
 	keysDown = [[NSMutableDictionary alloc] init];
     shader = nil;
     textureArray = nil;
+    cube = nil;
 	
 	camera = [[GSCamera alloc] init];
 	[self resetMouseInputSettings];
@@ -231,53 +179,6 @@ int checkGLErrors(void);
 	
 	[[NSRunLoop currentRunLoop] addTimer:renderTimer 
 								 forMode:NSEventTrackingRunLoopMode]; // Ensure timer fires during resize
-}
-
-
-// Generates the VBO for the debug cube.
-- (void)generateVBOForDebugCube
-{
-	glGenBuffers(1, &vboCubeVerts);
-	glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), cubeVerts, GL_STATIC_DRAW);
-    
-	glGenBuffers(1, &vboCubeNorms);
-	glBindBuffer(GL_ARRAY_BUFFER, vboCubeNorms);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeNorms), cubeNorms, GL_STATIC_DRAW);
-    
-	glGenBuffers(1, &vboCubeTexCoords);
-	glBindBuffer(GL_ARRAY_BUFFER, vboCubeTexCoords);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeTexCoords), cubeTexCoords, GL_STATIC_DRAW);
-	
-	assert(checkGLErrors() == 0);
-}
-
-
-// Draw a white cube
-- (void)drawDebugCube
-{	
-	glColor4f(1.0, 1.0, 1.0, 1.0);
-    
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    
-	glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
-	glVertexPointer(3, GL_FLOAT, 0, 0);
-    
-	glBindBuffer(GL_ARRAY_BUFFER, vboCubeNorms);
-	glNormalPointer(GL_FLOAT, 0, 0);
-    
-	glBindBuffer(GL_ARRAY_BUFFER, vboCubeTexCoords);
-	glTexCoordPointer(3, GL_FLOAT, 0, 0);
-    
-	glDrawArrays(GL_TRIANGLES, 0, numCubeVerts);
-    
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
-	 
-	assert(checkGLErrors() == 0);
 }
 
 
@@ -423,7 +324,7 @@ int checkGLErrors(void);
 	glTranslatef(0, 0, -5);
 	glRotatef(cubeRotY, 0, 1, 0);
     [shader bind];
-	[self drawDebugCube];
+	[cube draw];
     [shader unbind];
 	glPopMatrix();
 	
@@ -448,6 +349,8 @@ int checkGLErrors(void);
 	[camera release];
     [shader release];
     [textureArray release];
+    [cube release];
+    
 	[super dealloc];
 }
 

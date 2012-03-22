@@ -24,6 +24,7 @@
 		AC9CCD751519B8AA0081964D /* shader.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD731519B8AA0081964D /* shader.vert.txt */; };
 		ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */; };
 		ACF27B03151AE486009FCAB9 /* terrain.png in Resources */ = {isa = PBXBuildFile; fileRef = ACF27B02151AE486009FCAB9 /* terrain.png */; };
+		ACF27B06151AEC37009FCAB9 /* GSCube.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27B05151AEC37009FCAB9 /* GSCube.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +59,8 @@
 		ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextureArray.h; sourceTree = "<group>"; };
 		ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTextureArray.m; sourceTree = "<group>"; };
 		ACF27B02151AE486009FCAB9 /* terrain.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = terrain.png; sourceTree = "<group>"; };
+		ACF27B04151AEC37009FCAB9 /* GSCube.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSCube.h; sourceTree = "<group>"; };
+		ACF27B05151AEC37009FCAB9 /* GSCube.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSCube.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +116,8 @@
 		4A2CCFFC1513C3FC006C6551 /* GutsyStorm */ = {
 			isa = PBXGroup;
 			children = (
+				ACF27B04151AEC37009FCAB9 /* GSCube.h */,
+				ACF27B05151AEC37009FCAB9 /* GSCube.m */,
 				ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */,
 				ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */,
 				AC9CCD6E1519A90E0081964D /* GSShader.h */,
@@ -226,6 +231,7 @@
 				4A9A3BAD1517252E00607B1A /* GLString.m in Sources */,
 				AC9CCD701519A90E0081964D /* GSShader.m in Sources */,
 				ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */,
+				ACF27B06151AEC37009FCAB9 /* GSCube.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

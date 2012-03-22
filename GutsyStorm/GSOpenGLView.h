@@ -11,10 +11,10 @@
 #import "GLString.h"
 #import "GSShader.h"
 #import "GSTextureArray.h"
+#import "GSCube.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
-	GLuint vboCubeVerts, vboCubeNorms, vboCubeTexCoords;
 	NSTimer *renderTimer;
 	CFAbsoluteTime prevFrameTime, lastRenderTime;
 	CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
@@ -29,12 +29,11 @@
 	NSMutableDictionary *stringAttribs; // attributes for string textures
     GSShader *shader;
     GSTextureArray *textureArray;
+    GSCube *cube;
 }
 
 - (void)drawHUD;
-- (void)drawDebugCube;
 - (void)setMouseAtCenter;
-- (void)generateVBOForDebugCube;
 - (void)enableVSync;
 - (void)resetMouseInputSettings;
 - (void)timerFired:(id)sender;
