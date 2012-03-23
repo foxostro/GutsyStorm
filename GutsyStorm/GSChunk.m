@@ -20,6 +20,8 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat **_normsBuffer,
                       GLfloat **_texCoordsBuffer);
 
+static GLfloat * allocateLargestPossibleGeometryBuffer(void);
+
 
 @implementation GSChunk
 
@@ -71,29 +73,359 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 }
 
 
-- (void)allocateLargestGeometryBuffers
+- (void)generateGeometryForSingleBlockWithX:(GLfloat)x
+                                          y:(GLfloat)y
+                                          z:(GLfloat)z
+                                       minX:(GLfloat)minX
+                                       minY:(GLfloat)minY
+                                       minZ:(GLfloat)minZ
+                                       maxX:(GLfloat)maxX
+                                       maxY:(GLfloat)maxY
+                                       maxZ:(GLfloat)maxZ
+                         _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
+                             _normsBuffer:(GLfloat **)_normsBuffer
+                             _vertsBuffer:(GLfloat **)_vertsBuffer
 {
-    // TODO: This is 288MB of storage for each buffer. Only allocate what will be necessary.
-    const size_t maxPossibleVerts = sizeof(GLfloat) * 36 * chunkSizeX * chunkSizeY * chunkSizeZ;
-    
-    // Allocate the largest buffers for geometry that could possibly be needed.
-    vertsBuffer = malloc(maxPossibleVerts * 3);
-    if(!vertsBuffer) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allociating chunk vertsBuffer."];
+    if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ]) {
+        return;
     }
-    bzero(vertsBuffer, maxPossibleVerts);
     
-    normsBuffer = malloc(maxPossibleVerts * 3);
-    if(!normsBuffer) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allociating chunk normsBuffer."];
+    const GLfloat L = 0.5f;
+    const GLfloat grass = 0;
+    const GLfloat dirt = 1;
+    const GLfloat side = 2;
+                    
+    // Top Face
+    if(!(y+1<maxY && [self getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ])) {
+        // This face is exposed to air on the top so use page 1 for the other sides of the block.
+        GLfloat page = grass;
+        
+        // Face 1
+        addVertex(x-L, y+L, z+L,
+                  0, 1, 0,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y+L, z-L,
+                  0, 1, 0,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y+L, z-L,
+                  0, 1, 0,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        // Face 2
+        addVertex(x-L, y+L, z+L,
+                  0, 1, 0,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y+L, z+L,
+                  0, 1, 0,
+                  0, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y+L, z-L,
+                  0, 1, 0,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
     }
-    bzero(normsBuffer, maxPossibleVerts);
-    
-    texCoordsBuffer = malloc(maxPossibleVerts * 3);
-    if(!texCoordsBuffer) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allociating chunk texCoordsBuffer."];
+
+    // Bottom Face
+    if(!(y-1>=minY && [self getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ])) {
+        // This face is always dirt.
+        GLfloat page = dirt;
+        
+        // Face 1
+        addVertex(x-L, y-L, z-L,
+                  0, -1, 0,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y-L, z-L,
+                  0, -1, 0,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y-L, z+L,
+                  0, -1, 0,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        // Face 2
+        addVertex(x+L, y-L, z-L,
+                  0, -1, 0,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y-L, z+L,
+                  0, -1, 0,
+                  0, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y-L, z+L,
+                  0, -1, 0,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
     }
-    bzero(texCoordsBuffer, maxPossibleVerts);
+
+    // Front Face
+    if(!(z+1<maxZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1])) {
+        GLfloat page = side;
+        
+        // Face 1
+        addVertex(x-L, y-L, z+L,
+                  0, 0, 1,
+                  0, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y+L, z+L,
+                  0, 0, 1,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y+L, z+L,
+                  0, 0, 1,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        // Face 2
+        addVertex(x-L, y-L, z+L,
+                  0, 0, 1,
+                  0, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y-L, z+L,
+                  0, 0, 1,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y+L, z+L,
+                  0, 0, 1,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+    }
+
+    // Back Face
+    if(!(z-1>=minZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1])) {
+        GLfloat page = side;
+        
+        // Face 1
+        addVertex(x-L, y+L, z-L,
+                  0, 0, -1,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y+L, z-L,
+                  0, 0, -1,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y-L, z-L,
+                  0, 0, -1,
+                  0, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        // Face 2
+        addVertex(x+L, y+L, z-L,
+                  0, 0, -1,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y-L, z-L,
+                  0, 0, -1,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y-L, z-L,
+                  0, 0, -1,
+                  0, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+    }
+
+    // Right Face
+    if(!(x+1<maxX && [self getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ])) {
+        GLfloat page = side;
+        
+        // Face 1
+        addVertex(x+L, y+L, z-L,
+                  1, 0, 0,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y+L, z+L,
+                  1, 0, 0,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y-L, z+L,
+                  1, 0, 0,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        // Face 2
+        addVertex(x+L, y-L, z-L,
+                  1, 0, 0,
+                  0, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y+L, z-L,
+                  1, 0, 0,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y-L, z+L,
+                  1, 0, 0,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+    }
+
+    // Left Face
+    if(!(x-1>=minX && [self getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ])) {
+        GLfloat page = side;
+        
+        // Face 1
+        addVertex(x-L, y-L, z+L,
+                  -1, 0, 0,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y+L, z+L,
+                  -1, 0, 0,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y+L, z-L,
+                  -1, 0, 0,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        // Face 2
+        addVertex(x-L, y-L, z+L,
+                  -1, 0, 0,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y+L, z-L,
+                  -1, 0, 0,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y-L, z-L,
+                  -1, 0, 0,
+                  0, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+    }
 }
 
 
@@ -101,8 +433,6 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 - (void)generateGeometry
 {
     [self destroyGeometry];
-    
-    [self allocateLargestGeometryBuffers];
     
     const GLfloat minX = 0;
     const GLfloat minY = 0;
@@ -112,14 +442,14 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
     const GLfloat maxY = chunkSizeY;
     const GLfloat maxZ = chunkSizeZ;
     
-    const GLfloat L = 0.5f;
-    const GLfloat grass = 0;
-    const GLfloat dirt = 1;
-    const GLfloat side = 2;
+    // Allocate the largest amount of geometry storage that a chunk might need. We'll end up using a smaller amount by the end.
+    GLfloat *tmpVertsBuffer = allocateLargestPossibleGeometryBuffer();
+    GLfloat *tmpNormsBuffer = allocateLargestPossibleGeometryBuffer();
+    GLfloat *tmpTexCoordsBuffer = allocateLargestPossibleGeometryBuffer();
     
-    GLfloat *_vertsBuffer = vertsBuffer;
-    GLfloat *_normsBuffer = normsBuffer;
-    GLfloat *_texCoordsBuffer = texCoordsBuffer;
+    GLfloat *_vertsBuffer = tmpVertsBuffer;
+    GLfloat *_normsBuffer = tmpNormsBuffer;
+    GLfloat *_texCoordsBuffer = tmpTexCoordsBuffer;
     
     numChunkVerts = 0;
 
@@ -130,344 +460,41 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
         {
             for(GLfloat z = minZ; z < maxZ; ++z)
             {
-                if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ]) {
-                    continue;
-                }
-                    
-                // Top Face
-                if(!(y+1<maxY && [self getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ])) {
-                    // This face is exposed to air on the top so use page 1 for the other sides of the block.
-                    GLfloat page = grass;
-                    
-                    // Face 1
-                    addVertex(x-L, y+L, z+L,
-                              0, 1, 0,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y+L, z-L,
-                              0, 1, 0,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y+L, z-L,
-                              0, 1, 0,
-                              1, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    // Face 2
-                    addVertex(x-L, y+L, z+L,
-                              0, 1, 0,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y+L, z+L,
-                              0, 1, 0,
-                              0, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y+L, z-L,
-                              0, 1, 0,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                }
+                [self generateGeometryForSingleBlockWithX:x
+                                                        y:y
+                                                        z:z
+                                                     minX:minX
+                                                     minY:minY
+                                                     minZ:minZ
+                                                     maxX:maxX
+                                                     maxY:maxY
+                                                     maxZ:maxZ
+                                       _texCoordsBuffer:&_texCoordsBuffer
+                                           _normsBuffer:&_normsBuffer
+                                           _vertsBuffer:&_vertsBuffer];
 
-                // Bottom Face
-                if(!(y-1>=minY && [self getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ])) {
-                    // This face is always dirt.
-                    GLfloat page = dirt;
-                    
-                    // Face 1
-                    addVertex(x-L, y-L, z-L,
-                              0, -1, 0,
-                              1, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y-L, z-L,
-                              0, -1, 0,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y-L, z+L,
-                              0, -1, 0,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    // Face 2
-                    addVertex(x+L, y-L, z-L,
-                              0, -1, 0,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y-L, z+L,
-                              0, -1, 0,
-                              0, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y-L, z+L,
-                              0, -1, 0,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                }
-
-                // Front Face
-                if(!(z+1<maxZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1])) {
-                    GLfloat page = side;
-                    
-                    // Face 1
-                    addVertex(x-L, y-L, z+L,
-                              0, 0, 1,
-                              0, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y+L, z+L,
-                              0, 0, 1,
-                              1, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y+L, z+L,
-                              0, 0, 1,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    // Face 2
-                    addVertex(x-L, y-L, z+L,
-                              0, 0, 1,
-                              0, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y-L, z+L,
-                              0, 0, 1,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y+L, z+L,
-                              0, 0, 1,
-                              1, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                }
-
-                // Back Face
-                if(!(z-1>=minZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1])) {
-                    GLfloat page = side;
-                    
-                    // Face 1
-                    addVertex(x-L, y+L, z-L,
-                              0, 0, -1,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y+L, z-L,
-                              0, 0, -1,
-                              1, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y-L, z-L,
-                              0, 0, -1,
-                              0, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    // Face 2
-                    addVertex(x+L, y+L, z-L,
-                              0, 0, -1,
-                              1, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y-L, z-L,
-                              0, 0, -1,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y-L, z-L,
-                              0, 0, -1,
-                              0, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                }
-
-                // Right Face
-                if(!(x+1<maxX && [self getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ])) {
-                    GLfloat page = side;
-                    
-                    // Face 1
-                    addVertex(x+L, y+L, z-L,
-                              1, 0, 0,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y+L, z+L,
-                              1, 0, 0,
-                              1, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y-L, z+L,
-                              1, 0, 0,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    // Face 2
-                    addVertex(x+L, y-L, z-L,
-                              1, 0, 0,
-                              0, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y+L, z-L,
-                              1, 0, 0,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x+L, y-L, z+L,
-                              1, 0, 0,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                }
-
-                // Left Face
-                if(!(x-1>=minX && [self getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ])) {
-                    GLfloat page = side;
-                    
-                    // Face 1
-                    addVertex(x-L, y-L, z+L,
-                              -1, 0, 0,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y+L, z+L,
-                              -1, 0, 0,
-                              1, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y+L, z-L,
-                              -1, 0, 0,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    // Face 2
-                    addVertex(x-L, y-L, z+L,
-                              -1, 0, 0,
-                              1, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y+L, z-L,
-                              -1, 0, 0,
-                              0, 1, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                    
-                    addVertex(x-L, y-L, z-L,
-                              -1, 0, 0,
-                              0, 0, page,
-                              &_vertsBuffer,
-                              &_normsBuffer,
-                              &_texCoordsBuffer);
-                    numChunkVerts++;
-                }
-            } // loop over z
-        } // loop over y
-    } // loop over x
+            }
+        }
+    }
+    
+    // Reallocate to buffers for chunk geometry that are sized correctly.
+    // These buffers are probably much smaller than the maximum possible.
+    size_t len = sizeof(GLfloat) * numChunkVerts * 3;
+    
+    vertsBuffer = realloc(tmpVertsBuffer, len);
+    if(!vertsBuffer) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating vertsBuffer."];
+    }
+    
+    normsBuffer = realloc(tmpNormsBuffer, len);
+    if(!normsBuffer) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating normsBuffer."];
+    }
+    
+    texCoordsBuffer = realloc(tmpTexCoordsBuffer, len);
+    if(!texCoordsBuffer) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating texCoordsBuffer."];
+    }
     
     NSLog(@"Finished generating chunk geometry.");
 }
@@ -591,4 +618,19 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
     **_texCoordsBuffer = tx; (*_texCoordsBuffer)++;
     **_texCoordsBuffer = ty; (*_texCoordsBuffer)++;
     **_texCoordsBuffer = tz; (*_texCoordsBuffer)++;
+}
+
+
+// Allocate the largest buffer that could possibly be needed.
+static GLfloat * allocateLargestPossibleGeometryBuffer(void)
+{
+    const size_t maxPossibleVerts = 36 * chunkSizeX * chunkSizeY * chunkSizeZ;
+    
+    GLfloat *buffer = malloc(sizeof(GLfloat) * maxPossibleVerts * 3);
+    if(!buffer) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating chunk buffer."];
+    }
+    bzero(buffer, sizeof(GLfloat) * maxPossibleVerts * 3);
+    
+    return buffer;
 }
