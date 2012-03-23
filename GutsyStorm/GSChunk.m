@@ -108,16 +108,16 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
     const GLfloat grass = 0;
     const GLfloat dirt = 1;
     const GLfloat side = 2;
+    GLfloat page = dirt;
                     
     // Top Face
     if(!(y+1<maxY && [self getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ])) {
-        // This face is exposed to air on the top so use page 1 for the other sides of the block.
-        GLfloat page = grass;
+        page = side;
         
         // Face 1
         addVertex(x-L, y+L, z+L,
                   0, 1, 0,
-                  1, 0, page,
+                  1, 1, grass,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -125,7 +125,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y+L, z-L,
                   0, 1, 0,
-                  0, 1, page,
+                  0, 0, grass,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -133,7 +133,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x-L, y+L, z-L,
                   0, 1, 0,
-                  1, 1, page,
+                  1, 0, grass,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -142,7 +142,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         // Face 2
         addVertex(x-L, y+L, z+L,
                   0, 1, 0,
-                  1, 0, page,
+                  1, 1, grass,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -150,7 +150,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y+L, z+L,
                   0, 1, 0,
-                  0, 0, page,
+                  0, 1, grass,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -158,7 +158,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y+L, z-L,
                   0, 1, 0,
-                  0, 1, page,
+                  0, 0, grass,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -167,13 +167,10 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 
     // Bottom Face
     if(!(y-1>=minY && [self getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ])) {
-        // This face is always dirt.
-        GLfloat page = dirt;
-        
         // Face 1
         addVertex(x-L, y-L, z-L,
                   0, -1, 0,
-                  1, 1, page,
+                  1, 0, dirt,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -181,7 +178,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y-L, z-L,
                   0, -1, 0,
-                  0, 1, page,
+                  0, 0, dirt,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -189,7 +186,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x-L, y-L, z+L,
                   0, -1, 0,
-                  1, 0, page,
+                  1, 1, dirt,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -198,7 +195,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         // Face 2
         addVertex(x+L, y-L, z-L,
                   0, -1, 0,
-                  0, 1, page,
+                  0, 0, dirt,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -206,7 +203,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y-L, z+L,
                   0, -1, 0,
-                  0, 0, page,
+                  0, 1, dirt,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -214,7 +211,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x-L, y-L, z+L,
                   0, -1, 0,
-                  1, 0, page,
+                  1, 1, dirt,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -223,12 +220,10 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 
     // Front Face
     if(!(z+1<maxZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1])) {
-        GLfloat page = side;
-        
         // Face 1
         addVertex(x-L, y-L, z+L,
                   0, 0, 1,
-                  0, 0, page,
+                  0, 1, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -236,7 +231,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y+L, z+L,
                   0, 0, 1,
-                  1, 1, page,
+                  1, 0, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -244,7 +239,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x-L, y+L, z+L,
                   0, 0, 1,
-                  0, 1, page,
+                  0, 0, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -253,7 +248,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         // Face 2
         addVertex(x-L, y-L, z+L,
                   0, 0, 1,
-                  0, 0, page,
+                  0, 1, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -261,7 +256,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y-L, z+L,
                   0, 0, 1,
-                  1, 0, page,
+                  1, 1, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -269,7 +264,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y+L, z+L,
                   0, 0, 1,
-                  1, 1, page,
+                  1, 0, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -278,26 +273,8 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 
     // Back Face
     if(!(z-1>=minZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1])) {
-        GLfloat page = side;
-        
         // Face 1
         addVertex(x-L, y+L, z-L,
-                  0, 0, -1,
-                  0, 1, page,
-                  _vertsBuffer,
-                  _normsBuffer,
-                  _texCoordsBuffer);
-        numChunkVerts++;
-        
-        addVertex(x+L, y+L, z-L,
-                  0, 0, -1,
-                  1, 1, page,
-                  _vertsBuffer,
-                  _normsBuffer,
-                  _texCoordsBuffer);
-        numChunkVerts++;
-        
-        addVertex(x-L, y-L, z-L,
                   0, 0, -1,
                   0, 0, page,
                   _vertsBuffer,
@@ -305,16 +282,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
                   _texCoordsBuffer);
         numChunkVerts++;
         
-        // Face 2
         addVertex(x+L, y+L, z-L,
-                  0, 0, -1,
-                  1, 1, page,
-                  _vertsBuffer,
-                  _normsBuffer,
-                  _texCoordsBuffer);
-        numChunkVerts++;
-        
-        addVertex(x+L, y-L, z-L,
                   0, 0, -1,
                   1, 0, page,
                   _vertsBuffer,
@@ -324,7 +292,32 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x-L, y-L, z-L,
                   0, 0, -1,
-                  0, 0, page,
+                  0, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        // Face 2
+        addVertex(x+L, y+L, z-L,
+                  0, 0, -1,
+                  1, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x+L, y-L, z-L,
+                  0, 0, -1,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y-L, z-L,
+                  0, 0, -1,
+                  0, 1, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -333,12 +326,10 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 
     // Right Face
     if(!(x+1<maxX && [self getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ])) {
-        GLfloat page = side;
-        
         // Face 1
         addVertex(x+L, y+L, z-L,
                   1, 0, 0,
-                  0, 1, page,
+                  0, 0, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -346,7 +337,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y+L, z+L,
                   1, 0, 0,
-                  1, 1, page,
+                  1, 0, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -354,7 +345,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y-L, z+L,
                   1, 0, 0,
-                  1, 0, page,
+                  1, 1, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -363,7 +354,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         // Face 2
         addVertex(x+L, y-L, z-L,
                   1, 0, 0,
-                  0, 0, page,
+                  0, 1, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -371,7 +362,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y+L, z-L,
                   1, 0, 0,
-                  0, 1, page,
+                  0, 0, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -379,7 +370,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x+L, y-L, z+L,
                   1, 0, 0,
-                  1, 0, page,
+                  1, 1, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -388,10 +379,16 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 
     // Left Face
     if(!(x-1>=minX && [self getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ])) {
-        GLfloat page = side;
-        
         // Face 1
         addVertex(x-L, y-L, z+L,
+                  -1, 0, 0,
+                  1, 1, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        addVertex(x-L, y+L, z+L,
                   -1, 0, 0,
                   1, 0, page,
                   _vertsBuffer,
@@ -399,7 +396,16 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
                   _texCoordsBuffer);
         numChunkVerts++;
         
-        addVertex(x-L, y+L, z+L,
+        addVertex(x-L, y+L, z-L,
+                  -1, 0, 0,
+                  0, 0, page,
+                  _vertsBuffer,
+                  _normsBuffer,
+                  _texCoordsBuffer);
+        numChunkVerts++;
+        
+        // Face 2
+        addVertex(x-L, y-L, z+L,
                   -1, 0, 0,
                   1, 1, page,
                   _vertsBuffer,
@@ -409,24 +415,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x-L, y+L, z-L,
                   -1, 0, 0,
-                  0, 1, page,
-                  _vertsBuffer,
-                  _normsBuffer,
-                  _texCoordsBuffer);
-        numChunkVerts++;
-        
-        // Face 2
-        addVertex(x-L, y-L, z+L,
-                  -1, 0, 0,
-                  1, 0, page,
-                  _vertsBuffer,
-                  _normsBuffer,
-                  _texCoordsBuffer);
-        numChunkVerts++;
-        
-        addVertex(x-L, y+L, z-L,
-                  -1, 0, 0,
-                  0, 1, page,
+                  0, 0, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
@@ -434,7 +423,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         
         addVertex(x-L, y-L, z-L,
                   -1, 0, 0,
-                  0, 0, page,
+                  0, 1, page,
                   _vertsBuffer,
                   _normsBuffer,
                   _texCoordsBuffer);
