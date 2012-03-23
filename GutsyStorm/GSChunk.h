@@ -17,6 +17,7 @@
     GLfloat *vertsBuffer;
     GLfloat *normsBuffer;
     GLfloat *texCoordsBuffer;
+    BOOL *voxelData;
 }
 
 - (void)draw;
@@ -27,5 +28,6 @@
 - (void)destroyVoxelData;
 - (void)destroyVBOs;
 - (void)destroyGeometry;
+- (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z;
 
 @end

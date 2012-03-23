@@ -342,7 +342,7 @@ int checkGLErrors(void);
     
 	glPushMatrix();
     glTranslatef(-1, -1, -5);
-    glScalef(1.0 / 8, 1.0 / 8, 1.0 / 8);
+    glScalef(1.0 / 32, 1.0 / 32, 1.0 / 32);
     [shader bind];
 	[chunk draw];
     [shader unbind];
