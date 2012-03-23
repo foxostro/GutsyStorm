@@ -21,13 +21,28 @@
 }
 
 - (void)draw;
+
+
+// Internals
+
 - (void)generateVoxelData;
-- (void)allocateLargestGeometryBuffers;
 - (void)generateGeometry;
 - (void)generateVBOs;
 - (void)destroyVoxelData;
 - (void)destroyVBOs;
 - (void)destroyGeometry;
 - (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z;
+- (void)generateGeometryForSingleBlockWithX:(GLfloat)x
+                                          y:(GLfloat)y
+                                          z:(GLfloat)z
+                                       minX:(GLfloat)minX
+                                       minY:(GLfloat)minY
+                                       minZ:(GLfloat)minZ
+                                       maxX:(GLfloat)maxX
+                                       maxY:(GLfloat)maxY
+                                       maxZ:(GLfloat)maxZ
+                           _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
+                               _normsBuffer:(GLfloat **)_normsBuffer
+                               _vertsBuffer:(GLfloat **)_vertsBuffer;
 
 @end
