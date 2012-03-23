@@ -21,7 +21,11 @@
 
 - (void)draw;
 - (void)generateVoxelData;
+- (void)allocateLargestGeometryBuffers;
 - (void)generateGeometry;
-- (void)generateVBO;
+- (void)generateVBOs;
+- (void)destroyVoxelData;
+- (void)destroyVBOs;
+- (void)destroyGeometry;
 
 @end

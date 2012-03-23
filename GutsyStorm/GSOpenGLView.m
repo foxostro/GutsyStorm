@@ -341,14 +341,15 @@ int checkGLErrors(void);
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
     
 	glPushMatrix();
-    glTranslatef(0, 0, +5);
+    glTranslatef(-1, -1, -5);
+    glScalef(1.0 / 8, 1.0 / 8, 1.0 / 8);
     [shader bind];
 	[chunk draw];
     [shader unbind];
 	glPopMatrix(); // chunk
     
 	glPushMatrix();
-    glTranslatef(0, 0, -5);
+    glTranslatef(0, 0, +5);
 	glRotatef(cubeRotY, 0, 1, 0);
     [shader bind];
 	[cube draw];
