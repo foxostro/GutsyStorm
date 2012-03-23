@@ -22,12 +22,16 @@
     BOOL *voxelData;
 }
 
+@property (readonly, nonatomic) GSVector3 minP;
+@property (readonly, nonatomic) GSVector3 maxP;
+
+- (id)initWithSeed:(unsigned)seed minP:(GSVector3)minP maxP:(GSVector3)maxP;
 - (void)draw;
 
 
 // Internals
 
-- (void)generateVoxelData;
+- (void)generateVoxelDataWithSeed:(unsigned)seed;
 - (void)generateGeometry;
 - (void)generateVBOs;
 - (void)destroyVoxelData;
@@ -35,8 +39,6 @@
 - (void)destroyGeometry;
 - (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z;
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-                                       minP:(GSVector3)minP
-                                       maxP:(GSVector3)maxP
                            _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                _normsBuffer:(GLfloat **)_normsBuffer
                                _vertsBuffer:(GLfloat **)_vertsBuffer;

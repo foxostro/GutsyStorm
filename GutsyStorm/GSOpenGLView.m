@@ -131,7 +131,7 @@ int checkGLErrors(void);
     [self buildFontsAndStrings];
     
 	cube = [[GSCube alloc] init];
-    chunk = [[GSChunk alloc] init];
+    chunk = [[GSChunk alloc] initWithSeed:0 minP:GSVector3_Make(0,0,0) maxP:GSVector3_Make(64,64,64)];
     
     [self buildShader];
     
