@@ -10,6 +10,8 @@
 #import <OpenGL/gl.h>
 #import <OpenGL/OpenGL.h>
 
+#import "GSVector3.h"
+
 @interface GSChunk : NSObject
 {
 	GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords;
@@ -32,15 +34,9 @@
 - (void)destroyVBOs;
 - (void)destroyGeometry;
 - (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z;
-- (void)generateGeometryForSingleBlockWithX:(GLfloat)x
-                                          y:(GLfloat)y
-                                          z:(GLfloat)z
-                                       minX:(GLfloat)minX
-                                       minY:(GLfloat)minY
-                                       minZ:(GLfloat)minZ
-                                       maxX:(GLfloat)maxX
-                                       maxY:(GLfloat)maxY
-                                       maxZ:(GLfloat)maxZ
+- (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
+                                       minP:(GSVector3)minP
+                                       maxP:(GSVector3)maxP
                            _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                _normsBuffer:(GLfloat **)_normsBuffer
                                _vertsBuffer:(GLfloat **)_vertsBuffer;

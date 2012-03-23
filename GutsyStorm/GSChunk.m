@@ -73,24 +73,32 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 }
 
 
-- (void)generateGeometryForSingleBlockWithX:(GLfloat)x
-                                          y:(GLfloat)y
-                                          z:(GLfloat)z
-                                       minX:(GLfloat)minX
-                                       minY:(GLfloat)minY
-                                       minZ:(GLfloat)minZ
-                                       maxX:(GLfloat)maxX
-                                       maxY:(GLfloat)maxY
-                                       maxZ:(GLfloat)maxZ
-                         _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
-                             _normsBuffer:(GLfloat **)_normsBuffer
-                             _vertsBuffer:(GLfloat **)_vertsBuffer
+- (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
+                                            minP:(GSVector3)minP
+                                            maxP:(GSVector3)maxP
+                                _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
+                                    _normsBuffer:(GLfloat **)_normsBuffer
+                                    _vertsBuffer:(GLfloat **)_vertsBuffer
 {
+    GLfloat x, y, z, minX, minY, minZ, maxX, maxY, maxZ;
+    
+    x = pos.x;
+    y = pos.y;
+    z = pos.z;
+    
+    minX = minP.x;
+    minY = minP.y;
+    minZ = minP.z;
+    
+    maxX = maxP.x;
+    maxY = maxP.y;
+    maxZ = maxP.z;
+    
     if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ]) {
         return;
     }
     
-    const GLfloat L = 0.5f;
+    const GLfloat L = 0.5f; // half the length of a block along one side
     const GLfloat grass = 0;
     const GLfloat dirt = 1;
     const GLfloat side = 2;
@@ -434,13 +442,9 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 {
     [self destroyGeometry];
     
-    const GLfloat minX = 0;
-    const GLfloat minY = 0;
-    const GLfloat minZ = 0;
-    
-    const GLfloat maxX = chunkSizeX;
-    const GLfloat maxY = chunkSizeY;
-    const GLfloat maxZ = chunkSizeZ;
+    GSVector3 pos = {0};
+    GSVector3 minP = {0};
+    GSVector3 maxP = GSVector3_Make(chunkSizeX, chunkSizeY, chunkSizeZ);
     
     // Allocate the largest amount of geometry storage that a chunk might need. We'll end up using a smaller amount by the end.
     GLfloat *tmpVertsBuffer = allocateLargestPossibleGeometryBuffer();
@@ -454,24 +458,18 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
     numChunkVerts = 0;
 
     // Iterate over all voxels in the chunk.
-    for(GLfloat x = minX; x < maxX; ++x)
+    for(pos.x = minP.x; pos.x < maxP.z; ++pos.x)
     {
-        for(GLfloat y = minY; y < maxY; ++y)
+        for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
         {
-            for(GLfloat z = minZ; z < maxZ; ++z)
+            for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
             {
-                [self generateGeometryForSingleBlockWithX:x
-                                                        y:y
-                                                        z:z
-                                                     minX:minX
-                                                     minY:minY
-                                                     minZ:minZ
-                                                     maxX:maxX
-                                                     maxY:maxY
-                                                     maxZ:maxZ
-                                       _texCoordsBuffer:&_texCoordsBuffer
-                                           _normsBuffer:&_normsBuffer
-                                           _vertsBuffer:&_vertsBuffer];
+                [self generateGeometryForSingleBlockAtPosition:pos
+                                                          minP:minP
+                                                          maxP:maxP
+                                              _texCoordsBuffer:&_texCoordsBuffer
+                                                  _normsBuffer:&_normsBuffer
+                                                  _vertsBuffer:&_vertsBuffer];
 
             }
         }
