@@ -8,9 +8,9 @@
 
 #import "GSChunk.h"
 
-const size_t chunkSizeX = 16;
-const size_t chunkSizeY = 16;
-const size_t chunkSizeZ = 16;
+const size_t chunkSizeX = 64;
+const size_t chunkSizeY = 64;
+const size_t chunkSizeZ = 64;
 
 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
@@ -36,7 +36,7 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
         
-        //[self generateVoxelData];
+        [self generateVoxelData];
         [self generateGeometry];
         [self generateVBOs];
     }
@@ -45,10 +45,29 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 }
 
 
+- (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z
+{
+    assert(x < chunkSizeX);
+    assert(y < chunkSizeY);
+    assert(z < chunkSizeZ);    
+    return voxelData[(x*chunkSizeY*chunkSizeZ) + (y*chunkSizeY) + z];
+}
+
+
 - (void)generateVoxelData
 {
-    assert(!"unimplemented");
     [self destroyVoxelData];
+    
+    voxelData = malloc(sizeof(BOOL) * chunkSizeX * chunkSizeY * chunkSizeZ);
+    if(!voxelData) {
+        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for chunk's voxelData"];
+    }
+    bzero(voxelData, sizeof(BOOL) * chunkSizeX * chunkSizeY * chunkSizeZ);
+    
+    for(size_t i = 0; i < (chunkSizeX * chunkSizeY * chunkSizeZ); ++i)
+    {
+        voxelData[i] = (rand()%2 == 0);
+    }
 }
 
 
@@ -85,6 +104,14 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
     
     [self allocateLargestGeometryBuffers];
     
+    const GLfloat minX = 0;
+    const GLfloat minY = 0;
+    const GLfloat minZ = 0;
+    
+    const GLfloat maxX = chunkSizeX;
+    const GLfloat maxY = chunkSizeY;
+    const GLfloat maxZ = chunkSizeZ;
+    
     const GLfloat L = 0.5f;
     const GLfloat grass = 0;
     const GLfloat dirt = 1;
@@ -97,14 +124,18 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
     numChunkVerts = 0;
 
     // Iterate over all voxels in the chunk.
-    for(GLfloat x = 0; x < (GLfloat)chunkSizeX; ++x)
+    for(GLfloat x = minX; x < maxX; ++x)
     {
-        for(GLfloat y = 0; y < (GLfloat)chunkSizeY; ++y)
+        for(GLfloat y = minY; y < maxY; ++y)
         {
-            for(GLfloat z = 0; z < (GLfloat)chunkSizeZ; ++z)
+            for(GLfloat z = minZ; z < maxZ; ++z)
             {
+                if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ]) {
+                    continue;
+                }
+                    
                 // Top Face
-                if(YES) { // not (y+1<maxY and voxelData.get(x-minX, y-minY+1, z-minZ)):
+                if(!(y+1<maxY && [self getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ])) {
                     // This face is exposed to air on the top so use page 1 for the other sides of the block.
                     GLfloat page = grass;
                     
@@ -160,7 +191,7 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                 }
 
                 // Bottom Face
-                if(YES) { // not (y-1>=minY and voxelData.get(x-minX, y-minY-1, z-minZ)):
+                if(!(y-1>=minY && [self getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ])) {
                     // This face is always dirt.
                     GLfloat page = dirt;
                     
@@ -216,7 +247,7 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                 }
 
                 // Front Face
-                if(YES) { // not (z+1<maxZ and voxelData.get(x-minX, y-minY, z-minZ+1)):
+                if(!(z+1<maxZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1])) {
                     GLfloat page = side;
                     
                     // Face 1
@@ -271,7 +302,7 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                 }
 
                 // Back Face
-                if(YES) { // not (z-1>=minZ and voxelData.get(x-minX, y-minY, z-minZ-1)):
+                if(!(z-1>=minZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1])) {
                     GLfloat page = side;
                     
                     // Face 1
@@ -326,7 +357,7 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                 }
 
                 // Right Face
-                if(YES) { // not (x+1<maxX and voxelData.get(x-minX+1, y-minY, z-minZ)):
+                if(!(x+1<maxX && [self getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ])) {
                     GLfloat page = side;
                     
                     // Face 1
@@ -381,7 +412,7 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                 }
 
                 // Left Face
-                if(YES) { // not (x-1>=minX and voxelData.get(x-minX-1, y-minY, z-minZ)):
+                if(!(x-1>=minX && [self getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ])) {
                     GLfloat page = side;
                     
                     // Face 1
@@ -493,7 +524,8 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 
 - (void)destroyVoxelData
 {
-    assert(!"unimplemented");
+    free(voxelData);
+    voxelData = NULL;
 }
 
 
