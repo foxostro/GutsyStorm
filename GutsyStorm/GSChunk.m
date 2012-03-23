@@ -25,7 +25,10 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 
 @implementation GSChunk
 
-- (id)init
+@synthesize minP = _minP;
+@synthesize maxP = _maxP;
+
+- (id)initWithSeed:(unsigned)seed minP:(GSVector3)minP maxP:(GSVector3)maxP
 {
     self = [super init];
     if (self) {
@@ -38,7 +41,10 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
         
-        [self generateVoxelData];
+        _minP = minP;
+        _maxP = maxP;
+        
+        [self generateVoxelDataWithSeed:seed];
         [self generateGeometry];
         [self generateVBOs];
     }
@@ -56,9 +62,11 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 }
 
 
-- (void)generateVoxelData
+- (void)generateVoxelDataWithSeed:(unsigned)seed
 {
     [self destroyVoxelData];
+    
+    srand(seed);
     
     voxelData = malloc(sizeof(BOOL) * chunkSizeX * chunkSizeY * chunkSizeZ);
     if(!voxelData) {
@@ -74,8 +82,6 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 
 
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-                                            minP:(GSVector3)minP
-                                            maxP:(GSVector3)maxP
                                 _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                     _normsBuffer:(GLfloat **)_normsBuffer
                                     _vertsBuffer:(GLfloat **)_vertsBuffer
@@ -86,13 +92,13 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
     y = pos.y;
     z = pos.z;
     
-    minX = minP.x;
-    minY = minP.y;
-    minZ = minP.z;
-    
-    maxX = maxP.x;
-    maxY = maxP.y;
-    maxZ = maxP.z;
+    minX = _minP.x;
+    minY = _minP.y;
+    minZ = _minP.z;
+
+    maxX = _maxP.x;
+    maxY = _maxP.y;
+    maxZ = _maxP.z;
     
     if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ]) {
         return;
@@ -443,8 +449,6 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
     [self destroyGeometry];
     
     GSVector3 pos = {0};
-    GSVector3 minP = {0};
-    GSVector3 maxP = GSVector3_Make(chunkSizeX, chunkSizeY, chunkSizeZ);
     
     // Allocate the largest amount of geometry storage that a chunk might need. We'll end up using a smaller amount by the end.
     GLfloat *tmpVertsBuffer = allocateLargestPossibleGeometryBuffer();
@@ -458,15 +462,13 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
     numChunkVerts = 0;
 
     // Iterate over all voxels in the chunk.
-    for(pos.x = minP.x; pos.x < maxP.z; ++pos.x)
+    for(pos.x = _minP.x; pos.x < _maxP.z; ++pos.x)
     {
-        for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
+        for(pos.y = _minP.y; pos.y < _maxP.y; ++pos.y)
         {
-            for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
+            for(pos.z = _minP.z; pos.z < _maxP.z; ++pos.z)
             {
                 [self generateGeometryForSingleBlockAtPosition:pos
-                                                          minP:minP
-                                                          maxP:maxP
                                               _texCoordsBuffer:&_texCoordsBuffer
                                                   _normsBuffer:&_normsBuffer
                                                   _vertsBuffer:&_vertsBuffer];
