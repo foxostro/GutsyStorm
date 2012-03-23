@@ -16,9 +16,9 @@ const size_t chunkSizeZ = 64;
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
-                      GLfloat **_vertsBuffer,
-                      GLfloat **_normsBuffer,
-                      GLfloat **_texCoordsBuffer);
+                      GLfloat **verts,
+                      GLfloat **norms,
+                      GLfloat **txcds);
 
 static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 
@@ -605,19 +605,21 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
-                      GLfloat **_vertsBuffer,
-                      GLfloat **_normsBuffer,
-                      GLfloat **_texCoordsBuffer)
+                      GLfloat **verts,
+                      GLfloat **norms,
+                      GLfloat **txcds)
 {
-    **_vertsBuffer = vx; (*_vertsBuffer)++;
-    **_vertsBuffer = vy; (*_vertsBuffer)++;
-    **_vertsBuffer = vz; (*_vertsBuffer)++;
-    **_normsBuffer = nx; (*_normsBuffer)++;
-    **_normsBuffer = ny; (*_normsBuffer)++;
-    **_normsBuffer = nz; (*_normsBuffer)++;
-    **_texCoordsBuffer = tx; (*_texCoordsBuffer)++;
-    **_texCoordsBuffer = ty; (*_texCoordsBuffer)++;
-    **_texCoordsBuffer = tz; (*_texCoordsBuffer)++;
+    **verts = vx; (*verts)++;
+    **verts = vy; (*verts)++;
+    **verts = vz; (*verts)++;
+    
+    **norms = nx; (*norms)++;
+    **norms = ny; (*norms)++;
+    **norms = nz; (*norms)++;
+    
+    **txcds = tx; (*txcds)++;
+    **txcds = ty; (*txcds)++;
+    **txcds = tz; (*txcds)++;
 }
 
 
