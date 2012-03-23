@@ -100,6 +100,7 @@ int checkGLErrors(void);
 	glDisable(GL_LIGHTING);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     
     glDisable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
