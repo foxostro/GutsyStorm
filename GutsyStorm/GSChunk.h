@@ -36,20 +36,4 @@
      terrainHeight:(float)terrainHeight;
 - (void)draw;
 
-
-// Internals
-
-- (void)generateGeometry;
-- (void)generateVBOs;
-- (void)destroyVoxelData;
-- (void)destroyVBOs;
-- (void)destroyGeometry;
-- (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z;
-- (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-                           _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
-                               _normsBuffer:(GLfloat **)_normsBuffer
-                               _vertsBuffer:(GLfloat **)_vertsBuffer;
-- (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
-- (void)allocateVoxelData;
-
 @end
