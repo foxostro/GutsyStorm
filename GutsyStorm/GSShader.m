@@ -9,7 +9,25 @@
 #import <assert.h>
 #import "GSShader.h"
 
+
 extern int checkGLErrors(void);
+
+
+@interface GSShader (Private)
+
+- (const GLchar **)buildSourceStringsArray:(NSString *)source
+                                    length:(GLsizei *)length;
+
+- (NSString *)getShaderInfoLog:(GLuint)shader;
+- (NSString *)getProgramInfoLog:(GLuint)program;
+- (BOOL)wasShaderCompileSuccessful:(GLuint)shader;
+- (BOOL)wasProgramLinkSuccessful:(GLuint)shader;
+- (void)createShaderWithSource:(NSString *)sourceString
+                          type:(GLenum)type;
+- (void)link;
+
+@end
+
 
 @implementation GSShader
 
@@ -32,12 +50,36 @@ extern int checkGLErrors(void);
 }
 
 
+- (void)bind
+{
+    glUseProgram(handle);
+}
+
+
+- (void)unbind
+{
+    glUseProgram(0);
+}
+
+
+- (void)bindUniformWithNSString:(NSString *)name val:(GLint)val
+{
+    const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
+    glUniform1i(glGetUniformLocation(handle, nameCStr), val);
+    assert(checkGLErrors() == 0);
+}
+
+@end
+
+
+@implementation GSShader (Private)
+
 /* For OpenGL, build a C array where each element is a line (string) in the shader source.
  * Caller must free the returned array. Strings in the array will be autoreleased.
  * The length of the array is returned in length.
  */
 - (const GLchar **)buildSourceStringsArray:(NSString *)source 
-                                  length:(GLsizei *)length
+                                    length:(GLsizei *)length
 {
     NSArray *lines = [source componentsSeparatedByString: @"\n"];
     NSUInteger count = [lines count];
@@ -46,7 +88,7 @@ extern int checkGLErrors(void);
     if(!src) {
         [NSException raise:@"Out of memory" format:@"Failed to malloc memory for src"];
     }
-
+    
     NSEnumerator *e = [lines objectEnumerator];
     id object = nil;
     for(NSUInteger i = 0; (i < count) && (object = [e nextObject]); ++i)
@@ -55,7 +97,7 @@ extern int checkGLErrors(void);
     }
     
     [lines release];
-
+    
     (*length) = (GLsizei)count;
     return src;
 }
@@ -146,7 +188,7 @@ extern int checkGLErrors(void);
 
 
 - (void)createShaderWithSource:(NSString *)sourceString
-                          type:(GLenum)type
+type:(GLenum)type
 {
     const GLchar *src = [sourceString cStringUsingEncoding:NSMacOSRomanStringEncoding];
     
@@ -163,26 +205,6 @@ extern int checkGLErrors(void);
 {
     glLinkProgram(handle);
     linked = [self wasProgramLinkSuccessful:handle];
-}
-
-
-- (void)bind
-{
-    glUseProgram(handle);
-}
-
-
-- (void)unbind
-{
-    glUseProgram(0);
-}
-
-
-- (void)bindUniformWithNSString:(NSString *)name val:(GLint)val
-{
-    const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
-    glUniform1i(glGetUniformLocation(handle, nameCStr), val);
-    assert(checkGLErrors() == 0);
 }
 
 @end
