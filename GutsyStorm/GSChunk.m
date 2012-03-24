@@ -141,10 +141,18 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)dealloc
 {
-    [self destroyVoxelData];
-    [self destroyGeometry];
     [self destroyVBOs];
+    
+    // Grab the "lockVoxelData" in case we are deallocated while an operation is in flight.
+    [lockVoxelData lock];
+    [self destroyVoxelData];
+    [lockVoxelData unlock];
     [lockVoxelData release];
+    
+    // Grab the "lockGeometry" in case we are deallocated while an operation is in flight.
+    [lockGeometry unlock];
+    [self destroyGeometry];
+    [lockGeometry unlock];
     [lockGeometry release];
     
 	[super dealloc];
