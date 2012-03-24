@@ -649,7 +649,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     if(![lockGeometry tryLockWhenCondition:CONDITION_GEOMETRY_READY]) {
         return NO;
     }
-        
+    
+    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     [self destroyVBOs];
     
     numElementsInVBO = 3 * numChunkVerts;
@@ -667,7 +668,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
     glBufferData(GL_ARRAY_BUFFER, len, texCoordsBuffer, GL_STATIC_DRAW);
     
-    NSLog(@"Finished generating chunk VBOs.");
+    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);
     [lockGeometry unlock];
     
     return YES;
