@@ -134,8 +134,8 @@ int checkGLErrors(void);
 	cube = [[GSCube alloc] init];
     chunk = [[GSChunk alloc] initWithSeed:0
                                      minP:GSVector3_Make(0,0,0)
-                                     maxP:GSVector3_Make(128,64,128)
-                            terrainHeight:64];
+                                     maxP:GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z)
+                            terrainHeight:CHUNK_SIZE_Y];
     
     [self buildShader];
     
