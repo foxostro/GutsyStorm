@@ -31,8 +31,7 @@
         [camera retain];
         
         terrainHeight = CHUNK_SIZE_Y;
-        activeRegionMinP = GSVector3_Make(0, 0, 0);
-        activeRegionMaxP = GSVector3_Make(256, terrainHeight, 256);
+        activeRegionExtent = GSVector3_Make(128, terrainHeight/2.0, 128);
     }
     
     return self;
@@ -48,19 +47,34 @@
 
 - (void)draw
 {
-    GSVector3 p;
+    GSVector3 p, minP, maxP;
+    GSFrustum *frustum = [camera frustum];
     
-    // Draw all chunks that fall within the active region.
-    for(p.x = activeRegionMinP.x; p.x < activeRegionMaxP.x; p.x += CHUNK_SIZE_X)
+    minP = GSVector3_Sub([camera cameraEye], activeRegionExtent);
+    maxP = GSVector3_Add([camera cameraEye], activeRegionExtent);
+    
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    // Draw all visible chunks that fall within the active region.
+    for(p.x = minP.x; p.x < maxP.x; p.x += CHUNK_SIZE_X)
     {
-        for(p.y = activeRegionMinP.y; p.y < activeRegionMaxP.y; p.y += CHUNK_SIZE_Y)
+        for(p.y = minP.y; p.y < maxP.y; p.y += CHUNK_SIZE_Y)
         {
-            for(p.z = activeRegionMinP.z; p.z < activeRegionMaxP.z; p.z += CHUNK_SIZE_Z)
+            for(p.z = minP.z; p.z < maxP.z; p.z += CHUNK_SIZE_Z)
             {
-                [[self getChunkAtPoint:p] draw];
+                GSChunk *chunk = [self getChunkAtPoint:p];
+                if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]) {
+                    [chunk draw];
+                }
             }
         }
     }
+    
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 
@@ -78,6 +92,10 @@
     
     chunk = [cache objectForKey:chunkID];
     if(!chunk) {
+        char buffer[64] = {0};
+        GSVector3_ToString(buffer, sizeof(buffer), minP);
+        //NSLog(@"Need to fetch another chunk; minP=%s", buffer);
+        
         chunk = [[GSChunk alloc] initWithSeed:seed
                                          minP:minP
                                 terrainHeight:terrainHeight];

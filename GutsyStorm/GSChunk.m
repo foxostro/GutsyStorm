@@ -72,6 +72,16 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
         
+        // Frustum-Box testing requires the corners of the cube, so pre-calculate them here.
+        corners[0] = minP;
+        corners[1] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, 0,            0));
+        corners[2] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
+        corners[3] = GSVector3_Add(minP, GSVector3_Make(0,            0,            CHUNK_SIZE_Z));
+        corners[4] = GSVector3_Add(minP, GSVector3_Make(0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        corners[5] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        corners[6] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
+        corners[7] = GSVector3_Add(minP, GSVector3_Make(0,            CHUNK_SIZE_Y, 0));
+        
         dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         
         // Fire off asynchronous task to generate voxel data.
@@ -107,10 +117,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         }
     }
     
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    
     glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
     glVertexPointer(3, GL_FLOAT, 0, 0);
     
@@ -121,10 +127,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     glTexCoordPointer(3, GL_FLOAT, 0, 0);
     
     glDrawArrays(GL_TRIANGLES, 0, numElementsInVBO);
-    
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 
@@ -189,7 +191,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
  */
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight
 {
-    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
     const size_t minX = minP.x;
     const size_t minY = minP.y;
@@ -220,8 +222,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     [noiseSource0 release];
     [noiseSource1 release];
     
-    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
+    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    //NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
     [lockVoxelData unlockWithCondition:CONDITION_VOXEL_DATA_READY];
 }
 
@@ -592,7 +594,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     [self destroyGeometry];
     
     [lockVoxelData lockWhenCondition:CONDITION_VOXEL_DATA_READY];
-    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
     // Iterate over all voxels in the chunk and count the number of vertices required.
     numChunkVerts = 0;
@@ -639,8 +641,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     
     [lockVoxelData unlock];
     
-    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    NSLog(@"Finished generating chunk geometry. It took %.3fs after voxel data was ready.", timeEnd - timeStart);
+    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    //NSLog(@"Finished generating chunk geometry. It took %.3fs after voxel data was ready.", timeEnd - timeStart);
     [lockGeometry unlockWithCondition:CONDITION_GEOMETRY_READY];
 }
 
@@ -651,7 +653,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         return NO;
     }
     
-    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     [self destroyVBOs];
     
     numElementsInVBO = 3 * numChunkVerts;
@@ -669,8 +671,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
     glBufferData(GL_ARRAY_BUFFER, len, texCoordsBuffer, GL_STATIC_DRAW);
     
-    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);
+    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    //NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);
     [lockGeometry unlock];
     
     return YES;

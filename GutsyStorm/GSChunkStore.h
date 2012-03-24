@@ -16,7 +16,7 @@
     NSCache *cache;
     float terrainHeight;
     unsigned seed;
-    GSVector3 activeRegionMinP, activeRegionMaxP; // The active region is positioned relative to the camera.
+    GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
     GSCamera *camera;
 }
 

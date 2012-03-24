@@ -30,6 +30,9 @@
     
     NSConditionLock *lockVoxelData;
     BOOL *voxelData;
+
+ @public
+    GSVector3 corners[8];
 }
 
 @property (readonly, nonatomic) GSVector3 minP;

@@ -242,12 +242,18 @@ int checkGLErrors(void);
 
 - (void)reshape
 {
+    const float fov = 60.0;
+    const float nearD = 0.1;
+    const float farD = 400.0;
+    
 	NSRect r = [self convertRectToBase:[self bounds]];
 	glViewport(0, 0, r.size.width, r.size.height);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60.0, r.size.width/r.size.height, 0.1, 400.0);
+	gluPerspective(fov, r.size.width/r.size.height, nearD, farD);
 	glMatrixMode(GL_MODELVIEW);
+    
+    [camera reshapeWithBounds:r fov:fov nearD:nearD farD:farD];
 	
 	assert(checkGLErrors() == 0);
 }
@@ -286,7 +292,7 @@ int checkGLErrors(void);
 	[self handleUserInput:dt];
     
     // Allow the chunkStore to update every frame.
-    //[chunkStore updateWithDeltaTime:dt];
+    [chunkStore updateWithDeltaTime:dt];
 
 	// The cube spins slowly around the Y-axis.
 	cubeRotY += cubeRotSpeed * dt;
@@ -341,14 +347,12 @@ int checkGLErrors(void);
 	glPushMatrix();
 	[camera submitCameraTransform];
     
-    GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};    
+    static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};    
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
     
-	glPushMatrix();
     [shader bind];
 	[chunkStore draw];
     [shader unbind];
-	glPopMatrix(); // chunk
     
 	glPushMatrix();
     glTranslatef(0, 0, +5);

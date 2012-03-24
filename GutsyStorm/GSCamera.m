@@ -13,15 +13,29 @@
 
 @implementation GSCamera
 
+@synthesize cameraEye;
+@synthesize frustum;
+
+
 - (id)init
 {
     self = [super init];
     if (self) {
         // Initialization code here.
 		[self resetCamera];
+        
+        frustum = [[GSFrustum alloc] init];
+        [frustum setCamInternalsWithAngle:60.0 ratio:640.0/480.0 nearD:0.1 farD:400.0]; // Set for real later on.
+        [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
     }
     
     return self;
+}
+
+
+- (void)dealloc
+{
+    [frustum release];
 }
 
 
@@ -126,6 +140,7 @@
 
 	if(wasCameraModified) {
 		[self updateCameraLookVectors];
+        [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
 	}
 }
 
@@ -133,6 +148,16 @@
 - (void)moveToPosition:(GSVector3)p
 {
     cameraEye = p;
+    [self updateCameraLookVectors];
+    [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
+}
+
+
+- (void)reshapeWithBounds:(NSRect)bounds fov:(float)fov nearD:(float)nearD farD:(float)farD
+{
+    const float ratio = bounds.size.width / bounds.size.height;
+    [frustum setCamInternalsWithAngle:fov ratio:ratio nearD:nearD farD:farD];
+    [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
 }
 
 @end
