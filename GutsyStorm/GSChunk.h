@@ -25,13 +25,15 @@
 @property (readonly, nonatomic) GSVector3 minP;
 @property (readonly, nonatomic) GSVector3 maxP;
 
-- (id)initWithSeed:(unsigned)seed minP:(GSVector3)minP maxP:(GSVector3)maxP;
+- (id)initWithSeed:(unsigned)seed
+              minP:(GSVector3)minP
+              maxP:(GSVector3)maxP
+     terrainHeight:(float)terrainHeight;
 - (void)draw;
 
 
 // Internals
 
-- (void)generateVoxelDataWithSeed:(unsigned)seed;
 - (void)generateGeometry;
 - (void)generateVBOs;
 - (void)destroyVoxelData;
@@ -42,5 +44,7 @@
                            _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                _normsBuffer:(GLfloat **)_normsBuffer
                                _vertsBuffer:(GLfloat **)_vertsBuffer;
+- (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
+- (void)allocateVoxelData;
 
 @end
