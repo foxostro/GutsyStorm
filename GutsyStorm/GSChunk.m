@@ -10,12 +10,7 @@
 #import "GSNoise.h"
 
 
-#define INDEX(x,y,z) ((size_t)(((x)*chunkSizeY*chunkSizeZ) + ((y)*chunkSizeZ) + (z)))
-
-
-const size_t chunkSizeX = 128;
-const size_t chunkSizeY = 64;
-const size_t chunkSizeZ = 128;
+#define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
 
 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
@@ -47,10 +42,10 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         assert(myMaxP.y >= 0);
         assert(myMaxP.z >= 0);
         
-        assert(myMaxP.x - myMinP.x <= chunkSizeX);
-        assert(myMaxP.y - myMinP.y <= chunkSizeY);
-        assert(myMaxP.z - myMinP.z <= chunkSizeZ);
-        assert(terrainHeight >= 0.0 && terrainHeight <= chunkSizeY);
+        assert(myMaxP.x - myMinP.x <= CHUNK_SIZE_X);
+        assert(myMaxP.y - myMinP.y <= CHUNK_SIZE_Y);
+        assert(myMaxP.z - myMinP.z <= CHUNK_SIZE_Z);
+        assert(terrainHeight >= 0.0 && terrainHeight <= CHUNK_SIZE_Y);
         
         vboChunkVerts = 0;
         vboChunkNorms = 0;
@@ -74,9 +69,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z
 {
-    assert(x < chunkSizeX);
-    assert(y < chunkSizeY);
-    assert(z < chunkSizeZ);
+    assert(x < CHUNK_SIZE_X);
+    assert(y < CHUNK_SIZE_Y);
+    assert(z < CHUNK_SIZE_Z);
     return voxelData[INDEX(x, y, z)];
 }
 
@@ -85,11 +80,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     [self destroyVoxelData];
     
-    voxelData = malloc(sizeof(BOOL) * chunkSizeX * chunkSizeY * chunkSizeZ);
+    voxelData = malloc(sizeof(BOOL) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
     if(!voxelData) {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for chunk's voxelData"];
     }
-    bzero(voxelData, sizeof(BOOL) * chunkSizeX * chunkSizeY * chunkSizeZ);
+    bzero(voxelData, sizeof(BOOL) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
 }
 
 
@@ -690,7 +685,7 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 // Allocate the largest buffer that could possibly be needed.
 static GLfloat * allocateLargestPossibleGeometryBuffer(void)
 {
-    const size_t maxPossibleVerts = 36 * chunkSizeX * chunkSizeY * chunkSizeZ;
+    const size_t maxPossibleVerts = 36 * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z;
     
     GLfloat *buffer = malloc(sizeof(GLfloat) * maxPossibleVerts * 3);
     if(!buffer) {

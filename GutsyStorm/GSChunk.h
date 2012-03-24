@@ -12,6 +12,11 @@
 
 #import "GSVector3.h"
 
+#define CHUNK_SIZE_X (128)
+#define CHUNK_SIZE_Y (64)
+#define CHUNK_SIZE_Z (128)
+
+
 @interface GSChunk : NSObject
 {
 	GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords;
