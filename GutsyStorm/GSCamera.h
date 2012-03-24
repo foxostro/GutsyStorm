@@ -25,5 +25,6 @@
 										mouseDeltaX:(int)mouseDeltaX
 										mouseDeltaY:(int)mouseDeltaY
 								   mouseSensitivity:(float)mouseSensitivity;
+- (void)moveToPosition:(GSVector3)p;
 
 @end

@@ -12,9 +12,9 @@
 
 #import "GSVector3.h"
 
-#define CHUNK_SIZE_X (128)
+#define CHUNK_SIZE_X (16)
 #define CHUNK_SIZE_Y (64)
-#define CHUNK_SIZE_Z (128)
+#define CHUNK_SIZE_Z (16)
 
 
 @interface GSChunk : NSObject
@@ -37,7 +37,6 @@
 
 - (id)initWithSeed:(unsigned)seed
               minP:(GSVector3)minP
-              maxP:(GSVector3)maxP
      terrainHeight:(float)terrainHeight;
 - (void)draw;
 

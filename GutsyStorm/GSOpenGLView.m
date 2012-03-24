@@ -99,7 +99,6 @@ int checkGLErrors(void);
 	
 	glDisable(GL_LIGHTING);
 	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
     glEnable(GL_CULL_FACE);
     
     glDisable(GL_TEXTURE_2D);
@@ -132,10 +131,7 @@ int checkGLErrors(void);
     [self buildFontsAndStrings];
     
 	cube = [[GSCube alloc] init];
-    chunk = [[GSChunk alloc] initWithSeed:0
-                                     minP:GSVector3_Make(0,0,0)
-                                     maxP:GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z)
-                            terrainHeight:CHUNK_SIZE_Y];
+    chunkStore = [[GSChunkStore alloc] initWithSeed:0 camera:camera];
     
     [self buildShader];
     
@@ -172,9 +168,10 @@ int checkGLErrors(void);
     shader = nil;
     textureArray = nil;
     cube = nil;
-    chunk = nil;
+    chunkStore = nil;
 	
 	camera = [[GSCamera alloc] init];
+    [camera moveToPosition:GSVector3_Make(85.70, 39.69, 134.25)];
 	[self resetMouseInputSettings];
 	
 	// Register with window to accept user input.
@@ -287,6 +284,9 @@ int checkGLErrors(void);
 	
 	// Handle user input and update the camera if it was modified.
 	[self handleUserInput:dt];
+    
+    // Allow the chunkStore to update every frame.
+    //[chunkStore updateWithDeltaTime:dt];
 
 	// The cube spins slowly around the Y-axis.
 	cubeRotY += cubeRotSpeed * dt;
@@ -345,10 +345,8 @@ int checkGLErrors(void);
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
     
 	glPushMatrix();
-    glTranslatef(-1, -1, -5);
-    glScalef(1.0 / 32, 1.0 / 32, 1.0 / 32);
     [shader bind];
-	[chunk draw];
+	[chunkStore draw];
     [shader unbind];
 	glPopMatrix(); // chunk
     

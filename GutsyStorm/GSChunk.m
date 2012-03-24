@@ -48,26 +48,15 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 @synthesize minP;
 @synthesize maxP;
 
-- (id)initWithSeed:(unsigned)seed minP:(GSVector3)myMinP maxP:(GSVector3)myMaxP terrainHeight:(float)terrainHeight
+- (id)initWithSeed:(unsigned)seed minP:(GSVector3)myMinP terrainHeight:(float)terrainHeight
 {
     self = [super init];
     if (self) {
-        // Initialization code here.
-        assert(myMinP.x >= 0);
-        assert(myMinP.y >= 0);
-        assert(myMinP.z >= 0);
-        
-        assert(myMaxP.x >= 0);
-        assert(myMaxP.y >= 0);
-        assert(myMaxP.z >= 0);
-        
-        assert(myMaxP.x - myMinP.x <= CHUNK_SIZE_X);
-        assert(myMaxP.y - myMinP.y <= CHUNK_SIZE_Y);
-        assert(myMaxP.z - myMinP.z <= CHUNK_SIZE_Z);
+        // Initialization code here.        
         assert(terrainHeight >= 0.0 && terrainHeight <= CHUNK_SIZE_Y);
         
         minP = myMinP;
-        maxP = myMaxP;
+        maxP = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
         
         vboChunkVerts = 0;
         vboChunkNorms = 0;
@@ -729,11 +718,12 @@ static float groundGradient(float terrainHeight, GSVector3 p)
 // Returns YES if the point is ground, NO otherwise.
 static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p)
 {
-    float n = [noiseSource0 getNoiseAtPoint:p];
-    float turbScaleX = 1.5;
+    const float freqScale = 0.015;
+    float n = [noiseSource0 getNoiseAtPoint:GSVector3_Scale(p, freqScale)];
+    float turbScaleX = 1.1;
     float turbScaleY = terrainHeight / 2.0;
     float yFreq = turbScaleX * ((n+1) / 2.0);
-    float t = turbScaleY * [noiseSource1 getNoiseAtPoint:GSVector3_Make(p.x, p.y*yFreq, p.z)];
+    float t = turbScaleY * [noiseSource1 getNoiseAtPoint:GSVector3_Make(p.x*freqScale, p.y*yFreq*freqScale, p.z*freqScale)];
     GSVector3 pPrime = GSVector3_Make(p.x, p.y + t, p.z);
     return groundGradient(terrainHeight, pPrime) <= 0;
 }

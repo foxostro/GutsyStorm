@@ -122,13 +122,17 @@
 		wasCameraModified = YES;
 	}
 
-	mouseDeltaX = 0;
-	mouseDeltaY = 0;
 	[keysDown release];
 
 	if(wasCameraModified) {
 		[self updateCameraLookVectors];
 	}
+}
+
+
+- (void)moveToPosition:(GSVector3)p
+{
+    cameraEye = p;
 }
 
 @end
