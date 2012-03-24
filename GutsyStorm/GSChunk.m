@@ -31,13 +31,14 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 @implementation GSChunk
 
-@synthesize minP = _minP;
-@synthesize maxP = _maxP;
+@synthesize minP;
+@synthesize maxP;
 
 - (id)initWithSeed:(unsigned)seed minP:(GSVector3)myMinP maxP:(GSVector3)myMaxP terrainHeight:(float)terrainHeight
 {
     self = [super init];
     if (self) {
+        // Initialization code here.
         assert(myMinP.x >= 0);
         assert(myMinP.y >= 0);
         assert(myMinP.z >= 0);
@@ -51,7 +52,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         assert(myMaxP.z - myMinP.z <= chunkSizeZ);
         assert(terrainHeight >= 0.0 && terrainHeight <= chunkSizeY);
         
-        // Initialization code here.
         vboChunkVerts = 0;
         vboChunkNorms = 0;
         vboChunkTexCoords = 0;
@@ -60,8 +60,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
         
-        _minP = myMinP;
-        _maxP = myMaxP;
+        minP = myMinP;
+        maxP = myMaxP;
         
         [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
         [self generateGeometry];
@@ -99,12 +99,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
  */
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight
 {
-    const size_t minX = _minP.x;
-    const size_t minY = _minP.y;
-    const size_t minZ = _minP.z;
-    const size_t maxX = _maxP.x;
-    const size_t maxY = _maxP.y;
-    const size_t maxZ = _maxP.z;
+    const size_t minX = minP.x;
+    const size_t minY = minP.y;
+    const size_t minZ = minP.z;
+    const size_t maxX = maxP.x;
+    const size_t maxY = maxP.y;
+    const size_t maxZ = maxP.z;
     
     [self allocateVoxelData];
     
@@ -139,13 +139,13 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     y = pos.y;
     z = pos.z;
     
-    minX = _minP.x;
-    minY = _minP.y;
-    minZ = _minP.z;
+    minX = minP.x;
+    minY = minP.y;
+    minZ = minP.z;
 
-    maxX = _maxP.x;
-    maxY = _maxP.y;
-    maxZ = _maxP.z;
+    maxX = maxP.x;
+    maxY = maxP.y;
+    maxZ = maxP.z;
     
     if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ]) {
         return;
@@ -498,11 +498,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     numChunkVerts = 0;
 
     // Iterate over all voxels in the chunk.
-    for(pos.x = _minP.x; pos.x < _maxP.x; ++pos.x)
+    for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
     {
-        for(pos.y = _minP.y; pos.y < _maxP.y; ++pos.y)
+        for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
         {
-            for(pos.z = _minP.z; pos.z < _maxP.z; ++pos.z)
+            for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
             {
                 [self generateGeometryForSingleBlockAtPosition:pos
                                               _texCoordsBuffer:&_texCoordsBuffer
