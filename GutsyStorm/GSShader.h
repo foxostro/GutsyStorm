@@ -19,22 +19,6 @@
 - (id)initWithVertexShaderSource:(NSString *)vert
             fragmentShaderSource:(NSString *)frag;
 
-- (const GLchar **)buildSourceStringsArray:(NSString *)source
-                                    length:(GLsizei *)length;
-
-- (NSString *)getShaderInfoLog:(GLuint)shader;
-
-- (NSString *)getProgramInfoLog:(GLuint)program;
-
-- (BOOL)wasShaderCompileSuccessful:(GLuint)shader;
-
-- (BOOL)wasProgramLinkSuccessful:(GLuint)shader;
-
-- (void)createShaderWithSource:(NSString *)sourceString
-                          type:(GLenum)type;
-
-- (void)link;
-
 - (void)bind;
 
 - (void)unbind;
