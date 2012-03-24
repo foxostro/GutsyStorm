@@ -12,7 +12,7 @@
 #import "GSShader.h"
 #import "GSTextureArray.h"
 #import "GSCube.h"
-#import "GSChunk.h"
+#import "GSChunkStore.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
@@ -31,7 +31,7 @@
     GSShader *shader;
     GSTextureArray *textureArray;
     GSCube *cube;
-    GSChunk *chunk;
+    GSChunkStore *chunkStore;
 }
 
 - (void)drawHUD;

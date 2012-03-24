@@ -11,6 +11,11 @@
 
 
 @interface GSNoise : NSObject
+{
+    int i, j, k, A[3];
+    float u, v, w, s;
+    int T[8];
+}
 
 - (id)initWithSeed:(unsigned)seed;
 - (float)getNoiseAtPoint:(GSVector3)p;
