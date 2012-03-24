@@ -19,11 +19,16 @@
 
 @interface GSChunk : NSObject
 {
-	GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords;
+    GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords;
+    GLsizei numElementsInVBO; // This is numChunkVerts*3, but use a copy so we won't have to lock geometry to get it.
+    
+    NSConditionLock *lockGeometry;
     GLsizei numChunkVerts;
     GLfloat *vertsBuffer;
     GLfloat *normsBuffer;
     GLfloat *texCoordsBuffer;
+    
+    NSConditionLock *lockVoxelData;
     BOOL *voxelData;
 }
 
