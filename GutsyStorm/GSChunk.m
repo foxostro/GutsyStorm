@@ -24,6 +24,24 @@ static float groundGradient(float terrainHeight, GSVector3 p);
 static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
 
 
+@interface GSChunk (Private)
+
+- (void)generateGeometry;
+- (void)generateVBOs;
+- (void)destroyVoxelData;
+- (void)destroyVBOs;
+- (void)destroyGeometry;
+- (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z;
+- (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
+                                _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
+                                    _normsBuffer:(GLfloat **)_normsBuffer
+                                    _vertsBuffer:(GLfloat **)_vertsBuffer;
+- (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
+- (void)allocateVoxelData;
+
+@end
+
+
 @implementation GSChunk
 
 @synthesize minP;
@@ -66,6 +84,43 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     return self;
 }
 
+
+- (void)draw
+{    
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+	glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
+	glVertexPointer(3, GL_FLOAT, 0, 0);
+    
+	glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
+	glNormalPointer(GL_FLOAT, 0, 0);
+    
+	glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
+	glTexCoordPointer(3, GL_FLOAT, 0, 0);
+    
+	glDrawArrays(GL_TRIANGLES, 0, numChunkVerts*3);
+    
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+}
+
+
+- (void)dealloc
+{
+    [self destroyVoxelData];
+    [self destroyGeometry];
+    [self destroyVBOs];
+    
+	[super dealloc];
+}
+
+@end
+
+
+@implementation GSChunk (Private)
 
 - (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z
 {
@@ -557,29 +612,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-- (void)draw
-{    
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    
-	glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
-	glVertexPointer(3, GL_FLOAT, 0, 0);
-    
-	glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
-	glNormalPointer(GL_FLOAT, 0, 0);
-    
-	glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
-	glTexCoordPointer(3, GL_FLOAT, 0, 0);
-    
-	glDrawArrays(GL_TRIANGLES, 0, numChunkVerts*3);
-    
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
-}
-
-
 - (void)destroyVoxelData
 {
     free(voxelData);
@@ -618,16 +650,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         glDeleteBuffers(1, &vboChunkTexCoords);
         vboChunkTexCoords = 0;   
     }
-}
-
-
-- (void)dealloc
-{
-    [self destroyVoxelData];
-    [self destroyGeometry];
-    [self destroyVBOs];
-    
-	[super dealloc];
 }
 
 @end
