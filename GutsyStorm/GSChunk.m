@@ -85,14 +85,16 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         
         dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         
-        // Fire off asynchonous task to generate voxel data.
+        // Fire off asynchronous task to generate voxel data.
+        // When this finishes, the condition in lockVoxelData will be set to CONDITION_VOXEL_DATA_READY.
         dispatch_async(queue, ^{
             [self retain]; // In case chunk is released by the chunk store before operation finishes.
             [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
             [self release];
         });
         
-        // Fire off asynchonous task to generate chunk geometry from voxel data.
+        // Fire off asynchronous task to generate chunk geometry from voxel data. (depends on voxelData)
+        // When this finishes, the condition in lockGeometry will be set to CONDITION_GEOMETRY_READY.
         dispatch_async(queue, ^{
             [self retain]; // In case chunk is released by the chunk store before operation finishes.
             [self generateGeometry];
@@ -107,6 +109,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)draw
 {
     // If VBOs have not been generated yet then attempt to do so now.
+    // OpenGL has no support for concurrency so we can't do this asynchronously.
+    // (Unless we use a global lock on OpenGL, but that sounds too complicated to deal with across the entire application.)
     if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords) {
         // If VBOs cannot be generated yet then bail out.
         if(![self tryToGenerateVBOs]) {
