@@ -9,7 +9,8 @@
 #import "GSChunk.h"
 #import "GSNoise.h"
 
-
+#define CONDITION_VOXEL_DATA_READY (1)
+#define CONDITION_GEOMETRY_READY (1)
 #define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
 
 
@@ -27,7 +28,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 @interface GSChunk (Private)
 
 - (void)generateGeometry;
-- (void)generateVBOs;
+- (BOOL)tryToGenerateVBOs;
 - (void)destroyVoxelData;
 - (void)destroyVBOs;
 - (void)destroyGeometry;
@@ -65,20 +66,38 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         assert(myMaxP.z - myMinP.z <= CHUNK_SIZE_Z);
         assert(terrainHeight >= 0.0 && terrainHeight <= CHUNK_SIZE_Y);
         
+        minP = myMinP;
+        maxP = myMaxP;
+        
         vboChunkVerts = 0;
         vboChunkNorms = 0;
         vboChunkTexCoords = 0;
+        numElementsInVBO = 0;
+        
+        lockVoxelData = [[NSConditionLock alloc] init];
+        voxelData = NULL;
+        
+        lockGeometry = [[NSConditionLock alloc] init];
         numChunkVerts = 0;
         vertsBuffer = NULL;
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
         
-        minP = myMinP;
-        maxP = myMaxP;
+        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         
-        [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
-        [self generateGeometry];
-        [self generateVBOs];
+        // Fire off asynchonous task to generate voxel data.
+        dispatch_async(queue, ^{
+            [self retain]; // In case chunk is released by the chunk store before operation finishes.
+            [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
+            [self release];
+        });
+        
+        // Fire off asynchonous task to generate chunk geometry from voxel data.
+        dispatch_async(queue, ^{
+            [self retain]; // In case chunk is released by the chunk store before operation finishes.
+            [self generateGeometry];
+            [self release];
+        });
     }
     
     return self;
@@ -86,25 +105,33 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 
 - (void)draw
-{    
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+{
+    // If VBOs have not been generated yet then attempt to do so now.
+    if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords) {
+        // If VBOs cannot be generated yet then bail out.
+        if(![self tryToGenerateVBOs]) {
+            return;
+        }
+    }
     
-	glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
-	glVertexPointer(3, GL_FLOAT, 0, 0);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-	glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
-	glNormalPointer(GL_FLOAT, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
+    glVertexPointer(3, GL_FLOAT, 0, 0);
     
-	glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
-	glTexCoordPointer(3, GL_FLOAT, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
+    glNormalPointer(GL_FLOAT, 0, 0);
     
-	glDrawArrays(GL_TRIANGLES, 0, numChunkVerts*3);
+    glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
+    glTexCoordPointer(3, GL_FLOAT, 0, 0);
     
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
+    glDrawArrays(GL_TRIANGLES, 0, numElementsInVBO);
+    
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 
@@ -113,6 +140,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     [self destroyVoxelData];
     [self destroyGeometry];
     [self destroyVBOs];
+    [lockVoxelData release];
+    [lockGeometry release];
     
 	[super dealloc];
 }
@@ -122,6 +151,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 @implementation GSChunk (Private)
 
+// Assumes the caller is already holding "lockVoxelData".
 - (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z
 {
     assert(x < CHUNK_SIZE_X);
@@ -131,6 +161,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
+// Assumes the caller is already holding "lockVoxelData".
 - (void)allocateVoxelData
 {
     [self destroyVoxelData];
@@ -140,6 +171,14 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for chunk's voxelData"];
     }
     bzero(voxelData, sizeof(BOOL) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
+}
+
+
+// Assumes the caller is already holding "lockVoxelData".
+- (void)destroyVoxelData
+{
+    free(voxelData);
+    voxelData = NULL;
 }
 
 
@@ -155,6 +194,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     const size_t maxX = maxP.x;
     const size_t maxY = maxP.y;
     const size_t maxZ = maxP.z;
+    
+    [lockVoxelData lock];
     
     [self allocateVoxelData];
     
@@ -175,9 +216,28 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     
     [noiseSource0 release];
     [noiseSource1 release];
+    
+    [lockVoxelData unlockWithCondition:CONDITION_VOXEL_DATA_READY];
 }
 
 
+// Assumes the caller is already holding "lockGeometry".
+- (void)destroyGeometry
+{
+    free(vertsBuffer);
+    vertsBuffer = NULL;
+    
+    free(normsBuffer);
+    normsBuffer = NULL;
+    
+    free(texCoordsBuffer);
+    texCoordsBuffer = NULL;
+    
+    numChunkVerts = 0;
+}
+
+
+// Assumes the caller is already holding "lockVoxelData" and "lockGeometry".
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
                                 _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                     _normsBuffer:(GLfloat **)_normsBuffer
@@ -532,9 +592,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 // Generates verts, norms, and texCoords buffers from voxelData
 - (void)generateGeometry
 {
+    [lockGeometry lock];
     [self destroyGeometry];
-    
-    GSVector3 pos;
     
     // Allocate the largest amount of geometry storage that a chunk might need. We'll end up using a smaller amount by the end.
     GLfloat *tmpVertsBuffer = allocateLargestPossibleGeometryBuffer();
@@ -548,6 +607,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     numChunkVerts = 0;
 
     // Iterate over all voxels in the chunk.
+    GSVector3 pos;
+    [lockVoxelData lockWhenCondition:CONDITION_VOXEL_DATA_READY];
     for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
     {
         for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
@@ -562,6 +623,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             }
         }
     }
+    [lockVoxelData unlock];
     
     // Reallocate to buffers for chunk geometry that are sized correctly.
     // These buffers are probably much smaller than the maximum possible.
@@ -583,54 +645,37 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
     
     NSLog(@"Finished generating chunk geometry.");
+    [lockGeometry unlockWithCondition:CONDITION_GEOMETRY_READY];
 }
 
 
-- (void)generateVBOs
+- (BOOL)tryToGenerateVBOs
 {
-    const GLsizeiptr len = 3 * numChunkVerts * sizeof(GLfloat);
-    
+    if(![lockGeometry tryLockWhenCondition:CONDITION_GEOMETRY_READY]) {
+        return NO;
+    }
+        
     [self destroyVBOs];
     
-	if(len == 0) {
-        return;
-    }
+    numElementsInVBO = 3 * numChunkVerts;
+    const GLsizeiptr len = numElementsInVBO * sizeof(GLfloat);
     
     glGenBuffers(1, &vboChunkVerts);
-	glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
-	glBufferData(GL_ARRAY_BUFFER, len, vertsBuffer, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
+    glBufferData(GL_ARRAY_BUFFER, len, vertsBuffer, GL_STATIC_DRAW);
     
-	glGenBuffers(1, &vboChunkNorms);
-	glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
-	glBufferData(GL_ARRAY_BUFFER, len, normsBuffer, GL_STATIC_DRAW);
+    glGenBuffers(1, &vboChunkNorms);
+    glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
+    glBufferData(GL_ARRAY_BUFFER, len, normsBuffer, GL_STATIC_DRAW);
     
-	glGenBuffers(1, &vboChunkTexCoords);
-	glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
-	glBufferData(GL_ARRAY_BUFFER, len, texCoordsBuffer, GL_STATIC_DRAW);
+    glGenBuffers(1, &vboChunkTexCoords);
+    glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
+    glBufferData(GL_ARRAY_BUFFER, len, texCoordsBuffer, GL_STATIC_DRAW);
     
     NSLog(@"Finished generating chunk VBOs.");
-}
-
-
-- (void)destroyVoxelData
-{
-    free(voxelData);
-    voxelData = NULL;
-}
-
-
-- (void)destroyGeometry
-{
-    free(vertsBuffer);
-    vertsBuffer = NULL;
+    [lockGeometry unlock];
     
-    free(normsBuffer);
-    normsBuffer = NULL;
-    
-    free(texCoordsBuffer);
-    texCoordsBuffer = NULL;
-    
-    numChunkVerts = 0;
+    return YES;
 }
 
 
@@ -650,6 +695,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         glDeleteBuffers(1, &vboChunkTexCoords);
         vboChunkTexCoords = 0;   
     }
+    
+    numElementsInVBO = 0;
 }
 
 @end
