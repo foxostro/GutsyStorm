@@ -7,10 +7,15 @@
 //
 
 #import "GSChunk.h"
+#import "GSNoise.h"
 
-const size_t chunkSizeX = 64;
+
+#define INDEX(x,y,z) ((size_t)(((x)*chunkSizeY*chunkSizeZ) + ((y)*chunkSizeZ) + (z)))
+
+
+const size_t chunkSizeX = 128;
 const size_t chunkSizeY = 64;
-const size_t chunkSizeZ = 64;
+const size_t chunkSizeZ = 128;
 
 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
@@ -19,8 +24,9 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat **verts,
                       GLfloat **norms,
                       GLfloat **txcds);
-
 static GLfloat * allocateLargestPossibleGeometryBuffer(void);
+static float groundGradient(float terrainHeight, GSVector3 p);
+static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
 
 
 @implementation GSChunk
@@ -28,10 +34,23 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 @synthesize minP = _minP;
 @synthesize maxP = _maxP;
 
-- (id)initWithSeed:(unsigned)seed minP:(GSVector3)minP maxP:(GSVector3)maxP
+- (id)initWithSeed:(unsigned)seed minP:(GSVector3)myMinP maxP:(GSVector3)myMaxP terrainHeight:(float)terrainHeight
 {
     self = [super init];
     if (self) {
+        assert(myMinP.x >= 0);
+        assert(myMinP.y >= 0);
+        assert(myMinP.z >= 0);
+        
+        assert(myMaxP.x >= 0);
+        assert(myMaxP.y >= 0);
+        assert(myMaxP.z >= 0);
+        
+        assert(myMaxP.x - myMinP.x <= chunkSizeX);
+        assert(myMaxP.y - myMinP.y <= chunkSizeY);
+        assert(myMaxP.z - myMinP.z <= chunkSizeZ);
+        assert(terrainHeight >= 0.0 && terrainHeight <= chunkSizeY);
+        
         // Initialization code here.
         vboChunkVerts = 0;
         vboChunkNorms = 0;
@@ -41,10 +60,10 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
         
-        _minP = minP;
-        _maxP = maxP;
+        _minP = myMinP;
+        _maxP = myMaxP;
         
-        [self generateVoxelDataWithSeed:seed];
+        [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
         [self generateGeometry];
         [self generateVBOs];
     }
@@ -57,27 +76,55 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 {
     assert(x < chunkSizeX);
     assert(y < chunkSizeY);
-    assert(z < chunkSizeZ);    
-    return voxelData[(x*chunkSizeY*chunkSizeZ) + (y*chunkSizeY) + z];
+    assert(z < chunkSizeZ);
+    return voxelData[INDEX(x, y, z)];
 }
 
 
-- (void)generateVoxelDataWithSeed:(unsigned)seed
+- (void)allocateVoxelData
 {
     [self destroyVoxelData];
-    
-    srand(seed);
     
     voxelData = malloc(sizeof(BOOL) * chunkSizeX * chunkSizeY * chunkSizeZ);
     if(!voxelData) {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for chunk's voxelData"];
     }
     bzero(voxelData, sizeof(BOOL) * chunkSizeX * chunkSizeY * chunkSizeZ);
+}
+
+
+/* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is translated so
+ * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
+ * the chunk is equal to maxP-minP. Ditto for the other major axii.
+ */
+- (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight
+{
+    const size_t minX = _minP.x;
+    const size_t minY = _minP.y;
+    const size_t minZ = _minP.z;
+    const size_t maxX = _maxP.x;
+    const size_t maxY = _maxP.y;
+    const size_t maxZ = _maxP.z;
     
-    for(size_t i = 0; i < (chunkSizeX * chunkSizeY * chunkSizeZ); ++i)
+    [self allocateVoxelData];
+    
+    GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
+    GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:(seed+1)];
+    
+    for(size_t x = minX; x < maxX; ++x)
     {
-        voxelData[i] = (rand()%2 == 0);
+        for(size_t y = minY; y < maxY; ++y)
+        {
+            for(size_t z = minZ; z < maxZ; ++z)
+            {
+                BOOL g = isGround(terrainHeight, noiseSource0, noiseSource1, GSVector3_Make(x, y, z));
+                voxelData[INDEX(x - minX, y - minY, z - minZ)] = g;
+            }
+        }
     }
+    
+    [noiseSource0 release];
+    [noiseSource1 release];
 }
 
 
@@ -437,7 +484,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 {
     [self destroyGeometry];
     
-    GSVector3 pos = {0};
+    GSVector3 pos;
     
     // Allocate the largest amount of geometry storage that a chunk might need. We'll end up using a smaller amount by the end.
     GLfloat *tmpVertsBuffer = allocateLargestPossibleGeometryBuffer();
@@ -451,7 +498,7 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
     numChunkVerts = 0;
 
     // Iterate over all voxels in the chunk.
-    for(pos.x = _minP.x; pos.x < _maxP.z; ++pos.x)
+    for(pos.x = _minP.x; pos.x < _maxP.x; ++pos.x)
     {
         for(pos.y = _minP.y; pos.y < _maxP.y; ++pos.y)
         {
@@ -589,6 +636,34 @@ static GLfloat * allocateLargestPossibleGeometryBuffer(void);
 }
 
 @end
+
+
+// Return a value between -1 and +1 so that a line through the y-axis maps to a smooth gradient of values from -1 to +1.
+static float groundGradient(float terrainHeight, GSVector3 p)
+{
+    const float y = p.y;
+    
+    if(y < 0.0) {
+        return -1;
+    } else if(y > terrainHeight) {
+        return +1;
+    } else {
+        return 2.0*(y/terrainHeight) - 1.0;
+    }
+}
+
+
+// Returns YES if the point is ground, NO otherwise.
+static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p)
+{
+    float n = [noiseSource0 getNoiseAtPoint:p];
+    float turbScaleX = 1.5;
+    float turbScaleY = terrainHeight / 2.0;
+    float yFreq = turbScaleX * ((n+1) / 2.0);
+    float t = turbScaleY * [noiseSource1 getNoiseAtPoint:GSVector3_Make(p.x, p.y*yFreq, p.z)];
+    GSVector3 pPrime = GSVector3_Make(p.x, p.y + t, p.z);
+    return groundGradient(terrainHeight, pPrime) <= 0;
+}
 
 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,

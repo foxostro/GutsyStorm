@@ -109,7 +109,7 @@ int checkGLErrors(void);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     
-    GLfloat lightDir[] = {0.707, -0.707, 0.707, 0.0};
+    GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
     GLfloat lightAmbient[] = {0.3, 0.3, 0.3, 1.0};
     GLfloat lightDiffuse[] = {0.7, 0.7, 0.7, 1.0};
     GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
@@ -132,7 +132,10 @@ int checkGLErrors(void);
     [self buildFontsAndStrings];
     
 	cube = [[GSCube alloc] init];
-    chunk = [[GSChunk alloc] initWithSeed:0 minP:GSVector3_Make(0,0,0) maxP:GSVector3_Make(64,64,64)];
+    chunk = [[GSChunk alloc] initWithSeed:0
+                                     minP:GSVector3_Make(0,0,0)
+                                     maxP:GSVector3_Make(128,64,128)
+                            terrainHeight:64];
     
     [self buildShader];
     
@@ -338,7 +341,7 @@ int checkGLErrors(void);
 	glPushMatrix();
 	[camera submitCameraTransform];
     
-    GLfloat lightDir[] = {0.707, -0.707, 0.707, 0.0};    
+    GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};    
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
     
 	glPushMatrix();
