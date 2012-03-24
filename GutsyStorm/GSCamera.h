@@ -9,13 +9,18 @@
 #import <Foundation/Foundation.h>
 #import "GSQuaternion.h"
 #import "GSVector3.h"
+#import "GSFrustum.h"
 
 @interface GSCamera : NSObject
 {
 	float cameraSpeed, cameraRotSpeed;
 	GSQuaternion cameraRot;
-	GSVector3 cameraEye, cameraCenter, cameraUp;
+	GSVector3 cameraCenter, cameraUp;
 }
+
+@property (readonly, nonatomic) GSVector3 cameraEye;
+@property (retain) GSFrustum *frustum;
+
 
 - (void)updateCameraLookVectors;
 - (void)resetCamera;
@@ -26,5 +31,9 @@
 										mouseDeltaY:(int)mouseDeltaY
 								   mouseSensitivity:(float)mouseSensitivity;
 - (void)moveToPosition:(GSVector3)p;
+- (void)reshapeWithBounds:(NSRect)bounds
+                      fov:(float)fov
+                    nearD:(float)nearD
+                     farD:(float)farD;
 
 @end
