@@ -277,6 +277,8 @@ int checkGLErrors(void);
 // Timer callback method
 - (void)timerFired:(id)sender
 {
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    
 	CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
 	float dt = (float)(frameTime - prevFrameTime);
 	
@@ -299,6 +301,7 @@ int checkGLErrors(void);
 	
 	prevFrameTime = frameTime;
 	[self setNeedsDisplay:YES];
+    [pool release];
 }
 
 
@@ -342,6 +345,8 @@ int checkGLErrors(void);
 
 - (void)drawRect:(NSRect)dirtyRect
 {
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
 	glPushMatrix();
@@ -373,6 +378,7 @@ int checkGLErrors(void);
 	
 	assert(checkGLErrors() == 0);
 	
+    [pool release];
 	lastRenderTime = CFAbsoluteTimeGetCurrent();
 	numFramesSinceLastFpsLabelUpdate++;
 }
