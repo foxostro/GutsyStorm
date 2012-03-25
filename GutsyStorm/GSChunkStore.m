@@ -92,9 +92,9 @@
     
     chunk = [cache objectForKey:chunkID];
     if(!chunk) {
-        char buffer[64] = {0};
+        /*char buffer[64] = {0};
         GSVector3_ToString(buffer, sizeof(buffer), minP);
-        //NSLog(@"Need to fetch another chunk; minP=%s", buffer);
+        NSLog(@"Need to fetch another chunk; chunkID=%@, minP=%s", chunkID, buffer);*/
         
         chunk = [[GSChunk alloc] initWithSeed:seed
                                          minP:minP
@@ -120,7 +120,7 @@
 
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP
 {
-	return [NSString stringWithFormat:@"%.0f_%.0f_%.0f", minP.x, minP.y, minP.z];
+	return [NSString stringWithFormat:@"%d_%d_%d", (int)minP.x, (int)minP.y, (int)minP.z];
 }
 
 @end
