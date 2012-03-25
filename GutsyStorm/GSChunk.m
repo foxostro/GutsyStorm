@@ -134,16 +134,16 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     [self destroyVBOs];
     
-    // Grab the "lockVoxelData" in case we are deallocated while an operation is in flight.
+    // Grab locks in case we are deallocated while an operation is in flight.
+    // XXX: So, this would block the main thread for an indeterminate amount of time in that case?
     [lockVoxelData lock];
+    [lockGeometry lock];
     [self destroyVoxelData];
-    [lockVoxelData unlock];
-    [lockVoxelData release];
-    
-    // Grab the "lockGeometry" in case we are deallocated while an operation is in flight.
-    [lockGeometry unlock];
     [self destroyGeometry];
     [lockGeometry unlock];
+    [lockVoxelData unlock];
+    
+    [lockVoxelData release];
     [lockGeometry release];
     
 	[super dealloc];
