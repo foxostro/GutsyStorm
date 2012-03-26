@@ -60,14 +60,11 @@
     // Draw all visible chunks that fall within the active region.
     for(p.x = minP.x; p.x < maxP.x; p.x += CHUNK_SIZE_X)
     {
-        for(p.y = minP.y; p.y < maxP.y; p.y += CHUNK_SIZE_Y)
+        for(p.z = minP.z; p.z < maxP.z; p.z += CHUNK_SIZE_Z)
         {
-            for(p.z = minP.z; p.z < maxP.z; p.z += CHUNK_SIZE_Z)
-            {
-                GSChunk *chunk = [self getChunkAtPoint:p];
-                if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]) {
-                    [chunk draw];
-                }
+            GSChunk *chunk = [self getChunkAtPoint:p];
+            if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]) {
+                [chunk draw];
             }
         }
     }
