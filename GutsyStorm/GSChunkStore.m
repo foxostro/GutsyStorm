@@ -58,6 +58,7 @@
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
     // Draw all visible chunks that fall within the active region.
+    p.y = terrainHeight / 2.0;
     for(p.x = minP.x; p.x < maxP.x; p.x += CHUNK_SIZE_X)
     {
         for(p.z = minP.z; p.z < maxP.z; p.z += CHUNK_SIZE_Z)

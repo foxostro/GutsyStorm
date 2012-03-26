@@ -19,6 +19,9 @@
 
 @interface GSChunk : NSObject
 {
+    GSVector3 minP;
+    GSVector3 maxP;
+    
     GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords;
     GLsizei numElementsInVBO; // This is numChunkVerts*3, but use a copy so we won't have to lock geometry to get it.
     
