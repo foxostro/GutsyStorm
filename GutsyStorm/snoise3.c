@@ -33,6 +33,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include "snoise3.h"
