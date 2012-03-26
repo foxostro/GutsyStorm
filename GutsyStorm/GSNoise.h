@@ -9,12 +9,9 @@
 #import <Foundation/Foundation.h>
 #import "GSVector3.h"
 
-
 @interface GSNoise : NSObject
 {
-    int i, j, k, A[3];
-    float u, v, w, s;
-    int T[8];
+    void *context;
 }
 
 - (id)initWithSeed:(unsigned)seed;
