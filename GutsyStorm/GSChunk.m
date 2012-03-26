@@ -160,6 +160,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     assert(x < CHUNK_SIZE_X);
     assert(y < CHUNK_SIZE_Y);
     assert(z < CHUNK_SIZE_Z);
+    
     return voxelData[INDEX(x, y, z)];
 }
 
@@ -193,13 +194,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
-    const size_t minX = minP.x;
-    const size_t minY = minP.y;
-    const size_t minZ = minP.z;
-    const size_t maxX = maxP.x;
-    const size_t maxY = maxP.y;
-    const size_t maxZ = maxP.z;
-    
     [lockVoxelData lock];
     
     [self allocateVoxelData];
@@ -207,14 +201,15 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
     GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:(seed+1)];
     
-    for(size_t x = minX; x < maxX; ++x)
+    for(size_t x = 0; x < CHUNK_SIZE_X; ++x)
     {
-        for(size_t y = minY; y < maxY; ++y)
+        for(size_t y = 0; y < CHUNK_SIZE_Y; ++y)
         {
-            for(size_t z = minZ; z < maxZ; ++z)
+            for(size_t z = 0; z < CHUNK_SIZE_Z; ++z)
             {
-                BOOL g = isGround(terrainHeight, noiseSource0, noiseSource1, GSVector3_Make(x, y, z));
-                voxelData[INDEX(x - minX, y - minY, z - minZ)] = g;
+                GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
+                BOOL g = isGround(terrainHeight, noiseSource0, noiseSource1, p);
+                voxelData[INDEX(x, y, z)] = g;
             }
         }
     }
