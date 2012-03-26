@@ -15,7 +15,8 @@
 {
 	float cameraSpeed, cameraRotSpeed;
 	GSQuaternion cameraRot;
-	GSVector3 cameraCenter, cameraUp;
+	GSVector3 cameraEye, cameraCenter, cameraUp;
+    GSFrustum *frustum;
 }
 
 @property (readonly, nonatomic) GSVector3 cameraEye;
