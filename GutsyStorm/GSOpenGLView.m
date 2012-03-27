@@ -260,27 +260,30 @@ int checkGLErrors(void);
 
 
 // Handle user input and update the camera if it was modified.
-- (void)handleUserInput:(float)dt
+- (BOOL)handleUserInput:(float)dt
 {
-	[camera handleUserInputForFlyingCameraWithDeltaTime:dt
-											   keysDown:keysDown
-											mouseDeltaX:mouseDeltaX
-											mouseDeltaY:mouseDeltaY
-									   mouseSensitivity:mouseSensitivity];
+	BOOL wasCameraModified;
+	
+	wasCameraModified = [camera handleUserInputForFlyingCameraWithDeltaTime:dt
+																   keysDown:keysDown
+																mouseDeltaX:mouseDeltaX
+																mouseDeltaY:mouseDeltaY
+														   mouseSensitivity:mouseSensitivity];
 	
 	// Reset for the next update
 	mouseDeltaX = 0;
 	mouseDeltaY = 0;
+	
+	return wasCameraModified;
 }
 
 
 // Timer callback method
 - (void)timerFired:(id)sender
 {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    
 	CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
 	float dt = (float)(frameTime - prevFrameTime);
+	BOOL wasCameraModified = NO;
 	
 	// Update the FPS label every so often.
 	if(frameTime - lastFpsLabelUpdateTime > fpsLabelUpdateInterval) {
@@ -291,17 +294,16 @@ int checkGLErrors(void);
 	}
 	
 	// Handle user input and update the camera if it was modified.
-	[self handleUserInput:dt];
+	wasCameraModified = [self handleUserInput:dt];
     
     // Allow the chunkStore to update every frame.
-    [chunkStore updateWithDeltaTime:dt];
+    [chunkStore updateWithDeltaTime:dt wasCameraModified:wasCameraModified];
 
 	// The cube spins slowly around the Y-axis.
 	cubeRotY += cubeRotSpeed * dt;
 	
 	prevFrameTime = frameTime;
 	[self setNeedsDisplay:YES];
-    [pool release];
 }
 
 
@@ -345,8 +347,6 @@ int checkGLErrors(void);
 
 - (void)drawRect:(NSRect)dirtyRect
 {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
 	glPushMatrix();
@@ -378,7 +378,6 @@ int checkGLErrors(void);
 	
 	assert(checkGLErrors() == 0);
 	
-    [pool release];
 	lastRenderTime = CFAbsoluteTimeGetCurrent();
 	numFramesSinceLastFpsLabelUpdate++;
 }

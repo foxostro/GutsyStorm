@@ -26,7 +26,7 @@
 - (void)updateCameraLookVectors;
 - (void)resetCamera;
 - (void)submitCameraTransform;
-- (void)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
+- (BOOL)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
 										   keysDown:(NSDictionary*)keysDown
 										mouseDeltaX:(int)mouseDeltaX
 										mouseDeltaY:(int)mouseDeltaY

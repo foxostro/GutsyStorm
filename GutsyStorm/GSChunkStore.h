@@ -11,18 +11,23 @@
 #import "GSChunk.h"
 #import "GSCamera.h"
 
-@interface GSChunkStore : NSObject
+@interface GSChunkStore : NSObject <NSCacheDelegate>
 {
     NSCache *cache;
     float terrainHeight;
     unsigned seed;
-    GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
     GSCamera *camera;
+	
+	size_t maxActiveChunks;
+	GSChunk **activeChunks, **tmpActiveChunks;
+    GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
 }
 
 - (id)initWithSeed:(unsigned)seed camera:(GSCamera *)camera;
 - (void)draw;
-- (void)updateWithDeltaTime:(float)dt;
+- (void)updateWithDeltaTime:(float)dt wasCameraModified:(BOOL)wasCameraModified;
 - (GSChunk *)getChunkAtPoint:(GSVector3)p;
+
+- (void)cache:(NSCache *)cache willEvictObject:(id)obj;
 
 @end

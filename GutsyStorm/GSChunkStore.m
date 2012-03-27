@@ -7,6 +7,7 @@
 //
 
 #import <assert.h>
+#import <cache.h>
 #import "GSChunkStore.h"
 
 
@@ -14,6 +15,7 @@
 
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP;
+- (void)recalculateActiveChunks;
 
 @end
 
@@ -26,12 +28,22 @@
     if (self) {
         // Initialization code here.
         seed = _seed;
-        cache = [[NSCache alloc] init];
+		terrainHeight = CHUNK_SIZE_Y;
+		
         camera = _camera;
         [camera retain];
-        
-        terrainHeight = CHUNK_SIZE_Y;
+		
         activeRegionExtent = GSVector3_Make(128, terrainHeight/2.0, 128);
+		maxActiveChunks = (2*activeRegionExtent.x/CHUNK_SIZE_X) *
+		                  (2*activeRegionExtent.y/CHUNK_SIZE_Y) *
+		                  (2*activeRegionExtent.z/CHUNK_SIZE_Z);
+		activeChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
+		tmpActiveChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
+		
+        cache = [[NSCache alloc] init];		
+		[cache setDelegate:self];
+		
+		[self recalculateActiveChunks];
     }
     
     return self;
@@ -42,33 +54,34 @@
 {
     [cache release];
     [camera release];
+	
+	for(size_t i = 0; i < maxActiveChunks; ++i)
+	{
+		[activeChunks[i] release];
+		activeChunks[i] = nil;
+		
+		[tmpActiveChunks[i] release];
+		tmpActiveChunks[i] = nil;
+	}
+	
+	free(activeChunks);
+	free(tmpActiveChunks);
 }
 
 
 - (void)draw
 {
-    GSVector3 p, minP, maxP;
-    GSFrustum *frustum = [camera frustum];
-    
-    minP = GSVector3_Sub([camera cameraEye], activeRegionExtent);
-    maxP = GSVector3_Add([camera cameraEye], activeRegionExtent);
-    
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    
-    // Draw all visible chunks that fall within the active region.
-    p.y = terrainHeight / 2.0;
-    for(p.x = minP.x; p.x < maxP.x; p.x += CHUNK_SIZE_X)
-    {
-        for(p.z = minP.z; p.z < maxP.z; p.z += CHUNK_SIZE_Z)
-        {
-            GSChunk *chunk = [self getChunkAtPoint:p];
-            if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]) {
-                [chunk draw];
-            }
-        }
-    }
+	
+	for(size_t i = 0; i < maxActiveChunks; ++i)
+	{
+		GSChunk *chunk = activeChunks[i];
+		if(chunk && chunk->visible) {
+			[chunk draw];
+		}
+	}
     
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
@@ -76,9 +89,11 @@
 }
 
 
-- (void)updateWithDeltaTime:(float)dt
+- (void)updateWithDeltaTime:(float)dt wasCameraModified:(BOOL)wasCameraModified
 {
-    // Do nothing
+	if(wasCameraModified) {
+		[self recalculateActiveChunks];
+	}
 }
 
 
@@ -94,13 +109,21 @@
         GSVector3_ToString(buffer, sizeof(buffer), minP);
         NSLog(@"Need to fetch another chunk; chunkID=%@, minP=%s", chunkID, buffer);*/
         
-        chunk = [[GSChunk alloc] initWithSeed:seed
+        chunk = [[[GSChunk alloc] initWithSeed:seed
                                          minP:minP
-                                terrainHeight:terrainHeight];
+                                terrainHeight:terrainHeight] autorelease];
         [cache setObject:chunk forKey:chunkID];
     }
+	
+	[chunkID release];
     
     return chunk;
+}
+
+
+- (void)cache:(NSCache *)cache willEvictObject:(id)obj
+{
+	NSLog(@"will evict %@", obj);
 }
 
 @end
@@ -118,7 +141,63 @@
 
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP
 {
-	return [NSString stringWithFormat:@"%d_%d_%d", (int)minP.x, (int)minP.y, (int)minP.z];
+	return [[NSString alloc] initWithFormat:@"%d_%d_%d", (int)minP.x, (int)minP.y, (int)minP.z];
+}
+
+
+- (void)recalculateActiveChunks
+{
+	GSVector3 minP = GSVector3_Sub([camera cameraEye], activeRegionExtent);
+    GSFrustum *frustum = [camera frustum];
+	
+	const size_t activeRegionSizeX = 2*activeRegionExtent.x/CHUNK_SIZE_X;
+	const size_t activeRegionSizeZ = 2*activeRegionExtent.z/CHUNK_SIZE_Z;
+	
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	
+	// Copy the activeChunks array and retain each chunk. This prevents chunks from being deallocated when we do
+	// releaseActiveChunks, which can prevent eviction of chunks which were in the active region and will remain in the active
+	// region.
+	for(size_t i = 0; i < maxActiveChunks; ++i)
+	{
+		GSChunk *chunk = activeChunks[i];
+		[chunk retain];
+		tmpActiveChunks[i] = chunk;
+	}
+	
+	// Release all the chunks and reset the activeChunks array.
+	for(size_t i = 0; i < maxActiveChunks; ++i)
+	{
+		[activeChunks[i] release];
+		activeChunks[i] = nil;
+	}
+    
+    // Draw all visible chunks that fall within the active region.
+	for(size_t x = 0; x < activeRegionSizeX; ++x)
+    {
+        for(size_t z = 0; z < activeRegionSizeZ; ++z)
+        {
+			GSVector3 p = GSVector3_Add(minP, GSVector3_Make(x*CHUNK_SIZE_X, terrainHeight/2.0, z*CHUNK_SIZE_Z));
+			
+			GSChunk *chunk = [self getChunkAtPoint:p];
+			[chunk retain];
+			
+            chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
+			
+			size_t idx = (activeRegionSizeX)*z + x;
+			assert(idx < maxActiveChunks);
+			activeChunks[idx] = chunk;
+        }
+    }
+	
+	// Release the temporary copy of the previous array.
+	for(size_t i = 0; i < maxActiveChunks; ++i)
+	{
+		[tmpActiveChunks[i] release];
+		tmpActiveChunks[i] = nil;
+	}
+	
+	[pool release];
 }
 
 @end

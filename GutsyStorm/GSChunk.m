@@ -81,23 +81,21 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         corners[5] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
         corners[6] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
         corners[7] = GSVector3_Add(minP, GSVector3_Make(0,            CHUNK_SIZE_Y, 0));
+		
+		visible = NO;
         
         dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         
         // Fire off asynchronous task to generate voxel data.
         // When this finishes, the condition in lockVoxelData will be set to CONDITION_VOXEL_DATA_READY.
         dispatch_async(queue, ^{
-            [self retain]; // In case chunk is released by the chunk store before operation finishes.
             [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
-            [self release];
         });
         
         // Fire off asynchronous task to generate chunk geometry from voxel data. (depends on voxelData)
         // When this finishes, the condition in lockGeometry will be set to CONDITION_GEOMETRY_READY.
         dispatch_async(queue, ^{
-            [self retain]; // In case chunk is released by the chunk store before operation finishes.
             [self generateGeometry];
-            [self release];
         });
     }
     
