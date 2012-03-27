@@ -70,7 +70,7 @@
 
 
 // Handles user input to control a flying camera.
-- (void)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
+- (BOOL)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
 										   keysDown:(NSDictionary*)keysDown
 										mouseDeltaX:(int)mouseDeltaX
 										mouseDeltaY:(int)mouseDeltaY
@@ -142,6 +142,8 @@
 		[self updateCameraLookVectors];
         [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
 	}
+	
+	return wasCameraModified;
 }
 
 
