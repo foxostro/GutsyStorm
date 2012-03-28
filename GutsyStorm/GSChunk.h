@@ -42,9 +42,14 @@
 @property (readonly, nonatomic) GSVector3 minP;
 @property (readonly, nonatomic) GSVector3 maxP;
 
++ (NSString *)computeChunkFileNameWithMinP:(GSVector3)minP;
+
 - (id)initWithSeed:(unsigned)seed
               minP:(GSVector3)minP
-     terrainHeight:(float)terrainHeight;
+     terrainHeight:(float)terrainHeight
+			folder:(NSURL *)folder;
 - (void)draw;
+- (void)saveToFileWithContainingFolder:(NSURL *)folder;
+- (void)loadFromFile:(NSURL *)url;
 
 @end

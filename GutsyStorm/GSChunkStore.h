@@ -11,12 +11,13 @@
 #import "GSChunk.h"
 #import "GSCamera.h"
 
-@interface GSChunkStore : NSObject <NSCacheDelegate>
+@interface GSChunkStore : NSObject
 {
     NSCache *cache;
     float terrainHeight;
     unsigned seed;
     GSCamera *camera;
+	NSURL *folder;
 	
 	size_t maxActiveChunks;
 	GSChunk **activeChunks, **tmpActiveChunks;
@@ -27,7 +28,5 @@
 - (void)draw;
 - (void)updateWithDeltaTime:(float)dt wasCameraModified:(BOOL)wasCameraModified;
 - (GSChunk *)getChunkAtPoint:(GSVector3)p;
-
-- (void)cache:(NSCache *)cache willEvictObject:(id)obj;
 
 @end
