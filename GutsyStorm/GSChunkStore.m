@@ -13,6 +13,7 @@
 
 @interface GSChunkStore (Private)
 
++ (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP;
 - (void)recalculateActiveChunks;
@@ -29,7 +30,7 @@
         // Initialization code here.
         seed = _seed;
 		terrainHeight = CHUNK_SIZE_Y;
-		folder = [[NSURL alloc] initFileURLWithPath:@"/tmp" isDirectory:YES];
+		folder = [GSChunkStore createWorldSaveFolderWithSeed:seed];
 		
         camera = _camera;
         [camera retain];
@@ -41,7 +42,7 @@
 		activeChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
 		tmpActiveChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
 		
-        cache = [[NSCache alloc] init];	
+        cache = [[NSCache alloc] init];
 		
 		[self recalculateActiveChunks];
     }
@@ -126,6 +127,32 @@
 
 
 @implementation GSChunkStore (Private)
+
++ (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed
+{
+	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
+    NSString *folder = ([paths count] > 0) ? [paths objectAtIndex:0] : NSTemporaryDirectory();
+	
+    folder = [folder stringByAppendingPathComponent:@"GutsyStorm"];
+	folder = [folder stringByAppendingPathComponent:@"save"];
+	folder = [folder stringByAppendingPathComponent:[NSString stringWithFormat:@"%u",seed]];
+	NSLog(@"ChunkStore will save chunks to folder: %@", folder);
+	
+	if(![[NSFileManager defaultManager] createDirectoryAtPath:folder
+								  withIntermediateDirectories:YES
+												   attributes:nil
+														error:NULL]) {
+		NSLog(@"Failed to create save folder: %@", folder);
+	}
+	
+	NSURL *url = [[NSURL alloc] initFileURLWithPath:folder isDirectory:YES];
+	
+	if(![url checkResourceIsReachableAndReturnError:NULL]) {
+		NSLog(@"ChunkStore's Save folder not reachable: %@", folder);
+	}
+	
+	return url;
+}
 
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p
 {
