@@ -184,8 +184,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)dealloc
 {
-    [self destroyVBOs];
-    
+	// VBOs must be destroyed on the main thread as all OpenGL calls must be done on the main thread.
+	[self performSelectorOnMainThread:@selector(destroyVBOs) withObject:self waitUntilDone:YES];
+	
     // Grab locks in case we are deallocated while an operation is in flight.
     // XXX: So, this would block the main thread for an indeterminate amount of time in that case?
     [lockVoxelData lock];
@@ -726,23 +727,24 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
+// Must only be called from the main thread.
 - (void)destroyVBOs
-{
-    if(vboChunkVerts) {
+{	
+    if(vboChunkVerts && glIsBuffer(vboChunkVerts)) {
         glDeleteBuffers(1, &vboChunkVerts);
-        vboChunkVerts = 0;   
     }
     
-    if(vboChunkNorms) {
+    if(vboChunkNorms && glIsBuffer(vboChunkNorms)) {
         glDeleteBuffers(1, &vboChunkNorms);
-        vboChunkNorms = 0;   
     }
     
-    if(vboChunkTexCoords) {
+    if(vboChunkTexCoords && glIsBuffer(vboChunkTexCoords)) {
         glDeleteBuffers(1, &vboChunkTexCoords);
-        vboChunkTexCoords = 0;   
     }
     
+	vboChunkVerts = 0;
+	vboChunkNorms = 0;
+	vboChunkTexCoords = 0;
     numElementsInVBO = 0;
 }
 
