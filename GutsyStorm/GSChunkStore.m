@@ -29,6 +29,7 @@
         // Initialization code here.
         seed = _seed;
 		terrainHeight = CHUNK_SIZE_Y;
+		folder = [[NSURL alloc] initFileURLWithPath:@"/tmp" isDirectory:YES];
 		
         camera = _camera;
         [camera retain];
@@ -40,8 +41,7 @@
 		activeChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
 		tmpActiveChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
 		
-        cache = [[NSCache alloc] init];		
-		[cache setDelegate:self];
+        cache = [[NSCache alloc] init];	
 		
 		[self recalculateActiveChunks];
     }
@@ -54,6 +54,7 @@
 {
     [cache release];
     [camera release];
+	[folder release];
 	
 	for(size_t i = 0; i < maxActiveChunks; ++i)
 	{
@@ -110,20 +111,15 @@
         NSLog(@"Need to fetch another chunk; chunkID=%@, minP=%s", chunkID, buffer);*/
         
         chunk = [[[GSChunk alloc] initWithSeed:seed
-                                         minP:minP
-                                terrainHeight:terrainHeight] autorelease];
+                                          minP:minP
+								 terrainHeight:terrainHeight
+										folder:folder] autorelease];
         [cache setObject:chunk forKey:chunkID];
     }
 	
 	[chunkID release];
     
     return chunk;
-}
-
-
-- (void)cache:(NSCache *)cache willEvictObject:(id)obj
-{
-	NSLog(@"will evict %@", obj);
 }
 
 @end
@@ -141,7 +137,7 @@
 
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP
 {
-	return [[NSString alloc] initWithFormat:@"%d_%d_%d", (int)minP.x, (int)minP.y, (int)minP.z];
+	return [[NSString alloc] initWithFormat:@"%.0f_%.0f_%.0f", minP.x, minP.y, minP.z];
 }
 
 

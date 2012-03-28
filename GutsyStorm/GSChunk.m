@@ -48,7 +48,17 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 @synthesize minP;
 @synthesize maxP;
 
-- (id)initWithSeed:(unsigned)seed minP:(GSVector3)myMinP terrainHeight:(float)terrainHeight
+
++ (NSString *)computeChunkFileNameWithMinP:(GSVector3)minP
+{
+	return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.chunk", minP.x, minP.y, minP.z];
+}
+
+
+- (id)initWithSeed:(unsigned)seed
+              minP:(GSVector3)myMinP
+     terrainHeight:(float)terrainHeight
+			folder:(NSURL *)folder
 {
     self = [super init];
     if (self) {
@@ -89,7 +99,17 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         // Fire off asynchronous task to generate voxel data.
         // When this finishes, the condition in lockVoxelData will be set to CONDITION_VOXEL_DATA_READY.
         dispatch_async(queue, ^{
-            [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
+			NSURL *url = [NSURL URLWithString:[GSChunk computeChunkFileNameWithMinP:minP]
+								relativeToURL:folder];
+			
+			if([url checkResourceIsReachableAndReturnError:NULL]) {
+				// Load chunk from disk.
+				[self loadFromFile:url];
+			} else {
+				// Generate chunk from scratch.
+				[self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
+				[self saveToFileWithContainingFolder:folder];
+			}
         });
         
         // Fire off asynchronous task to generate chunk geometry from voxel data. (depends on voxelData)
@@ -125,6 +145,40 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     glTexCoordPointer(3, GL_FLOAT, 0, 0);
     
     glDrawArrays(GL_TRIANGLES, 0, numElementsInVBO);
+}
+
+
+- (void)saveToFileWithContainingFolder:(NSURL *)folder
+{
+	const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(BOOL);
+	
+	NSURL *url = [NSURL URLWithString:[GSChunk computeChunkFileNameWithMinP:minP]
+						relativeToURL:folder];
+	
+	[lockVoxelData lockWhenCondition:CONDITION_VOXEL_DATA_READY];
+	[[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
+	[lockVoxelData unlock];
+}
+
+
+// Returns YES if the chunk data is reachable on the filesystem and loading was successful.
+- (void)loadFromFile:(NSURL *)url
+{
+	const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(BOOL);
+	
+	[lockVoxelData lock];
+    [self allocateVoxelData];
+	
+	// Read the contents of the file into "voxelData".
+	NSData *data = [[NSData alloc] initWithContentsOfURL:url];
+	if([data length] != len) {
+		[NSException raise:@"Runtime Error"
+					format:@"Unexpected length of data for chunk. Got %ul bytes. Expected %lu bytes.", [data length], len];
+	}
+	[data getBytes:voxelData length:len];
+	[data release];
+	
+	[lockVoxelData unlockWithCondition:CONDITION_VOXEL_DATA_READY];
 }
 
 
