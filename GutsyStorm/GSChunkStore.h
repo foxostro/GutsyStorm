@@ -26,7 +26,7 @@
 
 - (id)initWithSeed:(unsigned)seed camera:(GSCamera *)camera;
 - (void)draw;
-- (void)updateWithDeltaTime:(float)dt wasCameraModified:(BOOL)wasCameraModified;
+- (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 - (GSChunk *)getChunkAtPoint:(GSVector3)p;
 
 @end

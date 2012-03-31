@@ -260,11 +260,11 @@ int checkGLErrors(void);
 
 
 // Handle user input and update the camera if it was modified.
-- (BOOL)handleUserInput:(float)dt
+- (unsigned)handleUserInput:(float)dt
 {
-	BOOL wasCameraModified;
+	unsigned cameraModifiedFlags;
 	
-	wasCameraModified = [camera handleUserInputForFlyingCameraWithDeltaTime:dt
+	cameraModifiedFlags = [camera handleUserInputForFlyingCameraWithDeltaTime:dt
 																   keysDown:keysDown
 																mouseDeltaX:mouseDeltaX
 																mouseDeltaY:mouseDeltaY
@@ -274,7 +274,7 @@ int checkGLErrors(void);
 	mouseDeltaX = 0;
 	mouseDeltaY = 0;
 	
-	return wasCameraModified;
+	return cameraModifiedFlags;
 }
 
 
@@ -283,7 +283,7 @@ int checkGLErrors(void);
 {
 	CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
 	float dt = (float)(frameTime - prevFrameTime);
-	BOOL wasCameraModified = NO;
+	unsigned cameraModifiedFlags = 0;
 	
 	// Update the FPS label every so often.
 	if(frameTime - lastFpsLabelUpdateTime > fpsLabelUpdateInterval) {
@@ -294,10 +294,10 @@ int checkGLErrors(void);
 	}
 	
 	// Handle user input and update the camera if it was modified.
-	wasCameraModified = [self handleUserInput:dt];
+	cameraModifiedFlags = [self handleUserInput:dt];
     
     // Allow the chunkStore to update every frame.
-    [chunkStore updateWithDeltaTime:dt wasCameraModified:wasCameraModified];
+    [chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
 
 	// The cube spins slowly around the Y-axis.
 	cubeRotY += cubeRotSpeed * dt;

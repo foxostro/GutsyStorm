@@ -11,6 +11,10 @@
 #import "GSVector3.h"
 #import "GSFrustum.h"
 
+#define CAMERA_MOVED  (1)
+#define CAMERA_TURNED (2)
+
+
 @interface GSCamera : NSObject
 {
 	float cameraSpeed, cameraRotSpeed;
@@ -26,11 +30,11 @@
 - (void)updateCameraLookVectors;
 - (void)resetCamera;
 - (void)submitCameraTransform;
-- (BOOL)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
-										   keysDown:(NSDictionary*)keysDown
-										mouseDeltaX:(int)mouseDeltaX
-										mouseDeltaY:(int)mouseDeltaY
-								   mouseSensitivity:(float)mouseSensitivity;
+- (unsigned)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
+											   keysDown:(NSDictionary*)keysDown
+											mouseDeltaX:(int)mouseDeltaX
+											mouseDeltaY:(int)mouseDeltaY
+									   mouseSensitivity:(float)mouseSensitivity;
 - (void)moveToPosition:(GSVector3)p;
 - (void)reshapeWithBounds:(NSRect)bounds
                       fov:(float)fov

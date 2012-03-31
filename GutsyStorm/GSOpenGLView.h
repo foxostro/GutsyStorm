@@ -39,7 +39,7 @@
 - (void)enableVSync;
 - (void)resetMouseInputSettings;
 - (void)timerFired:(id)sender;
-- (BOOL)handleUserInput:(float)dt;
+- (unsigned)handleUserInput:(float)dt;
 - (NSString *)loadShaderSourceFileWithPath:(NSString *)path;
 - (void)buildShader;
 - (void)buildFontsAndStrings;

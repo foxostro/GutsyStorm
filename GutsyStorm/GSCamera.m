@@ -70,54 +70,54 @@
 
 
 // Handles user input to control a flying camera.
-- (BOOL)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
-										   keysDown:(NSDictionary*)keysDown
-										mouseDeltaX:(int)mouseDeltaX
-										mouseDeltaY:(int)mouseDeltaY
-								   mouseSensitivity:(float)mouseSensitivity
+- (unsigned)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
+											   keysDown:(NSDictionary*)keysDown
+											mouseDeltaX:(int)mouseDeltaX
+											mouseDeltaY:(int)mouseDeltaY
+									   mouseSensitivity:(float)mouseSensitivity
 {
-	BOOL wasCameraModified = NO;
+	unsigned cameraModifiedFlags = 0;
 	
 	[keysDown retain];
 
 	if([[keysDown objectForKey:[NSNumber numberWithInt:'w']] boolValue]) {
 		GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0, 0, -cameraSpeed*dt));
 		cameraEye = GSVector3_Add(cameraEye, velocity);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_MOVED;
 	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'s']] boolValue]) {
 		GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0, 0, cameraSpeed*dt));
 		cameraEye = GSVector3_Add(cameraEye, velocity);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_MOVED;
 	}
 
 	if([[keysDown objectForKey:[NSNumber numberWithInt:'a']] boolValue]) {
 		GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(-cameraSpeed*dt, 0, 0));
 		cameraEye = GSVector3_Add(cameraEye, velocity);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_MOVED;
 	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'d']] boolValue]) {
 		GSVector3 velocity = GSQuaternion_MulByVec(cameraRot, GSVector3_Make(cameraSpeed*dt, 0, 0));
 		cameraEye = GSVector3_Add(cameraEye, velocity);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_MOVED;
 	}
 
 	if([[keysDown objectForKey:[NSNumber numberWithInt:'j']] boolValue]) {
 		GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), cameraRotSpeed*dt);
 		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_TURNED;
 	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'l']] boolValue]) {
 		GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), -cameraRotSpeed*dt);
 		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_TURNED;
 	}
 
 	if([[keysDown objectForKey:[NSNumber numberWithInt:'i']] boolValue]) {
 		GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), -cameraRotSpeed*dt);
 		cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_TURNED;
 	} else if([[keysDown objectForKey:[NSNumber numberWithInt:'k']] boolValue]) {
 		GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), cameraRotSpeed*dt);
 		cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_TURNED;
 	}
 
 	if(mouseDeltaX != 0) {
@@ -125,7 +125,7 @@
 		float angle = mouseDirectionX*dt;
 		GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0,1,0), angle);
 		cameraRot = GSQuaternion_MulByQuat(deltaRot, cameraRot);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_TURNED;
 	}
 
 	if(mouseDeltaY != 0) {
@@ -133,17 +133,17 @@
 		float angle = mouseDirectionY*dt;
 		GSQuaternion deltaRot = GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1,0,0), angle);
 		cameraRot = GSQuaternion_MulByQuat(cameraRot, deltaRot);
-		wasCameraModified = YES;
+		cameraModifiedFlags |= CAMERA_TURNED;
 	}
 
 	[keysDown release];
 
-	if(wasCameraModified) {
+	if(cameraModifiedFlags) {
 		[self updateCameraLookVectors];
         [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
 	}
 	
-	return wasCameraModified;
+	return cameraModifiedFlags;
 }
 
 
