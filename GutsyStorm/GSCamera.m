@@ -14,6 +14,7 @@
 @implementation GSCamera
 
 @synthesize cameraEye;
+@synthesize cameraRot;
 @synthesize frustum;
 
 
@@ -59,7 +60,7 @@
 // Set the default camera and reset camera properties.
 - (void)resetCamera
 {	
-	cameraSpeed = 5.0;
+	cameraSpeed = 10.0;
 	cameraRotSpeed = 1.0;
 	cameraEye = GSVector3_Make(0.0f, 0.0f, 0.0f);
 	cameraCenter = GSVector3_Make(0.0f, 0.0f, -1.0f);

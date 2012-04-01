@@ -171,7 +171,7 @@ int checkGLErrors(void);
     chunkStore = nil;
 	
 	camera = [[GSCamera alloc] init];
-    [camera moveToPosition:GSVector3_Make(85.70, 39.69, 134.25)];
+    [camera moveToPosition:GSVector3_Make(85.70, 15, 134.25)];
 	[self resetMouseInputSettings];
 	
 	// Register with window to accept user input.
@@ -354,10 +354,8 @@ int checkGLErrors(void);
     
     static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};    
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
-    
-    [shader bind];
-	[chunkStore draw];
-    [shader unbind];
+
+	[chunkStore drawWithShader:shader];
     
 	glPushMatrix();
     glTranslatef(0, 0, +5);
@@ -366,6 +364,7 @@ int checkGLErrors(void);
 	[cube draw];
     [shader unbind];
 	glPopMatrix(); // cube
+	
 	glPopMatrix(); // camera transform
 	
 	[self drawHUD];
