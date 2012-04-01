@@ -13,6 +13,7 @@
 #import "GSTextureArray.h"
 #import "GSCube.h"
 #import "GSChunkStore.h"
+#import "GSImpostor.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
@@ -31,6 +32,9 @@
     GSShader *shader;
     GSTextureArray *textureArray;
     GSCube *cube;
+	GSVector3 cubePos;
+	GSImpostor *cubeImpostor;
+	BOOL useImpostor;
     GSChunkStore *chunkStore;
 }
 

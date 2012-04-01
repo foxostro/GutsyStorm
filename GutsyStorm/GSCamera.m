@@ -14,6 +14,8 @@
 @implementation GSCamera
 
 @synthesize cameraEye;
+@synthesize cameraCenter;
+@synthesize cameraUp;
 @synthesize cameraRot;
 @synthesize frustum;
 
@@ -51,7 +53,7 @@
 
 // Updated the camera look vectors.
 - (void)updateCameraLookVectors
-{	
+{
 	cameraCenter = GSVector3_Add(cameraEye, GSVector3_Normalize(GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0,0,-1))));	
     cameraUp = GSVector3_Normalize(GSQuaternion_MulByVec(cameraRot, GSVector3_Make(0,1,0)));
 }

@@ -24,6 +24,8 @@
 }
 
 @property (readonly, nonatomic) GSVector3 cameraEye;
+@property (readonly, nonatomic) GSVector3 cameraCenter;
+@property (readonly, nonatomic) GSVector3 cameraUp;
 @property (readonly, nonatomic) GSQuaternion cameraRot;
 @property (retain) GSFrustum *frustum;
 
