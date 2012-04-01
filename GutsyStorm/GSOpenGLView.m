@@ -130,7 +130,6 @@ int checkGLErrors(void);
 	
     [self buildFontsAndStrings];
     
-	cube = [[GSCube alloc] init];
     chunkStore = [[GSChunkStore alloc] initWithSeed:0 camera:camera];
     
     [self buildShader];
@@ -140,6 +139,17 @@ int checkGLErrors(void);
                                                                                       ofType:@"png"]
                                                  numTextures:3];
     
+	
+	
+	cube = [[GSCube alloc] init];
+	
+	// Create an impostor to stand in for the cube.
+	GSAABB *bounds = [[GSAABB alloc] initWithMinP:GSVector3_Add(cubePos, GSVector3_Make(-1.01, -1.01, -1.01))
+											 maxP:GSVector3_Add(cubePos, GSVector3_Make(+1.01, +1.01, +1.01))];
+	cubeImpostor = [[GSImpostor alloc] initWithCamera:camera bounds:bounds];
+	[bounds release];
+	assert(checkGLErrors() == 0);
+	
 	[self enableVSync];
     
 	assert(checkGLErrors() == 0);
@@ -168,10 +178,13 @@ int checkGLErrors(void);
     shader = nil;
     textureArray = nil;
     cube = nil;
+	cubePos = GSVector3_Make(85.70, 15, 124.25);
     chunkStore = nil;
+	useImpostor = YES;
 	
 	camera = [[GSCamera alloc] init];
     [camera moveToPosition:GSVector3_Make(85.70, 15, 134.25)];
+	[camera updateCameraLookVectors];
 	[self resetMouseInputSettings];
 	
 	// Register with window to accept user input.
@@ -270,6 +283,14 @@ int checkGLErrors(void);
 																mouseDeltaY:mouseDeltaY
 														   mouseSensitivity:mouseSensitivity];
 	
+	if([[keysDown objectForKey:[NSNumber numberWithInt:'[']] boolValue]) {
+		useImpostor = YES;
+	}
+	
+	if([[keysDown objectForKey:[NSNumber numberWithInt:']']] boolValue]) {
+		useImpostor = NO;
+	}
+	
 	// Reset for the next update
 	mouseDeltaX = 0;
 	mouseDeltaY = 0;
@@ -298,9 +319,6 @@ int checkGLErrors(void);
     
     // Allow the chunkStore to update every frame.
     [chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
-
-	// The cube spins slowly around the Y-axis.
-	cubeRotY += cubeRotSpeed * dt;
 	
 	prevFrameTime = frameTime;
 	[self setNeedsDisplay:YES];
@@ -347,23 +365,29 @@ int checkGLErrors(void);
 
 - (void)drawRect:(NSRect)dirtyRect
 {
+	static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
+	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
 	glPushMatrix();
+	glLoadIdentity();
 	[camera submitCameraTransform];
-    
-    static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};    
-    glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
+    glLightfv(GL_LIGHT0, GL_POSITION, lightDir);  
 
+	// Draw terrain.
 	[chunkStore drawWithShader:shader];
-    
-	glPushMatrix();
-    glTranslatef(0, 0, +5);
-	glRotatef(cubeRotY, 0, 1, 0);
-    [shader bind];
-	[cube draw];
-    [shader unbind];
-	glPopMatrix(); // cube
+	
+	// Draw an impostor to stand in for the cube.
+	[cubeImpostor realignToCamera];
+	if(useImpostor) {
+		glPushMatrix();
+		glTranslatef(cubePos.x, cubePos.y, cubePos.z);
+		[shader bind];
+		[cube draw];
+		[shader unbind];
+		glPopMatrix();
+	} else {
+		[cubeImpostor draw];	
+	}
 	
 	glPopMatrix(); // camera transform
 	
@@ -375,7 +399,21 @@ int checkGLErrors(void);
 		[[self openGLContext] flushBuffer];
 	}
 	
-	assert(checkGLErrors() == 0);
+	// Update the cube impostor.
+	if(1) { // if(useImpostor && [cubeImpostor doesImposterNeedUpdate]) {
+		if([cubeImpostor startUpdateImposter]) {
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glTranslatef(cubePos.x, cubePos.y, cubePos.z);
+			[shader bind];
+			[cube draw];
+			[shader unbind];
+			glPopMatrix(); // cube
+			
+			[cubeImpostor finishUpdateImposter];
+			assert(checkGLErrors() == 0);
+		}
+	}
 	
 	lastRenderTime = CFAbsoluteTimeGetCurrent();
 	numFramesSinceLastFpsLabelUpdate++;
@@ -389,6 +427,7 @@ int checkGLErrors(void);
     [shader release];
     [textureArray release];
     [cube release];
+	[cubeImpostor release];
     
 	[super dealloc];
 }

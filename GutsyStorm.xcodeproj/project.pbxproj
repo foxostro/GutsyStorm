@@ -16,8 +16,13 @@
 		4A2CD00D1513C3FD006C6551 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD00B1513C3FD006C6551 /* MainMenu.xib */; };
 		4A4E20771516B086008745E0 /* GSVector3.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A4E20761516B086008745E0 /* GSVector3.c */; };
 		4A99BE241528197800F2ECDC /* GSBoxedRay.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A99BE231528197800F2ECDC /* GSBoxedRay.m */; };
+		4A99BE281528242800F2ECDC /* GSImpostor.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A99BE271528242800F2ECDC /* GSImpostor.m */; };
+		4A99BE2B1528244800F2ECDC /* GSRenderTexture.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A99BE2A1528244800F2ECDC /* GSRenderTexture.m */; };
 		4A9A3BA61517200E00607B1A /* GSCamera.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9A3BA51517200E00607B1A /* GSCamera.m */; };
 		4A9A3BAD1517252E00607B1A /* GLString.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9A3BAC1517252E00607B1A /* GLString.m */; };
+		4A9EC91A15282ADA009C80FF /* GSAABB.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9EC91915282ADA009C80FF /* GSAABB.m */; };
+		4A9EC920152900C6009C80FF /* GSMatrix4.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A9EC91F152900C6009C80FF /* GSMatrix4.c */; };
+		4A9EC92215290452009C80FF /* GSVector4.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A9EC92115290452009C80FF /* GSVector4.c */; };
 		4ACB9C2A1527CF50005D50B8 /* GSRay.c in Sources */ = {isa = PBXBuildFile; fileRef = 4ACB9C291527CF50005D50B8 /* GSRay.c */; };
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
@@ -55,10 +60,20 @@
 		4A4E20761516B086008745E0 /* GSVector3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSVector3.c; sourceTree = "<group>"; };
 		4A99BE221528197800F2ECDC /* GSBoxedRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBoxedRay.h; sourceTree = "<group>"; };
 		4A99BE231528197800F2ECDC /* GSBoxedRay.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedRay.m; sourceTree = "<group>"; };
+		4A99BE261528242800F2ECDC /* GSImpostor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSImpostor.h; sourceTree = "<group>"; };
+		4A99BE271528242800F2ECDC /* GSImpostor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSImpostor.m; sourceTree = "<group>"; };
+		4A99BE291528244800F2ECDC /* GSRenderTexture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSRenderTexture.h; sourceTree = "<group>"; };
+		4A99BE2A1528244800F2ECDC /* GSRenderTexture.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSRenderTexture.m; sourceTree = "<group>"; };
 		4A9A3BA41517200E00607B1A /* GSCamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSCamera.h; sourceTree = "<group>"; };
 		4A9A3BA51517200E00607B1A /* GSCamera.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSCamera.m; sourceTree = "<group>"; };
 		4A9A3BAB1517252E00607B1A /* GLString.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLString.h; sourceTree = "<group>"; };
 		4A9A3BAC1517252E00607B1A /* GLString.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GLString.m; sourceTree = "<group>"; };
+		4A9EC91815282ADA009C80FF /* GSAABB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSAABB.h; sourceTree = "<group>"; };
+		4A9EC91915282ADA009C80FF /* GSAABB.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSAABB.m; sourceTree = "<group>"; };
+		4A9EC91E152900BA009C80FF /* GSMatrix4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSMatrix4.h; sourceTree = "<group>"; };
+		4A9EC91F152900C6009C80FF /* GSMatrix4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSMatrix4.c; sourceTree = "<group>"; };
+		4A9EC92115290452009C80FF /* GSVector4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSVector4.c; sourceTree = "<group>"; };
+		4A9EC9231529045C009C80FF /* GSVector4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVector4.h; sourceTree = "<group>"; };
 		4ACB9C271527CF45005D50B8 /* GSRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSRay.h; sourceTree = "<group>"; };
 		4ACB9C291527CF50005D50B8 /* GSRay.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSRay.c; sourceTree = "<group>"; usesTabs = 1; };
 		4AD9531815142AA000C2AF8E /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = ../../../../../System/Library/Frameworks/OpenGL.framework; sourceTree = "<group>"; };
@@ -140,6 +155,8 @@
 		4A2CCFFC1513C3FC006C6551 /* GutsyStorm */ = {
 			isa = PBXGroup;
 			children = (
+				4A99BE261528242800F2ECDC /* GSImpostor.h */,
+				4A99BE271528242800F2ECDC /* GSImpostor.m */,
 				ACF27B07151AEF3A009FCAB9 /* GSChunk.h */,
 				ACF27B08151AEF3A009FCAB9 /* GSChunk.m */,
 				AC5B2802151E2C1D0045B6E4 /* GSChunkStore.h */,
@@ -183,6 +200,10 @@
 		AC202CC6151E57A000D91067 /* 3D Math */ = {
 			isa = PBXGroup;
 			children = (
+				4A9EC91E152900BA009C80FF /* GSMatrix4.h */,
+				4A9EC91F152900C6009C80FF /* GSMatrix4.c */,
+				4A9EC91815282ADA009C80FF /* GSAABB.h */,
+				4A9EC91915282ADA009C80FF /* GSAABB.m */,
 				4A99BE221528197800F2ECDC /* GSBoxedRay.h */,
 				4A99BE231528197800F2ECDC /* GSBoxedRay.m */,
 				4ACB9C271527CF45005D50B8 /* GSRay.h */,
@@ -193,6 +214,8 @@
 				AC202CC4151E453E00D91067 /* GSPlane.c */,
 				4A1B698D1516B882008934F6 /* GSQuaternion.h */,
 				4A1B698F1516B889008934F6 /* GSQuaternion.c */,
+				4A9EC9231529045C009C80FF /* GSVector4.h */,
+				4A9EC92115290452009C80FF /* GSVector4.c */,
 				4A4E20751516B07E008745E0 /* GSVector3.h */,
 				4A4E20761516B086008745E0 /* GSVector3.c */,
 			);
@@ -202,6 +225,8 @@
 		AC202CC7151E57BD00D91067 /* OpenGL Wrapper */ = {
 			isa = PBXGroup;
 			children = (
+				4A99BE291528244800F2ECDC /* GSRenderTexture.h */,
+				4A99BE2A1528244800F2ECDC /* GSRenderTexture.m */,
 				ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */,
 				ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */,
 				AC9CCD6E1519A90E0081964D /* GSShader.h */,
@@ -297,6 +322,11 @@
 				ACE99D70151FE922006055F6 /* snoise3.c in Sources */,
 				4ACB9C2A1527CF50005D50B8 /* GSRay.c in Sources */,
 				4A99BE241528197800F2ECDC /* GSBoxedRay.m in Sources */,
+				4A99BE281528242800F2ECDC /* GSImpostor.m in Sources */,
+				4A99BE2B1528244800F2ECDC /* GSRenderTexture.m in Sources */,
+				4A9EC91A15282ADA009C80FF /* GSAABB.m in Sources */,
+				4A9EC920152900C6009C80FF /* GSMatrix4.c in Sources */,
+				4A9EC92215290452009C80FF /* GSVector4.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
