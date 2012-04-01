@@ -11,10 +11,11 @@
 #import <OpenGL/OpenGL.h>
 
 #import "GSVector3.h"
+#import "GSRay.h"
 
-#define CHUNK_SIZE_X (16)
-#define CHUNK_SIZE_Y (64)
-#define CHUNK_SIZE_Z (16)
+#define CHUNK_SIZE_X (32)
+#define CHUNK_SIZE_Y (32)
+#define CHUNK_SIZE_Z (32)
 
 
 @interface GSChunk : NSObject
@@ -51,5 +52,6 @@
 - (void)draw;
 - (void)saveToFileWithContainingFolder:(NSURL *)folder;
 - (void)loadFromFile:(NSURL *)url;
+- (BOOL)rayHitsChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut;
 
 @end

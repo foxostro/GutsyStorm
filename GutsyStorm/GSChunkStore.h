@@ -8,8 +8,10 @@
 
 #import <Cocoa/Cocoa.h>
 #import "GSVector3.h"
+#import "GSRay.h"
 #import "GSChunk.h"
 #import "GSCamera.h"
+#import "GSShader.h"
 
 @interface GSChunkStore : NSObject
 {
@@ -22,11 +24,15 @@
 	size_t maxActiveChunks;
 	GSChunk **activeChunks, **tmpActiveChunks;
     GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
+	
+	NSMutableArray *feelerRays;
 }
 
 - (id)initWithSeed:(unsigned)seed camera:(GSCamera *)camera;
-- (void)draw;
+- (void)drawWithShader:(GSShader *)shader;
+- (void)drawFeelerRays;
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 - (GSChunk *)getChunkAtPoint:(GSVector3)p;
+- (GSChunk *)rayCastToFindChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut;
 
 @end

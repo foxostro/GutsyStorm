@@ -202,6 +202,36 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	[super dealloc];
 }
 
+
+- (BOOL)rayHitsChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut
+{
+	// Test the ray against the chunk's overall AABB. This rejects rays early if they don't go anywhere near a voxel.
+	if(!GSRay_IntersectsAABB(ray, minP, maxP, NULL)) {
+		return NO;
+	}
+	
+	// Test the ray against the AABB for each voxel in the chunk.
+	// XXX: Could reduce the number of intersection tests with a spatial data structure such as an octtree.
+	GSVector3 pos;
+	for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
+    {
+        for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
+        {
+            for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
+            {
+                GSVector3 voxelMinP = GSVector3_Sub(pos, GSVector3_Make(0.5, 0.5, 0.5));
+                GSVector3 voxelMaxP = GSVector3_Add(pos, GSVector3_Make(0.5, 0.5, 0.5));
+				
+				if(GSRay_IntersectsAABB(ray, voxelMinP, voxelMaxP, intersectionDistanceOut)) {
+					return YES;
+				}
+            }
+        }
+    }
+	
+	return NO;
+}
+
 @end
 
 

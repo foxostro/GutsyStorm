@@ -8,6 +8,8 @@
 
 #import <assert.h>
 #import <cache.h>
+#import "GSRay.h"
+#import "GSBoxedRay.h"
 #import "GSChunkStore.h"
 
 
@@ -35,7 +37,9 @@
         camera = _camera;
         [camera retain];
 		
-        activeRegionExtent = GSVector3_Make(128, terrainHeight/2.0, 128);
+		feelerRays = [[NSMutableArray alloc] init];
+		
+        activeRegionExtent = GSVector3_Make(64, 64, 64);
 		maxActiveChunks = (2*activeRegionExtent.x/CHUNK_SIZE_X) *
 		                  (2*activeRegionExtent.y/CHUNK_SIZE_Y) *
 		                  (2*activeRegionExtent.z/CHUNK_SIZE_Z);
@@ -56,6 +60,7 @@
     [cache release];
     [camera release];
 	[folder release];
+	[feelerRays release];
 	
 	for(size_t i = 0; i < maxActiveChunks; ++i)
 	{
@@ -71,8 +76,10 @@
 }
 
 
-- (void)draw
+- (void)drawWithShader:(GSShader *)shader
 {
+	[shader bind];
+	
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -88,6 +95,32 @@
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
+	
+    [shader unbind];
+}
+
+
+- (void)drawFeelerRays
+{
+	glDisable(GL_LIGHTING);
+	glDisable(GL_TEXTURE_2D);
+	glBegin(GL_LINES);
+	
+	NSEnumerator *e = [feelerRays objectEnumerator];
+	id object;
+	while(nil != (object = [e nextObject]))
+	{
+		GSBoxedRay *r = (GSBoxedRay *)object;
+		
+		glVertex3f(r.ray.origin.x, r.ray.origin.y, r.ray.origin.z);
+		glVertex3f(r.ray.origin.x + r.ray.direction.x,
+				   r.ray.origin.y + r.ray.direction.y,
+				   r.ray.origin.z + r.ray.direction.z);
+	}
+	
+	glEnd();
+	glEnable(GL_LIGHTING);
+	glEnable(GL_TEXTURE_2D);
 }
 
 
@@ -121,6 +154,65 @@
 	[chunkID release];
     
     return chunk;
+}
+
+
+- (GSChunk *)rayCastToFindChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut
+{
+	// Get a list of the active chunks whose AABB are in the path of the ray.
+	NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
+	for(size_t i = 0; i < maxActiveChunks; ++i)
+	{
+		float distance = INFINITY;
+		GSChunk *chunk = activeChunks[i];
+		
+		if(!chunk) {
+			continue;
+		}
+		
+		if(GSRay_IntersectsAABB(ray, [chunk minP], [chunk maxP], &distance)) {
+			[unsortedChunks addObject:chunk];
+		}
+	}
+	
+	// Sort by distance from the camera. Near chunks are first.
+	GSVector3 cameraEye = [camera cameraEye];
+	NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(id a, id b) {
+		GSChunk *chunkA = (GSChunk *)a;
+		GSChunk *chunkB = (GSChunk *)b;
+		GSVector3 centerA = GSVector3_Scale(GSVector3_Add([chunkA minP], [chunkA maxP]), 0.5);
+		GSVector3 centerB = GSVector3_Scale(GSVector3_Add([chunkB minP], [chunkB maxP]), 0.5);
+		float distA = GSVector3_Length(GSVector3_Sub(centerA, cameraEye));
+		float distB = GSVector3_Length(GSVector3_Sub(centerB, cameraEye));;
+		return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
+	}];
+	
+	// For all chunks in the path of the array, determine whether the ray actually hits a voxel in the chunk.
+	float nearestDistance = INFINITY;
+	GSChunk *nearestChunk = nil;
+	NSEnumerator *e = [sortedChunks objectEnumerator];
+	id object;
+	while(nil != (object = [e nextObject]))
+	{
+		float distance = INFINITY;
+		GSChunk *chunk = (GSChunk *)object;
+		
+		if([chunk rayHitsChunk:ray intersectionDistanceOut:&distance]) {
+			if(distance < nearestDistance) {
+				nearestDistance = distance;
+				nearestChunk = chunk;
+			}
+		}
+	}
+	
+	// Return the distance to the intersection, if requested.
+	if(nearestChunk && intersectionDistanceOut) {
+		*intersectionDistanceOut = nearestDistance;
+	}
+	
+	[unsortedChunks release];
+	
+	return nearestChunk;
 }
 
 @end
@@ -174,14 +266,14 @@
 		return; // nothing to do; existing active region is still valid.
 	}
 	
-	GSVector3 minP = GSVector3_Sub([camera cameraEye], activeRegionExtent);
-    GSFrustum *frustum = [camera frustum];
-	
-	const size_t activeRegionSizeX = 2*activeRegionExtent.x/CHUNK_SIZE_X;
-	const size_t activeRegionSizeZ = 2*activeRegionExtent.z/CHUNK_SIZE_Z;
-	
 	// If the camera moved then recalculate the set of active chunks.
 	if(flags & CAMERA_MOVED) {
+		GSVector3 minP = GSVector3_Sub([camera cameraEye], activeRegionExtent);
+		
+		const size_t activeRegionSizeX = 2*activeRegionExtent.x/CHUNK_SIZE_X;
+		const size_t activeRegionSizeY = 2*activeRegionExtent.y/CHUNK_SIZE_Y;
+		const size_t activeRegionSizeZ = 2*activeRegionExtent.z/CHUNK_SIZE_Z;
+		
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
 		// Copy the activeChunks array and retain each chunk. This prevents chunks from being deallocated when we do
@@ -210,16 +302,19 @@
 		// Collect all chunks that fall within the active region.
 		for(size_t x = 0; x < activeRegionSizeX; ++x)
 		{
-			for(size_t z = 0; z < activeRegionSizeZ; ++z)
+			for(size_t y = 0; y < activeRegionSizeY; ++y)
 			{
-				GSVector3 p = GSVector3_Add(minP, GSVector3_Make(x*CHUNK_SIZE_X, terrainHeight/2.0, z*CHUNK_SIZE_Z));
-				
-				GSChunk *chunk = [self getChunkAtPoint:p];
-				[chunk retain];
-				
-				size_t idx = (activeRegionSizeX)*z + x;
-				assert(idx < maxActiveChunks);
-				activeChunks[idx] = chunk;
+				for(size_t z = 0; z < activeRegionSizeZ; ++z)
+				{
+					GSVector3 p = GSVector3_Add(minP, GSVector3_Make(x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, z*CHUNK_SIZE_Z));
+					
+					GSChunk *chunk = [self getChunkAtPoint:p];
+					[chunk retain];
+					
+					size_t idx = (x*activeRegionSizeY*activeRegionSizeZ) + (y*activeRegionSizeZ) + z;
+					assert(idx < maxActiveChunks);
+					activeChunks[idx] = chunk;
+				}
 			}
 		}
 		
@@ -235,11 +330,19 @@
 	
 	// If the camera moved or turned then recalculate chunk visibility.
 	if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
+		//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+		
+		GSFrustum *frustum = [camera frustum];
+		[frustum retain];
 		for(size_t i = 0; i < maxActiveChunks; ++i)
 		{
 			GSChunk *chunk = activeChunks[i];
 			chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
 		}
+		[frustum release];
+		
+		//CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+		//NSLog(@"Finished chunk visibility checks. It took %.3fs", timeEnd - timeStart);
 	}
 }
 
