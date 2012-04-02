@@ -46,8 +46,20 @@ extern int checkGLErrors(void);
 		[camera retain];
 		
 		// Create a rendertexture / FBO for us to render into when updating the impostor.
-		// XXX: These FBOs are large and waste a lot of space. Would be great to find a way to store only the needed pixels.
-		renderTexture = [[GSRenderTexture alloc] initWithDimensions:NSMakeRect(0, 0, 640, 480)];
+		// XXX: The FBO wastes a lot of space by only render the object in a portion of it. We use texture coords to select the
+		//      desired portion in the billboard. It would be great to find a way to zoom on the entire object when we draw.
+		
+#if 1
+		int viewport[4];
+		glGetIntegerv(GL_VIEWPORT, viewport);
+		unsigned w = viewport[2];
+		unsigned h = viewport[3];
+#else
+		unsigned w = 256;
+		unsigned h = 256;
+#endif
+		
+		renderTexture = [[GSRenderTexture alloc] initWithDimensions:NSMakeRect(0, 0, w, h)];
 		assert(checkGLErrors() == 0);
 		
 		// Need to initially align to the camera so first redraw and first error check is OK.
@@ -216,9 +228,8 @@ extern int checkGLErrors(void);
 	
 	float dot = GSVector3_Dot(GSVector3_Normalize(newCameraVec), GSVector3_Normalize(cameraVec));
 	float degrees = (180.0 / M_PI) * acosf(dot);
-	NSLog(@"degrees: %f", degrees);
 	
-	float degreesThreshold = 2.0f;
+	float degreesThreshold = 1.5f;
 	
 	return degrees > degreesThreshold;
 }
@@ -236,10 +247,17 @@ extern int checkGLErrors(void);
 
 - (void)computeTexCoords
 {
-	float uvLeft = pixelsLeft / renderTexture.dimensions.size.width;
-	float uvRight = pixelsRight / renderTexture.dimensions.size.width;
-	float uvBottom = pixelsBottom / renderTexture.dimensions.size.height;
-	float uvTop = pixelsTop / renderTexture.dimensions.size.height;
+	// Texture coords are based off the screen position of the object in the *viewport*, which should scale nicely if the render
+	// texture is not exactly the same size as the viewport.
+	int viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	unsigned w = viewport[2];
+	unsigned h = viewport[3];
+	
+	float uvLeft = pixelsLeft / w;
+	float uvRight = pixelsRight / w;
+	float uvBottom = pixelsBottom / h;
+	float uvTop = pixelsTop / h;
 	
 	// Texture coordinate Z is ignored.
 	texCoords[0] = GSVector3_Make(uvLeft,  uvBottom, 0);
