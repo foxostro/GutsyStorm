@@ -14,16 +14,12 @@
 #import "GSImpostor.h"
 
 
-static const float EPSILON = 1e-8;
-
-
 extern int checkGLErrors(void);
 
 
 @interface GSImpostor (Private)
 
-- (float)dotProductWithCameraVec;
-- (void)setupProjectionMatrix; // Loads the desired projection matrix into the current matrix in OpenGL.
+- (void)computeTexCoords;
 
 @end
 
@@ -35,18 +31,26 @@ extern int checkGLErrors(void);
     self = [super init];
     if (self) {
         // Initialization code here.
+        bzero(verts, sizeof(GSVector3) * 4);
+		bzero(texCoords, sizeof(GSVector3) * 4);
+		pixelsLeft   = 0;
+		pixelsRight  = 0;
+		pixelsBottom = 0;
+		pixelsTop    = 0;
+		shouldForceImpostorUpdate = YES;
+		
 		bounds = _bounds;
 		[bounds retain];
-		
-		modelViewMatrix = GSMatrix4_Identity();
-		
-		// XXX: Should try to determine a good size for the render texture instead of always using 256x256.
-		renderTexture = [[GSRenderTexture alloc] initWithDimensions:NSMakeRect(0, 0, 256, 256)];
-		assert(checkGLErrors() == 0);
 		
 		camera = _camera;
 		[camera retain];
 		
+		// Create a rendertexture / FBO for us to render into when updating the impostor.
+		// XXX: These FBOs are large and waste a lot of space. Would be great to find a way to store only the needed pixels.
+		renderTexture = [[GSRenderTexture alloc] initWithDimensions:NSMakeRect(0, 0, 640, 480)];
+		assert(checkGLErrors() == 0);
+		
+		// Need to initially align to the camera so first redraw and first error check is OK.
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
 		glLoadIdentity();
@@ -77,7 +81,6 @@ extern int checkGLErrors(void);
 	
 	cameraPos = [camera cameraEye];
 	
-	glGetFloatv(GL_MODELVIEW_MATRIX, modelViewMatrix.m);
 	glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
 	glGetDoublev(GL_PROJECTION_MATRIX, projection);
 	glGetIntegerv(GL_VIEWPORT, viewport);
@@ -92,13 +95,20 @@ extern int checkGLErrors(void);
 		screenVerts[i] = GSVector3_Make(x, y, z);
 	}
 	
-	// Extract the verts (in screen-space) for a quad which will cover the object's AABB exactly.
 	GSAABB *billboardBounds = [[GSAABB alloc] initWithVerts:screenVerts numVerts:8];
+	
+	// Extract the verts (in screen-space) for a quad which will cover the object's AABB exactly.
 	GSVector3 screenQuadVerts[4];
 	screenQuadVerts[0] = GSVector3_Make(billboardBounds.mins.x, billboardBounds.mins.y, billboardBounds.mins.z);
 	screenQuadVerts[1] = GSVector3_Make(billboardBounds.maxs.x, billboardBounds.mins.y, billboardBounds.mins.z);
 	screenQuadVerts[2] = GSVector3_Make(billboardBounds.maxs.x, billboardBounds.maxs.y, billboardBounds.mins.z);
 	screenQuadVerts[3] = GSVector3_Make(billboardBounds.mins.x, billboardBounds.maxs.y, billboardBounds.mins.z);
+	
+	pixelsLeft   = billboardBounds.mins.x;
+	pixelsRight  = billboardBounds.maxs.x;
+	pixelsBottom = billboardBounds.mins.y;
+	pixelsTop    = billboardBounds.maxs.y;
+	
 	[billboardBounds release];
 	
 	// Project verts back into world-space.
@@ -117,21 +127,13 @@ extern int checkGLErrors(void);
 	}
 	center = GSVector3_Scale(center, 0.25);
 	
-	// Get the unit-vector to the camera. Used later to determine whether an update is needed.
-	cameraVec = GSVector3_Normalize(GSVector3_Sub(cameraPos, center));
+	// Get a vector to the camera. Used later to determine whether an update is needed.
+	cameraVec = GSVector3_Sub(cameraPos, center);
 }
 
 
-- (BOOL)startUpdateImposter
+- (void)startUpdateImposter
 {
-	/*if([self dotProductWithCameraVec] < 0.0) {
-		return NO;
-	}*/
-	
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	[self setupProjectionMatrix];
-
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glLoadIdentity();
@@ -139,14 +141,16 @@ extern int checkGLErrors(void);
 	
 	[renderTexture startRender];
 	
-	// Clear the render texture.
-	glClearColor(0.2, 0.4, 0.5, 0.0);
+	// Clear the render texture to black with 0 alpha.
+	GLfloat originalBgColor[4];
+	glGetFloatv(GL_COLOR_CLEAR_VALUE, originalBgColor);
+	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(originalBgColor[0], originalBgColor[1], originalBgColor[2], originalBgColor[3]); // restore
+	
 	glColor4f(1, 1, 1, 1);
 	
 	assert(checkGLErrors() == 0);
-	
-	return YES;
 }
 
 
@@ -157,10 +161,9 @@ extern int checkGLErrors(void);
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
 	
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
+	[self computeTexCoords];
 	
-	glMatrixMode(GL_MODELVIEW);
+	shouldForceImpostorUpdate = NO;
 }
 
 
@@ -172,17 +175,18 @@ extern int checkGLErrors(void);
 	
 	[renderTexture bind];
 	glBegin(GL_QUADS);
-	glTexCoord2f(0, 0);
+	glTexCoord2fv((const float *)&texCoords[0]);
 	glVertex3fv((const float *)&verts[0]);
-	glTexCoord2f(1, 0);
+	glTexCoord2fv((const float *)&texCoords[1]);
 	glVertex3fv((const float *)&verts[1]);
-	glTexCoord2f(1, 1);
+	glTexCoord2fv((const float *)&texCoords[2]);
 	glVertex3fv((const float *)&verts[2]);
-	glTexCoord2f(0, 1);
+	glTexCoord2fv((const float *)&texCoords[3]);
 	glVertex3fv((const float *)&verts[3]);
 	glEnd();
 	[renderTexture unbind];
 	
+#if 0
 	// Draw the outline for debugging purposes.
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_DEPTH_TEST);
@@ -196,6 +200,7 @@ extern int checkGLErrors(void);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
+#endif
 	
 	glEnable(GL_LIGHTING);
 }
@@ -203,7 +208,22 @@ extern int checkGLErrors(void);
 
 - (BOOL)doesImposterNeedUpdate
 {
-	return [self dotProductWithCameraVec] < 0.99999;
+	if(shouldForceImpostorUpdate) {
+		return YES;
+	}
+	
+	GSVector3 newCameraVec = GSVector3_Sub([camera cameraEye], center);
+	
+	float dot = GSVector3_Dot(GSVector3_Normalize(newCameraVec), GSVector3_Normalize(cameraVec));
+	float angle = acosf(dot);
+	
+	return angle > 2.0f;
+}
+
+
+- (void)setNeedsImpostorUpdate:(BOOL)_shouldForceImpostorUpdate
+{
+	shouldForceImpostorUpdate = _shouldForceImpostorUpdate;
 }
 
 @end
@@ -211,75 +231,18 @@ extern int checkGLErrors(void);
 
 @implementation GSImpostor (Private)
 
-
-- (void)setupProjectionMatrix
+- (void)computeTexCoords
 {
-	GSVector3 cameraPos = [camera cameraEye];
+	float uvLeft = pixelsLeft / renderTexture.dimensions.size.width;
+	float uvRight = pixelsRight / renderTexture.dimensions.size.width;
+	float uvBottom = pixelsBottom / renderTexture.dimensions.size.height;
+	float uvTop = pixelsTop / renderTexture.dimensions.size.height;
 	
-	assert(checkGLErrors() == 0);
-	
-#if 1
-	// Setup a projection matrix so that the object completely fills the render texture.
-	// The clipping planes for glFrustum are in eye-space so build a bounds AABB in eye-space and use that to construct the planes.
-	GSVector3 boundsVertsInEyeSpace[8];
-	for(size_t i = 0; i < 8; ++i)
-	{
-		boundsVertsInEyeSpace[i] = GSMatrix4_ProjVec3(modelViewMatrix, [bounds getVertex:i]);
-	}
-	
-	GSAABB *eyeSpaceBounds = [[GSAABB alloc] initWithVerts:boundsVertsInEyeSpace numVerts:8];
-	
-	float left   = [eyeSpaceBounds mins].x;
-	float right  = [eyeSpaceBounds maxs].x;
-	float bottom = [eyeSpaceBounds mins].y;
-	float top    = [eyeSpaceBounds maxs].y;
-	
-	float depthInEyeSpace = GSVector3_Length(GSVector3_Sub([eyeSpaceBounds maxs], [eyeSpaceBounds mins]));
-	float near = GSVector3_Length(GSVector3_Sub(center, cameraPos));
-	float far = near + depthInEyeSpace;
-	
-	[eyeSpaceBounds release];
-	
-	if(fabs(right - left) < EPSILON) {
-		[NSException raise:@"Invalid Value" format:@"Left and Right must not be equal: left=%f, right=%f", left, right];
-	}
-	
-	if(fabs(top - bottom) < EPSILON) {
-		[NSException raise:@"Invalid Value" format:@"Bottom and Top must not be equal: bottom=%f, top=%f", bottom, top];
-	}
-	
-	if(near < 0) {
-		[NSException raise:@"Invalid Value" format:@"Near must be positive: near=%f", near];
-	}
-	
-	if(far < 0) {
-		[NSException raise:@"Invalid Value" format:@"Far must be positive: far=%f", far];
-	}
-	
-	glLoadIdentity();
-	glFrustum(left, right, bottom, top, near, far);
-#else
-	float nearPlane = GSVector3_Length(GSVector3_Sub(center, cameraPos));
-	float farPlane = nearPlane + GSVector3_Length(GSVector3_Sub([bounds maxs], [bounds mins]));
-	
-	// calculate the width and height of our imposter's vertices
-	float w = GSVector3_Length(GSVector3_Sub(verts[1], verts[0]));
-	float h = GSVector3_Length(GSVector3_Sub(verts[3], verts[0]));
-	
-	// setup a projection matrix with near plane points exactly covering the object
-	glLoadIdentity();
-	glFrustum(-w/2,w/2,-h/2,h/2,nearPlane,farPlane);
-#endif
-	
-	assert(checkGLErrors() == 0);
-	
-}
-
-
-- (float)dotProductWithCameraVec
-{
-	GSVector3 newCameraVec = GSVector3_Normalize(GSVector3_Sub([camera cameraEye], center));
-	return GSVector3_Dot(newCameraVec, cameraVec);
+	// Texture coordinate Z is ignored.
+	texCoords[0] = GSVector3_Make(uvLeft,  uvBottom, 0);
+	texCoords[1] = GSVector3_Make(uvRight, uvBottom, 0);
+	texCoords[2] = GSVector3_Make(uvRight, uvTop,    0);
+	texCoords[3] = GSVector3_Make(uvLeft,  uvTop,    0);
 }
 
 @end

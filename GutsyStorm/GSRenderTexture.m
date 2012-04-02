@@ -10,11 +10,15 @@
 
 @implementation GSRenderTexture
 
-- (id)initWithDimensions:(NSRect)dimensions
+@synthesize dimensions;
+
+
+- (id)initWithDimensions:(NSRect)_dimensions
 {
     self = [super init];
     if (self) {
         // Initialization code here.
+		dimensions = _dimensions;
 		width = dimensions.size.width;
 		height = dimensions.size.height;
 		originalViewport[0] = originalViewport[1] = originalViewport[2] = originalViewport[3] = 0;
