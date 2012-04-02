@@ -16,7 +16,10 @@
 	GLuint width;
 	GLuint height;
 	int originalViewport[4];
+	NSRect dimensions;
 }
+
+@property (assign, nonatomic) NSRect dimensions;
 
 - (id)initWithDimensions:(NSRect)dimensions;
 - (void)startRender;

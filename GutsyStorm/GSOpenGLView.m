@@ -214,7 +214,7 @@ int checkGLErrors(void);
 
 - (void)mouseMoved:(NSEvent *)theEvent
 {
-    static BOOL first = YES;
+    /*static BOOL first = YES;
 	
     CGGetLastMouseDelta(&mouseDeltaX, &mouseDeltaY);
     
@@ -224,7 +224,7 @@ int checkGLErrors(void);
         mouseDeltaY = 0;
     }
     
-	[self setMouseAtCenter];
+	[self setMouseAtCenter];*/
 }
 
 
@@ -289,6 +289,10 @@ int checkGLErrors(void);
 	
 	if([[keysDown objectForKey:[NSNumber numberWithInt:']']] boolValue]) {
 		useImpostor = NO;
+	}
+	
+	if([[keysDown objectForKey:[NSNumber numberWithInt:' ']] boolValue]) {
+		[cubeImpostor setNeedsImpostorUpdate:YES];
 	}
 	
 	// Reset for the next update
@@ -367,6 +371,24 @@ int checkGLErrors(void);
 {
 	static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
 	
+	// Update the cube impostor.
+	if(useImpostor && [cubeImpostor doesImposterNeedUpdate]) {
+		NSLog(@"Doing impostor update!");
+		
+		[cubeImpostor startUpdateImposter];
+		
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glTranslatef(cubePos.x, cubePos.y, cubePos.z);
+		[shader bind];
+		[cube draw];
+		[shader unbind];
+		glPopMatrix(); // cube
+		
+		[cubeImpostor finishUpdateImposter];
+		assert(checkGLErrors() == 0);
+	}
+	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
 	glLoadIdentity();
@@ -377,16 +399,21 @@ int checkGLErrors(void);
 	[chunkStore drawWithShader:shader];
 	
 	// Draw an impostor to stand in for the cube.
-	[cubeImpostor realignToCamera];
-	if(useImpostor) {
+	if(!useImpostor) {
 		glPushMatrix();
 		glTranslatef(cubePos.x, cubePos.y, cubePos.z);
 		[shader bind];
 		[cube draw];
 		[shader unbind];
 		glPopMatrix();
-	} else {
-		[cubeImpostor draw];	
+	}
+	
+	if(useImpostor) {
+		glEnable(GL_BLEND);
+		glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+		[cubeImpostor realignToCamera];
+		[cubeImpostor draw];
+		glDisable(GL_BLEND);
 	}
 	
 	glPopMatrix(); // camera transform
@@ -397,22 +424,6 @@ int checkGLErrors(void);
 		glFlush();
 	} else {
 		[[self openGLContext] flushBuffer];
-	}
-	
-	// Update the cube impostor.
-	if(1) { // if(useImpostor && [cubeImpostor doesImposterNeedUpdate]) {
-		if([cubeImpostor startUpdateImposter]) {
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
-			glTranslatef(cubePos.x, cubePos.y, cubePos.z);
-			[shader bind];
-			[cube draw];
-			[shader unbind];
-			glPopMatrix(); // cube
-			
-			[cubeImpostor finishUpdateImposter];
-			assert(checkGLErrors() == 0);
-		}
 	}
 	
 	lastRenderTime = CFAbsoluteTimeGetCurrent();
