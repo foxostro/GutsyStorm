@@ -126,9 +126,6 @@ extern int checkGLErrors(void);
 		center = GSVector3_Add(center, verts[i]);
 	}
 	center = GSVector3_Scale(center, 0.25);
-	
-	// Get a vector to the camera. Used later to determine whether an update is needed.
-	cameraVec = GSVector3_Sub(cameraPos, center);
 }
 
 
@@ -162,6 +159,9 @@ extern int checkGLErrors(void);
 	glPopMatrix();
 	
 	[self computeTexCoords];
+	
+	// Get a vector to the camera. Used later to determine whether an update is needed next.
+	cameraVec = GSVector3_Sub([camera cameraEye], center);
 	
 	shouldForceImpostorUpdate = NO;
 }
@@ -215,9 +215,12 @@ extern int checkGLErrors(void);
 	GSVector3 newCameraVec = GSVector3_Sub([camera cameraEye], center);
 	
 	float dot = GSVector3_Dot(GSVector3_Normalize(newCameraVec), GSVector3_Normalize(cameraVec));
-	float angle = acosf(dot);
+	float degrees = (180.0 / M_PI) * acosf(dot);
+	NSLog(@"degrees: %f", degrees);
 	
-	return angle > 2.0f;
+	float degreesThreshold = 2.0f;
+	
+	return degrees > degreesThreshold;
 }
 
 

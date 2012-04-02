@@ -214,7 +214,7 @@ int checkGLErrors(void);
 
 - (void)mouseMoved:(NSEvent *)theEvent
 {
-    /*static BOOL first = YES;
+    static BOOL first = YES;
 	
     CGGetLastMouseDelta(&mouseDeltaX, &mouseDeltaY);
     
@@ -224,7 +224,7 @@ int checkGLErrors(void);
         mouseDeltaY = 0;
     }
     
-	[self setMouseAtCenter];*/
+	[self setMouseAtCenter];
 }
 
 
