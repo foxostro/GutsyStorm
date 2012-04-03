@@ -259,11 +259,10 @@ extern int checkGLErrors(void);
 	float uvBottom = pixelsBottom / h;
 	float uvTop = pixelsTop / h;
 	
-	// Texture coordinate Z is ignored.
-	texCoords[0] = GSVector3_Make(uvLeft,  uvBottom, 0);
-	texCoords[1] = GSVector3_Make(uvRight, uvBottom, 0);
-	texCoords[2] = GSVector3_Make(uvRight, uvTop,    0);
-	texCoords[3] = GSVector3_Make(uvLeft,  uvTop,    0);
+	texCoords[0] = GSVector2_Make(uvLeft,  uvBottom);
+	texCoords[1] = GSVector2_Make(uvRight, uvBottom);
+	texCoords[2] = GSVector2_Make(uvRight, uvTop);
+	texCoords[3] = GSVector2_Make(uvLeft,  uvTop);
 }
 
 @end

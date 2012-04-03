@@ -11,6 +11,7 @@
 #import "GSCamera.h"
 #import "GSAABB.h"
 #import "GSMatrix4.h"
+#import "GSVector2.h"
 
 
 @interface GSImpostor : NSObject
@@ -18,7 +19,7 @@
 	GSRenderTexture *renderTexture;
 	
 	GSVector3 verts[4];
-	GSVector3 texCoords[4]; // z is ignored
+	GSVector2 texCoords[4];
 	GSVector3 center;
 	
 	GSVector3 cameraVec;
