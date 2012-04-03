@@ -39,7 +39,7 @@
 		
 		feelerRays = [[NSMutableArray alloc] init];
 		
-        activeRegionExtent = GSVector3_Make(64, 64, 64);
+        activeRegionExtent = GSVector3_Make(512, 512, 512);
 		maxActiveChunks = (2*activeRegionExtent.x/CHUNK_SIZE_X) *
 		                  (2*activeRegionExtent.y/CHUNK_SIZE_Y) *
 		                  (2*activeRegionExtent.z/CHUNK_SIZE_Z);
