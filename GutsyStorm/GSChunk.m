@@ -11,7 +11,7 @@
 
 #define CONDITION_VOXEL_DATA_READY (1)
 #define CONDITION_GEOMETRY_READY (1)
-#define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
+#define INDEX(x,y,z) ((size_t)(((x+1)*(CHUNK_SIZE_Y+2)*(CHUNK_SIZE_Z+2)) + ((y+1)*(CHUNK_SIZE_Z+2)) + (z+1)))
 
 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
@@ -32,13 +32,15 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)destroyVoxelData;
 - (void)destroyVBOs;
 - (void)destroyGeometry;
-- (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z;
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
                                 _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                     _normsBuffer:(GLfloat **)_normsBuffer
                                     _vertsBuffer:(GLfloat **)_vertsBuffer;
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (void)allocateVoxelData;
+
+- (BOOL)getVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z;
+- (void)setVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z value:(BOOL)value;
 
 @end
 
@@ -150,7 +152,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)saveToFileWithContainingFolder:(NSURL *)folder
 {
-	const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(BOOL);
+	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(BOOL);
 	
 	NSURL *url = [NSURL URLWithString:[GSChunk computeChunkFileNameWithMinP:minP]
 						relativeToURL:folder];
@@ -164,7 +166,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 // Returns YES if the chunk data is reachable on the filesystem and loading was successful.
 - (void)loadFromFile:(NSURL *)url
 {
-	const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(BOOL);
+	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(BOOL);
 	
 	[lockVoxelData lock];
     [self allocateVoxelData];
@@ -238,26 +240,42 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 @implementation GSChunk (Private)
 
 // Assumes the caller is already holding "lockVoxelData".
-- (BOOL)getVoxelValueWithX:(size_t)x y:(size_t)y z:(size_t)z
+- (BOOL)getVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z
 {
-    assert(x < CHUNK_SIZE_X);
-    assert(y < CHUNK_SIZE_Y);
-    assert(z < CHUNK_SIZE_Z);
+    assert(x >= -1 && x < CHUNK_SIZE_X+1);
+    assert(y >= -1 && y < CHUNK_SIZE_Y+1);
+    assert(z >= -1 && z < CHUNK_SIZE_Z+1);
+	
+	size_t idx = INDEX(x, y, z);
+	assert(idx >= 0 && idx < ((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2)));
     
-    return voxelData[INDEX(x, y, z)];
+    return voxelData[idx];
+}
+
+
+// Assumes the caller is already holding "lockVoxelData".
+- (void)setVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z value:(BOOL)value
+{
+    assert(x >= -1 && x < CHUNK_SIZE_X+1);
+    assert(y >= -1 && y < CHUNK_SIZE_Y+1);
+    assert(z >= -1 && z < CHUNK_SIZE_Z+1);
+	
+	size_t idx = INDEX(x, y, z);
+	assert(idx >= 0 && idx < ((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2)));
+    
+    voxelData[idx] = value;
 }
 
 
 // Assumes the caller is already holding "lockVoxelData".
 - (void)allocateVoxelData
 {
-    [self destroyVoxelData];
+	[self destroyVoxelData];
     
-    voxelData = malloc(sizeof(BOOL) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
+    voxelData = calloc((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2), sizeof(BOOL));
     if(!voxelData) {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for chunk's voxelData"];
     }
-    bzero(voxelData, sizeof(BOOL) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
 }
 
 
@@ -284,15 +302,15 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
     GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:(seed+1)];
     
-    for(size_t x = 0; x < CHUNK_SIZE_X; ++x)
+    for(ssize_t x = -1; x < CHUNK_SIZE_X+1; ++x)
     {
-        for(size_t y = 0; y < CHUNK_SIZE_Y; ++y)
+        for(ssize_t y = -1; y < CHUNK_SIZE_Y+1; ++y)
         {
-            for(size_t z = 0; z < CHUNK_SIZE_Z; ++z)
+            for(ssize_t z = -1; z < CHUNK_SIZE_Z+1; ++z)
             {
                 GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
                 BOOL g = isGround(terrainHeight, noiseSource0, noiseSource1, p);
-                voxelData[INDEX(x, y, z)] = g;
+				[self setVoxelValueWithX:x y:y z:z value:g];
             }
         }
     }
@@ -354,7 +372,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     GLfloat page = dirt;
                     
     // Top Face
-    if(!(y+1<maxY && [self getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ])) {
+    if(![self getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ]) {
         page = side;
         
         if(!onlyDoingCounting) {
@@ -407,7 +425,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
 
     // Bottom Face
-    if(!(y-1>=minY && [self getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ])) {
+    if(![self getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ]) {
         if(!onlyDoingCounting) {
             // Face 1
             addVertex(x-L, y-L, z-L,
@@ -458,7 +476,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
 
     // Front Face
-    if(!(z+1<maxZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1])) {
+    if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1]) {
         if(!onlyDoingCounting) {
             // Face 1
             addVertex(x-L, y-L, z+L,
@@ -509,7 +527,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
 
     // Back Face
-    if(!(z-1>=minZ && [self getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1])) {
+    if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1]) {
         if(!onlyDoingCounting) {
             // Face 1
             addVertex(x-L, y+L, z-L,
@@ -560,7 +578,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
 
     // Right Face
-    if(!(x+1<maxX && [self getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ])) {
+	if(![self getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ]) {
         if(!onlyDoingCounting) {
             // Face 1
             addVertex(x+L, y+L, z-L,
@@ -611,7 +629,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
 
     // Left Face
-    if(!(x-1>=minX && [self getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ])) {
+    if(![self getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ]) {
         if(!onlyDoingCounting) {
             // Face 1
             addVertex(x-L, y-L, z+L,
