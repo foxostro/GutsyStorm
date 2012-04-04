@@ -69,6 +69,10 @@ extern int checkGLErrors(void);
 		[camera submitCameraTransform];
 		[self realignToCamera];
 		glPopMatrix();
+        
+        // Used later to determine when an impostor update is needed.
+        cameraLook = GSVector3_Sub([camera cameraEye], [camera cameraCenter]);
+        cameraToCenter = GSVector3_Sub([camera cameraEye], center);
     }
     
     return self;
@@ -172,8 +176,9 @@ extern int checkGLErrors(void);
 	
 	[self computeTexCoords];
 	
-	// Get a vector to the camera. Used later to determine whether an update is needed next.
-	cameraVec = GSVector3_Sub([camera cameraEye], center);
+	// Used later to determine whether an update is needed next.
+	cameraLook = GSVector3_Sub([camera cameraEye], [camera cameraCenter]);
+    cameraToCenter = GSVector3_Sub([camera cameraEye], center);
 	
 	shouldForceImpostorUpdate = NO;
 }
@@ -220,18 +225,23 @@ extern int checkGLErrors(void);
 
 - (BOOL)doesImposterNeedUpdate
 {
+    float dot;
+    
 	if(shouldForceImpostorUpdate) {
 		return YES;
 	}
 	
-	GSVector3 newCameraVec = GSVector3_Sub([camera cameraEye], center);
+	GSVector3 newCameraLook = GSVector3_Sub([camera cameraEye], [camera cameraCenter]);
+	dot = GSVector3_Dot(GSVector3_Normalize(newCameraLook), GSVector3_Normalize(cameraLook));
+	float degreesLook = (180.0 / M_PI) * acosf(dot);
 	
-	float dot = GSVector3_Dot(GSVector3_Normalize(newCameraVec), GSVector3_Normalize(cameraVec));
-	float degrees = (180.0 / M_PI) * acosf(dot);
+	GSVector3 newCameraToCenter = GSVector3_Sub([camera cameraEye], center);
+	dot = GSVector3_Dot(GSVector3_Normalize(newCameraToCenter), GSVector3_Normalize(cameraToCenter));
+	float degreesToCenter = (180.0 / M_PI) * acosf(dot);
 	
 	float degreesThreshold = 1.5f;
 	
-	return degrees > degreesThreshold;
+	return (degreesLook > degreesThreshold) || (degreesToCenter > degreesThreshold);
 }
 
 
