@@ -28,6 +28,8 @@
 	NSMutableArray *feelerRays;
 }
 
+@property (readonly, nonatomic) GSVector3 activeRegionExtent;
+
 - (id)initWithSeed:(unsigned)seed camera:(GSCamera *)camera;
 - (void)drawWithShader:(GSShader *)shader;
 - (void)drawFeelerRays;

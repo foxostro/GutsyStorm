@@ -25,6 +25,8 @@
 
 @implementation GSChunkStore
 
+@synthesize activeRegionExtent;
+
 - (id)initWithSeed:(unsigned)_seed camera:(GSCamera *)_camera
 {
     self = [super init];
@@ -39,14 +41,21 @@
 		
 		feelerRays = [[NSMutableArray alloc] init];
 		
-        activeRegionExtent = GSVector3_Make(512, 512, 512);
+        // Active region is bounded at y>=0.
+        activeRegionExtent = GSVector3_Make(512, 704, 512);
+        assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
+        assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
+        assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
+        
 		maxActiveChunks = (2*activeRegionExtent.x/CHUNK_SIZE_X) *
-		                  (2*activeRegionExtent.y/CHUNK_SIZE_Y) *
+		                  (activeRegionExtent.y/CHUNK_SIZE_Y) *
 		                  (2*activeRegionExtent.z/CHUNK_SIZE_Z);
+        
 		activeChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
 		tmpActiveChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
 		
         cache = [[NSCache alloc] init];
+        [cache setCountLimit:2*maxActiveChunks];
 		
 		[self recalculateActiveChunksWithCameraModifiedFlags:(CAMERA_MOVED | CAMERA_TURNED)];
     }
@@ -137,6 +146,9 @@
     GSChunk *chunk = nil;
     GSVector3 minP = [self computeChunkMinPForPoint:p];
     NSString *chunkID = [self getChunkIDWithMinP:minP];
+    
+    assert(p.y >= 0); // world does not extend below y=0
+    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
     chunk = [cache objectForKey:chunkID];
     if(!chunk) {
@@ -268,11 +280,11 @@
 	
 	// If the camera moved then recalculate the set of active chunks.
 	if(flags & CAMERA_MOVED) {
-		GSVector3 minP = GSVector3_Sub([camera cameraEye], activeRegionExtent);
+		GSVector3 center = [camera cameraEye];
 		
-		const size_t activeRegionSizeX = 2*activeRegionExtent.x/CHUNK_SIZE_X;
-		const size_t activeRegionSizeY = 2*activeRegionExtent.y/CHUNK_SIZE_Y;
-		const size_t activeRegionSizeZ = 2*activeRegionExtent.z/CHUNK_SIZE_Z;
+		const ssize_t activeRegionExtentX = activeRegionExtent.x/CHUNK_SIZE_X;
+		const ssize_t activeRegionExtentZ = activeRegionExtent.z/CHUNK_SIZE_Z;
+		const ssize_t activeRegionSizeY = activeRegionExtent.y/CHUNK_SIZE_Y;
 		
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		
@@ -300,18 +312,27 @@
 		}
 		
 		// Collect all chunks that fall within the active region.
-		for(size_t x = 0; x < activeRegionSizeX; ++x)
+		for(ssize_t x = -activeRegionExtentX; x < activeRegionExtentX; ++x)
 		{
-			for(size_t y = 0; y < activeRegionSizeY; ++y)
+            for(ssize_t y = 0; y < activeRegionSizeY; ++y)
 			{
-				for(size_t z = 0; z < activeRegionSizeZ; ++z)
+				for(ssize_t z = -activeRegionExtentZ; z < activeRegionExtentZ; ++z)
 				{
-					GSVector3 p = GSVector3_Add(minP, GSVector3_Make(x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, z*CHUNK_SIZE_Z));
+                    assert((x+activeRegionExtentX) >= 0);
+                    assert(x < activeRegionExtentX);
+                    assert((z+activeRegionExtentZ) >= 0);
+                    assert(z < activeRegionExtentZ);
+                    assert(y >= 0);
+                    assert(y < activeRegionSizeY);
+                    
+					GSVector3 p = GSVector3_Make(center.x + x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, center.z + z*CHUNK_SIZE_Z);
 					
 					GSChunk *chunk = [self getChunkAtPoint:p];
 					[chunk retain];
 					
-					size_t idx = (x*activeRegionSizeY*activeRegionSizeZ) + (y*activeRegionSizeZ) + z;
+					size_t idx = ((x+activeRegionExtentX)*(activeRegionSizeY)*(2*activeRegionExtentZ)) +
+                                 (y*(2*activeRegionExtentZ)) +
+                                 (z+activeRegionExtentZ);
 					assert(idx < maxActiveChunks);
 					activeChunks[idx] = chunk;
 				}
@@ -337,6 +358,7 @@
 		for(size_t i = 0; i < maxActiveChunks; ++i)
 		{
 			GSChunk *chunk = activeChunks[i];
+            assert(chunk); // After the collection loop, above, activeChunks should be filled.
 			chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
 		}
 		[frustum release];
