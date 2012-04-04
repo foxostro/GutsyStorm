@@ -22,7 +22,8 @@
 	GSVector2 texCoords[4];
 	GSVector3 center;
 	
-	GSVector3 cameraVec;
+	GSVector3 cameraLook;
+	GSVector3 cameraToCenter;
 	GSCamera *camera;
 	
 	GSAABB *bounds; // the volume of the object being represented
