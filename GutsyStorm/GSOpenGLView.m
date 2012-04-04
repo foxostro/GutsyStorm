@@ -257,8 +257,7 @@ int checkGLErrors(void);
 {
     const float fov = 60.0;
     const float nearD = 0.1;
-    const float farD = MIN(chunkStore.activeRegionExtent.y,
-                           MIN(chunkStore.activeRegionExtent.x, chunkStore.activeRegionExtent.z));
+    const float farD = 724.0;
     
 	NSRect r = [self convertRectToBase:[self bounds]];
 	glViewport(0, 0, r.size.width, r.size.height);

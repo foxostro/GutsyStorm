@@ -37,7 +37,7 @@
     if (self) {
         // Initialization code here.
         seed = _seed;
-		terrainHeight = CHUNK_SIZE_Y;
+		terrainHeight = 64.0;
 		folder = [GSChunkStore createWorldSaveFolderWithSeed:seed];
 		
         camera = _camera;
@@ -46,7 +46,7 @@
 		feelerRays = [[NSMutableArray alloc] init];
 		
         // Active region is bounded at y>=0.
-        activeRegionExtent = GSVector3_Make(512, 704, 512);
+        activeRegionExtent = GSVector3_Make(512, 512, 512);
         assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
         assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);

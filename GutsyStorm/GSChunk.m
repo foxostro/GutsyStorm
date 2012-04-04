@@ -65,7 +65,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     self = [super init];
     if (self) {
         // Initialization code here.        
-        assert(terrainHeight >= 0.0 && terrainHeight <= CHUNK_SIZE_Y);
+        assert(terrainHeight >= 0.0);
         
         minP = myMinP;
         maxP = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
