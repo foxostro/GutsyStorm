@@ -17,6 +17,7 @@
 
 @interface GSCamera : NSObject
 {
+    float ceilingHeight;
 	float cameraSpeed, cameraRotSpeed;
 	GSQuaternion cameraRot;
 	GSVector3 cameraEye, cameraCenter, cameraUp;
