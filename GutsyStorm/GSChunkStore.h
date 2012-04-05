@@ -13,6 +13,7 @@
 #import "GSCube.h"
 #import "GSCamera.h"
 #import "GSShader.h"
+#import "GSRenderTexture.h"
 
 @interface GSChunkStore : NSObject
 {
@@ -29,8 +30,9 @@
     
 	NSMutableArray *feelerRays;
     
-    GSShader *skyboxShader;
     GSCube *skybox;
+    GSShader *skyboxShader;
+    GSRenderTexture *skyboxCubemap;
 }
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;
@@ -38,6 +40,7 @@
 - (id)initWithSeed:(unsigned)_seed camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader
       skyboxShader:(GSShader *)_skyboxShader;
+- (void)updateSkybox;
 - (void)drawSkybox;
 - (void)drawChunks;
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)cameraModifiedFlags;

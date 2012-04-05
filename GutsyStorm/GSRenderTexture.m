@@ -106,7 +106,7 @@
 - (void)startRenderForCubeFace:(unsigned)face
 {
     assert(isCubeMap);
-    assert(face >= CUBE_MAP_POSITIVE_X && face <= CUBE_MAP_NEGATIVE_Z);
+    assert(face >= 0 && face <= 5);
     
 	glGetIntegerv(GL_VIEWPORT, originalViewport);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -117,7 +117,6 @@
 
 - (void)finishRender
 {
-    assert(!isCubeMap);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(originalViewport[0], originalViewport[1], originalViewport[2], originalViewport[3]);
 }

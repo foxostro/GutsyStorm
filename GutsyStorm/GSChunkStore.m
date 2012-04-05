@@ -6,6 +6,7 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
+#import <OpenGL/glu.h>
 #import <assert.h>
 #import <cache.h>
 #import "GSRay.h"
@@ -14,19 +15,30 @@
 #import "GSChunkStore.h"
 
 
+static const float manhattanDistToBackground = 32.0;
+
+
 @interface GSChunkStore (Private)
 
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
+- (void)drawFeelerRays;
+
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP;
+
+- (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
 - (void)computeChunkVisibility;
 - (void)computeActiveChunks:(BOOL)sorted;
 - (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
+
+- (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len;
+
+
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
-- (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
-- (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len;
-- (void)drawFeelerRays;
+
+- (GSVector3)getLookVecForCubeMapFace:(unsigned)face;
+- (GSVector3)getUpVecForCubeMapFace:(unsigned)face;
 
 @end
 
@@ -56,11 +68,12 @@
         [skyboxShader retain];
         
         skybox = [[GSCube alloc] init];
+        skyboxCubemap = [[GSRenderTexture alloc] initWithDimensions:NSMakeRect(0, 0, 512, 512) isCubeMap:YES];
 		
 		feelerRays = [[NSMutableArray alloc] init];
 		
         // Active region is bounded at y>=0.
-        activeRegionExtent = GSVector3_Make(512, 512, 512);
+        activeRegionExtent = GSVector3_Make(256, 512, 256);
         assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
         assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
@@ -90,10 +103,81 @@
 	[folder release];
 	[feelerRays release];
     [terrainShader release];
-    [skyboxShader release];
+    
     [skybox release];
+    [skyboxShader release];
+    [skyboxCubemap release];
        
     [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
+}
+
+
+- (void)updateSkybox
+{
+    // TODO: Don't update the skybox every frame.
+    
+    GSVector3 eye = [camera cameraEye];
+    GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
+    
+	[terrainShader bind];
+	
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    // TODO: GSChunkStore doesn't actually have information on the near/far planes or fov. Get this from the scene somehow.
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    const float fov = 60.0;
+    const float nearD = 1.0;
+    const float farD = 724.0;
+    glLoadIdentity();
+	gluPerspective(fov, 640/480.0, nearD, farD);
+    
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();    
+    for(unsigned face = 0; face < 6; ++face)
+    {
+        // Set the camera for this face
+        GSVector3 center = GSVector3_Add(eye, GSQuaternion_MulByVec([camera cameraRot], [self getLookVecForCubeMapFace:face]));
+        GSVector3 up = GSQuaternion_MulByVec([camera cameraRot], [self getUpVecForCubeMapFace:face]);
+        glLoadIdentity();
+        gluLookAt(eye.x, eye.y, eye.z,
+                  center.x, center.y, center.z,
+                  up.x, up.y, up.z);
+        
+        // Set light direction. This must be done right after setting the camera transformation.
+        // TODO: Set the light positions for real. We don't really know the scene's real light direction.
+        glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
+        
+        [skyboxCubemap startRenderForCubeFace:face];
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // Draw all chunks.
+        // TODO: Cull against the frustum for this face's camera.
+        [self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
+            /*if(p.x-eye.x <= -manhattanDistToBackground ||
+               p.x-eye.x >= manhattanDistToBackground ||
+               p.z-eye.z <= -manhattanDistToBackground ||
+               p.z-eye.z >= manhattanDistToBackground) {
+                [[self getChunkAtPoint:p] draw];
+            }*/
+            [[self getChunkAtPoint:p] draw];
+         }];
+        
+        [skyboxCubemap finishRender];
+    }
+    glPopMatrix();
+    
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+	
+    [terrainShader unbind];
 }
 
 
@@ -103,23 +187,17 @@
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glDisable(GL_BLEND);
-    
-    glFrontFace(GL_CW); // we are inside the cube...
-    
+    glFrontFace(GL_CW); // we are inside the cube, so reverse the face winding direction
 	[skyboxShader bind];
-    
     [skybox draw];
-    
     [skyboxShader unbind];
-    
-    glFrontFace(GL_CCW);
-    
+    glFrontFace(GL_CCW); // reset to OpenGL defaults
     glPopAttrib();
 }
 
 
 - (void)drawChunks
-{    
+{
 	[terrainShader bind];
 	
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -220,6 +298,67 @@
 
 @implementation GSChunkStore (Private)
 
+
+- (GSVector3)getUpVecForCubeMapFace:(unsigned)face
+{
+    GSVector3 up = GSVector3_Make(0, 0, 0);
+    
+    switch(face)
+    {
+        case CUBE_MAP_POSITIVE_X:
+        case CUBE_MAP_NEGATIVE_X:
+        case CUBE_MAP_POSITIVE_Z:
+        case CUBE_MAP_NEGATIVE_Z:
+            up.y = +1;
+            break;
+            
+        case CUBE_MAP_POSITIVE_Y:
+            up.z = +1;
+            break;
+            
+        case CUBE_MAP_NEGATIVE_Y:
+            up.z = -1;
+            break;
+    }
+    
+    return up;
+}
+
+- (GSVector3)getLookVecForCubeMapFace:(unsigned)face
+{
+    GSVector3 look = GSVector3_Make(0, 0, 0);
+    
+    switch(face)
+    {
+        case CUBE_MAP_POSITIVE_X:
+            look.x = +1;
+            break;
+            
+        case CUBE_MAP_NEGATIVE_X:
+            look.x = -1;
+            break;
+            
+        case CUBE_MAP_POSITIVE_Y:
+            look.y = +1;
+            break;
+            
+        case CUBE_MAP_NEGATIVE_Y:
+            look.y = -1;
+            break;
+            
+        case CUBE_MAP_POSITIVE_Z:
+            look.z = +1;
+            break;
+            
+        case CUBE_MAP_NEGATIVE_Z:
+            look.z = -1;
+            break;
+    }
+    
+    return look;
+}
+
+
 - (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len
 {
     for(size_t i = 0; i < len; ++i)
@@ -314,6 +453,16 @@
         GSChunk *chunk = activeChunks[i];
         assert(chunk);
         
+        /*GSVector3 p = GSVector3_Sub(GSVector3_Scale(GSVector3_Add([chunk minP], [chunk maxP]), 0.5f), [camera cameraEye]);
+        
+        (if(p.x < -manhattanDistToBackground ||
+           p.x > manhattanDistToBackground ||
+           p.z < -manhattanDistToBackground ||
+           p.z > manhattanDistToBackground) {
+            chunk->visible = NO;
+        } else {            
+            chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
+        }*/
         chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
     }
     
