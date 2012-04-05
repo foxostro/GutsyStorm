@@ -82,7 +82,7 @@ int checkGLErrors(void);
     [vertSrc release];
     
     [skyboxShader bind];
-    [skyboxShader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
+    [skyboxShader bindUniformWithNSString:@"cubeMap" val:0]; // texture unit 0
     
 	assert(checkGLErrors() == 0);    
 }
@@ -203,7 +203,7 @@ int checkGLErrors(void);
     cube = nil;
 	cubePos = GSVector3_Make(85.70, 20, 124.25);
     chunkStore = nil;
-	useImpostor = YES;
+	useImpostor = NO;
 	
 	camera = [[GSCamera alloc] init];
     [camera moveToPosition:GSVector3_Make(85.70, 15, 134.25)];
@@ -395,7 +395,7 @@ int checkGLErrors(void);
 	static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
 	
 	// Update the cube impostor.
-	if(useImpostor && [cubeImpostor doesImposterNeedUpdate]) {
+	/*if(useImpostor && [cubeImpostor doesImposterNeedUpdate]) {
 		[cubeImpostor startUpdateImposter];
 		
 		glMatrixMode(GL_MODELVIEW);
@@ -408,16 +408,19 @@ int checkGLErrors(void);
 		
 		[cubeImpostor finishUpdateImposter];
 		assert(checkGLErrors() == 0);
-	}
-	
+	}*/
+    
+    
+    // Update the chunk store skybox which shows far away chunks.
+    [chunkStore updateSkybox];
+    
+    
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
 	glLoadIdentity();
-    
-	[chunkStore drawSkybox];
-    
+    [chunkStore drawSkybox];
 	[camera submitCameraTransform];
-    glLightfv(GL_LIGHT0, GL_POSITION, lightDir);  
+    glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 
 	[chunkStore drawChunks];
 	
@@ -431,13 +434,13 @@ int checkGLErrors(void);
 		glPopMatrix();
 	}
 	
-	if(useImpostor) {
+	/*if(useImpostor) {
 		glEnable(GL_BLEND);
 		glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 		[cubeImpostor realignToCamera];
 		[cubeImpostor draw];
 		glDisable(GL_BLEND);
-	}
+	}*/
 	
 	glPopMatrix(); // camera transform
 	
