@@ -23,7 +23,7 @@
     GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
 	
 	size_t maxActiveChunks;
-    NSMutableArray *activeChunks;
+    GSChunk **activeChunks;
     
 	NSMutableArray *feelerRays;
 }

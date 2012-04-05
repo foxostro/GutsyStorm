@@ -25,6 +25,7 @@
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
 - (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
+- (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len;
 
 @end
 
@@ -57,7 +58,7 @@
 		                  (activeRegionExtent.y/CHUNK_SIZE_Y) *
 		                  (2*activeRegionExtent.z/CHUNK_SIZE_Z);
         
-        activeChunks = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
+        activeChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
 		
         cache = [[NSCache alloc] init];
         [cache setCountLimit:2*maxActiveChunks];
@@ -76,8 +77,9 @@
     [cache release];
     [camera release];
 	[folder release];
-    [activeChunks release];
 	[feelerRays release];
+       
+    [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
 }
 
 
@@ -89,8 +91,11 @@
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         
-    for(GSChunk *chunk in activeChunks)
+    for(size_t i = 0; i < maxActiveChunks; ++i)
     {
+        GSChunk *chunk = activeChunks[i];
+        assert(chunk);
+        
         if(chunk->visible) {
 			[chunk draw];
 		}
@@ -158,8 +163,11 @@
 {
 	// Get a list of the active chunks whose AABB are in the path of the ray.
 	NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
-    for(GSChunk *chunk in activeChunks)
+    for(size_t i = 0; i < maxActiveChunks; ++i)
     {
+        GSChunk *chunk = activeChunks[i];
+        assert(chunk);
+        
         if(GSRay_IntersectsAABB(ray, [chunk minP], [chunk maxP], NULL)) {
             [unsortedChunks addObject:chunk];
         }
@@ -196,6 +204,17 @@
 
 
 @implementation GSChunkStore (Private)
+
+- (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len
+{
+    for(size_t i = 0; i < len; ++i)
+    {
+        [array[i] release];
+        array[i] = nil;
+    }
+    free(array);
+}
+
 
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks
 {    
@@ -275,8 +294,11 @@
 
     GSFrustum *frustum = [camera frustum];
     
-    for(GSChunk *chunk in activeChunks)
+    for(size_t i = 0; i < maxActiveChunks; ++i)
     {
+        GSChunk *chunk = activeChunks[i];
+        assert(chunk);
+        
         chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
     }
     
@@ -324,10 +346,15 @@
     // the active region and will remain in the active region.
     // Also, reset visibility computation on all active chunks. We'll recalculate a bit later.
     NSMutableArray *tmpActiveChunks = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
-    for(GSChunk *chunk in activeChunks)
+    for(size_t i = 0; i < maxActiveChunks; ++i)
     {
-        chunk->visible = NO;
-        [tmpActiveChunks addObject:chunk];
+        GSChunk *chunk = activeChunks[i];
+        
+        if(chunk) {
+            chunk->visible = NO;
+            [tmpActiveChunks addObject:chunk];
+            [chunk release];
+        }
     }
     
     if(sorted) {
@@ -343,27 +370,40 @@
         NSArray *sortedChunks = [self sortPointsByDistFromCamera:unsortedChunks]; // is autorelease
         
         // Fill the activeChunks array.
+        size_t i = 0;
         for(GSBoxedVector *b in sortedChunks)
         {
-            [activeChunks addObject:[self getChunkAtPoint:[b v]]];
+            activeChunks[i] = [self getChunkAtPoint:[b v]];
+            [activeChunks[i] retain];
+            i++;
         }
+        assert(i == maxActiveChunks);
         
         [unsortedChunks release];
     } else {
+        __block size_t i = 0;
         [self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
-            [activeChunks addObject:[self getChunkAtPoint:p]];
+            activeChunks[i] = [self getChunkAtPoint:p];
+            [activeChunks[i] retain];
+            i++;
         }];
-
+        assert(i == maxActiveChunks);
     }
     
-    // Clean up
+    // Now release all the chunks in tmpActiveChunks. Chunks which remain in the
+    // active region have the same refcount as when we started the update. Chunks
+    // which left the active region are released entirely.
     [tmpActiveChunks release];
+    
+    // Clean up
     [pool release];
 }
 
 
 - (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags
 {
+    static float runningAverage = 0.0;
+    static unsigned i = 30;
     CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
 #if 0
@@ -382,7 +422,15 @@
 #endif
     
     CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    NSLog(@"Finished recalculating active chunks. It took %.3fs", timeEnd - timeStart);
+    //NSLog(@"Finished recalculating active chunks. It took %.5fs", timeEnd - timeStart);
+    
+    runningAverage += timeEnd - timeStart;
+    if(!--i) {
+        i = 30;
+        runningAverage /= (float)i;
+        NSLog(@"Average time is %.5fs", runningAverage);
+        runningAverage = 0.0;
+    }
 }
 
 @end
