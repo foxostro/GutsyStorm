@@ -59,7 +59,7 @@ extern int checkGLErrors(void);
 		unsigned h = 256;
 #endif
 		
-		renderTexture = [[GSRenderTexture alloc] initWithDimensions:NSMakeRect(0, 0, w, h)];
+		renderTexture = [[GSRenderTexture alloc] initWithDimensions:NSMakeRect(0, 0, w, h) isCubeMap:NO];
 		assert(checkGLErrors() == 0);
 		
 		// Need to initially align to the camera so first redraw and first error check is OK.

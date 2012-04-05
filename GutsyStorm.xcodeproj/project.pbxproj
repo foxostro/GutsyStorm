@@ -34,6 +34,8 @@
 		AC9CCD701519A90E0081964D /* GSShader.m in Sources */ = {isa = PBXBuildFile; fileRef = AC9CCD6F1519A90E0081964D /* GSShader.m */; };
 		AC9CCD741519B8AA0081964D /* shader.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD721519B8AA0081964D /* shader.frag.txt */; };
 		AC9CCD751519B8AA0081964D /* shader.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD731519B8AA0081964D /* shader.vert.txt */; };
+		ACB67D7D152D8674005D3144 /* skybox.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = ACB67D7C152D8674005D3144 /* skybox.vert.txt */; };
+		ACB67D80152D8680005D3144 /* skybox.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = ACB67D7F152D8680005D3144 /* skybox.frag.txt */; };
 		ACCCD977152A9DE400757B3F /* GSVector2.c in Sources */ = {isa = PBXBuildFile; fileRef = ACCCD976152A9DE400757B3F /* GSVector2.c */; };
 		ACE99D70151FE922006055F6 /* snoise3.c in Sources */ = {isa = PBXBuildFile; fileRef = ACE99D6F151FE922006055F6 /* snoise3.c */; };
 		ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */; };
@@ -95,6 +97,8 @@
 		AC9CCD6F1519A90E0081964D /* GSShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSShader.m; sourceTree = "<group>"; };
 		AC9CCD721519B8AA0081964D /* shader.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.frag.txt; sourceTree = "<group>"; };
 		AC9CCD731519B8AA0081964D /* shader.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.vert.txt; sourceTree = "<group>"; };
+		ACB67D7C152D8674005D3144 /* skybox.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = skybox.vert.txt; sourceTree = "<group>"; };
+		ACB67D7F152D8680005D3144 /* skybox.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = skybox.frag.txt; sourceTree = "<group>"; };
 		ACCCD974152A9DD700757B3F /* GSVector2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVector2.h; sourceTree = "<group>"; };
 		ACCCD976152A9DE400757B3F /* GSVector2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSVector2.c; sourceTree = "<group>"; };
 		ACE99D6F151FE922006055F6 /* snoise3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = snoise3.c; sourceTree = "<group>"; };
@@ -161,12 +165,10 @@
 		4A2CCFFC1513C3FC006C6551 /* GutsyStorm */ = {
 			isa = PBXGroup;
 			children = (
-				4A99BE261528242800F2ECDC /* GSImpostor.h */,
-				4A99BE271528242800F2ECDC /* GSImpostor.m */,
-				ACF27B07151AEF3A009FCAB9 /* GSChunk.h */,
-				ACF27B08151AEF3A009FCAB9 /* GSChunk.m */,
 				AC5B2802151E2C1D0045B6E4 /* GSChunkStore.h */,
 				AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */,
+				ACF27B07151AEF3A009FCAB9 /* GSChunk.h */,
+				ACF27B08151AEF3A009FCAB9 /* GSChunk.m */,
 				ACE99D72151FED59006055F6 /* snoise3.h */,
 				ACE99D6F151FE922006055F6 /* snoise3.c */,
 				AC5B27FE151DC7BA0045B6E4 /* GSNoise.h */,
@@ -175,6 +177,8 @@
 				ACF27B05151AEC37009FCAB9 /* GSCube.m */,
 				4A9A3BA41517200E00607B1A /* GSCamera.h */,
 				4A9A3BA51517200E00607B1A /* GSCamera.m */,
+				4A99BE261528242800F2ECDC /* GSImpostor.h */,
+				4A99BE271528242800F2ECDC /* GSImpostor.m */,
 				4AD9531B15142B1800C2AF8E /* GSOpenGLView.h */,
 				4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */,
 				4A2CD0081513C3FC006C6551 /* GSAppDelegate.h */,
@@ -192,8 +196,7 @@
 			isa = PBXGroup;
 			children = (
 				ACF27B02151AE486009FCAB9 /* terrain.png */,
-				AC9CCD721519B8AA0081964D /* shader.frag.txt */,
-				AC9CCD731519B8AA0081964D /* shader.vert.txt */,
+				ACB67D81152D8804005D3144 /* Shaders */,
 				4A2CCFFE1513C3FC006C6551 /* GutsyStorm-Info.plist */,
 				4A2CCFFF1513C3FC006C6551 /* InfoPlist.strings */,
 				4A2CD0021513C3FC006C6551 /* main.m */,
@@ -245,6 +248,17 @@
 				4A9A3BAC1517252E00607B1A /* GLString.m */,
 			);
 			name = "OpenGL Wrapper";
+			sourceTree = "<group>";
+		};
+		ACB67D81152D8804005D3144 /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				AC9CCD721519B8AA0081964D /* shader.frag.txt */,
+				AC9CCD731519B8AA0081964D /* shader.vert.txt */,
+				ACB67D7F152D8680005D3144 /* skybox.frag.txt */,
+				ACB67D7C152D8674005D3144 /* skybox.vert.txt */,
+			);
+			name = Shaders;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -304,6 +318,8 @@
 				AC9CCD741519B8AA0081964D /* shader.frag.txt in Resources */,
 				AC9CCD751519B8AA0081964D /* shader.vert.txt in Resources */,
 				ACF27B03151AE486009FCAB9 /* terrain.png in Resources */,
+				ACB67D7D152D8674005D3144 /* skybox.vert.txt in Resources */,
+				ACB67D80152D8680005D3144 /* skybox.frag.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

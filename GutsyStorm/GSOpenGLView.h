@@ -29,7 +29,8 @@
 	GSCamera *camera;
 	GLString *fpsStringTex;
 	NSMutableDictionary *stringAttribs; // attributes for string textures
-    GSShader *shader;
+    GSShader *terrainShader;
+    GSShader *skyboxShader;
     GSTextureArray *textureArray;
     GSCube *cube;
 	GSVector3 cubePos;
@@ -45,7 +46,8 @@
 - (void)timerFired:(id)sender;
 - (unsigned)handleUserInput:(float)dt;
 - (NSString *)loadShaderSourceFileWithPath:(NSString *)path;
-- (void)buildShader;
+- (void)buildTerrainShader;
+- (void)buildSkyboxShader;
 - (void)buildFontsAndStrings;
 
 @end
