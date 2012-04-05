@@ -20,9 +20,11 @@
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP;
 - (void)computeChunkVisibility;
-- (void)computeActiveChunksWithNoPrioritization;
-- (void)computeActiveChunksSortingByCameraDistance;
+- (void)computeActiveChunks:(BOOL)sorted;
 - (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
+- (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
+- (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
+- (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
 
 @end
 
@@ -55,14 +57,13 @@
 		                  (activeRegionExtent.y/CHUNK_SIZE_Y) *
 		                  (2*activeRegionExtent.z/CHUNK_SIZE_Z);
         
-		activeChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
-		tmpActiveChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
+        activeChunks = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
 		
         cache = [[NSCache alloc] init];
         [cache setCountLimit:2*maxActiveChunks];
 		
         // Refresh the active chunks and compute initial chunk visibility.
-		[self computeActiveChunksSortingByCameraDistance];
+		[self computeActiveChunks:YES];
         [self computeChunkVisibility];
     }
     
@@ -75,19 +76,8 @@
     [cache release];
     [camera release];
 	[folder release];
+    [activeChunks release];
 	[feelerRays release];
-	
-	for(size_t i = 0; i < maxActiveChunks; ++i)
-	{
-		[activeChunks[i] release];
-		activeChunks[i] = nil;
-		
-		[tmpActiveChunks[i] release];
-		tmpActiveChunks[i] = nil;
-	}
-	
-	free(activeChunks);
-	free(tmpActiveChunks);
 }
 
 
@@ -98,14 +88,13 @@
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	
-	for(size_t i = 0; i < maxActiveChunks; ++i)
-	{
-		GSChunk *chunk = activeChunks[i];
-		if(chunk && chunk->visible) {
+        
+    for(GSChunk *chunk in activeChunks)
+    {
+        if(chunk->visible) {
 			[chunk draw];
 		}
-	}
+    }
     
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
@@ -121,17 +110,13 @@
 	glDisable(GL_TEXTURE_2D);
 	glBegin(GL_LINES);
 	
-	NSEnumerator *e = [feelerRays objectEnumerator];
-	id object;
-	while(nil != (object = [e nextObject]))
-	{
-		GSBoxedRay *r = (GSBoxedRay *)object;
-		
+	for(GSBoxedRay *r in feelerRays)
+    {
 		glVertex3f(r.ray.origin.x, r.ray.origin.y, r.ray.origin.z);
 		glVertex3f(r.ray.origin.x + r.ray.direction.x,
 				   r.ray.origin.y + r.ray.direction.y,
 				   r.ray.origin.z + r.ray.direction.z);
-	}
+    }
 	
 	glEnd();
 	glEnable(GL_LIGHTING);
@@ -141,9 +126,7 @@
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-	if(flags) {
-		[self recalculateActiveChunksWithCameraModifiedFlags:flags];
-	}
+	[self recalculateActiveChunksWithCameraModifiedFlags:flags];
 }
 
 
@@ -158,10 +141,6 @@
     
     chunk = [cache objectForKey:chunkID];
     if(!chunk) {
-        /*char buffer[64] = {0};
-        GSVector3_ToString(buffer, sizeof(buffer), minP);
-        NSLog(@"Need to fetch another chunk; chunkID=%@, minP=%s", chunkID, buffer);*/
-        
         chunk = [[[GSChunk alloc] initWithSeed:seed
                                           minP:minP
 								 terrainHeight:terrainHeight
@@ -179,49 +158,29 @@
 {
 	// Get a list of the active chunks whose AABB are in the path of the ray.
 	NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
-	for(size_t i = 0; i < maxActiveChunks; ++i)
-	{
-		float distance = INFINITY;
-		GSChunk *chunk = activeChunks[i];
-		
-		if(!chunk) {
-			continue;
-		}
-		
-		if(GSRay_IntersectsAABB(ray, [chunk minP], [chunk maxP], &distance)) {
-			[unsortedChunks addObject:chunk];
-		}
-	}
+    for(GSChunk *chunk in activeChunks)
+    {
+        if(GSRay_IntersectsAABB(ray, [chunk minP], [chunk maxP], NULL)) {
+            [unsortedChunks addObject:chunk];
+        }
+    }
 	
 	// Sort by distance from the camera. Near chunks are first.
-	GSVector3 cameraEye = [camera cameraEye];
-	NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(id a, id b) {
-		GSChunk *chunkA = (GSChunk *)a;
-		GSChunk *chunkB = (GSChunk *)b;
-		GSVector3 centerA = GSVector3_Scale(GSVector3_Add([chunkA minP], [chunkA maxP]), 0.5);
-		GSVector3 centerB = GSVector3_Scale(GSVector3_Add([chunkB minP], [chunkB maxP]), 0.5);
-		float distA = GSVector3_Length(GSVector3_Sub(centerA, cameraEye));
-		float distB = GSVector3_Length(GSVector3_Sub(centerB, cameraEye));;
-		return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
-	}];
-	
+    NSArray *sortedChunks = [self sortChunksByDistFromCamera: unsortedChunks]; // is autorelease
+
 	// For all chunks in the path of the array, determine whether the ray actually hits a voxel in the chunk.
 	float nearestDistance = INFINITY;
 	GSChunk *nearestChunk = nil;
-	NSEnumerator *e = [sortedChunks objectEnumerator];
-	id object;
-	while(nil != (object = [e nextObject]))
-	{
+    for(GSChunk *chunk in sortedChunks)
+    {
 		float distance = INFINITY;
-		GSChunk *chunk = (GSChunk *)object;
-		
 		if([chunk rayHitsChunk:ray intersectionDistanceOut:&distance]) {
 			if(distance < nearestDistance) {
 				nearestDistance = distance;
 				nearestChunk = chunk;
 			}
 		}
-	}
+    }
 	
 	// Return the distance to the intersection, if requested.
 	if(nearestChunk && intersectionDistanceOut) {
@@ -237,6 +196,38 @@
 
 
 @implementation GSChunkStore (Private)
+
+- (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks
+{    
+    GSVector3 cameraEye = [camera cameraEye];
+    
+	NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(id a, id b) {
+		GSChunk *chunkA = (GSChunk *)a;
+		GSChunk *chunkB = (GSChunk *)b;
+		GSVector3 centerA = GSVector3_Scale(GSVector3_Add([chunkA minP], [chunkA maxP]), 0.5);
+		GSVector3 centerB = GSVector3_Scale(GSVector3_Add([chunkB minP], [chunkB maxP]), 0.5);
+		float distA = GSVector3_Length(GSVector3_Sub(centerA, cameraEye));
+		float distB = GSVector3_Length(GSVector3_Sub(centerB, cameraEye));;
+		return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
+	}];
+    
+    return sortedChunks;
+}
+
+
+- (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints
+{
+    GSVector3 center = [camera cameraEye];
+    
+    return [unsortedPoints sortedArrayUsingComparator: ^(id a, id b) {
+        GSVector3 centerA = [(GSBoxedVector *)a v];
+        GSVector3 centerB = [(GSBoxedVector *)b v];
+        float distA = GSVector3_Length(GSVector3_Sub(centerA, center));
+        float distB = GSVector3_Length(GSVector3_Sub(centerB, center));
+        return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
+    }];
+}
+
 
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed
 {
@@ -283,57 +274,24 @@
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 
     GSFrustum *frustum = [camera frustum];
-    [frustum retain];
     
-    for(size_t i = 0; i < maxActiveChunks; ++i)
+    for(GSChunk *chunk in activeChunks)
     {
-        GSChunk *chunk = activeChunks[i];
-        assert(chunk); // After the collection loop, above, activeChunks should be filled.
         chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
     }
-    
-    [frustum release];
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished chunk visibility checks. It took %.3fs", timeEnd - timeStart);
 }
 
 
-// Compute the active chunks without wasting time prioritizing by which chunks will be needed first.
-- (void)computeActiveChunksWithNoPrioritization
+- (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock
 {
-    GSVector3 center = [camera cameraEye];
-    
+    const GSVector3 center = [camera cameraEye];
     const ssize_t activeRegionExtentX = activeRegionExtent.x/CHUNK_SIZE_X;
     const ssize_t activeRegionExtentZ = activeRegionExtent.z/CHUNK_SIZE_Z;
     const ssize_t activeRegionSizeY = activeRegionExtent.y/CHUNK_SIZE_Y;
-    
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    
-    // Copy the activeChunks array and retain each chunk. This prevents chunks from being deallocated when we do
-    // releaseActiveChunks, which can prevent eviction of chunks which were in the active region and will remain in the active
-    // region.
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        GSChunk *chunk = activeChunks[i];
-        tmpActiveChunks[i] = chunk;
-        
-        if(chunk) {
-            [chunk retain];
-            
-            // Also, reset the chunk visibility check. We'll recalculate a bit later.
-            chunk->visible = NO;
-        }
-    }
-    
-    // Release all the chunks and reset the activeChunks array.
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        [activeChunks[i] release];
-        activeChunks[i] = nil;
-    }
-    
-    // Collect all chunks that fall within the active region.
+
     for(ssize_t x = -activeRegionExtentX; x < activeRegionExtentX; ++x)
     {
         for(ssize_t y = 0; y < activeRegionSizeY; ++y)
@@ -349,135 +307,82 @@
                 
                 GSVector3 p = GSVector3_Make(center.x + x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, center.z + z*CHUNK_SIZE_Z);
                 
-                GSChunk *chunk = [self getChunkAtPoint:p];
-                [chunk retain];
-                
-                size_t idx = ((x+activeRegionExtentX)*(activeRegionSizeY)*(2*activeRegionExtentZ)) +
-                             (y*(2*activeRegionExtentZ)) +
-                             (z+activeRegionExtentZ);
-                assert(idx < maxActiveChunks);
-                activeChunks[idx] = chunk;
+                myBlock(p);
             }
         }
     }
-    
-    // Release the temporary copy of the previous array.
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        [tmpActiveChunks[i] release];
-        tmpActiveChunks[i] = nil;
-    }
-    
-    [pool release];
 }
 
 
 // Compute active chunks and take the time to ensure NEAR chunks come in before FAR chunks.
-- (void)computeActiveChunksSortingByCameraDistance
+- (void)computeActiveChunks:(BOOL)sorted
 {
-    GSVector3 center = [camera cameraEye];
-    
-    const ssize_t activeRegionExtentX = activeRegionExtent.x/CHUNK_SIZE_X;
-    const ssize_t activeRegionExtentZ = activeRegionExtent.z/CHUNK_SIZE_Z;
-    const ssize_t activeRegionSizeY = activeRegionExtent.y/CHUNK_SIZE_Y;
-    
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     
-    // Copy the activeChunks array and retain each chunk. This prevents chunks from being deallocated when we do
-    // releaseActiveChunks, which can prevent eviction of chunks which were in the active region and will remain in the active
-    // region.
-    for(size_t i = 0; i < maxActiveChunks; ++i)
+    // Copy the activeChunks array to retain all chunks. This prevents chunks from being deallocated when we do
+    // are in the process of selecting the new set of active chunks. This, in turn, can prevent eviction of chunks which were in
+    // the active region and will remain in the active region.
+    // Also, reset visibility computation on all active chunks. We'll recalculate a bit later.
+    NSMutableArray *tmpActiveChunks = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
+    for(GSChunk *chunk in activeChunks)
     {
-        GSChunk *chunk = activeChunks[i];
-        tmpActiveChunks[i] = chunk;
+        chunk->visible = NO;
+        [tmpActiveChunks addObject:chunk];
+    }
+    
+    if(sorted) {
+        NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
         
-        if(chunk) {
-            [chunk retain];
-            
-            // Also, reset the chunk visibility check. We'll recalculate a bit later.
-            chunk->visible = NO;
-        }
-    }
-    
-    // Release all the chunks and reset the activeChunks array.
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        [activeChunks[i] release];
-        activeChunks[i] = nil;
-    }
-    
-	// Get an unsorted list of the chunks which should be active.
-	NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
-    for(ssize_t x = -activeRegionExtentX; x < activeRegionExtentX; ++x)
-    {
-        for(ssize_t y = 0; y < activeRegionSizeY; ++y)
+        [self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
+            GSBoxedVector *b = [[GSBoxedVector alloc] initWithVector:p];
+            [unsortedChunks addObject:b];
+            [b release];
+        }];
+        
+        // Sort by distance from the camera. Near chunks are first.
+        NSArray *sortedChunks = [self sortPointsByDistFromCamera:unsortedChunks]; // is autorelease
+        
+        // Fill the activeChunks array.
+        for(GSBoxedVector *b in sortedChunks)
         {
-            for(ssize_t z = -activeRegionExtentZ; z < activeRegionExtentZ; ++z)
-            {
-                assert((x+activeRegionExtentX) >= 0);
-                assert(x < activeRegionExtentX);
-                assert((z+activeRegionExtentZ) >= 0);
-                assert(z < activeRegionExtentZ);
-                assert(y >= 0);
-                assert(y < activeRegionSizeY);
-                
-                GSVector3 p = GSVector3_Make(center.x + x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, center.z + z*CHUNK_SIZE_Z);
-                
-                GSBoxedVector *b = [[GSBoxedVector alloc] initWithVector:p];
-                [unsortedChunks addObject:b];
-                [b release];
-            }
+            [activeChunks addObject:[self getChunkAtPoint:[b v]]];
         }
-    }
-	
-	// Sort by distance from the camera. Near chunks are first.
-	NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(id a, id b) {
-		GSVector3 centerA = [(GSBoxedVector *)a v];
-		GSVector3 centerB = [(GSBoxedVector *)b v];
-		float distA = GSVector3_Length(GSVector3_Sub(centerA, center));
-		float distB = GSVector3_Length(GSVector3_Sub(centerB, center));
-		return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
-	}];
-    
-	[unsortedChunks release];
-    
-    // Fill the activeChunks array.
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        GSBoxedVector *b = (GSBoxedVector *)[sortedChunks objectAtIndex:i];
         
-		GSChunk *chunk = [self getChunkAtPoint:[b v]];
-        [chunk retain];
-        activeChunks[i] = chunk;
+        [unsortedChunks release];
+    } else {
+        [self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
+            [activeChunks addObject:[self getChunkAtPoint:p]];
+        }];
+
     }
     
-    // Release the temporary copy of the previous array.
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        [tmpActiveChunks[i] release];
-        tmpActiveChunks[i] = nil;
-    }
-    
+    // Clean up
+    [tmpActiveChunks release];
     [pool release];
 }
 
 
 - (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags
 {
-	if(!flags) {
-		return; // nothing to do; existing active region is still valid.
-	}
-	
-	// If the camera moved then recalculate the set of active chunks.
+    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+    
+#if 0
+    // If the camera moved then recalculate the set of active chunks.
 	if(flags & CAMERA_MOVED) {
-		[self computeActiveChunksWithNoPrioritization];
-        
+		[self computeActiveChunks:NO];
 	}
 	
 	// If the camera moved or turned then recalculate chunk visibility.
 	if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
         [self computeChunkVisibility];
 	}
+#else
+    [self computeActiveChunks:NO];
+    [self computeChunkVisibility];
+#endif
+    
+    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    NSLog(@"Finished recalculating active chunks. It took %.3fs", timeEnd - timeStart);
 }
 
 @end

@@ -20,11 +20,11 @@
     unsigned seed;
     GSCamera *camera;
 	NSURL *folder;
-	
-	size_t maxActiveChunks;
-	GSChunk **activeChunks, **tmpActiveChunks;
     GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
 	
+	size_t maxActiveChunks;
+    NSMutableArray *activeChunks;
+    
 	NSMutableArray *feelerRays;
 }
 
