@@ -40,11 +40,9 @@ int checkGLErrors(void);
 }
 
 
-- (void)buildShader
+- (void)buildTerrainShader
 {
-    if(shader) {
-        [shader release];
-    }
+    [terrainShader release];
     
 	assert(checkGLErrors() == 0);
     
@@ -54,15 +52,39 @@ int checkGLErrors(void);
     NSString *vertSrc = [self loadShaderSourceFileWithPath:vertFn];
     NSString *fragSrc = [self loadShaderSourceFileWithPath:fragFn];
         
-    shader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+    terrainShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
     
     [fragSrc release];
     [vertSrc release];
     
-    [shader bind];
-    [shader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
+    [terrainShader bind];
+    [terrainShader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
     
 	assert(checkGLErrors() == 0);
+}
+
+
+- (void)buildSkyboxShader
+{
+    [skyboxShader release];
+    
+	assert(checkGLErrors() == 0);
+    
+    NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"skybox.vert" ofType:@"txt"];
+    NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"skybox.frag" ofType:@"txt"];
+    
+    NSString *vertSrc = [self loadShaderSourceFileWithPath:vertFn];
+    NSString *fragSrc = [self loadShaderSourceFileWithPath:fragFn];
+    
+    skyboxShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+    
+    [fragSrc release];
+    [vertSrc release];
+    
+    [skyboxShader bind];
+    [skyboxShader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
+    
+	assert(checkGLErrors() == 0);    
 }
 
 
@@ -129,19 +151,20 @@ int checkGLErrors(void);
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, materialShininess);
 	
     [self buildFontsAndStrings];
-    
-    chunkStore = [[GSChunkStore alloc] initWithSeed:0 camera:camera];
-    
-    [self buildShader];
+    [self buildTerrainShader];
+    [self buildSkyboxShader];
     
     textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
-                                                                             pathForResource:@"terrain"
-                                                                                      ofType:@"png"]
+                                                              pathForResource:@"terrain"
+                                                              ofType:@"png"]
                                                  numTextures:3];
     
-	
-	
-	cube = [[GSCube alloc] init];
+    chunkStore = [[GSChunkStore alloc] initWithSeed:0
+                                             camera:camera
+                                      terrainShader:terrainShader
+                                       skyboxShader:skyboxShader];
+    
+    cube = [[GSCube alloc] init];
 	
 	// Create an impostor to stand in for the cube.
 	GSAABB *bounds = [[GSAABB alloc] initWithMinP:GSVector3_Add(cubePos, GSVector3_Make(-1.01, -1.01, -1.01))
@@ -175,7 +198,7 @@ int checkGLErrors(void);
 	fpsLabelUpdateInterval = 0.3;
 	numFramesSinceLastFpsLabelUpdate = 0;
 	keysDown = [[NSMutableDictionary alloc] init];
-    shader = nil;
+    terrainShader = nil;
     textureArray = nil;
     cube = nil;
 	cubePos = GSVector3_Make(85.70, 20, 124.25);
@@ -378,9 +401,9 @@ int checkGLErrors(void);
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
 		glTranslatef(cubePos.x, cubePos.y, cubePos.z);
-		[shader bind];
+		[terrainShader bind];
 		[cube draw];
-		[shader unbind];
+		[terrainShader unbind];
 		glPopMatrix(); // cube
 		
 		[cubeImpostor finishUpdateImposter];
@@ -390,19 +413,21 @@ int checkGLErrors(void);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
 	glLoadIdentity();
+    
+	[chunkStore drawSkybox];
+    
 	[camera submitCameraTransform];
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);  
 
-	// Draw terrain.
-	[chunkStore drawWithShader:shader];
+	[chunkStore drawChunks];
 	
 	// Draw an impostor to stand in for the cube.
 	if(!useImpostor) {
 		glPushMatrix();
 		glTranslatef(cubePos.x, cubePos.y, cubePos.z);
-		[shader bind];
+		[terrainShader bind];
 		[cube draw];
-		[shader unbind];
+		[terrainShader unbind];
 		glPopMatrix();
 	}
 	
@@ -433,7 +458,7 @@ int checkGLErrors(void);
 {
 	[keysDown release];
 	[camera release];
-    [shader release];
+    [terrainShader release];
     [textureArray release];
     [cube release];
 	[cubeImpostor release];

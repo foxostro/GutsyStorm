@@ -26,6 +26,7 @@
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
 - (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
 - (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len;
+- (void)drawFeelerRays;
 
 @end
 
@@ -35,6 +36,8 @@
 @synthesize activeRegionExtent;
 
 - (id)initWithSeed:(unsigned)_seed camera:(GSCamera *)_camera
+     terrainShader:(GSShader *)_terrainShader
+      skyboxShader:(GSShader *)_skyboxShader
 {
     self = [super init];
     if (self) {
@@ -45,6 +48,14 @@
 		
         camera = _camera;
         [camera retain];
+        
+        terrainShader = _terrainShader;
+        [terrainShader retain];
+        
+        skyboxShader = _skyboxShader;
+        [skyboxShader retain];
+        
+        skybox = [[GSCube alloc] init];
 		
 		feelerRays = [[NSMutableArray alloc] init];
 		
@@ -78,14 +89,38 @@
     [camera release];
 	[folder release];
 	[feelerRays release];
+    [terrainShader release];
+    [skyboxShader release];
+    [skybox release];
        
     [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
 }
 
 
-- (void)drawWithShader:(GSShader *)shader
+- (void)drawSkybox
 {
-	[shader bind];
+    glPushAttrib(GL_ENABLE_BIT);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_BLEND);
+    
+    glFrontFace(GL_CW); // we are inside the cube...
+    
+	[skyboxShader bind];
+    
+    [skybox draw];
+    
+    [skyboxShader unbind];
+    
+    glFrontFace(GL_CCW);
+    
+    glPopAttrib();
+}
+
+
+- (void)drawChunks
+{    
+	[terrainShader bind];
 	
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
@@ -105,27 +140,7 @@
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
 	
-    [shader unbind];
-}
-
-
-- (void)drawFeelerRays
-{
-	glDisable(GL_LIGHTING);
-	glDisable(GL_TEXTURE_2D);
-	glBegin(GL_LINES);
-	
-	for(GSBoxedRay *r in feelerRays)
-    {
-		glVertex3f(r.ray.origin.x, r.ray.origin.y, r.ray.origin.z);
-		glVertex3f(r.ray.origin.x + r.ray.direction.x,
-				   r.ray.origin.y + r.ray.direction.y,
-				   r.ray.origin.z + r.ray.direction.z);
-    }
-	
-	glEnd();
-	glEnable(GL_LIGHTING);
-	glEnable(GL_TEXTURE_2D);
+    [terrainShader unbind];
 }
 
 
@@ -412,6 +427,26 @@
 	if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
         [self computeChunkVisibility];
 	}
+}
+
+
+- (void)drawFeelerRays
+{
+	glDisable(GL_LIGHTING);
+	glDisable(GL_TEXTURE_2D);
+	glBegin(GL_LINES);
+	
+	for(GSBoxedRay *r in feelerRays)
+    {
+		glVertex3f(r.ray.origin.x, r.ray.origin.y, r.ray.origin.z);
+		glVertex3f(r.ray.origin.x + r.ray.direction.x,
+				   r.ray.origin.y + r.ray.direction.y,
+				   r.ray.origin.z + r.ray.direction.z);
+    }
+	
+	glEnd();
+	glEnable(GL_LIGHTING);
+	glEnable(GL_TEXTURE_2D);
 }
 
 @end

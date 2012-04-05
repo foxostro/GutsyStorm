@@ -1,0 +1,12 @@
+varying vec3 vCubeMap;
+
+void main()
+{
+    vec3 vVertex = vec3(gl_ModelViewMatrix * gl_Vertex);
+    vec3 vNormal = -vec3(gl_NormalMatrix * gl_Normal);
+    vec3 vView = -normalize(vVertex); 
+
+    vCubeMap = reflect(vView, vNormal);
+
+    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+}
