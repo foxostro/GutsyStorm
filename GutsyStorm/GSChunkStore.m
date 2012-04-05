@@ -402,35 +402,16 @@
 
 - (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags
 {
-    static float runningAverage = 0.0;
-    static unsigned i = 30;
-    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-    
-#if 0
     // If the camera moved then recalculate the set of active chunks.
 	if(flags & CAMERA_MOVED) {
 		[self computeActiveChunks:NO];
+        
 	}
 	
 	// If the camera moved or turned then recalculate chunk visibility.
 	if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
         [self computeChunkVisibility];
 	}
-#else
-    [self computeActiveChunks:NO];
-    [self computeChunkVisibility];
-#endif
-    
-    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished recalculating active chunks. It took %.5fs", timeEnd - timeStart);
-    
-    runningAverage += timeEnd - timeStart;
-    if(!--i) {
-        i = 30;
-        runningAverage /= (float)i;
-        NSLog(@"Average time is %.5fs", runningAverage);
-        runningAverage = 0.0;
-    }
 }
 
 @end
