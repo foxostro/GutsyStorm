@@ -178,7 +178,7 @@ int checkGLErrors(void);
     shader = nil;
     textureArray = nil;
     cube = nil;
-	cubePos = GSVector3_Make(85.70, 15, 124.25);
+	cubePos = GSVector3_Make(85.70, 20, 124.25);
     chunkStore = nil;
 	useImpostor = YES;
 	
@@ -373,8 +373,6 @@ int checkGLErrors(void);
 	
 	// Update the cube impostor.
 	if(useImpostor && [cubeImpostor doesImposterNeedUpdate]) {
-		NSLog(@"Doing impostor update!");
-		
 		[cubeImpostor startUpdateImposter];
 		
 		glMatrixMode(GL_MODELVIEW);
