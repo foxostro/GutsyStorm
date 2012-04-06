@@ -38,6 +38,7 @@
  @public
     GSVector3 corners[8];
 	BOOL visible;
+	BOOL visibleForCubeMap[6];
 }
 
 @property (readonly, nonatomic) GSVector3 minP;

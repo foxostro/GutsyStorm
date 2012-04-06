@@ -38,8 +38,8 @@
 	
 	// For LOD, the active region is broken up into a foreground sub-region and several background sub-regions.
 	float foregroundRegionSize;
-	float backgroundRegionSize1;
-	float backgroundRegionSize2;
+	float backgroundRegionInnerRadius;
+	float backgroundRegionOuterRadius;
 }
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;
