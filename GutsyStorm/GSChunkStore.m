@@ -85,17 +85,17 @@
 		faceForNextUpdate = 0;
 		
 		// LOD regions should overlap a bit to hide the seams between them.
-		foregroundRegionSize  =  96.0; // 0.0 to 96.0
-		backgroundRegionSize1 =  64.0; // 64.0 to 288.0
-		backgroundRegionSize2 = 256.0; // 256.0 and up
+		foregroundRegionSize  =  64.0;
+		backgroundRegionInnerRadius =  32.0;
+		backgroundRegionOuterRadius = 128.0;
 		
 		for(unsigned i = 0; i < 6; ++i)
 		{
 			GSCamera *c = [[GSCamera alloc] init];
 			[c reshapeWithBounds:bounds
 							 fov:90.0
-						   nearD:backgroundRegionSize1
-							farD:MIN(MIN(activeRegionExtent.x, activeRegionExtent.z), activeRegionExtent.y)];
+						   nearD:backgroundRegionInnerRadius
+							farD:backgroundRegionOuterRadius];
 			[c setCameraRot:[self getCameraRotForCubeMapFace:i]];
 			[c moveToPosition:[camera cameraEye]];
 			
@@ -133,10 +133,7 @@
 
 - (void)updateSkybox
 {
-	GSCamera *faceCamera = skyboxCamera[faceForNextUpdate];
-	GSFrustum *frustum = [faceCamera frustum];
-    GSVector3 eye = [camera cameraEye];
-    GSVector3 b = [self computeChunkCenterForPoint:eye];
+    GSVector3 b = [self computeChunkCenterForPoint:[camera cameraEye]];
     GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
     
 	[terrainShader bind];
@@ -149,8 +146,8 @@
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     const float fov = 90.0;
-    const float nearD = backgroundRegionSize1;
-    const float farD = MIN(MIN(activeRegionExtent.x, activeRegionExtent.z), activeRegionExtent.y);
+    const float nearD = backgroundRegionInnerRadius;
+    const float farD = backgroundRegionOuterRadius;
     glLoadIdentity();
 	gluPerspective(fov, 1.0, nearD, farD);
     
@@ -158,7 +155,7 @@
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 	glLoadIdentity();
-    [faceCamera submitCameraTransform];
+    [skyboxCamera[faceForNextUpdate] submitCameraTransform];
 	
 	// Set light direction. This must be done right after setting the camera transformation.
 	// TODO: Set the light positions for real. We don't really know the scene's real light direction.
@@ -168,11 +165,12 @@
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	// Draw all chunks.
-	// TODO: Cull against the frustum for this face's camera.
 	[self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
-        if(!((p.x-b.x) >= -backgroundRegionSize1 && (p.x-b.x) <= backgroundRegionSize1 && (p.z-b.z) >= -backgroundRegionSize1 && (p.z-b.z) <= backgroundRegionSize1)) {
+		BOOL isInDonutHole   = (p.x-b.x) >= -backgroundRegionInnerRadius && (p.x-b.x) <= backgroundRegionInnerRadius && (p.z-b.z) >= -backgroundRegionInnerRadius && (p.z-b.z) <= backgroundRegionInnerRadius;
+		BOOL isInOuterLimits = (p.x-b.x) >= -backgroundRegionOuterRadius && (p.x-b.x) <= backgroundRegionOuterRadius && (p.z-b.z) >= -backgroundRegionOuterRadius && (p.z-b.z) <= backgroundRegionOuterRadius;
+		if(isInOuterLimits && !isInDonutHole) {
 			GSChunk *chunk = [self getChunkAtPoint:p];
-			if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]) {
+			if(chunk->visibleForCubeMap[faceForNextUpdate]) {
 				[chunk draw];
 			}
 		}
@@ -457,12 +455,17 @@
         GSVector3 p = GSVector3_Scale(GSVector3_Add([chunk minP], [chunk maxP]), 0.5f); // TODO: precalculate chunk center point
         
 		// Exclude chunks which are not in the foreground region (a portion of the active region).
-        if((p.x-b.x) >= -foregroundRegionSize && (p.x-b.x) <= foregroundRegionSize &&
-		   (p.z-b.z) >= -foregroundRegionSize && (p.z-b.z) <= foregroundRegionSize) {
+        if((p.x-b.x) >= -foregroundRegionSize && (p.x-b.x) <= foregroundRegionSize && (p.z-b.z) >= -foregroundRegionSize && (p.z-b.z) <= foregroundRegionSize) {
             chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
         } else {
             chunk->visible = NO;
         }
+		
+		// For each cube map face, determine whether this chunk is visible.
+		for(unsigned face = 0; face < 6; ++face)
+		{
+			chunk->visibleForCubeMap[face] = (GS_FRUSTUM_OUTSIDE != [[skyboxCamera[face] frustum] boxInFrustumWithBoxVertices:chunk->corners]);
+		}
     }
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
