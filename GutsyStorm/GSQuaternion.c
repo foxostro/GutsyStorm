@@ -120,9 +120,3 @@ GSQuaternion GSQuaternion_Make(float x, float y, float z, float w)
 	GSQuaternion r = {x, y, z, w};
 	return r;
 }
-
-
-GSQuaternion GSQuaternion_LookAt(GSVector3 look, GSVector3 _up)
-{
-	assert(!"unimplemented");
-}

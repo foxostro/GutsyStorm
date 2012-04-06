@@ -19,6 +19,8 @@
 
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
 - (void)drawFeelerRays;
+- (GSQuaternion)getCameraRotForCubeMapFace:(unsigned)face;
+- (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len;
 
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (GSVector3)computeChunkCenterForPoint:(GSVector3)p;
@@ -29,15 +31,8 @@
 - (void)computeActiveChunks:(BOOL)sorted;
 - (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
 
-- (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len;
-
-
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
-
-- (GSVector3)getLookVecForCubeMapFace:(unsigned)face;
-- (GSVector3)getUpVecForCubeMapFace:(unsigned)face;
-- (GSQuaternion)getCameraRotForCubeMapFace:(unsigned)face;
 
 @end
 
@@ -96,21 +91,13 @@
 		
 		for(unsigned i = 0; i < 6; ++i)
 		{
-			GSVector3 eye = [camera cameraEye];
-			GSVector3 center = GSVector3_Add(eye, [self getLookVecForCubeMapFace:i]);
-			GSVector3 up = [self getUpVecForCubeMapFace:i];
-			
 			GSCamera *c = [[GSCamera alloc] init];
 			[c reshapeWithBounds:bounds
 							 fov:90.0
 						   nearD:backgroundRegionSize1
 							farD:MIN(MIN(activeRegionExtent.x, activeRegionExtent.z), activeRegionExtent.y)];
 			[c setCameraRot:[self getCameraRotForCubeMapFace:i]];
-			[c moveToPosition:eye];
-			
-			assert(GSVector3_AreEqual(eye, [c cameraEye]));
-			assert(GSVector3_AreEqual(center, [c cameraCenter]));
-			assert(GSVector3_AreEqual(up, [c cameraUp]));
+			[c moveToPosition:[camera cameraEye]];
 			
 			skyboxCamera[i] = c;
 		}
@@ -360,66 +347,6 @@
     
 	assert(!"shouldn't get here");
     return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), 0);
-}
-
-
-- (GSVector3)getUpVecForCubeMapFace:(unsigned)face
-{
-    GSVector3 up = GSVector3_Make(0, 0, 0);
-    
-    switch(face)
-    {
-        case CUBE_MAP_POSITIVE_X:
-        case CUBE_MAP_NEGATIVE_X:
-        case CUBE_MAP_POSITIVE_Z:
-        case CUBE_MAP_NEGATIVE_Z:
-            up.y = +1;
-            break;
-            
-        case CUBE_MAP_POSITIVE_Y:
-            up.z = +1;
-            break;
-            
-        case CUBE_MAP_NEGATIVE_Y:
-            up.z = -1;
-            break;
-    }
-    
-    return up;
-}
-
-- (GSVector3)getLookVecForCubeMapFace:(unsigned)face
-{
-    GSVector3 look = GSVector3_Make(0, 0, 0);
-    
-    switch(face)
-    {
-        case CUBE_MAP_POSITIVE_X:
-            look.x = +1;
-            break;
-            
-        case CUBE_MAP_NEGATIVE_X:
-            look.x = -1;
-            break;
-            
-        case CUBE_MAP_POSITIVE_Y:
-            look.y = +1;
-            break;
-            
-        case CUBE_MAP_NEGATIVE_Y:
-            look.y = -1;
-            break;
-            
-        case CUBE_MAP_POSITIVE_Z:
-            look.z = +1;
-            break;
-            
-        case CUBE_MAP_NEGATIVE_Z:
-            look.z = -1;
-            break;
-    }
-    
-    return look;
 }
 
 

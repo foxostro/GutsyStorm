@@ -25,6 +25,5 @@ GSVector3 GSQuaternion_MulByVec(GSQuaternion a, GSVector3 b);
 GSQuaternion GSQuaternion_MakeFromAxisAngle(GSVector3 v, float angle);
 void GSQuaternion_ToAxisAngle(GSQuaternion q, GSVector3 * axis, float * angle);
 GSQuaternion GSQuaternion_Make(float x, float y, float z, float w);
-GSQuaternion GSQuaternion_LookAt(GSVector3 look, GSVector3 up);
 
 #endif
