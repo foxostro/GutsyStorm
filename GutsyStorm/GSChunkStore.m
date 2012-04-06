@@ -19,7 +19,6 @@
 
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
 - (void)drawFeelerRays;
-- (GSQuaternion)getCameraRotForCubeMapFace:(unsigned)face;
 - (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len;
 
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
@@ -33,6 +32,11 @@
 
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
+
+- (GSQuaternion)getCameraRotForCubeMapFace:(unsigned)face;
+- (void)markAllFacesDirty;
+- (void)computeChunkVisibilityForCubeMap;
+- (void)updateSkyboxForBGSubRegion:(size_t)idx face:(unsigned)face;
 
 @end
 
@@ -79,32 +83,49 @@
         [cache setCountLimit:2*maxActiveChunks];
         
 		// Set up the skybox.
-		NSRect bounds = NSMakeRect(0, 0, 512, 512);
         skybox = [[GSCube alloc] init];
-        skyboxCubemap = [[GSRenderTexture alloc] initWithDimensions:bounds isCubeMap:YES];
-		faceForNextUpdate = 0;
+		foregroundRegionSize  =  64.0; // LOD regions should overlap a bit to hide the seams between them.
+		backgroundRegionInnerRadius[0] =  64.0;
+		backgroundRegionOuterRadius[0] = 128.0;
+		backgroundRegionInnerRadius[1] = 128.0 - 32.0;
+		backgroundRegionOuterRadius[1] = 256.0;
+		backgroundRegionInnerRadius[2] = 256.0 - 32.0;
+		backgroundRegionOuterRadius[2] = 1024.0;
+		skyboxUpdateDelays[0] = 0;
+		skyboxUpdateDelays[1] = 2;
+		skyboxUpdateDelays[2] = 5;
 		
-		// LOD regions should overlap a bit to hide the seams between them.
-		foregroundRegionSize  =  64.0;
-		backgroundRegionInnerRadius =  32.0;
-		backgroundRegionOuterRadius = 128.0;
+		NSRect bounds[NUM_BG_SUB_REGIONS] = {
+			NSMakeRect(0, 0, 512, 512),
+			NSMakeRect(0, 0, 256, 256),
+			NSMakeRect(0, 0, 128, 128)
+		};
+		
+		for(size_t i = 0; i < NUM_BG_SUB_REGIONS; ++i)
+		{
+			faceForNextUpdate[i] = 0;
+			skyboxUpdateCountdown[i] = 0;
+			skyboxCubemap[i] = [[GSRenderTexture alloc] initWithDimensions:bounds[i] isCubeMap:YES];
+		}
 		
 		for(unsigned i = 0; i < 6; ++i)
 		{
 			GSCamera *c = [[GSCamera alloc] init];
-			[c reshapeWithBounds:bounds
+			[c reshapeWithBounds:bounds[0]
 							 fov:90.0
-						   nearD:backgroundRegionInnerRadius
-							farD:backgroundRegionOuterRadius];
+						   nearD:backgroundRegionInnerRadius[0]
+							farD:backgroundRegionOuterRadius[0]];
 			[c setCameraRot:[self getCameraRotForCubeMapFace:i]];
 			[c moveToPosition:[camera cameraEye]];
 			
 			skyboxCamera[i] = c;
 		}
 		
-        // Refresh the active chunks and compute initial chunk visibility.
+        // Do a full refresh.
 		[self computeActiveChunks:YES];
         [self computeChunkVisibility];
+		[self markAllFacesDirty];
+		[self computeChunkVisibilityForCubeMap];
     }
     
     return self;
@@ -121,7 +142,12 @@
     
     [skybox release];
     [skyboxShader release];
-    [skyboxCubemap release];
+	
+	for(size_t i = 0; i < NUM_BG_SUB_REGIONS; ++i)
+	{
+		[skyboxCubemap[i] release];
+	}
+	
 	for(size_t i = 0; i < 6; ++i)
 	{
 		[skyboxCamera[i] release];
@@ -133,64 +159,19 @@
 
 - (void)updateSkybox
 {
-    GSVector3 b = [self computeChunkCenterForPoint:[camera cameraEye]];
-    GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
-    
-	[terrainShader bind];
-	
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    
-	// Need to adjust projection matrix for the square viewport.
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    const float fov = 90.0;
-    const float nearD = backgroundRegionInnerRadius;
-    const float farD = backgroundRegionOuterRadius;
-    glLoadIdentity();
-	gluPerspective(fov, 1.0, nearD, farD);
-    
-	// Set the camera for this face
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-	glLoadIdentity();
-    [skyboxCamera[faceForNextUpdate] submitCameraTransform];
-	
-	// Set light direction. This must be done right after setting the camera transformation.
-	// TODO: Set the light positions for real. We don't really know the scene's real light direction.
-	glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
-	
-	[skyboxCubemap startRenderForCubeFace:faceForNextUpdate];
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
-	// Draw all chunks.
-	[self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
-		BOOL isInDonutHole   = (p.x-b.x) >= -backgroundRegionInnerRadius && (p.x-b.x) <= backgroundRegionInnerRadius && (p.z-b.z) >= -backgroundRegionInnerRadius && (p.z-b.z) <= backgroundRegionInnerRadius;
-		BOOL isInOuterLimits = (p.x-b.x) >= -backgroundRegionOuterRadius && (p.x-b.x) <= backgroundRegionOuterRadius && (p.z-b.z) >= -backgroundRegionOuterRadius && (p.z-b.z) <= backgroundRegionOuterRadius;
-		if(isInOuterLimits && !isInDonutHole) {
-			GSChunk *chunk = [self getChunkAtPoint:p];
-			if(chunk->visibleForCubeMap[faceForNextUpdate]) {
-				[chunk draw];
+	for(size_t i = 0; i < NUM_BG_SUB_REGIONS; ++i)
+	{
+		unsigned face = faceForNextUpdate[i];
+		
+		if(faceIsDirty[i*6 + face]) {
+			if(--skyboxUpdateCountdown[i] <= 0) {
+				skyboxUpdateCountdown[i] = skyboxUpdateDelays[i];
+				[self updateSkyboxForBGSubRegion:i face:face];
+				faceIsDirty[i*6 + face] = NO;
+				faceForNextUpdate[i] = (face+1) % 6;
 			}
 		}
-	 }];
-	
-	[skyboxCubemap finishRender];
-
-    glPopMatrix(); // camera
-    
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
-	
-    [terrainShader unbind];
-	
-	faceForNextUpdate = (faceForNextUpdate+1) % 6;
+	}
 }
 
 
@@ -199,18 +180,33 @@
 	// Skybox textures are oriented along world-space axes, so rotate the box with the camera.
 	glPushMatrix();
 	gluLookAt(0, 0, 0,
-              [camera cameraCenter].x - [camera cameraEye].x, [camera cameraCenter].y - [camera cameraEye].y, [camera cameraCenter].z - [camera cameraEye].z,
-              [camera cameraUp].x,     [camera cameraUp].y,     [camera cameraUp].z);
+              [camera cameraCenter].x - [camera cameraEye].x,
+			  [camera cameraCenter].y - [camera cameraEye].y,
+			  [camera cameraCenter].z - [camera cameraEye].z,
+              [camera cameraUp].x,
+			  [camera cameraUp].y,
+			  [camera cameraUp].z);
 	
     glPushAttrib(GL_ENABLE_BIT);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glDisable(GL_BLEND);
+	glDepthMask(GL_FALSE);
     glFrontFace(GL_CW); // we are inside the cube, so reverse the face winding direction
+	
 	[skyboxShader bind];
-    [skybox draw];
+    
+	for(int i = NUM_BG_SUB_REGIONS - 1; i >= 0; --i)
+	{
+		[skyboxCubemap[i] bind];
+		[skybox draw];
+	}
+	
     [skyboxShader unbind];
+	[skyboxCubemap[0] unbind];
+	
     glFrontFace(GL_CCW); // reset to OpenGL defaults
+	glDepthMask(GL_TRUE); // reset to OpenGL defaults
     glPopAttrib();
 	
 	glPopMatrix();
@@ -460,16 +456,36 @@
         } else {
             chunk->visible = NO;
         }
-		
-		// For each cube map face, determine whether this chunk is visible.
-		for(unsigned face = 0; face < 6; ++face)
-		{
-			chunk->visibleForCubeMap[face] = (GS_FRUSTUM_OUTSIDE != [[skyboxCamera[face] frustum] boxInFrustumWithBoxVertices:chunk->corners]);
-		}
     }
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished chunk visibility checks. It took %.3fs", timeEnd - timeStart);
+}
+
+
+- (void)computeChunkVisibilityForCubeMap
+{
+    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+	
+	for(unsigned i = 0; i < 6; ++i)
+	{
+		[skyboxCamera[i] moveToPosition:[camera cameraEye]];
+	}
+    
+    for(size_t i = 0; i < maxActiveChunks; ++i)
+    {
+        GSChunk *chunk = activeChunks[i];
+        assert(chunk);
+        
+        // For each cube map face, determine whether this chunk is visible.
+		for(unsigned i = 0; i < 6; ++i)
+		{
+			chunk->visibleForCubeMap[i] = (GS_FRUSTUM_OUTSIDE != [[skyboxCamera[i] frustum] boxInFrustumWithBoxVertices:chunk->corners]);
+		}
+    }
+    
+    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    //NSLog(@"Finished chunk visibility checks fro cube map. It took %.3fs", timeEnd - timeStart);
 }
 
 
@@ -568,18 +584,25 @@
 }
 
 
+- (void)markAllFacesDirty
+{
+	for(size_t i = 0; i < NUM_BG_SUB_REGIONS; ++i)
+	{
+		for(size_t face = 0; face < 6; ++face)
+		{
+			faceIsDirty[i*6 + face] = YES;
+		}
+	}
+}
+
+
 - (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags
 {
     // If the camera moved then recalculate the set of active chunks.
 	if(flags & CAMERA_MOVED) {
-		// Update camera for each of the skybox faces.
-		for(unsigned i = 0; i < 6; ++i)
-		{
-			[skyboxCamera[i] moveToPosition:[camera cameraEye]];
-		}
-		
 		[self computeActiveChunks:NO];
-        
+		[self computeChunkVisibilityForCubeMap];
+		[self markAllFacesDirty];
 	}
 	
 	// If the camera moved or turned then recalculate chunk visibility.
@@ -606,6 +629,76 @@
 	glEnd();
 	glEnable(GL_LIGHTING);
 	glEnable(GL_TEXTURE_2D);
+}
+
+
+- (void)updateSkyboxForBGSubRegion:(size_t)idx face:(unsigned)face
+{
+    GSVector3 b = [self computeChunkCenterForPoint:[camera cameraEye]];
+    GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
+    
+	[terrainShader bind];
+	
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+	// Need to adjust projection matrix for the square viewport.
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    const float fov = 90.0;
+    const float nearD = backgroundRegionInnerRadius[idx];
+    const float farD = backgroundRegionOuterRadius[idx];
+    glLoadIdentity();
+	gluPerspective(fov, 1.0, nearD, farD);
+    
+	// Set the camera for this face
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+	glLoadIdentity();
+    [skyboxCamera[face] submitCameraTransform];
+	
+	// Set light direction. This must be done right after setting the camera transformation.
+	// TODO: Set the light positions for real. We don't really know the scene's real light direction.
+	glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
+	
+	[skyboxCubemap[idx] startRenderForCubeFace:face];
+	
+	// Clear the render texture to black with 0 alpha.
+	GLfloat originalBgColor[4];
+	glGetFloatv(GL_COLOR_CLEAR_VALUE, originalBgColor);
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(originalBgColor[0], originalBgColor[1], originalBgColor[2], originalBgColor[3]); // restore
+	
+	// Draw all chunks.
+	[self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
+		BOOL isInDonutHole   = (p.x-b.x) >= -backgroundRegionInnerRadius[idx] && (p.x-b.x) <= backgroundRegionInnerRadius[idx] && 
+		                       (p.z-b.z) >= -backgroundRegionInnerRadius[idx] && (p.z-b.z) <= backgroundRegionInnerRadius[idx];
+		BOOL isInOuterLimits = (p.x-b.x) >= -backgroundRegionOuterRadius[idx] && (p.x-b.x) <= backgroundRegionOuterRadius[idx] &&
+		                       (p.z-b.z) >= -backgroundRegionOuterRadius[idx] && (p.z-b.z) <= backgroundRegionOuterRadius[idx];
+		
+		if(isInOuterLimits && !isInDonutHole) {
+			GSChunk *chunk = [self getChunkAtPoint:p];
+			if(chunk->visibleForCubeMap[face]) {
+				[chunk draw];
+			}
+		}
+	}];
+	
+	[skyboxCubemap[idx] finishRender];
+	
+    glPopMatrix(); // camera
+    
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+	
+    [terrainShader unbind];
 }
 
 @end
