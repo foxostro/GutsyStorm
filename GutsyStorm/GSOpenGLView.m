@@ -418,7 +418,10 @@ int checkGLErrors(void);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
 	glLoadIdentity();
+	
     [chunkStore drawSkybox];
+	
+	glLoadIdentity();
 	[camera submitCameraTransform];
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 

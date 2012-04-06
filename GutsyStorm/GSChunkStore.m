@@ -15,15 +15,13 @@
 #import "GSChunkStore.h"
 
 
-static const float manhattanDistToBackground = 32.0;
-
-
 @interface GSChunkStore (Private)
 
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
 - (void)drawFeelerRays;
 
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
+- (GSVector3)computeChunkCenterForPoint:(GSVector3)p;
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP;
 
 - (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
@@ -66,14 +64,11 @@ static const float manhattanDistToBackground = 32.0;
         
         skyboxShader = _skyboxShader;
         [skyboxShader retain];
-        
-        skybox = [[GSCube alloc] init];
-        skyboxCubemap = [[GSRenderTexture alloc] initWithDimensions:NSMakeRect(0, 0, 512, 512) isCubeMap:YES];
 		
 		feelerRays = [[NSMutableArray alloc] init];
 		
         // Active region is bounded at y>=0.
-        activeRegionExtent = GSVector3_Make(256, 512, 256);
+        activeRegionExtent = GSVector3_Make(512, 512, 512);
         assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
         assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
@@ -86,6 +81,32 @@ static const float manhattanDistToBackground = 32.0;
 		
         cache = [[NSCache alloc] init];
         [cache setCountLimit:2*maxActiveChunks];
+        
+		// Set up the skybox.
+		NSRect bounds = NSMakeRect(0, 0, 512, 512);
+        skybox = [[GSCube alloc] init];
+        skyboxCubemap = [[GSRenderTexture alloc] initWithDimensions:bounds isCubeMap:YES];
+		faceForNextUpdate = 0;
+		
+		// LOD regions should overlap a bit to hide the seams between them.
+		foregroundRegionSize  =  96.0; // 0.0 to 96.0
+		backgroundRegionSize1 =  64.0; // 64.0 to 288.0
+		backgroundRegionSize2 = 256.0; // 256.0 and up
+		
+		for(unsigned i = 0; i < 6; ++i)
+		{
+			GSVector3 eye = [camera cameraEye];
+			GSVector3 center = GSVector3_Add(eye, [self getLookVecForCubeMapFace:i]);
+			GSVector3 up = [self getUpVecForCubeMapFace:i];
+			
+			GSCamera *c = [[GSCamera alloc] init];
+			[c reshapeWithBounds:bounds
+							 fov:90.0
+						   nearD:backgroundRegionSize1
+							farD:MIN(MIN(activeRegionExtent.x, activeRegionExtent.z), activeRegionExtent.y)];
+			[c lookAt:eye center:center up:up];
+			skyboxCamera[i] = c;
+		}
 		
         // Refresh the active chunks and compute initial chunk visibility.
 		[self computeActiveChunks:YES];
@@ -107,6 +128,10 @@ static const float manhattanDistToBackground = 32.0;
     [skybox release];
     [skyboxShader release];
     [skyboxCubemap release];
+	for(size_t i = 0; i < 6; ++i)
+	{
+		[skyboxCamera[i] release];
+	}
        
     [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
 }
@@ -114,9 +139,8 @@ static const float manhattanDistToBackground = 32.0;
 
 - (void)updateSkybox
 {
-    // TODO: Don't update the skybox every frame.
-    
     GSVector3 eye = [camera cameraEye];
+    GSVector3 b = [self computeChunkCenterForPoint:eye];
     GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
     
 	[terrainShader bind];
@@ -125,49 +149,46 @@ static const float manhattanDistToBackground = 32.0;
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-    // TODO: GSChunkStore doesn't actually have information on the near/far planes or fov. Get this from the scene somehow.
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    const float fov = 60.0;
-    const float nearD = 1.0;
-    const float farD = 724.0;
+    const float fov = 90.0;
+    const float nearD = backgroundRegionSize1;
+    const float farD = MIN(MIN(activeRegionExtent.x, activeRegionExtent.z), activeRegionExtent.y);
     glLoadIdentity();
-	gluPerspective(fov, 640/480.0, nearD, farD);
+	gluPerspective(fov, 1.0, nearD, farD);
     
     glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();    
-    for(unsigned face = 0; face < 6; ++face)
-    {
-        // Set the camera for this face
-        GSVector3 center = GSVector3_Add(eye, GSQuaternion_MulByVec([camera cameraRot], [self getLookVecForCubeMapFace:face]));
-        GSVector3 up = GSQuaternion_MulByVec([camera cameraRot], [self getUpVecForCubeMapFace:face]);
-        glLoadIdentity();
-        gluLookAt(eye.x, eye.y, eye.z,
-                  center.x, center.y, center.z,
-                  up.x, up.y, up.z);
-        
-        // Set light direction. This must be done right after setting the camera transformation.
-        // TODO: Set the light positions for real. We don't really know the scene's real light direction.
-        glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
-        
-        [skyboxCubemap startRenderForCubeFace:face];
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        // Draw all chunks.
-        // TODO: Cull against the frustum for this face's camera.
-        [self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
-            /*if(p.x-eye.x <= -manhattanDistToBackground ||
-               p.x-eye.x >= manhattanDistToBackground ||
-               p.z-eye.z <= -manhattanDistToBackground ||
-               p.z-eye.z >= manhattanDistToBackground) {
-                [[self getChunkAtPoint:p] draw];
-            }*/
-            [[self getChunkAtPoint:p] draw];
-         }];
-        
-        [skyboxCubemap finishRender];
-    }
-    glPopMatrix();
+    glPushMatrix();
+    
+    // Set the camera for this face
+    GSVector3 center = GSVector3_Add(eye, [self getLookVecForCubeMapFace:faceForNextUpdate]);
+    GSVector3 up = [self getUpVecForCubeMapFace:faceForNextUpdate];
+    glLoadIdentity();
+    gluLookAt(eye.x, eye.y, eye.z,
+              center.x, center.y, center.z,
+              up.x, up.y, up.z);    
+	
+	// Set light direction. This must be done right after setting the camera transformation.
+	// TODO: Set the light positions for real. We don't really know the scene's real light direction.
+	glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
+	
+	[skyboxCubemap startRenderForCubeFace:faceForNextUpdate];
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	// Draw all chunks.
+	// TODO: Cull against the frustum for this face's camera.
+	[self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
+        if(!((p.x-b.x) >= -backgroundRegionSize1 && (p.x-b.x) <= backgroundRegionSize1 && (p.z-b.z) >= -backgroundRegionSize1 && (p.z-b.z) <= backgroundRegionSize1)) {
+			GSChunk *chunk = [self getChunkAtPoint:p];
+			if(1) { //if(GS_FRUSTUM_OUTSIDE != [[faceCamera frustum] boxInFrustumWithBoxVertices:chunk->corners]) {
+				[chunk draw];
+			}
+		}
+	 }];
+	
+	[skyboxCubemap finishRender];
+
+    glPopMatrix(); // camera
     
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -178,11 +199,19 @@ static const float manhattanDistToBackground = 32.0;
     glDisableClientState(GL_VERTEX_ARRAY);
 	
     [terrainShader unbind];
+	
+	faceForNextUpdate = (faceForNextUpdate+1) % 6;
 }
 
 
 - (void)drawSkybox
 {
+	// Skybox textures are oriented along world-space axes, so rotate the box with the camera.
+	glPushMatrix();
+	gluLookAt(0, 0, 0,
+              [camera cameraCenter].x - [camera cameraEye].x, [camera cameraCenter].y - [camera cameraEye].y, [camera cameraCenter].z - [camera cameraEye].z,
+              [camera cameraUp].x,     [camera cameraUp].y,     [camera cameraUp].z);
+	
     glPushAttrib(GL_ENABLE_BIT);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
@@ -193,6 +222,8 @@ static const float manhattanDistToBackground = 32.0;
     [skyboxShader unbind];
     glFrontFace(GL_CCW); // reset to OpenGL defaults
     glPopAttrib();
+	
+	glPopMatrix();
 }
 
 
@@ -436,6 +467,14 @@ static const float manhattanDistToBackground = 32.0;
 }
 
 
+- (GSVector3)computeChunkCenterForPoint:(GSVector3)p
+{
+    return GSVector3_Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,
+                          floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
+                          floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z + CHUNK_SIZE_Z/2);
+}
+
+
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP
 {
 	return [[NSString alloc] initWithFormat:@"%.0f_%.0f_%.0f", minP.x, minP.y, minP.z];
@@ -446,6 +485,8 @@ static const float manhattanDistToBackground = 32.0;
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 
+	GSVector3 eye = [camera cameraEye];
+    GSVector3 b = [self computeChunkCenterForPoint:eye];
     GSFrustum *frustum = [camera frustum];
     
     for(size_t i = 0; i < maxActiveChunks; ++i)
@@ -453,17 +494,15 @@ static const float manhattanDistToBackground = 32.0;
         GSChunk *chunk = activeChunks[i];
         assert(chunk);
         
-        /*GSVector3 p = GSVector3_Sub(GSVector3_Scale(GSVector3_Add([chunk minP], [chunk maxP]), 0.5f), [camera cameraEye]);
+        GSVector3 p = GSVector3_Scale(GSVector3_Add([chunk minP], [chunk maxP]), 0.5f); // TODO: precalculate chunk center point
         
-        (if(p.x < -manhattanDistToBackground ||
-           p.x > manhattanDistToBackground ||
-           p.z < -manhattanDistToBackground ||
-           p.z > manhattanDistToBackground) {
-            chunk->visible = NO;
-        } else {            
+		// Exclude chunks which are not in the foreground region (a portion of the active region).
+        if((p.x-b.x) >= -foregroundRegionSize && (p.x-b.x) <= foregroundRegionSize &&
+		   (p.z-b.z) >= -foregroundRegionSize && (p.z-b.z) <= foregroundRegionSize) {
             chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
-        }*/
-        chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
+        } else {
+            chunk->visible = NO;
+        }
     }
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
@@ -491,9 +530,11 @@ static const float manhattanDistToBackground = 32.0;
                 assert(y >= 0);
                 assert(y < activeRegionSizeY);
                 
-                GSVector3 p = GSVector3_Make(center.x + x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, center.z + z*CHUNK_SIZE_Z);
+                GSVector3 p1 = GSVector3_Make(center.x + x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, center.z + z*CHUNK_SIZE_Z);
+				
+				GSVector3 p2 = [self computeChunkCenterForPoint:p1];
                 
-                myBlock(p);
+                myBlock(p2);
             }
         }
     }
@@ -568,6 +609,12 @@ static const float manhattanDistToBackground = 32.0;
 {
     // If the camera moved then recalculate the set of active chunks.
 	if(flags & CAMERA_MOVED) {
+		// Update camera for each of the skybox faces.
+		for(unsigned i = 0; i < 6; ++i)
+		{
+			[skyboxCamera[i] moveToPosition:[camera cameraEye]];
+		}
+		
 		[self computeActiveChunks:NO];
         
 	}
