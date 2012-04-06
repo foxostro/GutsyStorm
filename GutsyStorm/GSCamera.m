@@ -28,7 +28,7 @@
 		[self resetCamera];
         
         frustum = [[GSFrustum alloc] init];
-        [frustum setCamInternalsWithAngle:60.0 ratio:640.0/480.0 nearD:0.1 farD:400.0]; // Set for real later on.
+        [frustum setCamInternalsWithAngle:60.0 ratio:640.0/480.0 nearD:0.1 farD:1000.0]; // TODO: Set for real later on.
         [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
     }
     
@@ -166,6 +166,17 @@
 {
     const float ratio = bounds.size.width / bounds.size.height;
     [frustum setCamInternalsWithAngle:fov ratio:ratio nearD:nearD farD:farD];
+    [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
+}
+
+
+- (void)lookAt:(GSVector3)eye
+		center:(GSVector3)center
+			up:(GSVector3)up
+{
+	cameraEye = eye;
+	cameraRot = GSQuaternion_LookAt(GSVector3_Sub(center, eye), up);
+    [self updateCameraLookVectors];
     [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
 }
 

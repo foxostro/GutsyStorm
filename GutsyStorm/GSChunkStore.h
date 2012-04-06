@@ -33,6 +33,13 @@
     GSCube *skybox;
     GSShader *skyboxShader;
     GSRenderTexture *skyboxCubemap;
+    GSCamera *skyboxCamera[6]; // cameras for rendering the skybox
+	int faceForNextUpdate;
+	
+	// For LOD, the active region is broken up into a foreground sub-region and several background sub-regions.
+	float foregroundRegionSize;
+	float backgroundRegionSize1;
+	float backgroundRegionSize2;
 }
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;

@@ -13,9 +13,9 @@
 #import "GSVector3.h"
 #import "GSRay.h"
 
-#define CHUNK_SIZE_X (64)
+#define CHUNK_SIZE_X (32)
 #define CHUNK_SIZE_Y (512)
-#define CHUNK_SIZE_Z (64)
+#define CHUNK_SIZE_Z (32)
 
 
 @interface GSChunk : NSObject
