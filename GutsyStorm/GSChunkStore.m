@@ -58,6 +58,8 @@
 		
         camera = _camera;
         [camera retain];
+		oldCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
+		[oldCenterChunkID retain];
         
         terrainShader = _terrainShader;
         [terrainShader retain];
@@ -604,7 +606,18 @@
 {
     // If the camera moved then recalculate the set of active chunks.
 	if(flags & CAMERA_MOVED) {
-		[self computeActiveChunks:NO];
+		// We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
+		NSString *newCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
+		
+		if(![oldCenterChunkID isEqualToString:newCenterChunkID]) {
+			[self computeActiveChunks:NO];
+			
+			// Now save this chunk ID for comparison next update.
+			[oldCenterChunkID release];
+			oldCenterChunkID = newCenterChunkID;
+			[oldCenterChunkID retain];
+		}
+		
 		[self computeChunkVisibilityForCubeMap];
 		[self markAllFacesDirty];
 	}

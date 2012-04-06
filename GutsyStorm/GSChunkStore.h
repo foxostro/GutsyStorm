@@ -24,6 +24,7 @@
     float terrainHeight;
     unsigned seed;
     GSCamera *camera;
+	NSString *oldCenterChunkID;
 	NSURL *folder;
     GSShader *terrainShader;
     GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
