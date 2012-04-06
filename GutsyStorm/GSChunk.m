@@ -127,16 +127,21 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-- (void)draw
+// Returns YES if VBOs were generated.
+- (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration
 {
+	BOOL didGenerateVBOs = NO;
+	
     // If VBOs have not been generated yet then attempt to do so now.
     // OpenGL has no support for concurrency so we can't do this asynchronously.
     // (Unless we use a global lock on OpenGL, but that sounds too complicated to deal with across the entire application.)
     if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords) {
         // If VBOs cannot be generated yet then bail out.
-        if(![self tryToGenerateVBOs]) {
-            return;
-        }
+        if(allowVBOGeneration && ![self tryToGenerateVBOs]) {
+            return NO;
+        } else {
+			didGenerateVBOs = YES;
+		}
     }
     
     glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
@@ -149,6 +154,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     glTexCoordPointer(3, GL_FLOAT, 0, 0);
     
     glDrawArrays(GL_TRIANGLES, 0, numElementsInVBO);
+	
+	return didGenerateVBOs;
 }
 
 
