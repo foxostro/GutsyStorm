@@ -122,17 +122,7 @@ GSQuaternion GSQuaternion_Make(float x, float y, float z, float w)
 }
 
 
-GSQuaternion GSQuaternion_LookAt(GSVector3 look, GSVector3 up)
+GSQuaternion GSQuaternion_LookAt(GSVector3 look, GSVector3 _up)
 {
-	GSVector3 forward = GSVector3_Normalize(look);
-	GSVector3 right = GSVector3_Cross(up, forward);
-	
-	GSQuaternion ret;
-	ret.w = sqrtf(1.0f + right.x + up.y + forward.z) * 0.5f;
-	float w4_recip = 1.0f / (4.0f * ret.w);
-	ret.x = (forward.y - up.z) * w4_recip;
-	ret.y = (right.z - forward.x) * w4_recip;
-	ret.z = (up.x - right.y) * w4_recip;
-	
-	return ret;
+	assert(!"unimplemented");
 }

@@ -37,6 +37,7 @@
 
 - (GSVector3)getLookVecForCubeMapFace:(unsigned)face;
 - (GSVector3)getUpVecForCubeMapFace:(unsigned)face;
+- (GSQuaternion)getCameraRotForCubeMapFace:(unsigned)face;
 
 @end
 
@@ -104,7 +105,13 @@
 							 fov:90.0
 						   nearD:backgroundRegionSize1
 							farD:MIN(MIN(activeRegionExtent.x, activeRegionExtent.z), activeRegionExtent.y)];
-			[c lookAt:eye center:center up:up];
+			[c setCameraRot:[self getCameraRotForCubeMapFace:i]];
+			[c moveToPosition:eye];
+			
+			assert(GSVector3_AreEqual(eye, [c cameraEye]));
+			assert(GSVector3_AreEqual(center, [c cameraCenter]));
+			assert(GSVector3_AreEqual(up, [c cameraUp]));
+			
 			skyboxCamera[i] = c;
 		}
 		
@@ -139,6 +146,8 @@
 
 - (void)updateSkybox
 {
+	GSCamera *faceCamera = skyboxCamera[faceForNextUpdate];
+	GSFrustum *frustum = [faceCamera frustum];
     GSVector3 eye = [camera cameraEye];
     GSVector3 b = [self computeChunkCenterForPoint:eye];
     GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
@@ -149,6 +158,7 @@
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
+	// Need to adjust projection matrix for the square viewport.
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     const float fov = 90.0;
@@ -157,16 +167,11 @@
     glLoadIdentity();
 	gluPerspective(fov, 1.0, nearD, farD);
     
+	// Set the camera for this face
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    
-    // Set the camera for this face
-    GSVector3 center = GSVector3_Add(eye, [self getLookVecForCubeMapFace:faceForNextUpdate]);
-    GSVector3 up = [self getUpVecForCubeMapFace:faceForNextUpdate];
-    glLoadIdentity();
-    gluLookAt(eye.x, eye.y, eye.z,
-              center.x, center.y, center.z,
-              up.x, up.y, up.z);    
+	glLoadIdentity();
+    [faceCamera submitCameraTransform];
 	
 	// Set light direction. This must be done right after setting the camera transformation.
 	// TODO: Set the light positions for real. We don't really know the scene's real light direction.
@@ -180,7 +185,7 @@
 	[self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
         if(!((p.x-b.x) >= -backgroundRegionSize1 && (p.x-b.x) <= backgroundRegionSize1 && (p.z-b.z) >= -backgroundRegionSize1 && (p.z-b.z) <= backgroundRegionSize1)) {
 			GSChunk *chunk = [self getChunkAtPoint:p];
-			if(1) { //if(GS_FRUSTUM_OUTSIDE != [[faceCamera frustum] boxInFrustumWithBoxVertices:chunk->corners]) {
+			if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]) {
 				[chunk draw];
 			}
 		}
@@ -328,6 +333,34 @@
 
 
 @implementation GSChunkStore (Private)
+
+
+- (GSQuaternion)getCameraRotForCubeMapFace:(unsigned)face
+{
+    switch(face)
+    {
+        case CUBE_MAP_POSITIVE_X:
+            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), 3.0 * M_PI / 2.0);
+			
+        case CUBE_MAP_NEGATIVE_X:
+            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), M_PI / 2.0);
+			
+        case CUBE_MAP_POSITIVE_Z:
+            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), M_PI);
+			
+        case CUBE_MAP_NEGATIVE_Z:
+            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), 0);
+            
+        case CUBE_MAP_POSITIVE_Y:
+            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1, 0, 0), M_PI / 2);
+            
+        case CUBE_MAP_NEGATIVE_Y:
+            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1, 0, 0), -M_PI / 2);
+    }
+    
+	assert(!"shouldn't get here");
+    return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), 0);
+}
 
 
 - (GSVector3)getUpVecForCubeMapFace:(unsigned)face
