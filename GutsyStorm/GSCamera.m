@@ -170,12 +170,9 @@
 }
 
 
-- (void)lookAt:(GSVector3)eye
-		center:(GSVector3)center
-			up:(GSVector3)up
+- (void)setCameraRot:(GSQuaternion)rot
 {
-	cameraEye = eye;
-	cameraRot = GSQuaternion_LookAt(GSVector3_Sub(center, eye), up);
+	cameraRot = rot;
     [self updateCameraLookVectors];
     [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
 }

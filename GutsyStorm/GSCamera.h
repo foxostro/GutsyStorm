@@ -40,9 +40,7 @@
 											mouseDeltaY:(int)mouseDeltaY
 									   mouseSensitivity:(float)mouseSensitivity;
 - (void)moveToPosition:(GSVector3)p;
-- (void)lookAt:(GSVector3)eye
-		center:(GSVector3)center
-			up:(GSVector3)up;
+- (void)setCameraRot:(GSQuaternion)rot;
 - (void)reshapeWithBounds:(NSRect)bounds
                       fov:(float)fov
                     nearD:(float)nearD
