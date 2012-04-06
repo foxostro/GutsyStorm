@@ -675,20 +675,27 @@
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(originalBgColor[0], originalBgColor[1], originalBgColor[2], originalBgColor[3]); // restore
 	
-	// Draw all chunks.
-	[self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
+	// Draw chunks which apply to the specified LOD skybox.
+	for(size_t i = 0; i < maxActiveChunks; ++i)
+    {
+        GSChunk *chunk = activeChunks[i];
+		assert(chunk);
+		
+		if(!chunk->visibleForCubeMap[face]) {
+			continue;
+		}
+		
+		GSVector3 p = GSVector3_Scale(GSVector3_Add([chunk minP], [chunk maxP]), 0.5); // TODO: Precompute chunk centers.		
+		
 		BOOL isInDonutHole   = (p.x-b.x) >= -backgroundRegionInnerRadius[idx] && (p.x-b.x) <= backgroundRegionInnerRadius[idx] && 
 		                       (p.z-b.z) >= -backgroundRegionInnerRadius[idx] && (p.z-b.z) <= backgroundRegionInnerRadius[idx];
 		BOOL isInOuterLimits = (p.x-b.x) >= -backgroundRegionOuterRadius[idx] && (p.x-b.x) <= backgroundRegionOuterRadius[idx] &&
 		                       (p.z-b.z) >= -backgroundRegionOuterRadius[idx] && (p.z-b.z) <= backgroundRegionOuterRadius[idx];
 		
-		if(isInOuterLimits && !isInDonutHole) {
-			GSChunk *chunk = [self getChunkAtPoint:p];
-			if(chunk->visibleForCubeMap[face] && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
-				numVBOGenerationsRemaining--;
-			}
+		if(isInOuterLimits && !isInDonutHole && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
+			numVBOGenerationsRemaining--;
 		}
-	}];
+	}
 	
 	[skyboxCubemap[idx] finishRender];
 	
