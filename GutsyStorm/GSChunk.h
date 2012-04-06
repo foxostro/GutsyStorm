@@ -50,7 +50,7 @@
               minP:(GSVector3)minP
      terrainHeight:(float)terrainHeight
 			folder:(NSURL *)folder;
-- (void)draw;
+- (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 - (void)saveToFileWithContainingFolder:(NSURL *)folder;
 - (void)loadFromFile:(NSURL *)url;
 - (BOOL)rayHitsChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut;

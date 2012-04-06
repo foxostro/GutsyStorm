@@ -67,6 +67,9 @@
 		
 		feelerRays = [[NSMutableArray alloc] init];
 		
+		numVBOGenerationsAllowedPerFrame = 5;
+		numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
+		
         // Active region is bounded at y>=0.
         activeRegionExtent = GSVector3_Make(512, 512, 512);
         assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
@@ -84,21 +87,21 @@
         
 		// Set up the skybox.
         skybox = [[GSCube alloc] init];
-		foregroundRegionSize  =  64.0; // LOD regions should overlap a bit to hide the seams between them.
-		backgroundRegionInnerRadius[0] =  64.0;
+		foregroundRegionSize =  64.0; // LOD regions should overlap a bit to hide the seams between them.
+		backgroundRegionInnerRadius[0] =  32.0;
 		backgroundRegionOuterRadius[0] = 128.0;
 		backgroundRegionInnerRadius[1] = 128.0 - 32.0;
 		backgroundRegionOuterRadius[1] = 256.0;
 		backgroundRegionInnerRadius[2] = 256.0 - 32.0;
 		backgroundRegionOuterRadius[2] = 1024.0;
 		skyboxUpdateDelays[0] = 0;
-		skyboxUpdateDelays[1] = 2;
+		skyboxUpdateDelays[1] = 1;
 		skyboxUpdateDelays[2] = 5;
 		
 		NSRect bounds[NUM_BG_SUB_REGIONS] = {
 			NSMakeRect(0, 0, 512, 512),
-			NSMakeRect(0, 0, 256, 256),
-			NSMakeRect(0, 0, 128, 128)
+			NSMakeRect(0, 0, 512, 512),
+			NSMakeRect(0, 0, 256, 256)
 		};
 		
 		for(size_t i = 0; i < NUM_BG_SUB_REGIONS; ++i)
@@ -226,8 +229,8 @@
         GSChunk *chunk = activeChunks[i];
         assert(chunk);
         
-        if(chunk->visible) {
-			[chunk draw];
+        if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
+			numVBOGenerationsRemaining--;
 		}
     }
     
@@ -241,6 +244,7 @@
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
+	numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame; // reset
 	[self recalculateActiveChunksWithCameraModifiedFlags:flags];
 }
 
@@ -680,8 +684,8 @@
 		
 		if(isInOuterLimits && !isInDonutHole) {
 			GSChunk *chunk = [self getChunkAtPoint:p];
-			if(chunk->visibleForCubeMap[face]) {
-				[chunk draw];
+			if(chunk->visibleForCubeMap[face] && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
+				numVBOGenerationsRemaining--;
 			}
 		}
 	}];
