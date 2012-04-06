@@ -15,6 +15,9 @@
 #import "GSShader.h"
 #import "GSRenderTexture.h"
 
+#define NUM_BG_SUB_REGIONS (3)
+
+
 @interface GSChunkStore : NSObject
 {
     NSCache *cache;
@@ -32,14 +35,17 @@
     
     GSCube *skybox;
     GSShader *skyboxShader;
-    GSRenderTexture *skyboxCubemap;
     GSCamera *skyboxCamera[6]; // cameras for rendering the skybox
-	int faceForNextUpdate;
+    GSRenderTexture *skyboxCubemap[NUM_BG_SUB_REGIONS];
+	int skyboxUpdateCountdown[NUM_BG_SUB_REGIONS];
+	int faceForNextUpdate[NUM_BG_SUB_REGIONS];
+	BOOL faceIsDirty[NUM_BG_SUB_REGIONS * 6];
 	
 	// For LOD, the active region is broken up into a foreground sub-region and several background sub-regions.
 	float foregroundRegionSize;
-	float backgroundRegionInnerRadius;
-	float backgroundRegionOuterRadius;
+	float backgroundRegionInnerRadius[NUM_BG_SUB_REGIONS];
+	float backgroundRegionOuterRadius[NUM_BG_SUB_REGIONS];
+	int skyboxUpdateDelays[NUM_BG_SUB_REGIONS];
 }
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;

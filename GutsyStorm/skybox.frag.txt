@@ -3,5 +3,11 @@ varying vec3 vCubeMap;
 
 void main (void)
 {
-    gl_FragColor = textureCube(cubeMap, vCubeMap);
+    vec4 color = textureCube(cubeMap, vCubeMap);
+
+    if(color.a < 0.5) {
+		discard;
+	}
+
+	gl_FragColor = color;
 }
