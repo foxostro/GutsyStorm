@@ -161,8 +161,7 @@ int checkGLErrors(void);
     
     chunkStore = [[GSChunkStore alloc] initWithSeed:0
                                              camera:camera
-                                      terrainShader:terrainShader
-                                       skyboxShader:skyboxShader];
+                                      terrainShader:terrainShader];
     
     cube = [[GSCube alloc] init];
 	
@@ -408,18 +407,11 @@ int checkGLErrors(void);
 		
 		[cubeImpostor finishUpdateImposter];
 		assert(checkGLErrors() == 0);
-	}*/
-    
-    
-    // Update the chunk store skybox which shows far away chunks.
-    [chunkStore updateSkybox];
-    
+	}*/    
     
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
 	glLoadIdentity();
-	
-    [chunkStore drawSkybox];
 	
 	glLoadIdentity();
 	[camera submitCameraTransform];

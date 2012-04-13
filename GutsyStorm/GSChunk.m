@@ -95,8 +95,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         corners[7] = GSVector3_Add(minP, GSVector3_Make(0,            CHUNK_SIZE_Y, 0));
 		
 		visible = NO;
-		visibleForCubeMap[0] = visibleForCubeMap[1] = visibleForCubeMap[2] =
-		  visibleForCubeMap[3] = visibleForCubeMap[4] = visibleForCubeMap[5] = NO;
         
         dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         
