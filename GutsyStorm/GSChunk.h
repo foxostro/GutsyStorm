@@ -13,9 +13,9 @@
 #import "GSVector3.h"
 #import "GSRay.h"
 
-#define CHUNK_SIZE_X (32)
-#define CHUNK_SIZE_Y (512)
-#define CHUNK_SIZE_Z (32)
+#define CHUNK_SIZE_X (16)
+#define CHUNK_SIZE_Y (256)
+#define CHUNK_SIZE_Z (16)
 
 
 @interface GSChunk : NSObject
@@ -38,7 +38,6 @@
  @public
     GSVector3 corners[8];
 	BOOL visible;
-	BOOL visibleForCubeMap[6];
 }
 
 @property (readonly, nonatomic) GSVector3 minP;
