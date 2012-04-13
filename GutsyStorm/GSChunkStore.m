@@ -47,7 +47,7 @@
     if (self) {
         // Initialization code here.
         seed = _seed;
-		terrainHeight = 64.0;
+		terrainHeight = 40.0;
 		folder = [GSChunkStore createWorldSaveFolderWithSeed:seed];
 		
         camera = _camera;

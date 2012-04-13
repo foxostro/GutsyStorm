@@ -35,4 +35,21 @@
     return FeepingCreature_noise3(p, context);
 }
 
+
+- (float)getNoiseAtPoint:(GSVector3)p numOctaves:(unsigned)numOctaves
+{
+	const float persistence = 0.5;
+    float noise = 0.0;
+	
+    for(unsigned octave = 0; octave < numOctaves; ++octave)
+	{
+        float frequency = pow(2, octave);
+        float amplitude = pow(persistence, octave+1);
+        noise += FeepingCreature_noise3(GSVector3_Scale(p, frequency), context) * amplitude;
+    }
+	
+    return noise; 
+}
+
+
 @end

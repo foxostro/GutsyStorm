@@ -16,5 +16,6 @@
 
 - (id)initWithSeed:(unsigned)seed;
 - (float)getNoiseAtPoint:(GSVector3)p;
+- (float)getNoiseAtPoint:(GSVector3)p numOctaves:(unsigned)numOctaves;
 
 @end
