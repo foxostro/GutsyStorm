@@ -64,30 +64,6 @@ int checkGLErrors(void);
 }
 
 
-- (void)buildSkyboxShader
-{
-    [skyboxShader release];
-    
-	assert(checkGLErrors() == 0);
-    
-    NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"skybox.vert" ofType:@"txt"];
-    NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"skybox.frag" ofType:@"txt"];
-    
-    NSString *vertSrc = [self loadShaderSourceFileWithPath:vertFn];
-    NSString *fragSrc = [self loadShaderSourceFileWithPath:fragFn];
-    
-    skyboxShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
-    
-    [fragSrc release];
-    [vertSrc release];
-    
-    [skyboxShader bind];
-    [skyboxShader bindUniformWithNSString:@"cubeMap" val:0]; // texture unit 0
-    
-	assert(checkGLErrors() == 0);    
-}
-
-
 - (void)buildFontsAndStrings
 {
 	// init fonts for use with strings
@@ -152,7 +128,6 @@ int checkGLErrors(void);
 	
     [self buildFontsAndStrings];
     [self buildTerrainShader];
-    [self buildSkyboxShader];
     
     textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
                                                               pathForResource:@"terrain"
@@ -162,16 +137,7 @@ int checkGLErrors(void);
     chunkStore = [[GSChunkStore alloc] initWithSeed:0
                                              camera:camera
                                       terrainShader:terrainShader];
-    
-    cube = [[GSCube alloc] init];
-	
-	// Create an impostor to stand in for the cube.
-	GSAABB *bounds = [[GSAABB alloc] initWithMinP:GSVector3_Add(cubePos, GSVector3_Make(-1.01, -1.01, -1.01))
-											 maxP:GSVector3_Add(cubePos, GSVector3_Make(+1.01, +1.01, +1.01))];
-	cubeImpostor = [[GSImpostor alloc] initWithCamera:camera bounds:bounds];
-	[bounds release];
-	assert(checkGLErrors() == 0);
-	
+    	
 	[self enableVSync];
     
 	assert(checkGLErrors() == 0);
@@ -199,10 +165,7 @@ int checkGLErrors(void);
 	keysDown = [[NSMutableDictionary alloc] init];
     terrainShader = nil;
     textureArray = nil;
-    cube = nil;
-	cubePos = GSVector3_Make(85.70, 20, 124.25);
     chunkStore = nil;
-	useImpostor = NO;
 	
 	camera = [[GSCamera alloc] init];
     [camera moveToPosition:GSVector3_Make(85.70, 15, 134.25)];
@@ -305,18 +268,6 @@ int checkGLErrors(void);
 																mouseDeltaY:mouseDeltaY
 														   mouseSensitivity:mouseSensitivity];
 	
-	if([[keysDown objectForKey:[NSNumber numberWithInt:'[']] boolValue]) {
-		useImpostor = YES;
-	}
-	
-	if([[keysDown objectForKey:[NSNumber numberWithInt:']']] boolValue]) {
-		useImpostor = NO;
-	}
-	
-	if([[keysDown objectForKey:[NSNumber numberWithInt:' ']] boolValue]) {
-		[cubeImpostor setNeedsImpostorUpdate:YES];
-	}
-	
 	// Reset for the next update
 	mouseDeltaX = 0;
 	mouseDeltaY = 0;
@@ -392,22 +343,6 @@ int checkGLErrors(void);
 - (void)drawRect:(NSRect)dirtyRect
 {
 	static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
-	
-	// Update the cube impostor.
-	/*if(useImpostor && [cubeImpostor doesImposterNeedUpdate]) {
-		[cubeImpostor startUpdateImposter];
-		
-		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
-		glTranslatef(cubePos.x, cubePos.y, cubePos.z);
-		[terrainShader bind];
-		[cube draw];
-		[terrainShader unbind];
-		glPopMatrix(); // cube
-		
-		[cubeImpostor finishUpdateImposter];
-		assert(checkGLErrors() == 0);
-	}*/    
     
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
@@ -418,24 +353,6 @@ int checkGLErrors(void);
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 
 	[chunkStore drawChunks];
-	
-	// Draw an impostor to stand in for the cube.
-	if(!useImpostor) {
-		glPushMatrix();
-		glTranslatef(cubePos.x, cubePos.y, cubePos.z);
-		[terrainShader bind];
-		[cube draw];
-		[terrainShader unbind];
-		glPopMatrix();
-	}
-	
-	/*if(useImpostor) {
-		glEnable(GL_BLEND);
-		glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-		[cubeImpostor realignToCamera];
-		[cubeImpostor draw];
-		glDisable(GL_BLEND);
-	}*/
 	
 	glPopMatrix(); // camera transform
 	
@@ -458,8 +375,6 @@ int checkGLErrors(void);
 	[camera release];
     [terrainShader release];
     [textureArray release];
-    [cube release];
-	[cubeImpostor release];
     
 	[super dealloc];
 }

@@ -10,7 +10,6 @@
 #import "GSVector3.h"
 #import "GSRay.h"
 #import "GSChunk.h"
-#import "GSCube.h"
 #import "GSCamera.h"
 #import "GSShader.h"
 #import "GSRenderTexture.h"

@@ -40,7 +40,8 @@
 
 @synthesize activeRegionExtent;
 
-- (id)initWithSeed:(unsigned)_seed camera:(GSCamera *)_camera
+- (id)initWithSeed:(unsigned)_seed
+			camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader
 {
     self = [super init];
@@ -201,34 +202,6 @@
 
 
 @implementation GSChunkStore (Private)
-
-
-- (GSQuaternion)getCameraRotForCubeMapFace:(unsigned)face
-{
-    switch(face)
-    {
-        case CUBE_MAP_POSITIVE_X:
-            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), 3.0 * M_PI / 2.0);
-			
-        case CUBE_MAP_NEGATIVE_X:
-            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), M_PI / 2.0);
-			
-        case CUBE_MAP_POSITIVE_Z:
-            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), M_PI);
-			
-        case CUBE_MAP_NEGATIVE_Z:
-            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), 0);
-            
-        case CUBE_MAP_POSITIVE_Y:
-            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1, 0, 0), M_PI / 2);
-            
-        case CUBE_MAP_NEGATIVE_Y:
-            return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(1, 0, 0), -M_PI / 2);
-    }
-    
-	assert(!"shouldn't get here");
-    return GSQuaternion_MakeFromAxisAngle(GSVector3_Make(0, 1, 0), 0);
-}
 
 
 - (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len
