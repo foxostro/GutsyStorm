@@ -11,9 +11,7 @@
 #import "GLString.h"
 #import "GSShader.h"
 #import "GSTextureArray.h"
-#import "GSCube.h"
 #import "GSChunkStore.h"
-#import "GSImpostor.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
@@ -30,12 +28,7 @@
 	GLString *fpsStringTex;
 	NSMutableDictionary *stringAttribs; // attributes for string textures
     GSShader *terrainShader;
-    GSShader *skyboxShader;
     GSTextureArray *textureArray;
-    GSCube *cube;
-	GSVector3 cubePos;
-	GSImpostor *cubeImpostor;
-	BOOL useImpostor;
     GSChunkStore *chunkStore;
 }
 
@@ -47,7 +40,6 @@
 - (unsigned)handleUserInput:(float)dt;
 - (NSString *)loadShaderSourceFileWithPath:(NSString *)path;
 - (void)buildTerrainShader;
-- (void)buildSkyboxShader;
 - (void)buildFontsAndStrings;
 
 @end
