@@ -83,7 +83,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         vertsBuffer = NULL;
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
-        
+        indices = NULL;
+		
         // Frustum-Box testing requires the corners of the cube, so pre-calculate them here.
         corners[0] = minP;
         corners[1] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, 0,            0));
@@ -133,7 +134,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     // If VBOs have not been generated yet then attempt to do so now.
     // OpenGL has no support for concurrency so we can't do this asynchronously.
     // (Unless we use a global lock on OpenGL, but that sounds too complicated to deal with across the entire application.)
-    if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords) {
+    if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords || !indices) {
         // If VBOs cannot be generated yet then bail out.
         if(allowVBOGeneration && ![self tryToGenerateVBOs]) {
             return NO;
@@ -141,17 +142,19 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 			didGenerateVBOs = YES;
 		}
     }
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
-    glVertexPointer(3, GL_FLOAT, 0, 0);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
-    glNormalPointer(GL_FLOAT, 0, 0);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
-    glTexCoordPointer(3, GL_FLOAT, 0, 0);
-    
-    glDrawArrays(GL_TRIANGLES, 0, numElementsInVBO);
+	
+	if(vboChunkVerts && vboChunkNorms && vboChunkTexCoords && indices) {    
+		glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
+		glVertexPointer(3, GL_FLOAT, 0, 0);
+		
+		glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
+		glNormalPointer(GL_FLOAT, 0, 0);
+		
+		glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
+		glTexCoordPointer(3, GL_FLOAT, 0, 0);
+		
+		glDrawElements(GL_TRIANGLES, numChunkVerts, GL_UNSIGNED_SHORT, indices);
+	}
 	
 	return didGenerateVBOs;
 }
@@ -342,6 +345,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     
     free(texCoordsBuffer);
     texCoordsBuffer = NULL;
+	
+	free(indices);
+	indices = NULL;
     
     numChunkVerts = 0;
 }
@@ -721,6 +727,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     vertsBuffer = allocateGeometryBuffer(numChunkVerts);
     normsBuffer = allocateGeometryBuffer(numChunkVerts);
     texCoordsBuffer = allocateGeometryBuffer(numChunkVerts);
+    
+	assert(numChunkVerts < 65536);
+    indices = malloc(sizeof(GLushort) * numChunkVerts);
+    if(!indices) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating index buffer."];
+    }
 
     // Iterate over all voxels in the chunk and generate geometry.
     numChunkVerts = 0;
@@ -741,6 +753,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             }
         }
     }
+	
+	// Fill out the index buffer
+	for(GLushort i = 0; i < numChunkVerts; ++i)
+	{
+		indices[i] = i;
+	}
     
     [lockVoxelData unlock];
     
@@ -901,7 +919,7 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 
 // Allocate a buffer for use in geometry generation.
 static GLfloat * allocateGeometryBuffer(size_t numVerts)
-{    
+{
     GLfloat *buffer = malloc(sizeof(GLfloat) * 3* numVerts);
     if(!buffer) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating chunk buffer."];

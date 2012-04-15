@@ -31,6 +31,7 @@
     GLfloat *vertsBuffer;
     GLfloat *normsBuffer;
     GLfloat *texCoordsBuffer;
+	GLushort *indices;
     
     NSConditionLock *lockVoxelData;
     BOOL *voxelData;
