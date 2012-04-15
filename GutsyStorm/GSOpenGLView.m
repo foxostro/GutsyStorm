@@ -107,8 +107,8 @@ int checkGLErrors(void);
     glEnable(GL_LIGHT0);
     
     GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
-    GLfloat lightAmbient[] = {0.3, 0.3, 0.3, 1.0};
-    GLfloat lightDiffuse[] = {0.7, 0.7, 0.7, 1.0};
+    GLfloat lightAmbient[] = {0.2, 0.2, 0.2, 1.0};
+    GLfloat lightDiffuse[] = {0.6, 0.6, 0.6, 1.0};
     GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
     
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
@@ -116,8 +116,8 @@ int checkGLErrors(void);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
     glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
     
-    GLfloat materialAmbient[] = {0.5, 0.5, 0.5, 1.0};
-    GLfloat materialDiffuse[] = {0.8, 0.8, 0.8, 1.0};
+    GLfloat materialAmbient[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat materialDiffuse[] = {1.0, 1.0, 1.0, 1.0};
     GLfloat materialSpecular[] = {1.0, 1.0, 1.0, 1.0};
     GLfloat materialShininess = 20.0;
     
@@ -288,7 +288,9 @@ int checkGLErrors(void);
 		float fps = numFramesSinceLastFpsLabelUpdate / (lastRenderTime - lastFpsLabelUpdateTime);
 		lastFpsLabelUpdateTime = frameTime;
 		numFramesSinceLastFpsLabelUpdate = 0;
-		[fpsStringTex setString:[NSString stringWithFormat:@"FPS: %.1f",fps] withAttributes:stringAttribs];
+		NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
+		[[self window] setTitle:label];
+		//[fpsStringTex setString:label withAttributes:stringAttribs];
 	}
 	
 	// Handle user input and update the camera if it was modified.
@@ -356,7 +358,7 @@ int checkGLErrors(void);
 	
 	glPopMatrix(); // camera transform
 	
-	[self drawHUD];
+	//[self drawHUD];
 
 	if ([self inLiveResize]) {
 		glFlush();
