@@ -1,16 +1,23 @@
 #version 110
 #extension GL_EXT_texture_array : enable
 
+const float gamma = 2.2; // XXX: make this a uniform passed from the app
+
 uniform sampler2DArray tex;
 varying vec3 normal, lightDir0, eyeVec;
+
+
+vec4 gamma(vec4 color)
+{
+	return vec4(pow(color.xyz, vec3(1.0/gamma)), 1.0);
+}
+
 
 void main (void)
 {
     vec4 texcolor = texture2DArray(tex, gl_TexCoord[0].stp);
 
-    vec4 final_color =
-    (gl_FrontLightModelProduct.sceneColor * gl_FrontMaterial.ambient) +
-    (gl_LightSource[0].ambient * gl_FrontMaterial.ambient * gl_Color * texcolor);
+    vec4 final_color = gl_LightSource[0].ambient * texcolor;
 
     vec3 N = normalize(normal);
     vec3 L0 = normalize(lightDir0);
@@ -19,18 +26,13 @@ void main (void)
 
     if(lambertTerm0 > 0.0)
     {
-        final_color += gl_LightSource[0].diffuse *
-        gl_FrontMaterial.diffuse *
-        texcolor *
-        gl_Color *
-        lambertTerm0;
+        final_color += gl_LightSource[0].diffuse * texcolor * lambertTerm0;
 
         vec3 E = normalize(eyeVec);
         vec3 R = reflect(-L0, N);
         float specular = pow(max(dot(R, E), 0.0), gl_FrontMaterial.shininess);
-        final_color += gl_LightSource[0].specular * gl_FrontMaterial.specular *
-                   texcolor * gl_Color * specular;
+        final_color += gl_LightSource[0].specular * texcolor * specular;
     }
 
-    gl_FragColor = final_color;
+    gl_FragColor = gamma(final_color);
 }
