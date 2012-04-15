@@ -35,7 +35,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
                                 _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                     _normsBuffer:(GLfloat **)_normsBuffer
-                                    _vertsBuffer:(GLfloat **)_vertsBuffer;
+                                    _vertsBuffer:(GLfloat **)_vertsBuffer
+										_indices:(GLushort *)_indices;
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (void)allocateVoxelData;
 
@@ -358,9 +359,10 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                                 _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                     _normsBuffer:(GLfloat **)_normsBuffer
                                     _vertsBuffer:(GLfloat **)_vertsBuffer
+										_indices:(GLushort *)_indices
 {
     GLfloat x, y, z, minX, minY, minZ, maxX, maxY, maxZ;
-    BOOL onlyDoingCounting = !(_texCoordsBuffer && _normsBuffer && _vertsBuffer);
+    BOOL onlyDoingCounting = !(_texCoordsBuffer && _normsBuffer && _vertsBuffer && _indices);
     
     x = pos.x;
     y = pos.y;
@@ -396,6 +398,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y+L, z-L,
                       0, 1, 0,
@@ -403,6 +407,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y+L, z-L,
                       0, 1, 0,
@@ -410,6 +416,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             // Face 2
             addVertex(x-L, y+L, z+L,
@@ -418,6 +426,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y+L, z+L,
                       0, 1, 0,
@@ -425,6 +435,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y+L, z-L,
                       0, 1, 0,
@@ -432,9 +444,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
-        }
-        
-        numChunkVerts += 6;
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
+        } else {
+			numChunkVerts += 6;
+		}
     }
 
     // Bottom Face
@@ -447,6 +461,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y-L, z-L,
                       0, -1, 0,
@@ -454,6 +470,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y-L, z+L,
                       0, -1, 0,
@@ -461,6 +479,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             // Face 2
             addVertex(x+L, y-L, z-L,
@@ -469,6 +489,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y-L, z+L,
                       0, -1, 0,
@@ -476,6 +498,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y-L, z+L,
                       0, -1, 0,
@@ -483,9 +507,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
-        }
-        
-        numChunkVerts += 6;
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
+        } else {
+			numChunkVerts += 6;
+		}
     }
 
     // Front Face
@@ -498,6 +524,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y+L, z+L,
                       0, 0, 1,
@@ -505,6 +533,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y+L, z+L,
                       0, 0, 1,
@@ -512,6 +542,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             // Face 2
             addVertex(x-L, y-L, z+L,
@@ -520,6 +552,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y-L, z+L,
                       0, 0, 1,
@@ -527,6 +561,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y+L, z+L,
                       0, 0, 1,
@@ -534,9 +570,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
-        }
-        
-        numChunkVerts += 6;
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
+        } else {
+			numChunkVerts += 6;
+		}
     }
 
     // Back Face
@@ -549,6 +587,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y+L, z-L,
                       0, 0, -1,
@@ -556,6 +596,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y-L, z-L,
                       0, 0, -1,
@@ -563,6 +605,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             // Face 2
             addVertex(x+L, y+L, z-L,
@@ -571,6 +615,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y-L, z-L,
                       0, 0, -1,
@@ -578,6 +624,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y-L, z-L,
                       0, 0, -1,
@@ -585,9 +633,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
-        }
-        
-        numChunkVerts += 6;
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
+        } else {
+			numChunkVerts += 6;
+		}
     }
 
     // Right Face
@@ -600,6 +650,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y+L, z+L,
                       1, 0, 0,
@@ -607,6 +659,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y-L, z+L,
                       1, 0, 0,
@@ -614,6 +668,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             // Face 2
             addVertex(x+L, y-L, z-L,
@@ -622,6 +678,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y+L, z-L,
                       1, 0, 0,
@@ -629,6 +687,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x+L, y-L, z+L,
                       1, 0, 0,
@@ -636,9 +696,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
-        }
-        
-        numChunkVerts += 6;
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
+        } else {
+			numChunkVerts += 6;
+		}
     }
 
     // Left Face
@@ -651,6 +713,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y+L, z+L,
                       -1, 0, 0,
@@ -658,6 +722,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y+L, z-L,
                       -1, 0, 0,
@@ -665,6 +731,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             // Face 2
             addVertex(x-L, y-L, z+L,
@@ -673,6 +741,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y+L, z-L,
                       -1, 0, 0,
@@ -680,6 +750,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
             
             addVertex(x-L, y-L, z-L,
                       -1, 0, 0,
@@ -687,9 +759,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                       _vertsBuffer,
                       _normsBuffer,
                       _texCoordsBuffer);
-        }
-        
-        numChunkVerts += 6;
+			_indices[numChunkVerts] = numChunkVerts;
+			numChunkVerts++;
+        } else {
+			numChunkVerts += 6;
+		}
     }
 }
 
@@ -717,7 +791,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                 [self generateGeometryForSingleBlockAtPosition:pos
                                               _texCoordsBuffer:NULL
                                                   _normsBuffer:NULL
-                                                  _vertsBuffer:NULL];
+                                                  _vertsBuffer:NULL
+													  _indices:NULL];
                 
             }
         }
@@ -748,17 +823,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                 [self generateGeometryForSingleBlockAtPosition:pos
                                               _texCoordsBuffer:&_texCoordsBuffer
                                                   _normsBuffer:&_normsBuffer
-                                                  _vertsBuffer:&_vertsBuffer];
+                                                  _vertsBuffer:&_vertsBuffer
+													  _indices:indices];
 
             }
         }
     }
-	
-	// Fill out the index buffer
-	for(GLushort i = 0; i < numChunkVerts; ++i)
-	{
-		indices[i] = i;
-	}
     
     [lockVoxelData unlock];
     
