@@ -13,6 +13,7 @@
 
 
 int checkGLErrors(void);
+BOOL checkForOpenGLExtension(NSString *extension);
 
 
 @implementation GSOpenGLView
@@ -92,6 +93,18 @@ int checkGLErrors(void);
 {
 	[[self openGLContext] makeCurrentContext];
 	assert(checkGLErrors() == 0);
+	
+	float glVersion;
+	sscanf((char *)glGetString(GL_VERSION), "%f", &glVersion);
+	if(glVersion < 2.0) {
+		[NSException raise:@"Graphics Card Does Not Meet Requirements"
+					format:@"Graphics card does not support required OpenGL version 2.0"];
+	}
+	
+	if(!checkForOpenGLExtension(@"GL_EXT_texture_array")) {
+		[NSException raise:@"Graphics Card Does Not Meet Requirements"
+					format:@"Graphics card does not support required extension: GL_EXT_texture_array"];
+	}
 	
 	glClearColor(0.2, 0.4, 0.5, 1.0);
 	
@@ -382,6 +395,24 @@ int checkGLErrors(void);
 }
 
 @end
+
+
+// Returns YES if the given OpenGL extension is supported on this machine.
+BOOL checkForOpenGLExtension(NSString *extension)
+{
+	NSString *extensions = [NSString stringWithCString:(const char *)glGetString(GL_EXTENSIONS)
+											  encoding:NSMacOSRomanStringEncoding];
+	NSArray *extensionsArray = [extensions componentsSeparatedByString:@" "];
+	
+	for(NSString *item in extensionsArray)
+	{
+		if([item isEqualToString:extension]) {
+			return YES;
+		}
+	}
+	
+	return NO;
+}
 
 
 // Checks for OpenGL errors and logs any that it find. Returns the number of errors.
