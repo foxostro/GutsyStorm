@@ -22,17 +22,14 @@ void main (void)
     vec3 N = normalize(normal);
     vec3 L0 = normalize(lightDir0);
 
-    float lambertTerm0 = dot(N,L0);
+	float lambertTerm0 = max(0.0, dot(N,L0));
 
-    if(lambertTerm0 > 0.0)
-    {
-        final_color += gl_LightSource[0].diffuse * texcolor * lambertTerm0;
+	final_color += gl_LightSource[0].diffuse * texcolor * lambertTerm0;
 
-        /*vec3 E = normalize(eyeVec);
-        vec3 R = reflect(-L0, N);
-        float specular = pow(max(dot(R, E), 0.0), gl_FrontMaterial.shininess);
-        final_color += gl_LightSource[0].specular * texcolor * specular;*/
-    }
+	vec3 E = normalize(eyeVec);
+	vec3 R = reflect(-L0, N);
+	float specular = pow(max(dot(R, E), 0.0), gl_FrontMaterial.shininess);
+	final_color += gl_LightSource[0].specular * texcolor * specular;
 
     gl_FragColor = gamma(final_color);
 }
