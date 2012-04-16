@@ -47,14 +47,15 @@ extern int checkGLErrors(void);
         glGenTextures(1, &handle);        
         glBindTexture(GL_TEXTURE_2D_ARRAY_EXT, handle);
         glTexParameterf(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameterf(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameterf(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
         glTexParameteri(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         
         glTexImage3D(GL_TEXTURE_2D_ARRAY_EXT, 0, format,
                      bounds.size.width, bounds.size.height, numTextures,
                      0, GL_RGBA, GL_UNSIGNED_BYTE, [bitmap bitmapData]);
-        
+		
+        glGenerateMipmap(GL_TEXTURE_2D_ARRAY_EXT);
         assert(checkGLErrors() == 0);
     }
     
