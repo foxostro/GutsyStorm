@@ -24,14 +24,14 @@
     GSVector3 maxP;
     
     GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords;
-    GLsizei numElementsInVBO; // This is numChunkVerts*3, but use a copy so we won't have to lock geometry to get it.
     
     NSConditionLock *lockGeometry;
-    GLsizei numChunkVerts;
+    GLsizei numIndices;
+	GLsizei numChunkVerts;
     GLfloat *vertsBuffer;
     GLfloat *normsBuffer;
     GLfloat *texCoordsBuffer;
-	GLushort *indices;
+	GLushort *indexBuffer;
     
     NSConditionLock *lockVoxelData;
     BOOL *voxelData;

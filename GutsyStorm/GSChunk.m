@@ -8,6 +8,7 @@
 
 #import "GSChunk.h"
 #import "GSNoise.h"
+#import "GSVertex.h"
 
 #define CONDITION_VOXEL_DATA_READY (1)
 #define CONDITION_GEOMETRY_READY (1)
@@ -17,9 +18,8 @@
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
-                      GLfloat **verts,
-                      GLfloat **norms,
-                      GLfloat **txcds);
+                      NSMutableArray *vertices,
+                      NSMutableArray *indices);
 static GLfloat * allocateGeometryBuffer(size_t numVerts);
 static float groundGradient(float terrainHeight, GSVector3 p);
 static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
@@ -33,10 +33,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)destroyVBOs;
 - (void)destroyGeometry;
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-                                _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
-                                    _normsBuffer:(GLfloat **)_normsBuffer
-                                    _vertsBuffer:(GLfloat **)_vertsBuffer
-										_indices:(GLushort *)_indices;
+										vertices:(NSMutableArray *)vertices
+										 indices:(NSMutableArray *)indices;
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (void)allocateVoxelData;
 
@@ -74,17 +72,17 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         vboChunkVerts = 0;
         vboChunkNorms = 0;
         vboChunkTexCoords = 0;
-        numElementsInVBO = 0;
         
         lockVoxelData = [[NSConditionLock alloc] init];
         voxelData = NULL;
         
         lockGeometry = [[NSConditionLock alloc] init];
-        numChunkVerts = 0;
         vertsBuffer = NULL;
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
-        indices = NULL;
+        indexBuffer = NULL;
+        numChunkVerts = 0;
+        numIndices = 0;
 		
         // Frustum-Box testing requires the corners of the cube, so pre-calculate them here.
         corners[0] = minP;
@@ -98,9 +96,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		
 		visible = NO;
         
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        
-        // Fire off asynchronous task to generate voxel data.
+		dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+		
+		// Fire off asynchronous task to generate voxel data.
         // When this finishes, the condition in lockVoxelData will be set to CONDITION_VOXEL_DATA_READY.
         dispatch_async(queue, ^{
 			NSURL *url = [NSURL URLWithString:[GSChunk computeChunkFileNameWithMinP:minP]
@@ -132,10 +130,14 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
 	BOOL didGenerateVBOs = NO;
 	
+	if(numIndices <= 0) {
+		return didGenerateVBOs;
+	}
+	
     // If VBOs have not been generated yet then attempt to do so now.
     // OpenGL has no support for concurrency so we can't do this asynchronously.
     // (Unless we use a global lock on OpenGL, but that sounds too complicated to deal with across the entire application.)
-    if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords || !indices) {
+    if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords) {
         // If VBOs cannot be generated yet then bail out.
         if(allowVBOGeneration && ![self tryToGenerateVBOs]) {
             return NO;
@@ -143,8 +145,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 			didGenerateVBOs = YES;
 		}
     }
-	
-	if(vboChunkVerts && vboChunkNorms && vboChunkTexCoords && indices) {    
+    
+	if(vboChunkVerts && vboChunkNorms && vboChunkTexCoords) {
 		glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
 		glVertexPointer(3, GL_FLOAT, 0, 0);
 		
@@ -154,7 +156,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
 		glTexCoordPointer(3, GL_FLOAT, 0, 0);
 		
-		glDrawElements(GL_TRIANGLES, numChunkVerts, GL_UNSIGNED_SHORT, indices);
+		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, indexBuffer);
 	}
 	
 	return didGenerateVBOs;
@@ -347,22 +349,20 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     free(texCoordsBuffer);
     texCoordsBuffer = NULL;
 	
-	free(indices);
-	indices = NULL;
+	free(indexBuffer);
+	indexBuffer = NULL;
     
-    numChunkVerts = 0;
+	numChunkVerts = 0;
+    numIndices = 0;
 }
 
 
 // Assumes the caller is already holding "lockVoxelData" and "lockGeometry".
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-                                _texCoordsBuffer:(GLfloat **)_texCoordsBuffer
-                                    _normsBuffer:(GLfloat **)_normsBuffer
-                                    _vertsBuffer:(GLfloat **)_vertsBuffer
-										_indices:(GLushort *)_indices
+										vertices:(NSMutableArray *)vertices
+										 indices:(NSMutableArray *)indices
 {
-    GLfloat x, y, z, minX, minY, minZ, maxX, maxY, maxZ;
-    BOOL onlyDoingCounting = !(_texCoordsBuffer && _normsBuffer && _vertsBuffer && _indices);
+    GLfloat x, y, z, minX, minY, minZ;
     
     x = pos.x;
     y = pos.y;
@@ -371,10 +371,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     minX = minP.x;
     minY = minP.y;
     minZ = minP.z;
-
-    maxX = maxP.x;
-    maxY = maxP.y;
-    maxZ = maxP.z;
     
     if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ]) {
         return;
@@ -390,380 +386,248 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     if(![self getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ]) {
         page = side;
         
-        if(!onlyDoingCounting) {
-            // Face 1
-            addVertex(x-L, y+L, z+L,
-                      0, 1, 0,
-                      1, 1, grass,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y+L, z-L,
-                      0, 1, 0,
-                      0, 0, grass,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y+L, z-L,
-                      0, 1, 0,
-                      1, 0, grass,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            // Face 2
-            addVertex(x-L, y+L, z+L,
-                      0, 1, 0,
-                      1, 1, grass,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y+L, z+L,
-                      0, 1, 0,
-                      0, 1, grass,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y+L, z-L,
-                      0, 1, 0,
-                      0, 0, grass,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-        } else {
-			numChunkVerts += 6;
-		}
+		// Face 1
+		addVertex(x-L, y+L, z+L,
+				  0, 1, 0,
+				  1, 1, grass,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z-L,
+				  0, 1, 0,
+				  0, 0, grass,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y+L, z-L,
+				  0, 1, 0,
+				  1, 0, grass,
+				  vertices,
+				  indices);
+		
+		// Face 2
+		addVertex(x-L, y+L, z+L,
+				  0, 1, 0,
+				  1, 1, grass,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z+L,
+				  0, 1, 0,
+				  0, 1, grass,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z-L,
+				  0, 1, 0,
+				  0, 0, grass,
+				  vertices,
+				  indices);
     }
 
     // Bottom Face
     if(![self getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ]) {
-        if(!onlyDoingCounting) {
-            // Face 1
-            addVertex(x-L, y-L, z-L,
-                      0, -1, 0,
-                      1, 0, dirt,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y-L, z-L,
-                      0, -1, 0,
-                      0, 0, dirt,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y-L, z+L,
-                      0, -1, 0,
-                      1, 1, dirt,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            // Face 2
-            addVertex(x+L, y-L, z-L,
-                      0, -1, 0,
-                      0, 0, dirt,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y-L, z+L,
-                      0, -1, 0,
-                      0, 1, dirt,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y-L, z+L,
-                      0, -1, 0,
-                      1, 1, dirt,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-        } else {
-			numChunkVerts += 6;
-		}
+		// Face 1
+		addVertex(x-L, y-L, z-L,
+				  0, -1, 0,
+				  1, 0, dirt,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z-L,
+				  0, -1, 0,
+				  0, 0, dirt,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y-L, z+L,
+				  0, -1, 0,
+				  1, 1, dirt,
+				  vertices,
+				  indices);
+		
+		// Face 2
+		addVertex(x+L, y-L, z-L,
+				  0, -1, 0,
+				  0, 0, dirt,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z+L,
+				  0, -1, 0,
+				  0, 1, dirt,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y-L, z+L,
+				  0, -1, 0,
+				  1, 1, dirt,
+				  vertices,
+				  indices);
     }
 
     // Front Face
     if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1]) {
-        if(!onlyDoingCounting) {
-            // Face 1
-            addVertex(x-L, y-L, z+L,
-                      0, 0, 1,
-                      0, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y+L, z+L,
-                      0, 0, 1,
-                      1, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y+L, z+L,
-                      0, 0, 1,
-                      0, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            // Face 2
-            addVertex(x-L, y-L, z+L,
-                      0, 0, 1,
-                      0, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y-L, z+L,
-                      0, 0, 1,
-                      1, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y+L, z+L,
-                      0, 0, 1,
-                      1, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-        } else {
-			numChunkVerts += 6;
-		}
+		// Face 1
+		addVertex(x-L, y-L, z+L,
+				  0, 0, 1,
+				  0, 1, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z+L,
+				  0, 0, 1,
+				  1, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y+L, z+L,
+				  0, 0, 1,
+				  0, 0, page,
+				  vertices,
+				  indices);
+		
+		// Face 2
+		addVertex(x-L, y-L, z+L,
+				  0, 0, 1,
+				  0, 1, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z+L,
+				  0, 0, 1,
+				  1, 1, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z+L,
+				  0, 0, 1,
+				  1, 0, page,
+				  vertices,
+				  indices);
     }
 
     // Back Face
     if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1]) {
-        if(!onlyDoingCounting) {
-            // Face 1
-            addVertex(x-L, y+L, z-L,
-                      0, 0, -1,
-                      0, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y+L, z-L,
-                      0, 0, -1,
-                      1, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y-L, z-L,
-                      0, 0, -1,
-                      0, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            // Face 2
-            addVertex(x+L, y+L, z-L,
-                      0, 0, -1,
-                      1, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y-L, z-L,
-                      0, 0, -1,
-                      1, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y-L, z-L,
-                      0, 0, -1,
-                      0, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-        } else {
-			numChunkVerts += 6;
-		}
+		// Face 1
+		addVertex(x-L, y+L, z-L,
+				  0, 0, -1,
+				  0, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z-L,
+				  0, 0, -1,
+				  1, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y-L, z-L,
+				  0, 0, -1,
+				  0, 1, page,
+				  vertices,
+				  indices);
+		
+		// Face 2
+		addVertex(x+L, y+L, z-L,
+				  0, 0, -1,
+				  1, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z-L,
+				  0, 0, -1,
+				  1, 1, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y-L, z-L,
+				  0, 0, -1,
+				  0, 1, page,
+				  vertices,
+				  indices);
     }
 
     // Right Face
 	if(![self getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ]) {
-        if(!onlyDoingCounting) {
-            // Face 1
-            addVertex(x+L, y+L, z-L,
-                      1, 0, 0,
-                      0, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y+L, z+L,
-                      1, 0, 0,
-                      1, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y-L, z+L,
-                      1, 0, 0,
-                      1, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            // Face 2
-            addVertex(x+L, y-L, z-L,
-                      1, 0, 0,
-                      0, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y+L, z-L,
-                      1, 0, 0,
-                      0, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x+L, y-L, z+L,
-                      1, 0, 0,
-                      1, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-        } else {
-			numChunkVerts += 6;
-		}
+		// Face 1
+		addVertex(x+L, y+L, z-L,
+				  1, 0, 0,
+				  0, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z+L,
+				  1, 0, 0,
+				  1, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z+L,
+				  1, 0, 0,
+				  1, 1, page,
+				  vertices,
+				  indices);
+		
+		// Face 2
+		addVertex(x+L, y-L, z-L,
+				  1, 0, 0,
+				  0, 1, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z-L,
+				  1, 0, 0,
+				  0, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z+L,
+				  1, 0, 0,
+				  1, 1, page,
+				  vertices,
+				  indices);
     }
 
     // Left Face
     if(![self getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ]) {
-        if(!onlyDoingCounting) {
-            // Face 1
-            addVertex(x-L, y-L, z+L,
-                      -1, 0, 0,
-                      1, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y+L, z+L,
-                      -1, 0, 0,
-                      1, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y+L, z-L,
-                      -1, 0, 0,
-                      0, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            // Face 2
-            addVertex(x-L, y-L, z+L,
-                      -1, 0, 0,
-                      1, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y+L, z-L,
-                      -1, 0, 0,
-                      0, 0, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-            
-            addVertex(x-L, y-L, z-L,
-                      -1, 0, 0,
-                      0, 1, page,
-                      _vertsBuffer,
-                      _normsBuffer,
-                      _texCoordsBuffer);
-			_indices[numChunkVerts] = numChunkVerts;
-			numChunkVerts++;
-        } else {
-			numChunkVerts += 6;
-		}
+		// Face 1
+		addVertex(x-L, y-L, z+L,
+				  -1, 0, 0,
+				  1, 1, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y+L, z+L,
+				  -1, 0, 0,
+				  1, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y+L, z-L,
+				  -1, 0, 0,
+				  0, 0, page,
+				  vertices,
+				  indices);
+		
+		// Face 2
+		addVertex(x-L, y-L, z+L,
+				  -1, 0, 0,
+				  1, 1, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y+L, z-L,
+				  -1, 0, 0,
+				  0, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y-L, z-L,
+				  -1, 0, 0,
+				  0, 1, page,
+				  vertices,
+				  indices);
     }
 }
 
@@ -779,59 +643,71 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     [lockVoxelData lockWhenCondition:CONDITION_VOXEL_DATA_READY];
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
-    // Iterate over all voxels in the chunk and count the number of vertices required.
-    numChunkVerts = 0;
+    // Iterate over all voxels in the chunk and generate geometry.
+	NSMutableArray *vertices = [[NSMutableArray alloc] init];
+	NSMutableArray *indices = [[NSMutableArray alloc] init];
+	
     for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
     {
         for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
         {
             for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
             {
-                // Generates no gemeotry, only increments "numChunkVerts" for verts it needs.
                 [self generateGeometryForSingleBlockAtPosition:pos
-                                              _texCoordsBuffer:NULL
-                                                  _normsBuffer:NULL
-                                                  _vertsBuffer:NULL
-													  _indices:NULL];
-                
+													  vertices:vertices
+													   indices:indices];
+
             }
         }
     }
     
-    // Allocate memory for geometry.
-    vertsBuffer = allocateGeometryBuffer(numChunkVerts);
+    numChunkVerts = (GLsizei)[vertices count];
+    numIndices = (GLsizei)[indices count];
+    
+	// Take the vertices array and generate raw buffers for OpenGL to consume.
+	assert(numChunkVerts < 65536);
+	vertsBuffer = allocateGeometryBuffer(numChunkVerts);
     normsBuffer = allocateGeometryBuffer(numChunkVerts);
     texCoordsBuffer = allocateGeometryBuffer(numChunkVerts);
-    
-	assert(numChunkVerts < 65536);
-    indices = malloc(sizeof(GLushort) * numChunkVerts);
-    if(!indices) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating index buffer."];
-    }
-
-    // Iterate over all voxels in the chunk and generate geometry.
-    numChunkVerts = 0;
-    GLfloat *_vertsBuffer = vertsBuffer;
+	
+	GLfloat *_vertsBuffer = vertsBuffer;
     GLfloat *_normsBuffer = normsBuffer;
     GLfloat *_texCoordsBuffer = texCoordsBuffer;
-    for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
-    {
-        for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
-        {
-            for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
-            {
-                [self generateGeometryForSingleBlockAtPosition:pos
-                                              _texCoordsBuffer:&_texCoordsBuffer
-                                                  _normsBuffer:&_normsBuffer
-                                                  _vertsBuffer:&_vertsBuffer
-													  _indices:indices];
-
-            }
-        }
+	for(GSVertex *vertex in vertices)
+	{
+		_vertsBuffer[0] = vertex.position.v.x;
+		_vertsBuffer[1] = vertex.position.v.y;
+		_vertsBuffer[2] = vertex.position.v.z;
+		_vertsBuffer += 3;
+		
+		_normsBuffer[0] = vertex.normal.v.x;
+		_normsBuffer[1] = vertex.normal.v.y;
+		_normsBuffer[2] = vertex.normal.v.z;
+		_normsBuffer += 3;
+		
+		_texCoordsBuffer[0] = vertex.texCoord.v.x;
+		_texCoordsBuffer[1] = vertex.texCoord.v.y;
+		_texCoordsBuffer[2] = vertex.texCoord.v.z;
+		_texCoordsBuffer += 3;
+	}
+	
+	[vertices release];
+	
+	// Take the indices array and generate a raw index buffer for OpenGL to consume.
+	indexBuffer = malloc(sizeof(GLushort) * numIndices);
+    if(!indexBuffer) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating index buffer."];
     }
+	
+	for(GLsizei i = 0; i < numIndices; ++i)
+	{
+		indexBuffer[i] = [[indices objectAtIndex:i] unsignedIntValue];
+	}
+	
+	[indices release];
     
     [lockVoxelData unlock];
-    
+	
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk geometry. It took %.3fs after voxel data was ready.", timeEnd - timeStart);
     [lockGeometry unlockWithCondition:CONDITION_GEOMETRY_READY];
@@ -847,8 +723,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     [self destroyVBOs];
     
-    numElementsInVBO = 3 * numChunkVerts;
-    const GLsizeiptr len = numElementsInVBO * sizeof(GLfloat);
+    const GLsizeiptr len = 3 * numChunkVerts * sizeof(GLfloat);
     
     glGenBuffers(1, &vboChunkVerts);
     glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
@@ -888,7 +763,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	vboChunkVerts = 0;
 	vboChunkNorms = 0;
 	vboChunkTexCoords = 0;
-    numElementsInVBO = 0;
 }
 
 @end
@@ -969,21 +843,19 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
-                      GLfloat **verts,
-                      GLfloat **norms,
-                      GLfloat **txcds)
+                      NSMutableArray *vertices,
+                      NSMutableArray *indices)
 {
-    **verts = vx; (*verts)++;
-    **verts = vy; (*verts)++;
-    **verts = vz; (*verts)++;
-    
-    **norms = nx; (*norms)++;
-    **norms = ny; (*norms)++;
-    **norms = nz; (*norms)++;
-    
-    **txcds = tx; (*txcds)++;
-    **txcds = ty; (*txcds)++;
-    **txcds = tz; (*txcds)++;
+	GSBoxedVector *position = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(vx, vy, vz)] autorelease];
+	GSBoxedVector *normal   = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(nx, ny, nz)] autorelease];
+	GSBoxedVector *texCoord = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(tx, ty, tz)] autorelease];
+	
+	GSVertex *vertex = [[[GSVertex alloc] initWithPosition:position
+													normal:normal
+												  texCoord:texCoord] autorelease];
+	
+	[vertices addObject:vertex];
+	[indices addObject:[NSNumber numberWithUnsignedInteger:[vertices count]-1]];
 }
 
 
