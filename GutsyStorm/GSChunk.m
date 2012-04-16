@@ -156,7 +156,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
 		glTexCoordPointer(3, GL_FLOAT, 0, 0);
 		
-		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, indexBuffer);
+		glDrawElements(GL_QUADS, numIndices, GL_UNSIGNED_SHORT, indexBuffer);
 	}
 	
 	return didGenerateVBOs;
@@ -385,27 +385,13 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     // Top Face
     if(![self getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ]) {
         page = side;
-        
-		// Face 1
-		addVertex(x-L, y+L, z+L,
-				  0, 1, 0,
-				  1, 1, grass,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y+L, z-L,
-				  0, 1, 0,
-				  0, 0, grass,
-				  vertices,
-				  indices);
 		
 		addVertex(x-L, y+L, z-L,
 				  0, 1, 0,
 				  1, 0, grass,
 				  vertices,
 				  indices);
-		
-		// Face 2
+        
 		addVertex(x-L, y+L, z+L,
 				  0, 1, 0,
 				  1, 1, grass,
@@ -427,26 +413,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
     // Bottom Face
     if(![self getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ]) {
-		// Face 1
 		addVertex(x-L, y-L, z-L,
 				  0, -1, 0,
 				  1, 0, dirt,
 				  vertices,
 				  indices);
 		
-		addVertex(x+L, y-L, z-L,
-				  0, -1, 0,
-				  0, 0, dirt,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y-L, z+L,
-				  0, -1, 0,
-				  1, 1, dirt,
-				  vertices,
-				  indices);
-		
-		// Face 2
 		addVertex(x+L, y-L, z-L,
 				  0, -1, 0,
 				  0, 0, dirt,
@@ -468,10 +440,15 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
     // Front Face
     if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1]) {
-		// Face 1
 		addVertex(x-L, y-L, z+L,
 				  0, 0, 1,
 				  0, 1, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z+L,
+				  0, 0, 1,
+				  1, 1, page,
 				  vertices,
 				  indices);
 		
@@ -486,90 +463,37 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 				  0, 0, page,
 				  vertices,
 				  indices);
-		
-		// Face 2
-		addVertex(x-L, y-L, z+L,
-				  0, 0, 1,
-				  0, 1, page,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y-L, z+L,
-				  0, 0, 1,
-				  1, 1, page,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y+L, z+L,
-				  0, 0, 1,
-				  1, 0, page,
-				  vertices,
-				  indices);
     }
 
     // Back Face
     if(![self getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1]) {
-		// Face 1
+		addVertex(x-L, y-L, z-L,
+				  0, 1, -1,
+				  0, 1, page,
+				  vertices,
+				  indices);
+		
 		addVertex(x-L, y+L, z-L,
-				  0, 0, -1,
+				  0, 1, -1,
 				  0, 0, page,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
-				  0, 0, -1,
-				  1, 0, page,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y-L, z-L,
-				  0, 0, -1,
-				  0, 1, page,
-				  vertices,
-				  indices);
-		
-		// Face 2
-		addVertex(x+L, y+L, z-L,
-				  0, 0, -1,
+				  0, 1, -1,
 				  1, 0, page,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z-L,
-				  0, 0, -1,
+				  0, 1, -1,
 				  1, 1, page,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y-L, z-L,
-				  0, 0, -1,
-				  0, 1, page,
 				  vertices,
 				  indices);
     }
 
     // Right Face
 	if(![self getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ]) {
-		// Face 1
-		addVertex(x+L, y+L, z-L,
-				  1, 0, 0,
-				  0, 0, page,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y+L, z+L,
-				  1, 0, 0,
-				  1, 0, page,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y-L, z+L,
-				  1, 0, 0,
-				  1, 1, page,
-				  vertices,
-				  indices);
-		
-		// Face 2
 		addVertex(x+L, y-L, z-L,
 				  1, 0, 0,
 				  0, 1, page,
@@ -579,6 +503,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		addVertex(x+L, y+L, z-L,
 				  1, 0, 0,
 				  0, 0, page,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z+L,
+				  1, 0, 0,
+				  1, 0, page,
 				  vertices,
 				  indices);
 		
@@ -591,7 +521,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
     // Left Face
     if(![self getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ]) {
-		// Face 1
+		addVertex(x-L, y-L, z-L,
+				  -1, 0, 0,
+				  0, 1, page,
+				  vertices,
+				  indices);
+		
 		addVertex(x-L, y-L, z+L,
 				  -1, 0, 0,
 				  1, 1, page,
@@ -607,25 +542,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		addVertex(x-L, y+L, z-L,
 				  -1, 0, 0,
 				  0, 0, page,
-				  vertices,
-				  indices);
-		
-		// Face 2
-		addVertex(x-L, y-L, z+L,
-				  -1, 0, 0,
-				  1, 1, page,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y+L, z-L,
-				  -1, 0, 0,
-				  0, 0, page,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y-L, z-L,
-				  -1, 0, 0,
-				  0, 1, page,
 				  vertices,
 				  indices);
     }
