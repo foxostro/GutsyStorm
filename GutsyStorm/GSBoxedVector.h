@@ -16,6 +16,10 @@
 
 @property (assign, nonatomic) GSVector3 v;
 
-- (id)initWithVector:(GSVector3)v;
+- (id)initWithVector:(GSVector3)vector;
+- (BOOL)isEqual:(id)other;
+- (BOOL)isEqualToVector:(GSBoxedVector *)vector;
+- (NSUInteger)hash;
+- (NSString *)toString;
 
 @end
