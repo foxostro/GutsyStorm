@@ -65,7 +65,7 @@
 		
 		feelerRays = [[NSMutableArray alloc] init];
 		
-		numVBOGenerationsAllowedPerFrame = 10000;
+		numVBOGenerationsAllowedPerFrame = 16;
 		numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
 		
         // Active region is bounded at y>=0.
@@ -85,7 +85,7 @@
         [cacheVoxelData setCountLimit:2*maxActiveChunks];
 		
         cacheGeometryData = [[NSCache alloc] init];
-        [cacheGeometryData setCountLimit:2*maxActiveChunks];
+        [cacheGeometryData setCountLimit:10*maxActiveChunks];
 		
         // Do a full refresh.
 		[self computeActiveChunks:YES];
@@ -169,8 +169,6 @@
 		
         [cacheGeometryData setObject:geometry forKey:chunkID];
     }
-	
-	[chunkID release];
     
     return geometry;
 }
@@ -282,7 +280,7 @@
 
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP
 {
-	return [[NSString alloc] initWithFormat:@"%.0f_%.0f_%.0f", minP.x, minP.y, minP.z];
+	return [NSString stringWithFormat:@"%.0f_%.0f_%.0f", minP.x, minP.y, minP.z];
 }
 
 
