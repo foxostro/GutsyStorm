@@ -19,7 +19,7 @@
 
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
 - (void)drawFeelerRays;
-- (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len;
+- (void)deallocChunksWithArray:(GSChunkData **)array len:(size_t)len;
 
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (GSVector3)computeChunkCenterForPoint:(GSVector3)p;
@@ -32,6 +32,10 @@
 
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
+
+- (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p;
+- (GSChunkVoxelData *)getChunkVoxelsWithChunkID:(NSString *)chunkID
+										   minP:(GSVector3)minP;
 
 @end
 
@@ -61,11 +65,11 @@
 		
 		feelerRays = [[NSMutableArray alloc] init];
 		
-		numVBOGenerationsAllowedPerFrame = 5;
+		numVBOGenerationsAllowedPerFrame = 10000;
 		numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
 		
         // Active region is bounded at y>=0.
-        activeRegionExtent = GSVector3_Make(256, 256, 256);
+        activeRegionExtent = GSVector3_Make(128, 256, 128);
         assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
         assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
@@ -74,10 +78,14 @@
 		                  (activeRegionExtent.y/CHUNK_SIZE_Y) *
 		                  (2*activeRegionExtent.z/CHUNK_SIZE_Z);
         
-        activeChunks = calloc(maxActiveChunks, sizeof(GSChunk *));
+        activeChunks = calloc(maxActiveChunks, sizeof(GSChunkGeometryData *));
 		
-        cache = [[NSCache alloc] init];
-        [cache setCountLimit:2*maxActiveChunks];
+		// Chunk data itself is stored in a collection of NSCaches.
+        cacheVoxelData = [[NSCache alloc] init];
+        [cacheVoxelData setCountLimit:2*maxActiveChunks];
+		
+        cacheGeometryData = [[NSCache alloc] init];
+        [cacheGeometryData setCountLimit:2*maxActiveChunks];
 		
         // Do a full refresh.
 		[self computeActiveChunks:YES];
@@ -90,7 +98,8 @@
 
 - (void)dealloc
 {
-    [cache release];
+    [cacheVoxelData release];
+    [cacheGeometryData release];
     [camera release];
 	[folder release];
 	[feelerRays release];
@@ -110,7 +119,7 @@
         
     for(size_t i = 0; i < maxActiveChunks; ++i)
     {
-        GSChunk *chunk = activeChunks[i];
+        GSChunkGeometryData *chunk = activeChunks[i];
         assert(chunk);
         
         if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
@@ -133,69 +142,9 @@
 }
 
 
-- (GSChunk *)getChunkAtPoint:(GSVector3)p
+- (GSChunkVoxelData *)rayCastToFindChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut
 {
-    GSChunk *chunk = nil;
-    GSVector3 minP = [self computeChunkMinPForPoint:p];
-    NSString *chunkID = [self getChunkIDWithMinP:minP];
-    
-    assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
-    
-    chunk = [cache objectForKey:chunkID];
-    if(!chunk) {
-        chunk = [[[GSChunk alloc] initWithSeed:seed
-                                          minP:minP
-								 terrainHeight:terrainHeight
-										folder:folder] autorelease];
-        [cache setObject:chunk forKey:chunkID];
-    }
-	
-	[chunkID release];
-    
-    return chunk;
-}
-
-
-- (GSChunk *)rayCastToFindChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut
-{
-	// Get a list of the active chunks whose AABB are in the path of the ray.
-	NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        GSChunk *chunk = activeChunks[i];
-        assert(chunk);
-        
-        if(GSRay_IntersectsAABB(ray, [chunk minP], [chunk maxP], NULL)) {
-            [unsortedChunks addObject:chunk];
-        }
-    }
-	
-	// Sort by distance from the camera. Near chunks are first.
-    NSArray *sortedChunks = [self sortChunksByDistFromCamera: unsortedChunks]; // is autorelease
-
-	// For all chunks in the path of the array, determine whether the ray actually hits a voxel in the chunk.
-	float nearestDistance = INFINITY;
-	GSChunk *nearestChunk = nil;
-    for(GSChunk *chunk in sortedChunks)
-    {
-		float distance = INFINITY;
-		if([chunk rayHitsChunk:ray intersectionDistanceOut:&distance]) {
-			if(distance < nearestDistance) {
-				nearestDistance = distance;
-				nearestChunk = chunk;
-			}
-		}
-    }
-	
-	// Return the distance to the intersection, if requested.
-	if(nearestChunk && intersectionDistanceOut) {
-		*intersectionDistanceOut = nearestDistance;
-	}
-	
-	[unsortedChunks release];
-	
-	return nearestChunk;
+	assert(!"unimplemented");
 }
 
 @end
@@ -203,8 +152,50 @@
 
 @implementation GSChunkStore (Private)
 
+- (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p
+{
+    GSChunkGeometryData *geometry = nil;
+    GSVector3 minP = [self computeChunkMinPForPoint:p];
+    NSString *chunkID = [self getChunkIDWithMinP:minP];
+    
+    assert(p.y >= 0); // world does not extend below y=0
+    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    
+    geometry = [cacheGeometryData objectForKey:chunkID];
+    if(!geometry) {
+        geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
+													voxelData:[self getChunkVoxelsWithChunkID:chunkID 
+																						 minP:minP]] autorelease];
+		
+        [cacheGeometryData setObject:geometry forKey:chunkID];
+    }
+	
+	[chunkID release];
+    
+    return geometry;
+}
 
-- (void)deallocChunksWithArray:(GSChunk **)array len:(size_t)len
+
+- (GSChunkVoxelData *)getChunkVoxelsWithChunkID:(NSString *)chunkID
+										   minP:(GSVector3)minP
+{
+    GSChunkVoxelData *voxels = nil;
+    
+    voxels = [cacheVoxelData objectForKey:chunkID];
+    if(!voxels) {
+        voxels = [[[GSChunkVoxelData alloc] initWithSeed:seed
+													minP:minP
+										   terrainHeight:terrainHeight
+												  folder:folder] autorelease];
+		
+        [cacheVoxelData setObject:voxels forKey:chunkID];
+    }
+    
+    return voxels;
+}
+
+
+- (void)deallocChunksWithArray:(GSChunkData **)array len:(size_t)len
 {
     for(size_t i = 0; i < len; ++i)
     {
@@ -220,8 +211,8 @@
     GSVector3 cameraEye = [camera cameraEye];
     
 	NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(id a, id b) {
-		GSChunk *chunkA = (GSChunk *)a;
-		GSChunk *chunkB = (GSChunk *)b;
+		GSChunkData *chunkA = (GSChunkData *)a;
+		GSChunkData *chunkB = (GSChunkData *)b;
 		GSVector3 centerA = GSVector3_Scale(GSVector3_Add([chunkA minP], [chunkA maxP]), 0.5);
 		GSVector3 centerB = GSVector3_Scale(GSVector3_Add([chunkB minP], [chunkB maxP]), 0.5);
 		float distA = GSVector3_Length(GSVector3_Sub(centerA, cameraEye));
@@ -303,9 +294,9 @@
     
     for(size_t i = 0; i < maxActiveChunks; ++i)
     {
-        GSChunk *chunk = activeChunks[i];
-        assert(chunk);
-        chunk->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:chunk->corners]);
+        GSChunkGeometryData *geometry = activeChunks[i];
+        assert(geometry);
+        geometry->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry->corners]);
     }
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
@@ -356,12 +347,12 @@
     NSMutableArray *tmpActiveChunks = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
     for(size_t i = 0; i < maxActiveChunks; ++i)
     {
-        GSChunk *chunk = activeChunks[i];
+        GSChunkGeometryData *geometry = activeChunks[i];
         
-        if(chunk) {
-            chunk->visible = NO;
-            [tmpActiveChunks addObject:chunk];
-            [chunk release];
+        if(geometry) {
+            geometry->visible = NO;
+            [tmpActiveChunks addObject:geometry];
+            [geometry release];
         }
     }
     
@@ -381,7 +372,7 @@
         size_t i = 0;
         for(GSBoxedVector *b in sortedChunks)
         {
-            activeChunks[i] = [self getChunkAtPoint:[b v]];
+            activeChunks[i] = [self getChunkGeometryAtPoint:[b v]];
             [activeChunks[i] retain];
             i++;
         }
@@ -391,7 +382,7 @@
     } else {
         __block size_t i = 0;
         [self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
-            activeChunks[i] = [self getChunkAtPoint:p];
+            activeChunks[i] = [self getChunkGeometryAtPoint:p];
             [activeChunks[i] retain];
             i++;
         }];

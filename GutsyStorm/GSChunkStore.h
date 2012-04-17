@@ -9,7 +9,8 @@
 #import <Cocoa/Cocoa.h>
 #import "GSVector3.h"
 #import "GSRay.h"
-#import "GSChunk.h"
+#import "GSChunkVoxelData.h"
+#import "GSChunkGeometryData.h"
 #import "GSCamera.h"
 #import "GSShader.h"
 #import "GSRenderTexture.h"
@@ -17,7 +18,9 @@
 
 @interface GSChunkStore : NSObject
 {
-    NSCache *cache;
+    NSCache *cacheVoxelData;
+    NSCache *cacheGeometryData;
+	
     float terrainHeight;
     unsigned seed;
     GSCamera *camera;
@@ -27,7 +30,7 @@
     GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
 	
 	size_t maxActiveChunks;
-    GSChunk **activeChunks;
+    GSChunkGeometryData **activeChunks;
     
 	NSMutableArray *feelerRays;
 	
@@ -38,11 +41,16 @@
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;
 
-- (id)initWithSeed:(unsigned)_seed camera:(GSCamera *)_camera
+- (id)initWithSeed:(unsigned)_seed
+			camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader;
+
 - (void)drawChunks;
-- (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)cameraModifiedFlags;
-- (GSChunk *)getChunkAtPoint:(GSVector3)p;
-- (GSChunk *)rayCastToFindChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut;
+
+- (void)updateWithDeltaTime:(float)dt
+		cameraModifiedFlags:(unsigned)cameraModifiedFlags;
+
+- (GSChunkVoxelData *)rayCastToFindChunk:(GSRay)ray
+				 intersectionDistanceOut:(float *)intersectionDistanceOut;
 
 @end
