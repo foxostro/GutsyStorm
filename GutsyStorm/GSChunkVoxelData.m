@@ -10,6 +10,7 @@
 #import "GSNoise.h"
 
 
+#define SQR(a) ((a)*(a))
 #define INDEX(x,y,z) ((size_t)(((x+1)*(CHUNK_SIZE_Y+2)*(CHUNK_SIZE_Z+2)) + ((y+1)*(CHUNK_SIZE_Z+2)) + (z+1)))
 
 
@@ -23,6 +24,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)allocateVoxelData;
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (BOOL)areAnyAdjacentVoxelsOutsideAndEmptyWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z;
+- (void)recalcOutsideVoxelsNoLock;
+- (void)propagateSunlightWithX:(ssize_t)thisX y:(ssize_t)thisY z:(ssize_t)thisZ;
+- (void)recalcLightingNoLock;
 
 @end
 
@@ -103,6 +107,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	}
 	[data getBytes:voxelData length:len];
 	[data release];
+    
+	[self recalcOutsideVoxelsNoLock];
+	[self recalcLightingNoLock];
 	
 	[lockVoxelData unlockWithCondition:CONDITION_VOXEL_DATA_READY];
 }
@@ -202,6 +209,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
+// Assumes the caller is already holding "lockVoxelData".
 // Returns YES if any voxel adjacent to the specified voxel is empty and outside.
 - (BOOL)areAnyAdjacentVoxelsOutsideAndEmptyWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z
 {
@@ -239,38 +247,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-/* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is translated so
- * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
- * the chunk is equal to maxP-minP. Ditto for the other major axii.
- */
-- (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight
+// Assumes the caller is already holding "lockVoxelData".
+- (void)recalcOutsideVoxelsNoLock
 {
-    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-    
-    [lockVoxelData lock];
-    
-    [self allocateVoxelData];
-    
-    GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
-    GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:(seed+1)];
-    
-    for(ssize_t x = -1; x < CHUNK_SIZE_X+1; ++x)
-    {
-        for(ssize_t y = -1; y < CHUNK_SIZE_Y+1; ++y)
-        {
-            for(ssize_t z = -1; z < CHUNK_SIZE_Z+1; ++z)
-            {
-                GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
-				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:y z:z];
-				voxel->empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
-				voxel->outside = NO; // updated later
-            }
-        }
-    }
-    
-    [noiseSource0 release];
-    [noiseSource1 release];
-    
 	// Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
 	// We assume here that the chunk is the height of the world.
     for(ssize_t x = -1; x < CHUNK_SIZE_X+1; ++x)
@@ -296,7 +275,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		}
     }
     
-	// Voxels which are directly adjacent to an empty, outside voxel are also considered to be outside.
+	// Solid voxels which are directly adjacent to an empty, outside voxel are also considered to be outside.
     for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
     {
         for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
@@ -304,13 +283,116 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
             {
 				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:y z:z];
-				voxel->outside = voxel->outside || [self areAnyAdjacentVoxelsOutsideAndEmptyWithX:x y:y z:z];
+				voxel->outside = voxel->outside || (!voxel->empty && [self areAnyAdjacentVoxelsOutsideAndEmptyWithX:x y:y z:z]);
 			}
 		}
     }
+}
+
+
+// Assumes the caller is already holding "lockVoxelData".
+- (void)propagateSunlightWithX:(ssize_t)thisX y:(ssize_t)thisY z:(ssize_t)thisZ
+{	
+	for(ssize_t x = MAX(0, thisX - CHUNK_LIGHTING_MAX/2); x < MIN(CHUNK_SIZE_X, thisX + CHUNK_LIGHTING_MAX/2); ++x)
+    {
+		for(ssize_t y = MAX(0, thisY - CHUNK_LIGHTING_MAX/2); y < MIN(CHUNK_SIZE_Y, thisY + CHUNK_LIGHTING_MAX/2); ++y)
+        {
+			for(ssize_t z = MAX(0, thisZ - CHUNK_LIGHTING_MAX/2); z < MIN(CHUNK_SIZE_Z, thisZ + CHUNK_LIGHTING_MAX/2); ++z)
+            {
+				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:y z:z];
+				
+				if(voxel->outside) {
+					voxel->sunlight = CHUNK_LIGHTING_MAX;
+				} else {
+					float dist = sqrtf(SQR(thisX-x) + SQR(thisY-y) + SQR(thisZ-z));
+					voxel->sunlight = MAX((unsigned)dist, voxel->sunlight);
+				}
+			}
+		}
+    }
+}
+
+
+// Assumes the caller is already holding "lockVoxelData".
+- (void)recalcLightingNoLock
+{
+	/* TODO: For each outside block, do a flood-fill in the chunk to populate lighting values.
+	 * Do note that this will be inaccurate across chunk boundaries.
+	 */
+	
+	CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
-    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
+	// Reset sunlight
+    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+    {
+        for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
+        {
+            for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
+            {
+				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:y z:z];
+				voxel->sunlight = 0;
+			}
+		}
+    }
+	
+	for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+    {
+        for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
+        {
+            for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
+            {
+				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:y z:z];
+				
+				if(voxel->outside) {
+					[self propagateSunlightWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z];
+				}
+			}
+		}
+    }
+	
+    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    NSLog(@"Finished calculating chunk lighting. It took %.3fs", timeEnd - timeStart);
+}
+
+
+/* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is translated so
+ * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
+ * the chunk is equal to maxP-minP. Ditto for the other major axii.
+ */
+- (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight
+{
+    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+    
+    [lockVoxelData lock];
+    
+    [self allocateVoxelData];
+    
+    GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
+    GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:(seed+1)];
+    
+    for(ssize_t x = -1; x < CHUNK_SIZE_X+1; ++x)
+    {
+        for(ssize_t y = -1; y < CHUNK_SIZE_Y+1; ++y)
+        {
+            for(ssize_t z = -1; z < CHUNK_SIZE_Z+1; ++z)
+            {
+                GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
+				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:y z:z];
+				voxel->empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
+				voxel->outside = NO; // updated later
+				voxel->sunlight = 0; // updated later
+            }
+        }
+    }
+    
+    [noiseSource0 release];
+    [noiseSource1 release];
+    
+	[self recalcOutsideVoxelsNoLock];
+	[self recalcLightingNoLock];
+    
+    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
     [lockVoxelData unlockWithCondition:CONDITION_VOXEL_DATA_READY];
 }
 
