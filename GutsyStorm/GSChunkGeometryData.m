@@ -196,7 +196,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     const GLfloat side = 2;
     GLfloat page = dirt;
 	
-	GLfloat lighting = thisVoxel->outside ? 1.0 : 0.1;
+	GLfloat lighting = (thisVoxel->sunlight / (float)CHUNK_LIGHTING_MAX) * 0.7 + 0.3;
 	
     // Top Face
     if([voxels getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ].empty) {

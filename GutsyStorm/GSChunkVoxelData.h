@@ -18,6 +18,7 @@ typedef struct
 {
 	BOOL empty;   // YES, if the voxel is never drawn.
 	BOOL outside; // YES, if the voxel is exposed to the sky from directly above.
+	unsigned sunlight; // Lighting for the voxel which is derived from exposure to the sun.
 } voxel_t;
 
 
