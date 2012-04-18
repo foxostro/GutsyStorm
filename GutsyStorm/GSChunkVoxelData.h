@@ -14,9 +14,15 @@
 #define CONDITION_VOXEL_DATA_READY (1)
 
 
+typedef struct
+{
+	BOOL empty;
+} voxel_t;
+
+
 @interface GSChunkVoxelData : GSChunkData
 {
-    BOOL *voxelData;
+    voxel_t *voxelData;
 	NSConditionLock *lockVoxelData;
 }
 
@@ -33,7 +39,7 @@
 - (BOOL)rayHitsChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut;
 
 // Assumes the caller is already holding "lockVoxelData".
-- (BOOL)getVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z;
-- (void)setVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z value:(BOOL)value;
+- (voxel_t)getVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z;
+- (void)setVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z value:(voxel_t)value;
 
 @end

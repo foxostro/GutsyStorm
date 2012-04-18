@@ -175,7 +175,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     minY = minP.y;
     minZ = minP.z;
     
-    if(![voxels getVoxelValueWithX:x-minX y:y-minY z:z-minZ]) {
+    if([voxels getVoxelValueWithX:x-minX y:y-minY z:z-minZ].empty) {
         return;
     }
     
@@ -186,7 +186,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     GLfloat page = dirt;
 	
     // Top Face
-    if(![voxels getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ]) {
+    if([voxels getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ].empty) {
         page = side;
 		
 		addVertex(x-L, y+L, z-L,
@@ -215,7 +215,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     }
 	
     // Bottom Face
-    if(![voxels getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ]) {
+    if([voxels getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ].empty) {
 		addVertex(x-L, y-L, z-L,
 				  0, -1, 0,
 				  1, 0, dirt,
@@ -242,7 +242,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     }
 	
     // Front Face
-    if(![voxels getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1]) {
+    if([voxels getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1].empty) {
 		addVertex(x-L, y-L, z+L,
 				  0, 0, 1,
 				  0, 1, page,
@@ -269,7 +269,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     }
 	
     // Back Face
-    if(![voxels getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1]) {
+    if([voxels getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1].empty) {
 		addVertex(x-L, y-L, z-L,
 				  0, 1, -1,
 				  0, 1, page,
@@ -296,7 +296,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     }
 	
     // Right Face
-	if(![voxels getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ]) {
+	if([voxels getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ].empty) {
 		addVertex(x+L, y-L, z-L,
 				  1, 0, 0,
 				  0, 1, page,
@@ -323,7 +323,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     }
 	
     // Left Face
-    if(![voxels getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ]) {
+    if([voxels getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ].empty) {
 		addVertex(x-L, y-L, z-L,
 				  -1, 0, 0,
 				  0, 1, page,
