@@ -27,19 +27,19 @@ void main (void)
 {
     vec4 texcolor = texture2DArray(tex, gl_TexCoord[0].stp);
 
-    vec4 color = gl_LightSource[0].ambient * texcolor;
+    vec4 color = gl_LightSource[0].ambient * gl_Color * texcolor;
 
     vec3 N = normalize(normal);
     vec3 L0 = normalize(lightDir0);
 
 	float lambertTerm0 = max(0.0, dot(N,L0));
 
-	color += gl_LightSource[0].diffuse * texcolor * lambertTerm0;
+	color += gl_LightSource[0].diffuse * gl_Color * texcolor * lambertTerm0;
 
 	vec3 E = normalize(eyeVec);
 	vec3 R = reflect(-L0, N);
 	float specular = pow(max(dot(R, E), 0.0), gl_FrontMaterial.shininess);
-	color += gl_LightSource[0].specular * texcolor * specular;
+	color += gl_LightSource[0].specular * gl_Color * texcolor * specular;
 
 	vec4 final_color = fog(color, fogColor, gl_FragCoord.z / gl_FragCoord.w, fogDensity);
 	gl_FragColor = gamma(final_color);

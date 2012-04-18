@@ -9,9 +9,9 @@
 #import <Foundation/Foundation.h>
 #import "GSVector3.h"
 
-#define CHUNK_SIZE_X (32)
-#define CHUNK_SIZE_Y (32)
-#define CHUNK_SIZE_Z (32)
+#define CHUNK_SIZE_X (16)
+#define CHUNK_SIZE_Y (256)
+#define CHUNK_SIZE_Z (16)
 
 @interface GSChunkData : NSObject
 {

@@ -216,8 +216,6 @@
 		AC202CC6151E57A000D91067 /* 3D Math */ = {
 			isa = PBXGroup;
 			children = (
-				4AE4E550153B982100FC3047 /* GSVertex.h */,
-				4AE4E551153B982100FC3047 /* GSVertex.m */,
 				AC154883152C04EF00434374 /* GSBoxedVector.h */,
 				AC154884152C04EF00434374 /* GSBoxedVector.m */,
 				4A9EC91E152900BA009C80FF /* GSMatrix4.h */,
@@ -247,6 +245,8 @@
 		AC202CC7151E57BD00D91067 /* OpenGL Wrapper */ = {
 			isa = PBXGroup;
 			children = (
+				4AE4E550153B982100FC3047 /* GSVertex.h */,
+				4AE4E551153B982100FC3047 /* GSVertex.m */,
 				4A99BE291528244800F2ECDC /* GSRenderTexture.h */,
 				4A99BE2A1528244800F2ECDC /* GSRenderTexture.m */,
 				ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */,

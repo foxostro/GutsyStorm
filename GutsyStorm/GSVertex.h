@@ -14,15 +14,18 @@
 	GSBoxedVector *position;
 	GSBoxedVector *normal;
 	GSBoxedVector *texCoord;
+	GSBoxedVector *color;
 }
 
 @property (retain, nonatomic) GSBoxedVector *position;
 @property (retain, nonatomic) GSBoxedVector *normal;
 @property (retain, nonatomic) GSBoxedVector *texCoord;
+@property (retain, nonatomic) GSBoxedVector *color;
 
 - (id)initWithPosition:(GSBoxedVector *)position
 				normal:(GSBoxedVector *)normal
-			  texCoord:(GSBoxedVector *)texCoord;
+			  texCoord:(GSBoxedVector *)texCoord
+				 color:(GSBoxedVector *)color;
 - (BOOL)isEqual:(id)other;
 - (BOOL)isEqualToVertex:(GSVertex *)vector;
 - (NSUInteger)hash;

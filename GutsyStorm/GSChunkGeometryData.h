@@ -15,7 +15,7 @@
 
 @interface GSChunkGeometryData : GSChunkData
 {
-    GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords;
+    GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords, vboChunkColors;
     
     NSConditionLock *lockGeometry;
     GLsizei numIndices;
@@ -23,6 +23,7 @@
     GLfloat *vertsBuffer;
     GLfloat *normsBuffer;
     GLfloat *texCoordsBuffer;
+    GLfloat *colorBuffer;
 	GLushort *indexBuffer;
 	
 @public
