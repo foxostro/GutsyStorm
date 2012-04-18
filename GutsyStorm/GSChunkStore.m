@@ -44,6 +44,19 @@
 
 @synthesize activeRegionExtent;
 
++ (void) initialize
+{
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	
+	if(![defaults objectForKey:@"ActiveRegionExtent"]) {
+		NSDictionary *values = [NSDictionary dictionaryWithObjectsAndKeys:@"256", @"ActiveRegionExtent", nil];
+		[[NSUserDefaults standardUserDefaults] registerDefaults:values];
+	}
+	
+	[[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+
 - (id)initWithSeed:(unsigned)_seed
 			camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader
@@ -69,7 +82,8 @@
 		numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
 		
         // Active region is bounded at y>=0.
-        activeRegionExtent = GSVector3_Make(128, 256, 128);
+		NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
+        activeRegionExtent = GSVector3_Make(w, 256, w);
         assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
         assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
