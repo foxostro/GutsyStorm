@@ -16,6 +16,7 @@
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
+                      GLfloat  r, GLfloat  g, GLfloat  b,
                       NSMutableArray *vertices,
                       NSMutableArray *indices);
 
@@ -48,11 +49,13 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
         vboChunkVerts = 0;
         vboChunkNorms = 0;
         vboChunkTexCoords = 0;
+		vboChunkColors = 0;
         
         lockGeometry = [[NSConditionLock alloc] init];
         vertsBuffer = NULL;
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
+		colorBuffer = NULL;
         indexBuffer = NULL;
         numChunkVerts = 0;
         numIndices = 0;
@@ -113,6 +116,9 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
 		glTexCoordPointer(3, GL_FLOAT, 0, 0);
 		
+		glBindBuffer(GL_ARRAY_BUFFER, vboChunkColors);
+		glColorPointer(3, GL_FLOAT, 0, 0);
+		
 		glDrawElements(GL_QUADS, numIndices, GL_UNSIGNED_SHORT, indexBuffer);
 	}
 	
@@ -150,6 +156,9 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     
     free(texCoordsBuffer);
     texCoordsBuffer = NULL;
+    
+    free(colorBuffer);
+    colorBuffer = NULL;
 	
 	free(indexBuffer);
 	indexBuffer = NULL;
@@ -174,8 +183,10 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     minX = minP.x;
     minY = minP.y;
     minZ = minP.z;
+	
+	voxel_t *thisVoxel = [voxels getPointerToVoxelValueWithX:x-minX y:y-minY z:z-minZ];
     
-    if([voxels getVoxelValueWithX:x-minX y:y-minY z:z-minZ].empty) {
+    if(thisVoxel->empty) {
         return;
     }
     
@@ -185,6 +196,8 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     const GLfloat side = 2;
     GLfloat page = dirt;
 	
+	GLfloat lighting = thisVoxel->outside ? 1.0 : 0.1;
+	
     // Top Face
     if([voxels getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ].empty) {
         page = side;
@@ -192,24 +205,28 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		addVertex(x-L, y+L, z-L,
 				  0, 1, 0,
 				  1, 0, grass,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
         
 		addVertex(x-L, y+L, z+L,
 				  0, 1, 0,
 				  1, 1, grass,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z+L,
 				  0, 1, 0,
 				  0, 1, grass,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
 				  0, 1, 0,
 				  0, 0, grass,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
     }
@@ -219,24 +236,28 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		addVertex(x-L, y-L, z-L,
 				  0, -1, 0,
 				  1, 0, dirt,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z-L,
 				  0, -1, 0,
 				  0, 0, dirt,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z+L,
 				  0, -1, 0,
 				  0, 1, dirt,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y-L, z+L,
 				  0, -1, 0,
 				  1, 1, dirt,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
     }
@@ -246,24 +267,28 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		addVertex(x-L, y-L, z+L,
 				  0, 0, 1,
 				  0, 1, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z+L,
 				  0, 0, 1,
 				  1, 1, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z+L,
 				  0, 0, 1,
 				  1, 0, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z+L,
 				  0, 0, 1,
 				  0, 0, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
     }
@@ -273,24 +298,28 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		addVertex(x-L, y-L, z-L,
 				  0, 1, -1,
 				  0, 1, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z-L,
 				  0, 1, -1,
 				  0, 0, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
 				  0, 1, -1,
 				  1, 0, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z-L,
 				  0, 1, -1,
 				  1, 1, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
     }
@@ -300,24 +329,28 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		addVertex(x+L, y-L, z-L,
 				  1, 0, 0,
 				  0, 1, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
 				  1, 0, 0,
 				  0, 0, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z+L,
 				  1, 0, 0,
 				  1, 0, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z+L,
 				  1, 0, 0,
 				  1, 1, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
     }
@@ -327,24 +360,28 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		addVertex(x-L, y-L, z-L,
 				  -1, 0, 0,
 				  0, 1, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y-L, z+L,
 				  -1, 0, 0,
 				  1, 1, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z+L,
 				  -1, 0, 0,
 				  1, 0, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z-L,
 				  -1, 0, 0,
 				  0, 0, page,
+				  lighting, lighting, lighting,
 				  vertices,
 				  indices);
     }
@@ -389,10 +426,12 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 	vertsBuffer = allocateGeometryBuffer(numChunkVerts);
     normsBuffer = allocateGeometryBuffer(numChunkVerts);
     texCoordsBuffer = allocateGeometryBuffer(numChunkVerts);
+    colorBuffer = allocateGeometryBuffer(numChunkVerts);
 	
 	GLfloat *_vertsBuffer = vertsBuffer;
     GLfloat *_normsBuffer = normsBuffer;
     GLfloat *_texCoordsBuffer = texCoordsBuffer;
+    GLfloat *_colorBuffer = colorBuffer;
 	for(GSVertex *vertex in vertices)
 	{
 		_vertsBuffer[0] = vertex.position.v.x;
@@ -409,6 +448,11 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		_texCoordsBuffer[1] = vertex.texCoord.v.y;
 		_texCoordsBuffer[2] = vertex.texCoord.v.z;
 		_texCoordsBuffer += 3;
+		
+		_colorBuffer[0] = vertex.color.v.x;
+		_colorBuffer[1] = vertex.color.v.y;
+		_colorBuffer[2] = vertex.color.v.z;
+		_colorBuffer += 3;
 	}
 	
 	[vertices release];
@@ -440,8 +484,8 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     [self destroyVBOs];
-    
-    const GLsizeiptr len = 3 * numChunkVerts * sizeof(GLfloat);
+	
+	GLsizei len = 3 * numChunkVerts * sizeof(GLfloat);
     
     glGenBuffers(1, &vboChunkVerts);
     glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
@@ -454,6 +498,10 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     glGenBuffers(1, &vboChunkTexCoords);
     glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
     glBufferData(GL_ARRAY_BUFFER, len, texCoordsBuffer, GL_STATIC_DRAW);
+    
+    glGenBuffers(1, &vboChunkColors);
+    glBindBuffer(GL_ARRAY_BUFFER, vboChunkColors);
+    glBufferData(GL_ARRAY_BUFFER, len, colorBuffer, GL_STATIC_DRAW);
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);
@@ -478,9 +526,14 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
         glDeleteBuffers(1, &vboChunkTexCoords);
     }
     
+    if(vboChunkColors && glIsBuffer(vboChunkColors)) {
+        glDeleteBuffers(1, &vboChunkColors);
+    }
+    
 	vboChunkVerts = 0;
 	vboChunkNorms = 0;
 	vboChunkTexCoords = 0;
+	vboChunkColors = 0;
 }
 
 @end
@@ -489,16 +542,19 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
+                      GLfloat  r, GLfloat  g, GLfloat  b,
                       NSMutableArray *vertices,
                       NSMutableArray *indices)
 {
 	GSBoxedVector *position = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(vx, vy, vz)] autorelease];
 	GSBoxedVector *normal   = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(nx, ny, nz)] autorelease];
 	GSBoxedVector *texCoord = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(tx, ty, tz)] autorelease];
+	GSBoxedVector *color = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(r, g, b)] autorelease];
 	
 	GSVertex *vertex = [[[GSVertex alloc] initWithPosition:position
 													normal:normal
-												  texCoord:texCoord] autorelease];
+												  texCoord:texCoord
+													 color:color] autorelease];
 	
 	[vertices addObject:vertex];
 	[indices addObject:[NSNumber numberWithUnsignedInteger:[vertices count]-1]];
@@ -508,7 +564,7 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 // Allocate a buffer for use in geometry generation.
 static GLfloat * allocateGeometryBuffer(size_t numVerts)
 {
-    GLfloat *buffer = malloc(sizeof(GLfloat) * 3* numVerts);
+    GLfloat *buffer = malloc(sizeof(GLfloat) * 3 * numVerts);
     if(!buffer) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating chunk buffer."];
     }

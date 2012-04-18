@@ -22,6 +22,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
+- (BOOL)areAnyAdjacentVoxelsOutsideAndEmptyWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z;
 
 @end
 
@@ -162,7 +163,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 
 // Assumes the caller is already holding "lockVoxelData".
-- (void)setVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z value:(voxel_t)value
+- (voxel_t *)getPointerToVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z
 {
     assert(x >= -1 && x < CHUNK_SIZE_X+1);
     assert(y >= -1 && y < CHUNK_SIZE_Y+1);
@@ -171,7 +172,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	size_t idx = INDEX(x, y, z);
 	assert(idx >= 0 && idx < ((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2)));
     
-    voxelData[idx] = value;
+    return &voxelData[idx];
 }
 
 
@@ -201,6 +202,43 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
+// Returns YES if any voxel adjacent to the specified voxel is empty and outside.
+- (BOOL)areAnyAdjacentVoxelsOutsideAndEmptyWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z
+{
+	voxel_t *up = [self getPointerToVoxelValueWithX:x y:y+1 z:z];
+	if(up->empty && up->outside) {
+		return YES;
+	}
+	
+	voxel_t *down = [self getPointerToVoxelValueWithX:x y:y-1 z:z];
+	if(down->empty && down->outside) {
+		return YES;
+	}
+	
+	voxel_t *left = [self getPointerToVoxelValueWithX:x-1 y:y z:z];
+	if(left->empty && left->outside) {
+		return YES;
+	}
+	
+	voxel_t *right = [self getPointerToVoxelValueWithX:x+1 y:y z:z];
+	if(right->empty && right->outside) {
+		return YES;
+	}
+	
+	voxel_t *front = [self getPointerToVoxelValueWithX:x y:y z:z-1];
+	if(front->empty && front->outside) {
+		return YES;
+	}
+	
+	voxel_t *back = [self getPointerToVoxelValueWithX:x y:y z:z+1];
+	if(back->empty && back->outside) {
+		return YES;
+	}
+	
+	return NO;
+}
+
+
 /* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is translated so
  * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
  * the chunk is equal to maxP-minP. Ditto for the other major axii.
@@ -223,15 +261,53 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             for(ssize_t z = -1; z < CHUNK_SIZE_Z+1; ++z)
             {
                 GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
-                voxel_t voxel;
-				voxel.empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
-				[self setVoxelValueWithX:x y:y z:z value:voxel];
+				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:y z:z];
+				voxel->empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
+				voxel->outside = NO; // updated later
             }
         }
     }
     
     [noiseSource0 release];
     [noiseSource1 release];
+    
+	// Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
+	// We assume here that the chunk is the height of the world.
+    for(ssize_t x = -1; x < CHUNK_SIZE_X+1; ++x)
+    {
+		for(ssize_t z = -1; z < CHUNK_SIZE_Z+1; ++z)
+		{
+			// Get the y value of the highest non-empty voxel in the chunk.
+			ssize_t heightOfHighestVoxel;
+			for(heightOfHighestVoxel = CHUNK_SIZE_Y; heightOfHighestVoxel >= -1; --heightOfHighestVoxel)
+			{
+				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:heightOfHighestVoxel z:z];
+				
+				if(!voxel->empty) {
+					break;
+				}
+			}
+			
+			for(ssize_t y = -1; y < CHUNK_SIZE_Y+1; ++y)
+			{
+				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:y z:z];
+				voxel->outside = (y >= heightOfHighestVoxel);
+			}
+		}
+    }
+    
+	// Voxels which are directly adjacent to an empty, outside voxel are also considered to be outside.
+    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+    {
+        for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
+        {
+            for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
+            {
+				voxel_t *voxel = [self getPointerToVoxelValueWithX:x y:y z:z];
+				voxel->outside = voxel->outside || [self areAnyAdjacentVoxelsOutsideAndEmptyWithX:x y:y z:z];
+			}
+		}
+    }
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);

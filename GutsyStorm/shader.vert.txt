@@ -12,5 +12,7 @@ void main()
     // Light direction in eye-space
     lightDir0 = -gl_LightSource[0].position.xyz;
 
+	gl_FrontColor = gl_Color;
+
     gl_Position = ftransform();
 }

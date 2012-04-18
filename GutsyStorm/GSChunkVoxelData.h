@@ -16,7 +16,8 @@
 
 typedef struct
 {
-	BOOL empty;
+	BOOL empty;   // YES, if the voxel is never drawn.
+	BOOL outside; // YES, if the voxel is exposed to the sky from directly above.
 } voxel_t;
 
 
@@ -40,6 +41,6 @@ typedef struct
 
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)getVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z;
-- (void)setVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z value:(voxel_t)value;
+- (voxel_t *)getPointerToVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z;
 
 @end

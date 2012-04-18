@@ -13,11 +13,13 @@
 @synthesize position;
 @synthesize normal;
 @synthesize texCoord;
+@synthesize color;
 
 
 - (id)initWithPosition:(GSBoxedVector *)_position
 				normal:(GSBoxedVector *)_normal
 			  texCoord:(GSBoxedVector *)_texCoord
+				 color:(GSBoxedVector *)_color
 {
 	self = [super init];
     if (self) {
@@ -25,6 +27,7 @@
         position = _position;
         normal = _normal;
         texCoord = _texCoord;
+        color = _color;
     }
     
     return self;
@@ -53,7 +56,8 @@
 	
     return [position isEqual:vertex.position] &&
 		   [normal isEqual:vertex.normal] &&
-	       [texCoord isEqual:vertex.texCoord];
+	       [texCoord isEqual:vertex.texCoord] &&
+	       [color isEqual:vertex.color];
 }
 
 
@@ -65,6 +69,7 @@
 	result = prime * result + [position hash];
 	result = prime * result + [normal hash];
 	result = prime * result + [texCoord hash];
+	result = prime * result + [color hash];
 	
 	return result;
 	
@@ -73,8 +78,8 @@
 
 - (NSString *)toString
 {
-	return [NSString stringWithFormat:@"position=%@ ; normal=%@ ; texCoord=%@",
-			[position toString], [normal toString], [texCoord toString]];
+	return [NSString stringWithFormat:@"position=%@ ; normal=%@ ; texCoord=%@ ; color=%@",
+			[position toString], [normal toString], [texCoord toString], [color toString]];
 }
 
 @end
