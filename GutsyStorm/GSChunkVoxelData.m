@@ -75,7 +75,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)saveToFileWithContainingFolder:(NSURL *)folder
 {
-	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(BOOL);
+	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(voxel_t);
 	
 	NSURL *url = [NSURL URLWithString:[GSChunkVoxelData computeChunkFileNameWithMinP:minP]
 						relativeToURL:folder];
@@ -89,7 +89,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 // Returns YES if the chunk data is reachable on the filesystem and loading was successful.
 - (void)loadFromFile:(NSURL *)url
 {
-	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(BOOL);
+	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(voxel_t);
 	
 	[lockVoxelData lock];
     [self allocateVoxelData];
@@ -148,10 +148,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-- (BOOL)getVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z
+- (voxel_t)getVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z
 {
-	BOOL val = NO;
-	
 	assert(x >= -1 && x < CHUNK_SIZE_X+1);
     assert(y >= -1 && y < CHUNK_SIZE_Y+1);
     assert(z >= -1 && z < CHUNK_SIZE_Z+1);
@@ -159,14 +157,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	size_t idx = INDEX(x, y, z);
 	assert(idx >= 0 && idx < ((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2)));
     
-    val = voxelData[idx];
-	
-	return val;
+    return voxelData[idx];
 }
 
 
 // Assumes the caller is already holding "lockVoxelData".
-- (void)setVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z value:(BOOL)value
+- (void)setVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z value:(voxel_t)value
 {
     assert(x >= -1 && x < CHUNK_SIZE_X+1);
     assert(y >= -1 && y < CHUNK_SIZE_Y+1);
@@ -190,7 +186,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
 	[self destroyVoxelData];
     
-    voxelData = calloc((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2), sizeof(BOOL));
+    voxelData = calloc((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2), sizeof(voxel_t));
     if(!voxelData) {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for chunk's voxelData"];
     }
@@ -227,8 +223,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             for(ssize_t z = -1; z < CHUNK_SIZE_Z+1; ++z)
             {
                 GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
-                BOOL g = isGround(terrainHeight, noiseSource0, noiseSource1, p);
-				[self setVoxelValueWithX:x y:y z:z value:g];
+                voxel_t voxel;
+				voxel.empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
+				[self setVoxelValueWithX:x y:y z:z value:voxel];
             }
         }
     }
