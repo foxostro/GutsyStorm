@@ -1,6 +1,8 @@
 #version 110
 #extension GL_EXT_texture_array : enable
 
+const vec4 fogColor = vec4(0.7, 0.7, 0.7, 1.0);
+const float fogDensity = 0.002;
 const float gamma = 2.2; // XXX: make this a uniform passed from the app
 
 uniform sampler2DArray tex;
@@ -13,23 +15,32 @@ vec4 gamma(vec4 color)
 }
 
 
+vec4 fog(vec4 color, vec4 fcolor, float depth, float density)
+{
+	const float e = 2.71828182845904523536028747135266249;
+	float f = pow(e, -pow(depth*density, 2.0));
+	return mix(fcolor, color, f);
+}
+
+
 void main (void)
 {
     vec4 texcolor = texture2DArray(tex, gl_TexCoord[0].stp);
 
-    vec4 final_color = gl_LightSource[0].ambient * texcolor;
+    vec4 color = gl_LightSource[0].ambient * texcolor;
 
     vec3 N = normalize(normal);
     vec3 L0 = normalize(lightDir0);
 
 	float lambertTerm0 = max(0.0, dot(N,L0));
 
-	final_color += gl_LightSource[0].diffuse * texcolor * lambertTerm0;
+	color += gl_LightSource[0].diffuse * texcolor * lambertTerm0;
 
 	vec3 E = normalize(eyeVec);
 	vec3 R = reflect(-L0, N);
 	float specular = pow(max(dot(R, E), 0.0), gl_FrontMaterial.shininess);
-	final_color += gl_LightSource[0].specular * texcolor * specular;
+	color += gl_LightSource[0].specular * texcolor * specular;
 
-    gl_FragColor = gamma(final_color);
+	vec4 final_color = fog(color, fogColor, gl_FragCoord.z / gl_FragCoord.w, fogDensity);
+	gl_FragColor = gamma(final_color);
 }
