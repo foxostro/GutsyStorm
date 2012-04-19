@@ -62,7 +62,7 @@
 // Set the default camera and reset camera properties.
 - (void)resetCamera
 {	
-    ceilingHeight = 256.0;
+    ceilingHeight = 128;
 	cameraSpeed = 10.0;
 	cameraRotSpeed = 1.0;
 	cameraEye = GSVector3_Make(0.0f, 0.0f, 0.0f);

@@ -10,6 +10,7 @@
 #import "GSVector3.h"
 #import "GSRay.h"
 #import "GSChunkVoxelData.h"
+#import "GSChunkVoxelLightingData.h"
 #import "GSChunkGeometryData.h"
 #import "GSCamera.h"
 #import "GSShader.h"
@@ -19,6 +20,7 @@
 @interface GSChunkStore : NSObject
 {
     NSCache *cacheVoxelData;
+    NSCache *cacheVoxelLightingData;
     NSCache *cacheGeometryData;
 	
     float terrainHeight;
@@ -31,8 +33,6 @@
 	
 	size_t maxActiveChunks;
     GSChunkGeometryData **activeChunks;
-    
-	NSMutableArray *feelerRays;
 	
 	// Limit the number of times chunk VBOs can be generated per frame.
 	int numVBOGenerationsAllowedPerFrame;
@@ -49,8 +49,5 @@
 
 - (void)updateWithDeltaTime:(float)dt
 		cameraModifiedFlags:(unsigned)cameraModifiedFlags;
-
-- (GSChunkVoxelData *)rayCastToFindChunk:(GSRay)ray
-				 intersectionDistanceOut:(float *)intersectionDistanceOut;
 
 @end

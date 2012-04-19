@@ -11,7 +11,10 @@
 #import <OpenGL/OpenGL.h>
 #import "GSChunkData.h"
 
-@class GSChunkVoxelData; // forward delcaration
+
+@class GSChunkVoxelData;
+@class GSChunkVoxelLightingData;
+
 
 @interface GSChunkGeometryData : GSChunkData
 {
@@ -28,11 +31,13 @@
 	
 @public
     GSVector3 corners[8];
-	BOOL visible;
+	BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
 }
 
+
 - (id)initWithMinP:(GSVector3)_minP
-		 voxelData:(GSChunkVoxelData *)voxels;
+		 voxelData:(GSChunkVoxelData *)voxels
+	  lightingData:(GSChunkVoxelLightingData *)lightingData;
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 
 @end

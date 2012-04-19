@@ -8,17 +8,13 @@
 
 #import <Foundation/Foundation.h>
 #import "GSChunkData.h"
-#import "GSRay.h"
-
-
-#define CONDITION_VOXEL_DATA_READY (1)
+#import "GSIntegerVector3.h"
 
 
 typedef struct
 {
 	BOOL empty;   // YES, if the voxel is never drawn.
 	BOOL outside; // YES, if the voxel is exposed to the sky from directly above.
-	unsigned sunlight; // Lighting for the voxel which is derived from exposure to the sun.
 } voxel_t;
 
 
@@ -36,12 +32,10 @@ typedef struct
               minP:(GSVector3)minP
      terrainHeight:(float)terrainHeight
 			folder:(NSURL *)folder;
-- (void)saveToFileWithContainingFolder:(NSURL *)folder;
-- (void)loadFromFile:(NSURL *)url;
-- (BOOL)rayHitsChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut;
 
 // Assumes the caller is already holding "lockVoxelData".
-- (voxel_t)getVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z;
-- (voxel_t *)getPointerToVoxelValueWithX:(ssize_t)x y:(ssize_t)y z:(ssize_t)z;
+- (void)saveToFileWithContainingFolder:(NSURL *)folder;
+- (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
+- (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
 @end

@@ -18,24 +18,21 @@
 @interface GSChunkStore (Private)
 
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
-- (void)drawFeelerRays;
 - (void)deallocChunksWithArray:(GSChunkData **)array len:(size_t)len;
-
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (GSVector3)computeChunkCenterForPoint:(GSVector3)p;
 - (NSString *)getChunkIDWithMinP:(GSVector3)minP;
-
 - (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
 - (void)computeChunkVisibility;
 - (void)computeActiveChunks:(BOOL)sorted;
 - (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
-
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
+- (void)getNeighborsForChunkAtPoint:(GSVector3)p outNeighbors:(GSChunkVoxelData **)neighbors;
 
 - (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p;
-- (GSChunkVoxelData *)getChunkVoxelsWithChunkID:(NSString *)chunkID
-										   minP:(GSVector3)minP;
+- (GSChunkVoxelLightingData *)getChunkLightingAtPoint:(GSVector3)p;
+- (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p;
 
 @end
 
@@ -76,14 +73,12 @@
         terrainShader = _terrainShader;
         [terrainShader retain];
 		
-		feelerRays = [[NSMutableArray alloc] init];
-		
 		numVBOGenerationsAllowedPerFrame = 16;
 		numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
 		
         // Active region is bounded at y>=0.
 		NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
-        activeRegionExtent = GSVector3_Make(w, 256, w);
+        activeRegionExtent = GSVector3_Make(w, 128, w);
         assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
         assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
@@ -94,12 +89,14 @@
         
         activeChunks = calloc(maxActiveChunks, sizeof(GSChunkGeometryData *));
 		
-		// Chunk data itself is stored in a collection of NSCaches.
-        cacheVoxelData = [[NSCache alloc] init];
-        [cacheVoxelData setCountLimit:2*maxActiveChunks];
-		
         cacheGeometryData = [[NSCache alloc] init];
         [cacheGeometryData setCountLimit:10*maxActiveChunks];
+		
+        cacheVoxelLightingData = [[NSCache alloc] init];
+        [cacheVoxelLightingData setCountLimit:10*maxActiveChunks];
+		
+		cacheVoxelData = [[NSCache alloc] init];
+        [cacheVoxelData setCountLimit:2*maxActiveChunks];
 		
         // Do a full refresh.
 		[self computeActiveChunks:YES];
@@ -116,7 +113,6 @@
     [cacheGeometryData release];
     [camera release];
 	[folder release];
-	[feelerRays release];
     [terrainShader release];
        
     [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
@@ -136,9 +132,9 @@
     {
         GSChunkGeometryData *chunk = activeChunks[i];
         assert(chunk);
-        
-        if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
-			numVBOGenerationsRemaining--;
+		
+		if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
+			//numVBOGenerationsRemaining--;
 		}
     }
     
@@ -157,12 +153,6 @@
 	[self recalculateActiveChunksWithCameraModifiedFlags:flags];
 }
 
-
-- (GSChunkVoxelData *)rayCastToFindChunk:(GSRay)ray intersectionDistanceOut:(float *)intersectionDistanceOut
-{
-	assert(!"unimplemented");
-}
-
 @end
 
 
@@ -179,9 +169,12 @@
     
     geometry = [cacheGeometryData objectForKey:chunkID];
     if(!geometry) {
+		GSChunkVoxelData *voxels = [self getChunkVoxelsAtPoint:p];
+		GSChunkVoxelLightingData *lighting = [self getChunkLightingAtPoint:p];
+		
         geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
-													voxelData:[self getChunkVoxelsWithChunkID:chunkID 
-																						 minP:minP]] autorelease];
+													voxelData:voxels
+												 lightingData:lighting] autorelease];
 		
         [cacheGeometryData setObject:geometry forKey:chunkID];
     }
@@ -190,12 +183,51 @@
 }
 
 
-- (GSChunkVoxelData *)getChunkVoxelsWithChunkID:(NSString *)chunkID
-										   minP:(GSVector3)minP
+- (void)getNeighborsForChunkAtPoint:(GSVector3)p outNeighbors:(GSChunkVoxelData **)neighbors;
 {
-    GSChunkVoxelData *voxels = nil;
+	neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(+CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z))];
+	neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(+CHUNK_SIZE_X, 0, 0))];
+	neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(+CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z))];
+	neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z))];
+	neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(-CHUNK_SIZE_X, 0, 0))];
+	neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(-CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z))];
+	neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(0, 0, -CHUNK_SIZE_Z))];
+	neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(0, 0, +CHUNK_SIZE_Z))];
+	neighbors[CHUNK_NEIGHBOR_CENTER] = [self getChunkVoxelsAtPoint:p];
+}
+
+
+- (GSChunkVoxelLightingData *)getChunkLightingAtPoint:(GSVector3)p
+{
+    GSVector3 minP = [self computeChunkMinPForPoint:p];
+    NSString *chunkID = [self getChunkIDWithMinP:minP];
     
-    voxels = [cacheVoxelData objectForKey:chunkID];
+    assert(p.y >= 0); // world does not extend below y=0
+    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    
+    GSChunkVoxelLightingData *lighting = [cacheVoxelLightingData objectForKey:chunkID];
+    if(!lighting) {
+		GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
+		[self getNeighborsForChunkAtPoint:p outNeighbors:chunks];
+		
+        lighting = [[[GSChunkVoxelLightingData alloc] initWithChunkAndNeighbors:chunks] autorelease];
+		
+        [cacheVoxelLightingData setObject:lighting forKey:chunkID];
+    }
+    
+    return lighting;
+}
+
+
+- (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p
+{
+    GSVector3 minP = [self computeChunkMinPForPoint:p];
+    NSString *chunkID = [self getChunkIDWithMinP:minP];
+    
+    assert(p.y >= 0); // world does not extend below y=0
+    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    
+    GSChunkVoxelData *voxels = [cacheVoxelData objectForKey:chunkID];
     if(!voxels) {
         voxels = [[[GSChunkVoxelData alloc] initWithSeed:seed
 													minP:minP
@@ -434,26 +466,6 @@
 	if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
         [self computeChunkVisibility];
 	}
-}
-
-
-- (void)drawFeelerRays
-{
-	glDisable(GL_LIGHTING);
-	glDisable(GL_TEXTURE_2D);
-	glBegin(GL_LINES);
-	
-	for(GSBoxedRay *r in feelerRays)
-    {
-		glVertex3f(r.ray.origin.x, r.ray.origin.y, r.ray.origin.z);
-		glVertex3f(r.ray.origin.x + r.ray.direction.x,
-				   r.ray.origin.y + r.ray.direction.y,
-				   r.ray.origin.z + r.ray.direction.z);
-    }
-	
-	glEnd();
-	glEnable(GL_LIGHTING);
-	glEnable(GL_TEXTURE_2D);
 }
 
 @end
