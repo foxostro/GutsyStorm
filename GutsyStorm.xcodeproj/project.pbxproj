@@ -11,6 +11,7 @@
 		4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */; };
 		4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */; };
 		4A2310C7153E112900A4EBE6 /* GSChunkData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C6153E112900A4EBE6 /* GSChunkData.m */; };
+		4A2883E1154007AC00E5B055 /* GSChunkVoxelLightingData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2883E0154007AC00E5B055 /* GSChunkVoxelLightingData.m */; };
 		4A2CCFF71513C3FC006C6551 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A2CCFF61513C3FC006C6551 /* Cocoa.framework */; };
 		4A2CD0011513C3FC006C6551 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CCFFF1513C3FC006C6551 /* InfoPlist.strings */; };
 		4A2CD0031513C3FC006C6551 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CD0021513C3FC006C6551 /* main.m */; };
@@ -46,12 +47,15 @@
 /* Begin PBXFileReference section */
 		4A1B698D1516B882008934F6 /* GSQuaternion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSQuaternion.h; sourceTree = "<group>"; };
 		4A1B698F1516B889008934F6 /* GSQuaternion.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSQuaternion.c; sourceTree = "<group>"; };
+		4A1F6E51153F6F6100D194AE /* GSIntegerVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSIntegerVector3.h; sourceTree = "<group>"; };
 		4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkVoxelData.h; sourceTree = "<group>"; };
 		4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkVoxelData.m; sourceTree = "<group>"; };
 		4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkGeometryData.h; sourceTree = "<group>"; };
 		4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkGeometryData.m; sourceTree = "<group>"; };
 		4A2310C5153E112900A4EBE6 /* GSChunkData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkData.h; sourceTree = "<group>"; };
 		4A2310C6153E112900A4EBE6 /* GSChunkData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkData.m; sourceTree = "<group>"; };
+		4A2883DF154007AC00E5B055 /* GSChunkVoxelLightingData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkVoxelLightingData.h; sourceTree = "<group>"; };
+		4A2883E0154007AC00E5B055 /* GSChunkVoxelLightingData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkVoxelLightingData.m; sourceTree = "<group>"; };
 		4A2CCFF21513C3FC006C6551 /* GutsyStorm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GutsyStorm.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A2CCFF61513C3FC006C6551 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		4A2CCFF91513C3FC006C6551 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -131,6 +135,8 @@
 				AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */,
 				4A2310C5153E112900A4EBE6 /* GSChunkData.h */,
 				4A2310C6153E112900A4EBE6 /* GSChunkData.m */,
+				4A2883DF154007AC00E5B055 /* GSChunkVoxelLightingData.h */,
+				4A2883E0154007AC00E5B055 /* GSChunkVoxelLightingData.m */,
 				4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */,
 				4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */,
 				4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */,
@@ -238,6 +244,7 @@
 				4A4E20761516B086008745E0 /* GSVector3.c */,
 				ACCCD974152A9DD700757B3F /* GSVector2.h */,
 				ACCCD976152A9DE400757B3F /* GSVector2.c */,
+				4A1F6E51153F6F6100D194AE /* GSIntegerVector3.h */,
 			);
 			name = "3D Math";
 			sourceTree = "<group>";
@@ -361,6 +368,7 @@
 				4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */,
 				4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */,
 				4A2310C7153E112900A4EBE6 /* GSChunkData.m in Sources */,
+				4A2883E1154007AC00E5B055 /* GSChunkVoxelLightingData.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -7,10 +7,9 @@
 //
 
 #import "GSChunkGeometryData.h"
+#import "GSChunkVoxelLightingData.h"
 #import "GSChunkVoxelData.h"
 #import "GSVertex.h"
-
-#define CONDITION_GEOMETRY_READY (1)
 
 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
@@ -25,14 +24,16 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
 @interface GSChunkGeometryData (Private)
 
-- (void)generateGeometryWithVoxelData:(GSChunkVoxelData *)voxels;
 - (BOOL)tryToGenerateVBOs;
 - (void)destroyVBOs;
 - (void)destroyGeometry;
+- (void)generateGeometryWithVoxelData:(GSChunkVoxelData *)voxels
+						 lightingData:(GSChunkVoxelLightingData *)lightingData;
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
 										vertices:(NSMutableArray *)vertices
 										 indices:(NSMutableArray *)indices
-									   voxelData:(GSChunkVoxelData *)voxels;
+									   voxelData:(GSChunkVoxelData *)voxels
+									lightingData:(GSChunkVoxelLightingData *)lightingData;
 
 @end
 
@@ -41,8 +42,12 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
 
 - (id)initWithMinP:(GSVector3)_minP
-		voxelData:(GSChunkVoxelData *)voxels
+		 voxelData:(GSChunkVoxelData *)voxels
+	  lightingData:(GSChunkVoxelLightingData *)lightingData
 {
+	assert(voxels);
+	assert(lightingData);
+	
     self = [super initWithMinP:_minP];
     if (self) {
         // Initialization code here.
@@ -52,6 +57,8 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		vboChunkColors = 0;
         
         lockGeometry = [[NSConditionLock alloc] init];
+		[lockGeometry setName:@"GSChunkGeometryData.lockGeometry"];
+		
         vertsBuffer = NULL;
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
@@ -71,14 +78,11 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
         corners[7] = GSVector3_Add(minP, GSVector3_Make(0,            CHUNK_SIZE_Y, 0));
 		
 		visible = NO;
-        
+		
 		dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        
-        // Fire off asynchronous task to generate chunk geometry from voxel data. (depends on voxelData)
-        // When this finishes, the condition in lockGeometry will be set to CONDITION_GEOMETRY_READY.
-        dispatch_async(queue, ^{
-            [self generateGeometryWithVoxelData:voxels];
-        });
+		dispatch_async(queue, ^{
+			[self generateGeometryWithVoxelData:voxels lightingData:lightingData];
+		});
     }
     
     return self;
@@ -97,7 +101,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     // If VBOs have not been generated yet then attempt to do so now.
     // OpenGL has no support for concurrency so we can't do this asynchronously.
     // (Unless we use a global lock on OpenGL, but that sounds too complicated to deal with across the entire application.)
-    if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords) {
+    if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords || !vboChunkColors) {
         // If VBOs cannot be generated yet then bail out.
         if(allowVBOGeneration && ![self tryToGenerateVBOs]) {
             return NO;
@@ -106,7 +110,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		}
     }
     
-	if(vboChunkVerts && vboChunkNorms && vboChunkTexCoords) {
+	if(vboChunkVerts && vboChunkNorms && vboChunkTexCoords && vboChunkColors && (numIndices>0) && indexBuffer) {
 		glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
 		glVertexPointer(3, GL_FLOAT, 0, 0);
 		
@@ -133,7 +137,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 	
     [lockGeometry lock];
     [self destroyGeometry];
-    [lockGeometry unlock];
+    [lockGeometry unlockWithCondition:!READY];
     [lockGeometry release];
     
 	[super dealloc];
@@ -144,264 +148,26 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
 @implementation GSChunkGeometryData (Private)
 
-
-// Assumes the caller is already holding "lockGeometry".
-- (void)destroyGeometry
-{
-    free(vertsBuffer);
-    vertsBuffer = NULL;
-    
-    free(normsBuffer);
-    normsBuffer = NULL;
-    
-    free(texCoordsBuffer);
-    texCoordsBuffer = NULL;
-    
-    free(colorBuffer);
-    colorBuffer = NULL;
-	
-	free(indexBuffer);
-	indexBuffer = NULL;
-    
-	numChunkVerts = 0;
-    numIndices = 0;
-}
-
-
-// Assumes the caller is already holding "lockVoxelData" and "lockGeometry".
-- (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-										vertices:(NSMutableArray *)vertices
-										 indices:(NSMutableArray *)indices
-									   voxelData:(GSChunkVoxelData *)voxels;
-{
-    GLfloat x, y, z, minX, minY, minZ;
-    
-    x = pos.x;
-    y = pos.y;
-    z = pos.z;
-    
-    minX = minP.x;
-    minY = minP.y;
-    minZ = minP.z;
-	
-	voxel_t *thisVoxel = [voxels getPointerToVoxelValueWithX:x-minX y:y-minY z:z-minZ];
-    
-    if(thisVoxel->empty) {
-        return;
-    }
-    
-    const GLfloat L = 0.5f; // half the length of a block along one side
-    const GLfloat grass = 0;
-    const GLfloat dirt = 1;
-    const GLfloat side = 2;
-    GLfloat page = dirt;
-	
-	GLfloat lighting = (thisVoxel->sunlight / (float)CHUNK_LIGHTING_MAX) * 0.7 + 0.3;
-	
-    // Top Face
-    if([voxels getVoxelValueWithX:x-minX y:y-minY+1 z:z-minZ].empty) {
-        page = side;
-		
-		addVertex(x-L, y+L, z-L,
-				  0, 1, 0,
-				  1, 0, grass,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-        
-		addVertex(x-L, y+L, z+L,
-				  0, 1, 0,
-				  1, 1, grass,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y+L, z+L,
-				  0, 1, 0,
-				  0, 1, grass,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y+L, z-L,
-				  0, 1, 0,
-				  0, 0, grass,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-    }
-	
-    // Bottom Face
-    if([voxels getVoxelValueWithX:x-minX y:y-minY-1 z:z-minZ].empty) {
-		addVertex(x-L, y-L, z-L,
-				  0, -1, 0,
-				  1, 0, dirt,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y-L, z-L,
-				  0, -1, 0,
-				  0, 0, dirt,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y-L, z+L,
-				  0, -1, 0,
-				  0, 1, dirt,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y-L, z+L,
-				  0, -1, 0,
-				  1, 1, dirt,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-    }
-	
-    // Front Face
-    if([voxels getVoxelValueWithX:x-minX y:y-minY z:z-minZ+1].empty) {
-		addVertex(x-L, y-L, z+L,
-				  0, 0, 1,
-				  0, 1, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y-L, z+L,
-				  0, 0, 1,
-				  1, 1, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y+L, z+L,
-				  0, 0, 1,
-				  1, 0, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y+L, z+L,
-				  0, 0, 1,
-				  0, 0, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-    }
-	
-    // Back Face
-    if([voxels getVoxelValueWithX:x-minX y:y-minY z:z-minZ-1].empty) {
-		addVertex(x-L, y-L, z-L,
-				  0, 1, -1,
-				  0, 1, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y+L, z-L,
-				  0, 1, -1,
-				  0, 0, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y+L, z-L,
-				  0, 1, -1,
-				  1, 0, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y-L, z-L,
-				  0, 1, -1,
-				  1, 1, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-    }
-	
-    // Right Face
-	if([voxels getVoxelValueWithX:x-minX+1 y:y-minY z:z-minZ].empty) {
-		addVertex(x+L, y-L, z-L,
-				  1, 0, 0,
-				  0, 1, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y+L, z-L,
-				  1, 0, 0,
-				  0, 0, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y+L, z+L,
-				  1, 0, 0,
-				  1, 0, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x+L, y-L, z+L,
-				  1, 0, 0,
-				  1, 1, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-    }
-	
-    // Left Face
-    if([voxels getVoxelValueWithX:x-minX-1 y:y-minY z:z-minZ].empty) {
-		addVertex(x-L, y-L, z-L,
-				  -1, 0, 0,
-				  0, 1, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y-L, z+L,
-				  -1, 0, 0,
-				  1, 1, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y+L, z+L,
-				  -1, 0, 0,
-				  1, 0, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-		
-		addVertex(x-L, y+L, z-L,
-				  -1, 0, 0,
-				  0, 0, page,
-				  lighting, lighting, lighting,
-				  vertices,
-				  indices);
-    }
-}
-
-
-// Generates verts, norms, and texCoords buffers from voxelData
+// Generates verts, norms, and texCoords buffers from voxel data.
 - (void)generateGeometryWithVoxelData:(GSChunkVoxelData *)voxels
+						 lightingData:(GSChunkVoxelLightingData *)lightingData
 {
-    GSVector3 pos;
+    assert(voxels);
+	assert(lightingData);
+	
+	GSVector3 pos;
 	
 	[lockGeometry lock];
-    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+	
+	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 	
     [self destroyGeometry];
     
     // Iterate over all voxels in the chunk and generate geometry.
 	NSMutableArray *vertices = [[NSMutableArray alloc] init];
 	NSMutableArray *indices = [[NSMutableArray alloc] init];
-    [voxels.lockVoxelData lockWhenCondition:CONDITION_VOXEL_DATA_READY];
+    [lightingData.lockLightingData lockWhenCondition:READY];
+    [voxels.lockVoxelData lockWhenCondition:READY];
     for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
     {
         for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
@@ -411,12 +177,14 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
                 [self generateGeometryForSingleBlockAtPosition:pos
 													  vertices:vertices
 													   indices:indices
-													 voxelData:voxels];
+													 voxelData:voxels
+												  lightingData:lightingData];
 				
             }
         }
     }
-	[voxels.lockVoxelData unlock];
+	[voxels.lockVoxelData unlockWithCondition:READY];
+	[lightingData.lockLightingData unlockWithCondition:READY];
     
     numChunkVerts = (GLsizei)[vertices count];
     numIndices = (GLsizei)[indices count];
@@ -472,13 +240,262 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 	
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk geometry. It took %.3fs, including time to wait for voxels.", timeEnd - timeStart);
-    [lockGeometry unlockWithCondition:CONDITION_GEOMETRY_READY];
+	[lockGeometry unlockWithCondition:READY];
+}
+
+
+// Assumes the caller is already holding "lockGeometry".
+- (void)destroyGeometry
+{
+    free(vertsBuffer);
+    vertsBuffer = NULL;
+    
+    free(normsBuffer);
+    normsBuffer = NULL;
+    
+    free(texCoordsBuffer);
+    texCoordsBuffer = NULL;
+    
+    free(colorBuffer);
+    colorBuffer = NULL;
+	
+	free(indexBuffer);
+	indexBuffer = NULL;
+    
+	numChunkVerts = 0;
+    numIndices = 0;
+}
+
+
+// Assumes the caller is already holding "lockVoxelData". "lockGeometry", and "lockLightingData".
+- (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
+										vertices:(NSMutableArray *)vertices
+										 indices:(NSMutableArray *)indices
+									   voxelData:(GSChunkVoxelData *)voxels
+									lightingData:(GSChunkVoxelLightingData *)lightingData
+{
+	assert(vertices);
+	assert(indices);
+	assert(voxels);
+	assert(lightingData);
+	
+	const GLfloat L = 0.5f; // half the length of a block along one side
+    const GLfloat grass = 0;
+    const GLfloat dirt = 1;
+    const GLfloat side = 2;
+    GLfloat page = dirt;
+	
+    GLfloat x = pos.x;
+    GLfloat y = pos.y;
+    GLfloat z = pos.z;
+    
+    GLfloat minX = minP.x;
+    GLfloat minY = minP.y;
+	GLfloat minZ = minP.z;
+	
+	GSIntegerVector3 chunkLocalPos = {x-minX, y-minY, z-minZ};
+	
+	voxel_t *thisVoxel = [voxels getPointerToVoxelAtPoint:chunkLocalPos];
+    
+    if(thisVoxel->empty) {
+        return;
+    }
+    
+    GLfloat lighting = ([lightingData getSunlightAtPoint:chunkLocalPos] / (float)CHUNK_LIGHTING_MAX) * 0.7 + 0.3;
+	
+    // Top Face
+    if([voxels getVoxelAtPoint:GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ)].empty) {
+        page = side;
+		
+		addVertex(x-L, y+L, z-L,
+				  0, 1, 0,
+				  1, 0, grass,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+        
+		addVertex(x-L, y+L, z+L,
+				  0, 1, 0,
+				  1, 1, grass,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z+L,
+				  0, 1, 0,
+				  0, 1, grass,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z-L,
+				  0, 1, 0,
+				  0, 0, grass,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+    }
+	
+    // Bottom Face
+    if([voxels getVoxelAtPoint:GSIntegerVector3_Make(x-minX, y-minY-1, z-minZ)].empty) {
+		addVertex(x-L, y-L, z-L,
+				  0, -1, 0,
+				  1, 0, dirt,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z-L,
+				  0, -1, 0,
+				  0, 0, dirt,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z+L,
+				  0, -1, 0,
+				  0, 1, dirt,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y-L, z+L,
+				  0, -1, 0,
+				  1, 1, dirt,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+    }
+	
+    // Front Face
+    if([voxels getVoxelAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ+1)].empty) {
+		addVertex(x-L, y-L, z+L,
+				  0, 0, 1,
+				  0, 1, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z+L,
+				  0, 0, 1,
+				  1, 1, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z+L,
+				  0, 0, 1,
+				  1, 0, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y+L, z+L,
+				  0, 0, 1,
+				  0, 0, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+    }
+	
+    // Back Face
+    if([voxels getVoxelAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ-1)].empty) {
+		addVertex(x-L, y-L, z-L,
+				  0, 1, -1,
+				  0, 1, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y+L, z-L,
+				  0, 1, -1,
+				  0, 0, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z-L,
+				  0, 1, -1,
+				  1, 0, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z-L,
+				  0, 1, -1,
+				  1, 1, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+    }
+	
+    // Right Face
+	if([voxels getVoxelAtPoint:GSIntegerVector3_Make(x-minX+1, y-minY, z-minZ)].empty) {
+		addVertex(x+L, y-L, z-L,
+				  1, 0, 0,
+				  0, 1, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z-L,
+				  1, 0, 0,
+				  0, 0, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y+L, z+L,
+				  1, 0, 0,
+				  1, 0, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x+L, y-L, z+L,
+				  1, 0, 0,
+				  1, 1, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+    }
+	
+    // Left Face
+    if([voxels getVoxelAtPoint:GSIntegerVector3_Make(x-minX-1, y-minY, z-minZ)].empty) {
+		addVertex(x-L, y-L, z-L,
+				  -1, 0, 0,
+				  0, 1, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y-L, z+L,
+				  -1, 0, 0,
+				  1, 1, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y+L, z+L,
+				  -1, 0, 0,
+				  1, 0, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+		
+		addVertex(x-L, y+L, z-L,
+				  -1, 0, 0,
+				  0, 0, page,
+				  lighting, lighting, lighting,
+				  vertices,
+				  indices);
+    }
 }
 
 
 - (BOOL)tryToGenerateVBOs
 {
-    if(![lockGeometry tryLockWhenCondition:CONDITION_GEOMETRY_READY]) {
+    if(![lockGeometry tryLockWhenCondition:READY]) {
         return NO;
     }
     
@@ -505,7 +522,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);
-    [lockGeometry unlock];
+    [lockGeometry unlockWithCondition:READY];
     
     return YES;
 }
