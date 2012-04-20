@@ -33,10 +33,6 @@
 	
 	size_t maxActiveChunks;
     GSChunkGeometryData **activeChunks;
-	
-	// Limit the number of times chunk VBOs can be generated per frame.
-	int numVBOGenerationsAllowedPerFrame;
-	int numVBOGenerationsRemaining;
 }
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;
