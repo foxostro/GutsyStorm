@@ -41,7 +41,7 @@
 
 @synthesize activeRegionExtent;
 
-+ (void) initialize
++ (void)initialize
 {
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	
@@ -209,8 +209,8 @@
     if(!lighting) {
 		GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
 		[self getNeighborsForChunkAtPoint:p outNeighbors:chunks];
-		
-        lighting = [[[GSChunkVoxelLightingData alloc] initWithChunkAndNeighbors:chunks] autorelease];
+
+        lighting = [[[GSChunkVoxelLightingData alloc] initWithChunkAndNeighbors:chunks folder:folder] autorelease];
 		
         [cacheVoxelLightingData setObject:lighting forKey:chunkID];
     }

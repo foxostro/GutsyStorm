@@ -166,8 +166,8 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
     // Iterate over all voxels in the chunk and generate geometry.
 	NSMutableArray *vertices = [[NSMutableArray alloc] init];
 	NSMutableArray *indices = [[NSMutableArray alloc] init];
-    [lightingData.lockLightingData lockWhenCondition:READY];
-    [voxels.lockVoxelData lockWhenCondition:READY];
+    [lightingData->lockLightingData lockWhenCondition:READY];
+    [voxels->lockVoxelData lockWhenCondition:READY];
     for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
     {
         for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
@@ -183,8 +183,8 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
             }
         }
     }
-	[voxels.lockVoxelData unlockWithCondition:READY];
-	[lightingData.lockLightingData unlockWithCondition:READY];
+	[voxels->lockVoxelData unlockWithCondition:READY];
+	[lightingData->lockLightingData unlockWithCondition:READY];
     
     numChunkVerts = (GLsizei)[vertices count];
     numIndices = (GLsizei)[indices count];
@@ -301,7 +301,8 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
         return;
     }
     
-    GLfloat lighting = ([lightingData getSunlightAtPoint:chunkLocalPos] / (float)CHUNK_LIGHTING_MAX) * 0.7 + 0.3;
+	int sunlight = [lightingData getSunlightAtPoint:chunkLocalPos assumeBlocksOutsideChunkAreDark:YES];
+    GLfloat lighting = (MAX(0, sunlight) / (float)CHUNK_LIGHTING_MAX) * 0.7 + 0.3;
 	
     // Top Face
     if([voxels getVoxelAtPoint:GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ)].empty) {

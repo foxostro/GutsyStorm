@@ -22,21 +22,25 @@
 #define CHUNK_NEIGHBOR_CENTER       (8)
 #define CHUNK_NUM_NEIGHBORS         (9)
 
+#define CHUNK_LIGHTING_MAX (3)
+
 
 @class GSChunkVoxelData;
 
 
 @interface GSChunkVoxelLightingData : GSChunkData
 {
-    unsigned *sunlight;
+ @public
+	int *sunlight;
 	NSConditionLock *lockLightingData;
 }
 
-@property (readonly, nonatomic) NSConditionLock *lockLightingData;
++ (NSString *)fileNameFromMinP:(GSVector3)minP;
 
-- (id)initWithChunkAndNeighbors:(GSChunkVoxelData **)chunks;
+- (id)initWithChunkAndNeighbors:(GSChunkVoxelData **)chunks
+						 folder:(NSURL *)folder;
 
 // Assumes the caller is already holding "lockLightingData".
-- (unsigned)getSunlightAtPoint:(GSIntegerVector3)chunkLocalP;
+- (int)getSunlightAtPoint:(GSIntegerVector3)p assumeBlocksOutsideChunkAreDark:(BOOL)assumeBlocksOutsideChunkAreDark;
 
 @end
