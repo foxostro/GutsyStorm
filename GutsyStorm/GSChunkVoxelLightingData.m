@@ -298,7 +298,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	}
 	[doingNeighborhoodLock unlock];
 	
-	CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 	
 	// Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
 	// Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
@@ -325,8 +325,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		[chunks[i]->lockVoxelData unlockWithCondition:READY];
 	}
 	
-	CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-	NSLog(@"Finished calculating sunlight for chunk. It took %.3fs", timeEnd - timeStart);
+	//CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+	//NSLog(@"Finished calculating sunlight for chunk. It took %.3fs", timeEnd - timeStart);
 }
 
 
