@@ -11,7 +11,6 @@
 #import "GSNoise.h"
 
 
-#define SQR(a) ((a)*(a))
 #define INDEX(x,y,z) ((size_t)(((x+1)*(CHUNK_SIZE_Y+2)*(CHUNK_SIZE_Z+2)) + ((y+1)*(CHUNK_SIZE_Z+2)) + (z+1)))
 
 
@@ -23,6 +22,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
+- (void)saveToFileWithContainingFolder:(NSURL *)folder;
 - (void)loadFromFile:(NSURL *)url;
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (BOOL)areAnyAdjacentVoxelsOutsideAndEmptyAtPoint:(GSIntegerVector3)p;
@@ -33,12 +33,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 @implementation GSChunkVoxelData
 
-@synthesize lockVoxelData;
-
-
-+ (NSString *)computeChunkFileNameWithMinP:(GSVector3)minP
++ (NSString *)fileNameFromMinP:(GSVector3)minP
 {
-	return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.chunk", minP.x, minP.y, minP.z];
+	return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
 }
 
 
@@ -64,7 +61,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         dispatch_async(queue, ^{
 			[lockVoxelData lock];
 			
-			NSURL *url = [NSURL URLWithString:[GSChunkVoxelData computeChunkFileNameWithMinP:minP]
+			NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameFromMinP:minP]
 								relativeToURL:folder];
 			
 			[self allocateVoxelData];
@@ -83,18 +80,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
     
     return self;
-}
-
-
-// Assumes the caller is already holding "lockVoxelData".
-- (void)saveToFileWithContainingFolder:(NSURL *)folder
-{
-	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(voxel_t);
-	
-	NSURL *url = [NSURL URLWithString:[GSChunkVoxelData computeChunkFileNameWithMinP:minP]
-						relativeToURL:folder];
-	
-	[[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
 }
 
 
@@ -160,6 +145,18 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     free(voxelData);
     voxelData = NULL;
+}
+
+
+// Assumes the caller is already holding "lockVoxelData".
+- (void)saveToFileWithContainingFolder:(NSURL *)folder
+{
+	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(voxel_t);
+	
+	NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameFromMinP:minP]
+						relativeToURL:folder];
+	
+	[[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
 }
 
 

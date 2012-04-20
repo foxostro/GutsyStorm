@@ -20,13 +20,12 @@ typedef struct
 
 @interface GSChunkVoxelData : GSChunkData
 {
+ @public
     voxel_t *voxelData;
 	NSConditionLock *lockVoxelData;
 }
 
-@property (readonly, nonatomic) NSConditionLock *lockVoxelData;
-
-+ (NSString *)computeChunkFileNameWithMinP:(GSVector3)minP;
++ (NSString *)fileNameFromMinP:(GSVector3)minP;
 
 - (id)initWithSeed:(unsigned)seed
               minP:(GSVector3)minP
@@ -34,7 +33,6 @@ typedef struct
 			folder:(NSURL *)folder;
 
 // Assumes the caller is already holding "lockVoxelData".
-- (void)saveToFileWithContainingFolder:(NSURL *)folder;
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
