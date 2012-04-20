@@ -132,7 +132,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     GLfloat materialAmbient[] = {1.0, 1.0, 1.0, 1.0};
     GLfloat materialDiffuse[] = {1.0, 1.0, 1.0, 1.0};
     GLfloat materialSpecular[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat materialShininess = 20.0;
+    GLfloat materialShininess = 5.0;
     
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, materialAmbient);
     glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, materialDiffuse);
