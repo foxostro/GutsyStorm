@@ -29,7 +29,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)recalcOutsideVoxelsNoLock;
 
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel neighbors:(GSChunkVoxelData **)neighbors;
-- (void)generateLightingWithNeighbors:(GSChunkVoxelData **)chunks;
+- (void)generateSunlightWithNeighbors:(GSChunkVoxelData **)chunks;
+
+- (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks;
 
 @end
 
@@ -108,14 +110,22 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         lockVoxelData = [[NSConditionLock alloc] init];
 		[lockVoxelData setName:@"GSChunkVoxelData.lockVoxelData"];
 		
-		lockLightingData = [[NSConditionLock alloc] init];
-		[lockLightingData setName:@"GSChunkVoxelData.lockLightingData"];
+		lockSunlight = [[NSConditionLock alloc] init];
+		[lockSunlight setName:@"GSChunkVoxelData.lockSunlight"];
+		
+		lockAmbientOcclusion = [[NSConditionLock alloc] init];
+		[lockAmbientOcclusion setName:@"GSChunkVoxelData.lockAmbientOcclusion"];
 		
         voxelData = NULL;
 		
 		sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int));
 		if(!sunlight) {
 			[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
+		}
+		
+		ambientOcclusion = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(ambient_occlusion_t));
+		if(!ambientOcclusion) {
+			[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for ambientOcclusion array."];
 		}
 		
 		dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
@@ -154,11 +164,17 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     [lockVoxelData unlock];
     [lockVoxelData release];
 	
-    [lockLightingData lock];
+    [lockSunlight lock];
     free(sunlight);
 	sunlight = NULL;
-    [lockLightingData unlock];
-    [lockLightingData release];
+    [lockSunlight unlock];
+    [lockSunlight release];
+	
+    [lockAmbientOcclusion lock];
+    free(ambientOcclusion);
+	ambientOcclusion = NULL;
+    [lockAmbientOcclusion unlock];
+    [lockAmbientOcclusion release];
     
 	[super dealloc];
 }
@@ -214,7 +230,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	// Fire off asynchronous task to generate chunk sunlight values.
 	dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	dispatch_async(queue, ^{
-		[self generateLightingWithNeighbors:chunks];
+		[self generateSunlightWithNeighbors:chunks];
+		[self generateAmbientOcclusionWithNeighbors:chunks];
 		
 		// No longer need references to the neighboring chunks.
 		for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
@@ -226,7 +243,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-// Assumes the caller is already holding "lockLightingData".
+// Assumes the caller is already holding "lockSunlight".
 - (int)getSunlightAtPoint:(GSIntegerVector3)p
 {
 	assert(sunlight);
@@ -236,6 +253,19 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
     
     return sunlight[idx];
+}
+
+
+// Assumes the caller is already holding "lockAmbientOcclusion".
+- (ambient_occlusion_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p
+{
+	assert(ambientOcclusion);
+	assert(p.x >= 0 && p.x < CHUNK_SIZE_X && p.y >= 0 && p.y < CHUNK_SIZE_Y && p.z >= 0 && p.z < CHUNK_SIZE_Z);
+	
+	size_t idx = INDEX(p.x, p.y, p.z);
+	assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
+    
+    return ambientOcclusion[idx];	
 }
 
 @end
@@ -421,11 +451,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 
 // Generates sunlight values for all blocks in the chunk.
-- (void)generateLightingWithNeighbors:(GSChunkVoxelData **)chunks
+- (void)generateSunlightWithNeighbors:(GSChunkVoxelData **)chunks
 {
 	GSIntegerVector3 p = {0};
 	
-	[lockLightingData lock];
+	[lockSunlight lock];
 	
 	// Atomically, grab all the chunks relevant to lighting.
 	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
@@ -487,10 +517,78 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		[chunks[i]->lockVoxelData unlockWithCondition:READY];
 	}
 	
-	[lockLightingData unlockWithCondition:READY];
+	[lockSunlight unlockWithCondition:READY];
 	
 	//CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
 	//NSLog(@"Finished calculating sunlight for chunk. It took %.3fs", timeEnd - timeStart);
+}
+
+
+// Generates ambient occlusion values for all blocks in the chunk.
+- (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks
+{
+	GSIntegerVector3 p = {0};
+	
+	[lockAmbientOcclusion lock];
+	
+	// Atomically, grab all the chunks relevant to lighting.
+	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
+	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	{
+		[chunks[i]->lockVoxelData lockWhenCondition:READY];
+	}
+	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
+	
+	// Count the empty neighbors of each vertex in the block.
+	for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
+	{
+		for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+		{
+			for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+			{
+				for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
+				{
+					size_t idx = INDEX(p.x, p.y, p.z);
+					assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
+					
+					/* TODO: Actually count the neighbors here...
+					 */
+					
+					// front, top, right
+					ambientOcclusion[idx].ftr = 1.0;
+					
+					// front, top, left
+					ambientOcclusion[idx].ftl = 1.0;
+					
+					// front, bottom, right
+					ambientOcclusion[idx].fbr = 1.0;
+					
+					// front, bottom, left
+					ambientOcclusion[idx].fbl = 1.0;
+					
+					// back, top, right
+					ambientOcclusion[idx].btr = 1.0;
+					
+					// back, top, left
+					ambientOcclusion[idx].btl = 1.0;
+					
+					// back, bottom, right
+					ambientOcclusion[idx].bbl = 1.0;
+					
+					// back, bottom, left
+					ambientOcclusion[idx].bbr = 1.0;
+				}
+			}
+		}
+	}
+	
+	// Give up locks on the neighboring chunks.
+	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	{
+		[chunks[i]->lockVoxelData unlockWithCondition:READY];
+	}
+	
+	[lockAmbientOcclusion unlockWithCondition:READY];
 }
 
 @end
