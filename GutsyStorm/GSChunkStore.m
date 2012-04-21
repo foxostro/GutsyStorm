@@ -31,7 +31,6 @@
 - (void)getNeighborsForChunkAtPoint:(GSVector3)p outNeighbors:(GSChunkVoxelData **)neighbors;
 
 - (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p;
-- (GSChunkVoxelLightingData *)getChunkLightingAtPoint:(GSVector3)p;
 - (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p;
 
 @end
@@ -181,11 +180,10 @@
 		GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
 		[self getNeighborsForChunkAtPoint:p outNeighbors:chunks];
 		
-		GSChunkVoxelLightingData *lighting = [self getChunkLightingAtPoint:p];
+		// Now that neighboring chunks are actually available, spin off a task to asynchronously update lighting in the chunk.
+		[chunks[CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:chunks];
 		
-        geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
-													voxelData:chunks
-												 lightingData:lighting] autorelease];
+        geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP voxelData:chunks] autorelease];
 		
         [cacheGeometryData setObject:geometry forKey:chunkID];
     }
@@ -205,28 +203,6 @@
 	neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(0, 0, -CHUNK_SIZE_Z))];
 	neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(0, 0, +CHUNK_SIZE_Z))];
 	neighbors[CHUNK_NEIGHBOR_CENTER] = [self getChunkVoxelsAtPoint:p];
-}
-
-
-- (GSChunkVoxelLightingData *)getChunkLightingAtPoint:(GSVector3)p
-{
-    GSVector3 minP = [self computeChunkMinPForPoint:p];
-    NSString *chunkID = [self getChunkIDWithMinP:minP];
-    
-    assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
-    
-    GSChunkVoxelLightingData *lighting = [cacheVoxelLightingData objectForKey:chunkID];
-    if(!lighting) {
-		GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
-		[self getNeighborsForChunkAtPoint:p outNeighbors:chunks];
-
-        lighting = [[[GSChunkVoxelLightingData alloc] initWithChunkAndNeighbors:chunks folder:folder] autorelease];
-		
-        [cacheVoxelLightingData setObject:lighting forKey:chunkID];
-    }
-    
-    return lighting;
 }
 
 

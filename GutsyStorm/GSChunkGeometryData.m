@@ -7,7 +7,6 @@
 //
 
 #import "GSChunkGeometryData.h"
-#import "GSChunkVoxelLightingData.h"
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"
 #import "GSVertex.h"
@@ -29,13 +28,11 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 - (void)destroyVBOs;
 - (void)destroyGeometry;
 - (BOOL)isEmptyAtPoint:(GSIntegerVector3)chunkLocalPos neighbors:(GSChunkVoxelData **)neighbors;
-- (void)generateGeometryWithVoxelData:(GSChunkVoxelData **)voxels
-						 lightingData:(GSChunkVoxelLightingData *)lightingData;
+- (void)generateGeometryWithVoxelData:(GSChunkVoxelData **)voxels;
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
 										vertices:(NSMutableArray *)vertices
 										 indices:(NSMutableArray *)indices
-									   voxelData:(GSChunkVoxelData **)voxels
-									lightingData:(GSChunkVoxelLightingData *)lightingData;
+									   voxelData:(GSChunkVoxelData **)voxels;
 
 @end
 
@@ -45,7 +42,6 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
 - (id)initWithMinP:(GSVector3)_minP
 		 voxelData:(GSChunkVoxelData **)_chunks
-	  lightingData:(GSChunkVoxelLightingData *)lightingData
 {
 	assert(_chunks);
 	assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
@@ -57,7 +53,6 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 	assert(_chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
 	assert(_chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
 	assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
-	assert(lightingData);
 	
     self = [super initWithMinP:_minP];
     if (self) {
@@ -104,7 +99,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		
 		dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		dispatch_async(queue, ^{
-			[self generateGeometryWithVoxelData:chunks lightingData:lightingData];
+			[self generateGeometryWithVoxelData:chunks];
 			
 			// No longer need references to the neighboring chunks.
 			for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
@@ -180,9 +175,7 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
 // Generates verts, norms, and texCoords buffers from voxel data.
 - (void)generateGeometryWithVoxelData:(GSChunkVoxelData **)chunks
-						 lightingData:(GSChunkVoxelLightingData *)lightingData
 {
-    assert(lightingData);
 	assert(chunks);
 	assert(chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
 	assert(chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
@@ -198,14 +191,12 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 	
 	[lockGeometry lock];
 	
-	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-	
     [self destroyGeometry];
     
     NSMutableArray *vertices = [[NSMutableArray alloc] init];
 	NSMutableArray *indices = [[NSMutableArray alloc] init];
 	
-    [lightingData->lockLightingData lockWhenCondition:READY];
+    [chunks[CHUNK_NEIGHBOR_CENTER]->lockLightingData lockWhenCondition:READY];
 	
 	// Atomically, grab all the voxel data we need to generate geometry for this chunk.
 	// We do this atomically to prevent deadlock.
@@ -215,6 +206,8 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 		[chunks[i]->lockVoxelData lockWhenCondition:READY];
 	}
 	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
+	
+	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 	
     // Iterate over all voxels in the chunk and generate geometry.
 	for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
@@ -226,19 +219,19 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
                 [self generateGeometryForSingleBlockAtPosition:pos
 													  vertices:vertices
 													   indices:indices
-													 voxelData:chunks
-												  lightingData:lightingData];
+													 voxelData:chunks];
 				
             }
         }
     }
 	
-	// Give up locks on the neighboring chunks.
+	// Give up locks on the neighboring chunks' voxel data.
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
 		[chunks[i]->lockVoxelData unlockWithCondition:READY];
 	}
-	[lightingData->lockLightingData unlockWithCondition:READY];
+	
+	[chunks[CHUNK_NEIGHBOR_CENTER]->lockLightingData unlockWithCondition:READY];
     
     numChunkVerts = (GLsizei)[vertices count];
     numIndices = (GLsizei)[indices count];
@@ -344,7 +337,6 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 										vertices:(NSMutableArray *)vertices
 										 indices:(NSMutableArray *)indices
 									   voxelData:(GSChunkVoxelData **)chunks
-									lightingData:(GSChunkVoxelLightingData *)lightingData
 {
 	assert(vertices);
 	assert(indices);
@@ -358,7 +350,6 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
 	assert(chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
 	assert(chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
 	assert(chunks[CHUNK_NEIGHBOR_CENTER]);
-	assert(lightingData);
 	
 	const GLfloat L = 0.5f; // half the length of a block along one side
     const GLfloat grass = 0;
@@ -384,8 +375,8 @@ static GLfloat * allocateGeometryBuffer(size_t numVerts);
         return;
     }
     
-	int sunlight = [lightingData getSunlightAtPoint:chunkLocalPos assumeBlocksOutsideChunkAreDark:YES];
-    GLfloat lighting = (MAX(0, sunlight) / (float)CHUNK_LIGHTING_MAX) * 0.7 + 0.3;
+	int sunlight = [chunks[CHUNK_NEIGHBOR_CENTER] getSunlightAtPoint:chunkLocalPos];
+    GLfloat lighting = (MAX(0, sunlight) / (float)CHUNK_LIGHTING_MAX) * 0.8 + 0.2;
 	
     // Top Face
     if([self isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ) neighbors:chunks]) {
