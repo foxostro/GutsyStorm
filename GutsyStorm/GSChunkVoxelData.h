@@ -32,14 +32,31 @@ typedef struct
 } voxel_t;
 
 
+typedef struct
+{
+	// Each block has eigh vertices, this is the ambient occlusion factors for each one.
+	float ftr;
+	float ftl;
+	float fbr;
+	float fbl;
+	float btr;
+	float btl;
+	float bbr;
+	float bbl;
+} ambient_occlusion_t;
+
+
 @interface GSChunkVoxelData : GSChunkData
 {
  @public
     NSConditionLock *lockVoxelData;
 	voxel_t *voxelData;
 	
-	NSConditionLock *lockLightingData;
+	NSConditionLock *lockSunlight;
 	int *sunlight;
+	
+	NSConditionLock *lockAmbientOcclusion;
+	ambient_occlusion_t *ambientOcclusion;
 }
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
@@ -59,7 +76,10 @@ typedef struct
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
-// Assumes the caller is already holding "lockLightingData".
+// Assumes the caller is already holding "lockSunlight".
 - (int)getSunlightAtPoint:(GSIntegerVector3)p;
+
+// Assumes the caller is already holding "lockAmbientOcclusion".
+- (ambient_occlusion_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p;
 
 @end
