@@ -36,7 +36,7 @@
 
 
 - (id)initWithMinP:(GSVector3)_minP
-		 voxelData:(GSChunkVoxelData *)voxels
+		 voxelData:(GSChunkVoxelData **)voxels
 	  lightingData:(GSChunkVoxelLightingData *)lightingData;
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 
