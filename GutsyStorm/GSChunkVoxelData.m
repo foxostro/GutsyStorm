@@ -11,6 +11,7 @@
 #import "GSNoise.h"
 
 
+#define SQR(a) ((a)*(a))
 #define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
 
 
@@ -22,17 +23,20 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
-- (void)saveToFileWithContainingFolder:(NSURL *)folder;
-- (void)loadFromFile:(NSURL *)url;
+- (void)saveVoxelDataToFileWithContainingFolder:(NSURL *)folder;
+- (void)loadVoxelDataFromFile:(NSURL *)url;
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (void)recalcOutsideVoxelsNoLock;
+
+- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel neighbors:(GSChunkVoxelData **)neighbors;
+- (void)generateLightingWithNeighbors:(GSChunkVoxelData **)chunks;
 
 @end
 
 
 @implementation GSChunkVoxelData
 
-+ (NSString *)fileNameFromMinP:(GSVector3)minP
++ (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
 	return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
 }
@@ -104,7 +108,15 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         lockVoxelData = [[NSConditionLock alloc] init];
 		[lockVoxelData setName:@"GSChunkVoxelData.lockVoxelData"];
 		
+		lockLightingData = [[NSConditionLock alloc] init];
+		[lockLightingData setName:@"GSChunkVoxelData.lockLightingData"];
+		
         voxelData = NULL;
+		
+		sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int));
+		if(!sunlight) {
+			[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
+		}
 		
 		dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		
@@ -113,18 +125,18 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         dispatch_async(queue, ^{
 			[lockVoxelData lock];
 			
-			NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameFromMinP:minP]
+			NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
 								relativeToURL:folder];
 			
 			[self allocateVoxelData];
 			
 			if([url checkResourceIsReachableAndReturnError:NULL]) {
 				// Load chunk from disk.
-				[self loadFromFile:url];
+				[self loadVoxelDataFromFile:url];
 			} else {
 				// Generate chunk from scratch.
 				[self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
-				[self saveToFileWithContainingFolder:folder];
+				[self saveVoxelDataToFileWithContainingFolder:folder];
 			}
 			
 			[lockVoxelData unlockWithCondition:READY];
@@ -141,6 +153,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     [self destroyVoxelData];
     [lockVoxelData unlock];
     [lockVoxelData release];
+	
+    [lockLightingData lock];
+    free(sunlight);
+	sunlight = NULL;
+    [lockLightingData unlock];
+    [lockLightingData release];
     
 	[super dealloc];
 }
@@ -165,6 +183,59 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
     
     return &voxelData[idx];
+}
+
+
+- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)_chunks
+{
+	assert(_chunks);
+	assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
+	
+	// chunks array is freed by th asynchronous task to fetch/load the lighting data
+	GSChunkVoxelData **chunks = calloc(CHUNK_NUM_NEIGHBORS, sizeof(GSChunkVoxelData *));
+	if(!chunks) {
+		[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for temporary chunks array."];
+	}
+	
+	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	{
+		chunks[i] = _chunks[i];
+		[chunks[i] retain];
+	}
+	
+	// Fire off asynchronous task to generate chunk sunlight values.
+	dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	dispatch_async(queue, ^{
+		[self generateLightingWithNeighbors:chunks];
+		
+		// No longer need references to the neighboring chunks.
+		for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+		{
+			[chunks[i] release];
+		}
+		free(chunks);
+	});
+}
+
+
+// Assumes the caller is already holding "lockLightingData".
+- (int)getSunlightAtPoint:(GSIntegerVector3)p
+{
+	assert(sunlight);
+	assert(p.x >= 0 && p.x < CHUNK_SIZE_X && p.y >= 0 && p.y < CHUNK_SIZE_Y && p.z >= 0 && p.z < CHUNK_SIZE_Z);
+	
+	size_t idx = INDEX(p.x, p.y, p.z);
+	assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
+    
+    return sunlight[idx];
 }
 
 @end
@@ -194,11 +265,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 
 // Assumes the caller is already holding "lockVoxelData".
-- (void)saveToFileWithContainingFolder:(NSURL *)folder
+- (void)saveVoxelDataToFileWithContainingFolder:(NSURL *)folder
 {
 	const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
 	
-	NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameFromMinP:minP]
+	NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
 						relativeToURL:folder];
 	
 	[[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
@@ -277,7 +348,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 /* Returns YES if the chunk data is reachable on the filesystem and loading was successful.
  * Assumes the caller already holds "lockVoxelData".
  */
-- (void)loadFromFile:(NSURL *)url
+- (void)loadVoxelDataFromFile:(NSURL *)url
 {
 	const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
 	
@@ -289,6 +360,137 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	}
 	[data getBytes:voxelData length:len];
 	[data release];
+}
+
+
+// Assumes the caller is already holding "lockVoxelData".
+// Returns YES if any of the adjacent blocks is an empty block lit to the specified light level.
+// That is, light affects all cells, but only propagates through empty cells.
+- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p
+						 lightLevel:(int)lightLevel
+						  neighbors:(GSChunkVoxelData **)neighbors
+{
+	if(p.y+1 >= CHUNK_SIZE_Y) {
+		return YES;
+	} else {
+		GSIntegerVector3 up    = GSIntegerVector3_Make(p.x, p.y+1, p.z);
+		GSIntegerVector3 adjustedUp = {0};
+		GSChunkVoxelData *chunkUp = [GSChunkVoxelData getNeighborVoxelAtPoint:up
+																	neighbors:neighbors
+													   outRelativeToNeighborP:&adjustedUp];
+		
+		if([chunkUp getVoxelAtPoint:adjustedUp].empty && [chunkUp getSunlightAtPoint:adjustedUp] == lightLevel) {
+			return YES;
+		}
+	}
+	
+	if(p.y-1 >= 0) {
+		GSIntegerVector3 down  = GSIntegerVector3_Make(p.x, p.y-1, p.z);
+		GSIntegerVector3 adjustedDown = {0};
+		GSChunkVoxelData *chunkDown = [GSChunkVoxelData getNeighborVoxelAtPoint:down
+																	  neighbors:neighbors
+														 outRelativeToNeighborP:&adjustedDown];
+		
+		if([chunkDown getVoxelAtPoint:adjustedDown].empty && [chunkDown getSunlightAtPoint:adjustedDown] == lightLevel) {
+			return YES;
+		}
+	}
+	
+	GSIntegerVector3 dir[4] = {
+		GSIntegerVector3_Make(p.x-1, p.y, p.z),
+		GSIntegerVector3_Make(p.x+1, p.y, p.z),
+		GSIntegerVector3_Make(p.x, p.y, p.z-1),
+		GSIntegerVector3_Make(p.x, p.y, p.z+1)
+	};
+	
+	for(size_t i = 0; i < 4; ++i)
+	{
+		GSIntegerVector3 adjustedDir = {0};
+		GSChunkVoxelData *adjustedChunk = [GSChunkVoxelData getNeighborVoxelAtPoint:dir[i]
+																		  neighbors:neighbors
+															 outRelativeToNeighborP:&adjustedDir];
+		
+		if([adjustedChunk getVoxelAtPoint:adjustedDir].empty &&
+		   [adjustedChunk getSunlightAtPoint:adjustedDir] == lightLevel) {
+			return YES;
+		}
+	}
+	
+	return NO;
+}
+
+
+// Generates sunlight values for all blocks in the chunk.
+- (void)generateLightingWithNeighbors:(GSChunkVoxelData **)chunks
+{
+	GSIntegerVector3 p = {0};
+	
+	[lockLightingData lock];
+	
+	// Atomically, grab all the chunks relevant to lighting.
+	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
+	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	{
+		[chunks[i]->lockVoxelData lockWhenCondition:READY];
+	}
+	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
+	
+	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+	
+	// Reset all empty, outside blocks to full sunlight.
+	for(int i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	{
+		for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+		{
+			for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+			{
+				for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
+				{
+					size_t idx = INDEX(p.x, p.y, p.z);
+					assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));	
+					
+					if(chunks[i]->voxelData[idx].outside) {
+						chunks[i]->sunlight[idx] = CHUNK_LIGHTING_MAX;
+					}
+				}
+			}
+		}
+	}
+	
+	// Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
+	// Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
+	// Set the blocks we find to the next lower light level.
+	for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
+	{
+		for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+		{
+			for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+			{
+				for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
+				{
+					size_t idx = INDEX(p.x, p.y, p.z);
+					assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));	
+					
+					if((sunlight[idx] < lightLevel) && [self isAdjacentToSunlightAtPoint:p
+																			  lightLevel:lightLevel
+																			   neighbors:chunks]) {
+						sunlight[idx] = MAX(sunlight[idx], lightLevel - 1);
+					}
+				}
+			}
+		}
+	}
+	
+	// Give up locks on the neighboring chunks.
+	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	{
+		[chunks[i]->lockVoxelData unlockWithCondition:READY];
+	}
+	
+	[lockLightingData unlockWithCondition:READY];
+	
+	//CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+	//NSLog(@"Finished calculating sunlight for chunk. It took %.3fs", timeEnd - timeStart);
 }
 
 @end

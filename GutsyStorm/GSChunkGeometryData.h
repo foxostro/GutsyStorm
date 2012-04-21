@@ -13,7 +13,6 @@
 
 
 @class GSChunkVoxelData;
-@class GSChunkVoxelLightingData;
 
 
 @interface GSChunkGeometryData : GSChunkData
@@ -36,8 +35,8 @@
 
 
 - (id)initWithMinP:(GSVector3)_minP
-		 voxelData:(GSChunkVoxelData **)voxels
-	  lightingData:(GSChunkVoxelLightingData *)lightingData;
+		 voxelData:(GSChunkVoxelData **)voxels;
+
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 
 @end

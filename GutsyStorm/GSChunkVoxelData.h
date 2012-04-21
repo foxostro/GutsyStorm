@@ -11,6 +11,20 @@
 #import "GSIntegerVector3.h"
 
 
+#define CHUNK_NEIGHBOR_POS_X_NEG_Z  (0)
+#define CHUNK_NEIGHBOR_POS_X_ZER_Z  (1)
+#define CHUNK_NEIGHBOR_POS_X_POS_Z  (2)
+#define CHUNK_NEIGHBOR_NEG_X_NEG_Z  (3)
+#define CHUNK_NEIGHBOR_NEG_X_ZER_Z  (4)
+#define CHUNK_NEIGHBOR_NEG_X_POS_Z  (5)
+#define CHUNK_NEIGHBOR_ZER_X_NEG_Z  (6)
+#define CHUNK_NEIGHBOR_ZER_X_POS_Z  (7)
+#define CHUNK_NEIGHBOR_CENTER       (8)
+#define CHUNK_NUM_NEIGHBORS         (9)
+
+#define CHUNK_LIGHTING_MAX (7)
+
+
 typedef struct
 {
 	BOOL empty;   // YES, if the voxel is never drawn.
@@ -21,11 +35,14 @@ typedef struct
 @interface GSChunkVoxelData : GSChunkData
 {
  @public
-    voxel_t *voxelData;
-	NSConditionLock *lockVoxelData;
+    NSConditionLock *lockVoxelData;
+	voxel_t *voxelData;
+	
+	NSConditionLock *lockLightingData;
+	int *sunlight;
 }
 
-+ (NSString *)fileNameFromMinP:(GSVector3)minP;
++ (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
 
 + (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3)chunkLocalP
 									neighbors:(GSChunkVoxelData **)neighbors
@@ -36,8 +53,13 @@ typedef struct
      terrainHeight:(float)terrainHeight
 			folder:(NSURL *)folder;
 
+- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)neighbors;
+
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
+
+// Assumes the caller is already holding "lockLightingData".
+- (int)getSunlightAtPoint:(GSIntegerVector3)p;
 
 @end
