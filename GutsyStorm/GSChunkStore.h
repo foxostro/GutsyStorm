@@ -37,6 +37,8 @@
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;
 
++ (NSLock *)lockWhileLockingMultipleChunks;
+
 - (id)initWithSeed:(unsigned)_seed
 			camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader;

@@ -54,6 +54,19 @@
 }
 
 
++ (NSLock *)lockWhileLockingMultipleChunks
+{
+	static dispatch_once_t onceToken;
+	static NSLock *doingNeighborhoodLock = nil;
+	
+	dispatch_once(&onceToken, ^{
+		doingNeighborhoodLock = [[NSLock alloc] init];
+	});
+	
+	return doingNeighborhoodLock;
+}
+
+
 - (id)initWithSeed:(unsigned)_seed
 			camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader
@@ -165,11 +178,13 @@
     
     geometry = [cacheGeometryData objectForKey:chunkID];
     if(!geometry) {
-		GSChunkVoxelData *voxels = [self getChunkVoxelsAtPoint:p];
+		GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
+		[self getNeighborsForChunkAtPoint:p outNeighbors:chunks];
+		
 		GSChunkVoxelLightingData *lighting = [self getChunkLightingAtPoint:p];
 		
         geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
-													voxelData:voxels
+													voxelData:chunks
 												 lightingData:lighting] autorelease];
 		
         [cacheGeometryData setObject:geometry forKey:chunkID];

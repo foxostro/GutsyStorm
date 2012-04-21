@@ -27,6 +27,10 @@ typedef struct
 
 + (NSString *)fileNameFromMinP:(GSVector3)minP;
 
++ (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3)chunkLocalP
+									neighbors:(GSChunkVoxelData **)neighbors
+					   outRelativeToNeighborP:(GSIntegerVector3 *)outRelativeToNeighborP;
+
 - (id)initWithSeed:(unsigned)seed
               minP:(GSVector3)minP
      terrainHeight:(float)terrainHeight

@@ -24,9 +24,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 @interface GSChunkVoxelLightingData (Private)
 
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel;
-- (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3)chunkLocalP
-									neighbors:(GSChunkVoxelData **)neighbors
-					   outRelativeToNeighborP:(GSIntegerVector3 *)outRelativeToNeighborP;
 - (BOOL)isSunlitAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)neighbors;
 - (float)getDistToSunlightAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)neighbors;
 - (void)generateLightingWithNeighbors:(GSChunkVoxelData **)chunks;
@@ -180,56 +177,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	return NO;
 }
 
-/* Given a position relative to this voxel, and a list of neighboring chunks, return the chunk that contains the specified position.
- * also returns the position in the local coordinate system of that chunk.
- * The position must be contained in this chunk or any of the specified neighbors.
- */
-- (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3)chunkLocalP
-									neighbors:(GSChunkVoxelData **)neighbors
-					   outRelativeToNeighborP:(GSIntegerVector3 *)outRelativeToNeighborP
-{
-	assert(neighbors);
-	assert(outRelativeToNeighborP);
-	
-	(*outRelativeToNeighborP) = chunkLocalP;
-	
-	if(chunkLocalP.x >= CHUNK_SIZE_X) {
-		outRelativeToNeighborP->x -= CHUNK_SIZE_X;
-		
-		if(chunkLocalP.z < 0) {
-			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z];
-		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z];
-		} else {
-			return neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z];
-		}
-	} else if(chunkLocalP.x < 0) {
-		outRelativeToNeighborP->x += CHUNK_SIZE_X;
-		
-		if(chunkLocalP.z < 0) {
-			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z];
-		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z];
-		} else {
-			return neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z];
-		}
-	} else {
-		if(chunkLocalP.z < 0) {
-			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z];
-		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z];
-		} else {
-			return neighbors[CHUNK_NEIGHBOR_CENTER];
-		}
-	}
-}
-
 
 /* Returns YES if the block at the given position is directly sunlit (is outside).
  * Assumes the caller is already holding locks on all neighboring chunks.
@@ -239,9 +186,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	GSIntegerVector3 adjustedChunkLocalPos = {0};
 	BOOL isSunlit = NO;
 	
-	GSChunkVoxelData *chunk = [self getNeighborVoxelAtPoint:p
-												  neighbors:neighbors
-									 outRelativeToNeighborP:&adjustedChunkLocalPos];
+	GSChunkVoxelData *chunk = [GSChunkVoxelData getNeighborVoxelAtPoint:p
+															  neighbors:neighbors
+												 outRelativeToNeighborP:&adjustedChunkLocalPos];
 	
 	isSunlit = [chunk getPointerToVoxelAtPoint:adjustedChunkLocalPos]->outside;
 	
@@ -283,20 +230,13 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 // Generates sunlight values for all blocks in the chunk.
 - (void)generateLightingWithNeighbors:(GSChunkVoxelData **)chunks
 {
-	static dispatch_once_t onceToken;
-	static NSLock *doingNeighborhoodLock = nil;
-	
-	dispatch_once(&onceToken, ^{
-		doingNeighborhoodLock = [[NSLock alloc] init];
-	});
-	
 	// Atomically, grab all the chunks relevant to lighting.
-	[doingNeighborhoodLock lock];
+	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
 		[chunks[i]->lockVoxelData lockWhenCondition:READY];
 	}
-	[doingNeighborhoodLock unlock];
+	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
 	
 	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 	

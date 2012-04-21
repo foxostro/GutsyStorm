@@ -11,7 +11,7 @@
 #import "GSNoise.h"
 
 
-#define INDEX(x,y,z) ((size_t)(((x+1)*(CHUNK_SIZE_Y+2)*(CHUNK_SIZE_Z+2)) + ((y+1)*(CHUNK_SIZE_Z+2)) + (z+1)))
+#define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
 
 
 static float groundGradient(float terrainHeight, GSVector3 p);
@@ -25,7 +25,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)saveToFileWithContainingFolder:(NSURL *)folder;
 - (void)loadFromFile:(NSURL *)url;
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
-- (BOOL)areAnyAdjacentVoxelsOutsideAndEmptyAtPoint:(GSIntegerVector3)p;
 - (void)recalcOutsideVoxelsNoLock;
 
 @end
@@ -36,6 +35,59 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 + (NSString *)fileNameFromMinP:(GSVector3)minP
 {
 	return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
+}
+
+
+/* Given a position relative to this voxel, and a list of neighboring chunks, return the chunk that contains the specified position.
+ * also returns the position in the local coordinate system of that chunk.
+ * The position must be contained in this chunk or any of the specified neighbors.
+ */
++ (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3)chunkLocalP
+									neighbors:(GSChunkVoxelData **)neighbors
+					   outRelativeToNeighborP:(GSIntegerVector3 *)outRelativeToNeighborP
+{
+	assert(neighbors);
+	assert(outRelativeToNeighborP);
+	assert(chunkLocalP.y >= 0);
+	assert(chunkLocalP.y < CHUNK_SIZE_Y);
+	
+	(*outRelativeToNeighborP) = chunkLocalP;
+	
+	if(chunkLocalP.x >= CHUNK_SIZE_X) {
+		outRelativeToNeighborP->x -= CHUNK_SIZE_X;
+		
+		if(chunkLocalP.z < 0) {
+			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z];
+		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
+			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z];
+		} else {
+			return neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z];
+		}
+	} else if(chunkLocalP.x < 0) {
+		outRelativeToNeighborP->x += CHUNK_SIZE_X;
+		
+		if(chunkLocalP.z < 0) {
+			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z];
+		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
+			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z];
+		} else {
+			return neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z];
+		}
+	} else {
+		if(chunkLocalP.z < 0) {
+			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z];
+		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
+			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z];
+		} else {
+			return neighbors[CHUNK_NEIGHBOR_CENTER];
+		}
+	}
 }
 
 
@@ -94,17 +146,10 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
+// Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)p
 {
-	assert(voxelData);
-    assert(p.x >= -1 && p.x < CHUNK_SIZE_X+1);
-    assert(p.y >= -1 && p.y < CHUNK_SIZE_Y+1);
-    assert(p.z >= -1 && p.z < CHUNK_SIZE_Z+1);
-	
-	size_t idx = INDEX(p.x, p.y, p.z);
-	assert(idx >= 0 && idx < ((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2)));
-    
-    return voxelData[idx];
+	return *[self getPointerToVoxelAtPoint:p];
 }
 
 
@@ -112,12 +157,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)p
 {
 	assert(voxelData);
-    assert(p.x >= -1 && p.x < CHUNK_SIZE_X+1);
-    assert(p.y >= -1 && p.y < CHUNK_SIZE_Y+1);
-    assert(p.z >= -1 && p.z < CHUNK_SIZE_Z+1);
+    assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
+    assert(p.y >= 0 && p.y < CHUNK_SIZE_Y);
+    assert(p.z >= 0 && p.z < CHUNK_SIZE_Z);
 	
 	size_t idx = INDEX(p.x, p.y, p.z);
-	assert(idx >= 0 && idx < ((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2)));
+	assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
     
     return &voxelData[idx];
 }
@@ -133,7 +178,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
 	[self destroyVoxelData];
     
-    voxelData = calloc((CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2), sizeof(voxel_t));
+    voxelData = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(voxel_t));
     if(!voxelData) {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for chunk's voxelData"];
     }
@@ -151,7 +196,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 // Assumes the caller is already holding "lockVoxelData".
 - (void)saveToFileWithContainingFolder:(NSURL *)folder
 {
-	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(voxel_t);
+	const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
 	
 	NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameFromMinP:minP]
 						relativeToURL:folder];
@@ -161,61 +206,17 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 
 // Assumes the caller is already holding "lockVoxelData".
-// Returns YES if any voxel adjacent to the specified voxel is empty and outside.
-- (BOOL)areAnyAdjacentVoxelsOutsideAndEmptyAtPoint:(GSIntegerVector3)p
-{
-	GSIntegerVector3 upP = {p.x, p.y+1, p.z};
-	voxel_t *up = [self getPointerToVoxelAtPoint:upP];
-	if(up->empty && up->outside) {
-		return YES;
-	}
-	
-	GSIntegerVector3 downP = {p.x, p.y-1, p.z};
-	voxel_t *down = [self getPointerToVoxelAtPoint:downP];
-	if(down->empty && down->outside) {
-		return YES;
-	}
-	
-	GSIntegerVector3 leftP = {p.x-1, p.y, p.z};
-	voxel_t *left = [self getPointerToVoxelAtPoint:leftP];
-	if(left->empty && left->outside) {
-		return YES;
-	}
-	
-	GSIntegerVector3 rightP = {p.x+1, p.y, p.z};
-	voxel_t *right = [self getPointerToVoxelAtPoint:rightP];
-	if(right->empty && right->outside) {
-		return YES;
-	}
-	
-	GSIntegerVector3 frontP = {p.x, p.y, p.z-1};
-	voxel_t *front = [self getPointerToVoxelAtPoint:frontP];
-	if(front->empty && front->outside) {
-		return YES;
-	}
-	
-	GSIntegerVector3 backP = {p.x, p.y, p.z+1};
-	voxel_t *back = [self getPointerToVoxelAtPoint:backP];
-	if(back->empty && back->outside) {
-		return YES;
-	}
-	
-	return NO;
-}
-
-
-// Assumes the caller is already holding "lockVoxelData".
 - (void)recalcOutsideVoxelsNoLock
 {
 	// Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
 	// We assume here that the chunk is the height of the world.
-    for(ssize_t x = -1; x < CHUNK_SIZE_X+1; ++x)
+    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
     {
-		for(ssize_t z = -1; z < CHUNK_SIZE_Z+1; ++z)
+		for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
 		{
 			// Get the y value of the highest non-empty voxel in the chunk.
 			ssize_t heightOfHighestVoxel;
-			for(heightOfHighestVoxel = CHUNK_SIZE_Y; heightOfHighestVoxel >= -1; --heightOfHighestVoxel)
+			for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
 			{
 				GSIntegerVector3 p = {x, heightOfHighestVoxel, z};
 				voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
@@ -225,25 +226,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 				}
 			}
 			
-			for(ssize_t y = -1; y < CHUNK_SIZE_Y+1; ++y)
+			for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
 			{
 				GSIntegerVector3 p = {x, y, z};
 				voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
 				voxel->outside = (y >= heightOfHighestVoxel);
-			}
-		}
-    }
-    
-	// Solid voxels which are directly adjacent to an empty, outside voxel are also considered to be outside.
-    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
-    {
-        for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
-        {
-            for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
-            {
-				GSIntegerVector3 p = {x, y, z};
-				voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
-				voxel->outside = voxel->outside || (!voxel->empty && [self areAnyAdjacentVoxelsOutsideAndEmptyAtPoint:p]);
 			}
 		}
     }
@@ -263,11 +250,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
     GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:(seed+1)];
     
-    for(ssize_t x = -1; x < CHUNK_SIZE_X+1; ++x)
+    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
     {
-        for(ssize_t y = -1; y < CHUNK_SIZE_Y+1; ++y)
+        for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
         {
-            for(ssize_t z = -1; z < CHUNK_SIZE_Z+1; ++z)
+            for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
             {
                 GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
 				voxel_t *voxel = [self getPointerToVoxelAtPoint:GSIntegerVector3_Make(x, y, z)];
@@ -292,7 +279,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
  */
 - (void)loadFromFile:(NSURL *)url
 {
-	const size_t len = (CHUNK_SIZE_X+2) * (CHUNK_SIZE_Y+2) * (CHUNK_SIZE_Z+2) * sizeof(voxel_t);
+	const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
 	
 	// Read the contents of the file into "voxelData".
 	NSData *data = [[NSData alloc] initWithContentsOfURL:url];
