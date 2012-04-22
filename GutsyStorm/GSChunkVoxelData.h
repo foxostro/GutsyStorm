@@ -65,6 +65,8 @@ typedef struct
 									neighbors:(GSChunkVoxelData **)neighbors
 					   outRelativeToNeighborP:(GSIntegerVector3 *)outRelativeToNeighborP;
 
++ (BOOL)isEmptyAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)neighbors;
+
 - (id)initWithSeed:(unsigned)seed
               minP:(GSVector3)minP
      terrainHeight:(float)terrainHeight

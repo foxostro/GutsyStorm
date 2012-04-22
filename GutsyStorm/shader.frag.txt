@@ -36,10 +36,10 @@ void main (void)
 
 	color += gl_LightSource[0].diffuse * gl_Color * texcolor * lambertTerm0;
 
-	vec3 E = normalize(eyeVec);
+	/*vec3 E = normalize(eyeVec);
 	vec3 R = reflect(-L0, N);
 	float specular = pow(max(dot(R, E), 0.0), gl_FrontMaterial.shininess);
-	color += gl_LightSource[0].specular * gl_Color * texcolor * specular;
+	color += gl_LightSource[0].specular * gl_Color * texcolor * specular;*/
 
 	vec4 final_color = fog(color, fogColor, gl_FragCoord.z / gl_FragCoord.w, fogDensity);
 	gl_FragColor = gamma(final_color);

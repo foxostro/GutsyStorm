@@ -120,8 +120,8 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glEnable(GL_LIGHT0);
     
     GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
-    GLfloat lightAmbient[] = {0.2, 0.2, 0.2, 1.0};
-    GLfloat lightDiffuse[] = {0.6, 0.6, 0.6, 1.0};
+    GLfloat lightAmbient[] = {0.4, 0.4, 0.4, 1.0}; // the per-vertex ambient occlusion will dim this a bit
+    GLfloat lightDiffuse[] = {0.7, 0.7, 0.7, 1.0};
     GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
     
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
