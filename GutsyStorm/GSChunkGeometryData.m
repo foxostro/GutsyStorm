@@ -33,7 +33,6 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 - (BOOL)tryToGenerateVBOs;
 - (void)destroyVBOs;
 - (void)destroyGeometry;
-- (BOOL)isEmptyAtPoint:(GSIntegerVector3)chunkLocalPos neighbors:(GSChunkVoxelData **)neighbors;
 - (void)generateGeometryWithVoxelData:(GSChunkVoxelData **)voxels;
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
 										vertices:(NSMutableArray *)vertices
@@ -322,24 +321,6 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 }
 
 
-// Assumes the caller already holds the lock on the neighoring chunks.
-- (BOOL)isEmptyAtPoint:(GSIntegerVector3)chunkLocalPos neighbors:(GSChunkVoxelData **)neighbors
-{
-	GSIntegerVector3 adjustedChunkLocalPos = {0};
-	
-	// Vertically, chunks span the entire world.
-	if(chunkLocalPos.y < 0 || chunkLocalPos.y >= CHUNK_SIZE_Y) {
-		return YES;
-	}
-	
-	GSChunkVoxelData *chunk = [GSChunkVoxelData getNeighborVoxelAtPoint:chunkLocalPos
-															  neighbors:neighbors
-												 outRelativeToNeighborP:&adjustedChunkLocalPos];
-	
-	return [chunk getPointerToVoxelAtPoint:adjustedChunkLocalPos]->empty;
-}
-
-
 /* Assumes the caller is already holding "lockGeometry", "lockSunlight", "lockAmbientOcclusion",
  * and locks on all neighboring chunks.
  */
@@ -391,7 +372,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 	ambient_occlusion_t ambientOcclusion = [chunks[CHUNK_NEIGHBOR_CENTER] getAmbientOcclusionAtPoint:chunkLocalPos];
 	
     // Top Face
-    if([self isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ) neighbors:chunks]) {
+    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ) neighbors:chunks]) {
         page = side;
 		
 		addVertex(x-L, y+L, z-L,
@@ -424,7 +405,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Bottom Face
-    if([self isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY-1, z-minZ) neighbors:chunks]) {
+    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY-1, z-minZ) neighbors:chunks]) {
 		addVertex(x-L, y-L, z-L,
 				  0, -1, 0,
 				  1, 0, dirt,
@@ -455,7 +436,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Back Face (+Z)
-    if([self isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ+1) neighbors:chunks]) {
+    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ+1) neighbors:chunks]) {
 		addVertex(x-L, y-L, z+L,
 				  0, 0, 1,
 				  0, 1, page,
@@ -486,7 +467,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Front Face (-Z)
-    if([self isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ-1) neighbors:chunks]) {
+    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ-1) neighbors:chunks]) {
 		addVertex(x-L, y-L, z-L,
 				  0, 1, -1,
 				  0, 1, page,
@@ -517,11 +498,11 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Right Face
-	if([self isEmptyAtPoint:GSIntegerVector3_Make(x-minX+1, y-minY, z-minZ) neighbors:chunks]) {
+	if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX+1, y-minY, z-minZ) neighbors:chunks]) {
 		addVertex(x+L, y-L, z-L,
 				  1, 0, 0,
 				  0, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bbr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.fbr),
 				  vertices,
 				  indices);
 		
@@ -548,7 +529,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Left Face
-    if([self isEmptyAtPoint:GSIntegerVector3_Make(x-minX-1, y-minY, z-minZ) neighbors:chunks]) {
+    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX-1, y-minY, z-minZ) neighbors:chunks]) {
 		addVertex(x-L, y-L, z-L,
 				  -1, 0, 0,
 				  0, 1, page,
@@ -566,7 +547,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 		addVertex(x-L, y+L, z+L,
 				  -1, 0, 0,
 				  1, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.ftl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.btl),
 				  vertices,
 				  indices);
 		

@@ -28,7 +28,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (void)recalcOutsideVoxelsNoLock;
 
-- (BOOL)isEmptyAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)neighbors;
 - (ambient_occlusion_t)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)chunks;
 - (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks;
 
@@ -96,6 +95,31 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 			return neighbors[CHUNK_NEIGHBOR_CENTER];
 		}
 	}
+}
+
+
+/* Assumes the caller is already holding "lockVoxelData" on all neighbors.
+ * Returns YES if the specified block is empty.
+ */
++ (BOOL)isEmptyAtPoint:(GSIntegerVector3)p
+			 neighbors:(GSChunkVoxelData **)neighbors
+{
+	// Assumes each chunk spans the entire vertical extent of the world.
+	
+	if(p.y < 0) {
+		return NO; // Space below the world is always full.
+	}
+	
+	if(p.y >= CHUNK_SIZE_Y) {
+		return YES; // Space above the world is always empty.
+	}
+	
+	GSIntegerVector3 adjustedPos = {0};
+	GSChunkVoxelData *chunk = [GSChunkVoxelData getNeighborVoxelAtPoint:p
+															  neighbors:neighbors
+												 outRelativeToNeighborP:&adjustedPos];
+	
+	return [chunk getVoxelAtPoint:adjustedPos].empty;
 }
 
 
@@ -527,31 +551,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-/* Assumes the caller is already holding "lockVoxelData" on all neighbors.
- * Returns YES if the specified block is empty.
- */
-- (BOOL)isEmptyAtPoint:(GSIntegerVector3)p
-			 neighbors:(GSChunkVoxelData **)neighbors
-{
-	// Assumes each chunk spans the entire vertical extent of the world.
-	
-	if(p.y < 0) {
-		return NO; // Space below the world is always full.
-	}
-	
-	if(p.y >= CHUNK_SIZE_Y) {
-		return YES; // Space above the world is always empty.
-	}
-	
-	GSIntegerVector3 adjustedPos = {0};
-	GSChunkVoxelData *chunk = [GSChunkVoxelData getNeighborVoxelAtPoint:p
-															  neighbors:neighbors
-												 outRelativeToNeighborP:&adjustedPos];
-	
-	return [chunk getVoxelAtPoint:adjustedPos].empty;
-}
-
-
 - (ambient_occlusion_t)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
 														neighbors:(GSChunkVoxelData **)chunks
 {
@@ -561,79 +560,79 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	
 	const float a = 1.0 / 7.0; // vertex brightness conferred by each additional empty neighbor
 
-	ambient_occlusion_t ao = {0};
+	ambient_occlusion_t ao;
+	
+	// front, top, right
+	ao.ftr =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
+	
+	// front, top, left
+	ao.ftl =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
 	
 	// front, bottom, right
-	ao.fbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.fbr =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
 	
-	// back, bottom, right
-	ao.bbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
-
-	// front, top, right
-	ao.ftr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
+	// front, bottom, left
+	ao.fbl =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
+	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
 	
 	// back, top, right
-	ao.btr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btr += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
-
-	// front, top, left
-	ao.ftl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
-
-	// front, bottom, left
-	ao.fbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao.btr =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
 	
 	// back, top, left
-	ao.btl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.btl =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
+	
+	// back, bottom, right
+	ao.bbr =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
 	
 	// back, bottom, left
-	ao.bbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [self isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.bbl =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
+	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
 	
 	return ao;
 }
