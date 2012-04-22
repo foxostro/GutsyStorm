@@ -203,6 +203,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 	NSMutableArray *indices = [[NSMutableArray alloc] init];
 	
     [chunks[CHUNK_NEIGHBOR_CENTER]->lockSunlight lockWhenCondition:READY];
+	[chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion lockWhenCondition:READY];
 	
 	// Atomically, grab all the voxel data we need to generate geometry for this chunk.
 	// We do this atomically to prevent deadlock.
@@ -237,6 +238,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 		[chunks[i]->lockVoxelData unlockWithCondition:READY];
 	}
 	
+	[chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion unlockWithCondition:READY];
 	[chunks[CHUNK_NEIGHBOR_CENTER]->lockSunlight unlockWithCondition:READY];
     
     numChunkVerts = (GLsizei)[vertices count];
@@ -338,7 +340,9 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 }
 
 
-// Assumes the caller is already holding "lockGeometry", "lockLightingData", and locks on all neighboring chunks.
+/* Assumes the caller is already holding "lockGeometry", "lockSunlight", "lockAmbientOcclusion",
+ * and locks on all neighboring chunks.
+ */
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
 										vertices:(NSMutableArray *)vertices
 										 indices:(NSMutableArray *)indices
