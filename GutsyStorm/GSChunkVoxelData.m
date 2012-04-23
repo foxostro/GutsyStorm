@@ -644,6 +644,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	GSIntegerVector3 p = {0};
 	
 	[lockAmbientOcclusion lock];
+    
+	CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 	
 	// Atomically, grab all the chunks relevant to lighting.
 	// Needs to be atomic to avoid deadlock.
@@ -676,6 +678,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	{
 		[chunks[i]->lockVoxelData unlockWithCondition:READY];
 	}
+	
+    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    NSLog(@"Finished generating chunk ambient occlusion. It took %.3fs", timeEnd - timeStart);
 	
 	[lockAmbientOcclusion unlockWithCondition:READY];
 }
