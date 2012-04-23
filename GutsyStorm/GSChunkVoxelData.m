@@ -28,7 +28,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (void)recalcOutsideVoxelsNoLock;
 
-- (ambient_occlusion_t)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)chunks;
+- (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
+										neighbors:(GSChunkVoxelData **)chunks
+							  outAmbientOcclusion:(ambient_occlusion_t*)ao;
 - (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks;
 
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel neighbors:(GSChunkVoxelData **)neighbors;
@@ -42,84 +44,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
 	return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
-}
-
-
-/* Given a position relative to this voxel, and a list of neighboring chunks, return the chunk that contains the specified position.
- * also returns the position in the local coordinate system of that chunk.
- * The position must be contained in this chunk or any of the specified neighbors.
- */
-+ (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3)chunkLocalP
-									neighbors:(GSChunkVoxelData **)neighbors
-					   outRelativeToNeighborP:(GSIntegerVector3 *)outRelativeToNeighborP
-{
-	assert(neighbors);
-	assert(outRelativeToNeighborP);
-	assert(chunkLocalP.y >= 0);
-	assert(chunkLocalP.y < CHUNK_SIZE_Y);
-	
-	(*outRelativeToNeighborP) = chunkLocalP;
-	
-	if(chunkLocalP.x >= CHUNK_SIZE_X) {
-		outRelativeToNeighborP->x -= CHUNK_SIZE_X;
-		
-		if(chunkLocalP.z < 0) {
-			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z];
-		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z];
-		} else {
-			return neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z];
-		}
-	} else if(chunkLocalP.x < 0) {
-		outRelativeToNeighborP->x += CHUNK_SIZE_X;
-		
-		if(chunkLocalP.z < 0) {
-			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z];
-		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z];
-		} else {
-			return neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z];
-		}
-	} else {
-		if(chunkLocalP.z < 0) {
-			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z];
-		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
-			return neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z];
-		} else {
-			return neighbors[CHUNK_NEIGHBOR_CENTER];
-		}
-	}
-}
-
-
-/* Assumes the caller is already holding "lockVoxelData" on all neighbors.
- * Returns YES if the specified block is empty.
- */
-+ (BOOL)isEmptyAtPoint:(GSIntegerVector3)p
-			 neighbors:(GSChunkVoxelData **)neighbors
-{
-	// Assumes each chunk spans the entire vertical extent of the world.
-	
-	if(p.y < 0) {
-		return NO; // Space below the world is always full.
-	}
-	
-	if(p.y >= CHUNK_SIZE_Y) {
-		return YES; // Space above the world is always empty.
-	}
-	
-	GSIntegerVector3 adjustedPos = {0};
-	GSChunkVoxelData *chunk = [GSChunkVoxelData getNeighborVoxelAtPoint:p
-															  neighbors:neighbors
-												 outRelativeToNeighborP:&adjustedPos];
-	
-	return [chunk getVoxelAtPoint:adjustedPos].empty;
 }
 
 
@@ -432,9 +356,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	} else {
 		GSIntegerVector3 up    = GSIntegerVector3_Make(p.x, p.y+1, p.z);
 		GSIntegerVector3 adjustedUp = {0};
-		GSChunkVoxelData *chunkUp = [GSChunkVoxelData getNeighborVoxelAtPoint:up
-																	neighbors:neighbors
-													   outRelativeToNeighborP:&adjustedUp];
+		GSChunkVoxelData *chunkUp = getNeighborVoxelAtPoint(up, neighbors, &adjustedUp);
 		
 		if([chunkUp getVoxelAtPoint:adjustedUp].empty && [chunkUp getSunlightAtPoint:adjustedUp] == lightLevel) {
 			return YES;
@@ -444,9 +366,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	if(p.y-1 >= 0) {
 		GSIntegerVector3 down  = GSIntegerVector3_Make(p.x, p.y-1, p.z);
 		GSIntegerVector3 adjustedDown = {0};
-		GSChunkVoxelData *chunkDown = [GSChunkVoxelData getNeighborVoxelAtPoint:down
-																	  neighbors:neighbors
-														 outRelativeToNeighborP:&adjustedDown];
+		GSChunkVoxelData *chunkDown = getNeighborVoxelAtPoint(down, neighbors, &adjustedDown);
 		
 		if([chunkDown getVoxelAtPoint:adjustedDown].empty && [chunkDown getSunlightAtPoint:adjustedDown] == lightLevel) {
 			return YES;
@@ -463,9 +383,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	for(size_t i = 0; i < 4; ++i)
 	{
 		GSIntegerVector3 adjustedDir = {0};
-		GSChunkVoxelData *adjustedChunk = [GSChunkVoxelData getNeighborVoxelAtPoint:dir[i]
-																		  neighbors:neighbors
-															 outRelativeToNeighborP:&adjustedDir];
+		GSChunkVoxelData *adjustedChunk = getNeighborVoxelAtPoint(dir[i], neighbors, &adjustedDir);
 		
 		if([adjustedChunk getVoxelAtPoint:adjustedDir].empty &&
 		   [adjustedChunk getSunlightAtPoint:adjustedDir] == lightLevel) {
@@ -551,90 +469,121 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-- (ambient_occlusion_t)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
-														neighbors:(GSChunkVoxelData **)chunks
+- (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
+										neighbors:(GSChunkVoxelData **)chunks
+							  outAmbientOcclusion:(ambient_occlusion_t*)ao
 {
 	/* Front is in the -Z direction and back is the +Z direction.
 	 * This is a totally arbitrary convention.
 	 */
 	
+	// If the block is empty then bail out early. The point p is always within the chunk.
+	if(voxelData[INDEX(p.x, p.y, p.z)].empty) {
+		ao->ftr = 0.0;
+		ao->ftl = 0.0;
+		ao->fbr = 0.0;
+		ao->fbl = 0.0;
+		ao->btr = 0.0;
+		ao->btl = 0.0;
+		ao->bbr = 0.0;
+		ao->bbl = 0.0;
+		
+		return;
+	}
+	
+	// Common subexpressions are factored out to reduce the number of neighbor checks.
+	const BOOL e1  = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y,   p.z-1), chunks);
+	const BOOL e2  = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y+1, p.z)  , chunks);
+	const BOOL e3  = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y+1, p.z-1), chunks);
+	const BOOL e4  = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y,   p.z)  , chunks);
+	const BOOL e5  = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y,   p.z-1), chunks);
+	const BOOL e6  = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y+1, p.z)  , chunks);
+	const BOOL e7  = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y,   p.z)  , chunks);
+	const BOOL e8  = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y,   p.z-1), chunks);
+	const BOOL e9  = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y+1, p.z)  , chunks);
+	const BOOL e10 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y-1, p.z)  , chunks);
+	const BOOL e11 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y-1, p.z-1), chunks);
+	const BOOL e12 = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y-1, p.z)  , chunks);
+	const BOOL e13 = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y-1, p.z)  , chunks);
+	const BOOL e14 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y,   p.z+1), chunks);
+	const BOOL e15 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y+1, p.z+1), chunks);
+	const BOOL e16 = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y,   p.z+1), chunks);
+	const BOOL e17 = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y,   p.z+1), chunks);
+	const BOOL e18 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y-1, p.z+1), chunks);
+	
 	const float a = 1.0 / 7.0; // vertex brightness conferred by each additional empty neighbor
 
-	ambient_occlusion_t ao;
-	
 	// front, top, right
-	ao.ftr =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao->ftr =  e1 ? a : 0.0;
+	ao->ftr += e2 ? a : 0.0;
+	ao->ftr += e3 ? a : 0.0;
+	ao->ftr += e4 ? a : 0.0;
+	ao->ftr += e5 ? a : 0.0;
+	ao->ftr += e6 ? a : 0.0;
+	ao->ftr += isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y+1, p.z-1), chunks) ? a : 0.0;
 	
 	// front, top, left
-	ao.ftl =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.ftl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao->ftl =  e1 ? a : 0.0;
+	ao->ftl += e2 ? a : 0.0;
+	ao->ftl += e3 ? a : 0.0;
+	ao->ftl += e7 ? a : 0.0;
+	ao->ftl += e8 ? a : 0.0;
+	ao->ftl += e9 ? a : 0.0;
+	ao->ftl += isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y+1, p.z-1), chunks) ? a : 0.0;
 	
 	// front, bottom, right
-	ao.fbr =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao->fbr =  e1 ? a : 0.0;
+	ao->fbr += e10 ? a : 0.0;
+	ao->fbr += e11 ? a : 0.0;
+	ao->fbr += e4 ? a : 0.0;
+	ao->fbr += e5 ? a : 0.0;
+	ao->fbr += e12 ? a : 0.0;
+	ao->fbr += isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y-1, p.z-1), chunks) ? a : 0.0;
 	
 	// front, bottom, left
-	ao.fbl =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z-1) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z-0) neighbors:chunks] ? a : 0.0;
-	ao.fbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z-1) neighbors:chunks] ? a : 0.0;
+	ao->fbl =  e1 ? a : 0.0;
+	ao->fbl += e10 ? a : 0.0;
+	ao->fbl += e11 ? a : 0.0;
+	ao->fbl += e7 ? a : 0.0;
+	ao->fbl += e8 ? a : 0.0;
+	ao->fbl += e13 ? a : 0.0;
+	ao->fbl += isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y-1, p.z-1), chunks) ? a : 0.0;
 	
 	// back, top, right
-	ao.btr =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao->btr =  e14 ? a : 0.0;
+	ao->btr += e2 ? a : 0.0;
+	ao->btr += e15 ? a : 0.0;
+	ao->btr += e4 ? a : 0.0;
+	ao->btr += e16 ? a : 0.0;
+	ao->btr += e6 ? a : 0.0;
+	ao->btr += isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y+1, p.z+1), chunks) ? a : 0.0;
 	
 	// back, top, left
-	ao.btl =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.btl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y+1, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao->btl =  e14 ? a : 0.0;
+	ao->btl += e2 ? a : 0.0;
+	ao->btl += e15 ? a : 0.0;
+	ao->btl += e7 ? a : 0.0;
+	ao->btl += e17 ? a : 0.0;
+	ao->btl += e9 ? a : 0.0;
+	ao->btl += isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y+1, p.z+1), chunks) ? a : 0.0;
 	
 	// back, bottom, right
-	ao.bbr =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+0, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbr += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x+1, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
+	ao->bbr =  e14 ? a : 0.0;
+	ao->bbr += e10 ? a : 0.0;
+	ao->bbr += e18 ? a : 0.0;
+	ao->bbr += e4 ? a : 0.0;
+	ao->bbr += e16 ? a : 0.0;
+	ao->bbr += e12 ? a : 0.0;
+	ao->bbr += isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y-1, p.z+1), chunks) ? a : 0.0;
 	
 	// back, bottom, left
-	ao.bbl =  [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-0, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-0, p.z+1) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z+0) neighbors:chunks] ? a : 0.0;
-	ao.bbl += [GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(p.x-1, p.y-1, p.z+1) neighbors:chunks] ? a : 0.0;
-	
-	return ao;
+	ao->bbl =  e14 ? a : 0.0;
+	ao->bbl += e10 ? a : 0.0;
+	ao->bbl += e18 ? a : 0.0;
+	ao->bbl += e7 ? a : 0.0;
+	ao->bbl += e17 ? a : 0.0;
+	ao->bbl += e13 ? a : 0.0;
+	ao->bbl += isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y-1, p.z+1), chunks) ? a : 0.0;
 }
 
 
@@ -666,8 +615,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 				for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
 				{
 					size_t idx = INDEX(p.x, p.y, p.z);
-					assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
-					ambientOcclusion[idx] = [self countNeighborsForAmbientOcclusionsAtPoint:p neighbors:chunks];
+					[self countNeighborsForAmbientOcclusionsAtPoint:p
+														  neighbors:chunks
+												outAmbientOcclusion:&ambientOcclusion[idx]];
 				}
 			}
 		}
@@ -757,4 +707,74 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	}
 	
 	return groundLayer || test || floatingMountain;
+}
+
+
+/* Given a position relative to this voxel, and a list of neighboring chunks, return the chunk that contains the specified position.
+ * also returns the position in the local coordinate system of that chunk.
+ * The position must be contained in this chunk or any of the specified neighbors.
+ */
+GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
+										  GSChunkVoxelData **neighbors,
+										  GSIntegerVector3 *outRelativeToNeighborP)
+{
+	(*outRelativeToNeighborP) = chunkLocalP;
+	
+	if(chunkLocalP.x >= CHUNK_SIZE_X) {
+		outRelativeToNeighborP->x -= CHUNK_SIZE_X;
+		
+		if(chunkLocalP.z < 0) {
+			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z];
+		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
+			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z];
+		} else {
+			return neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z];
+		}
+	} else if(chunkLocalP.x < 0) {
+		outRelativeToNeighborP->x += CHUNK_SIZE_X;
+		
+		if(chunkLocalP.z < 0) {
+			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z];
+		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
+			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z];
+		} else {
+			return neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z];
+		}
+	} else {
+		if(chunkLocalP.z < 0) {
+			outRelativeToNeighborP->z += CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z];
+		} else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
+			outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
+			return neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z];
+		} else {
+			return neighbors[CHUNK_NEIGHBOR_CENTER];
+		}
+	}
+}
+
+
+/* Assumes the caller is already holding "lockVoxelData" on all neighbors.
+ * Returns YES if the specified block is empty.
+ */
+BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
+{
+	// Assumes each chunk spans the entire vertical extent of the world.
+	
+	if(p.y < 0) {
+		return NO; // Space below the world is always full.
+	}
+	
+	if(p.y >= CHUNK_SIZE_Y) {
+		return YES; // Space above the world is always empty.
+	}
+	
+	GSIntegerVector3 adjustedPos = {0};
+	GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
+	
+    return chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)].empty;
 }

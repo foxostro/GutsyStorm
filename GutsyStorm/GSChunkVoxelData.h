@@ -61,12 +61,6 @@ typedef struct
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
 
-+ (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3)chunkLocalP
-									neighbors:(GSChunkVoxelData **)neighbors
-					   outRelativeToNeighborP:(GSIntegerVector3 *)outRelativeToNeighborP;
-
-+ (BOOL)isEmptyAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)neighbors;
-
 - (id)initWithSeed:(unsigned)seed
               minP:(GSVector3)minP
      terrainHeight:(float)terrainHeight
@@ -85,3 +79,13 @@ typedef struct
 - (ambient_occlusion_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p;
 
 @end
+
+
+// Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
+GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
+										  GSChunkVoxelData **neighbors,
+										  GSIntegerVector3 *outRelativeToNeighborP);
+
+
+// Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
+BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);

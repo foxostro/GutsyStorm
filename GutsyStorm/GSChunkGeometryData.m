@@ -372,7 +372,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 	ambient_occlusion_t ambientOcclusion = [chunks[CHUNK_NEIGHBOR_CENTER] getAmbientOcclusionAtPoint:chunkLocalPos];
 	
     // Top Face
-    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ) neighbors:chunks]) {
+    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ), chunks)) {
         page = side;
 		
 		addVertex(x-L, y+L, z-L,
@@ -405,7 +405,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Bottom Face
-    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY-1, z-minZ) neighbors:chunks]) {
+    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY-1, z-minZ), chunks)) {
 		addVertex(x-L, y-L, z-L,
 				  0, -1, 0,
 				  1, 0, dirt,
@@ -436,7 +436,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Back Face (+Z)
-    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ+1) neighbors:chunks]) {
+    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY, z-minZ+1), chunks)) {
 		addVertex(x-L, y-L, z+L,
 				  0, 0, 1,
 				  0, 1, page,
@@ -467,7 +467,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Front Face (-Z)
-    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ-1) neighbors:chunks]) {
+    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY, z-minZ-1), chunks)) {
 		addVertex(x-L, y-L, z-L,
 				  0, 1, -1,
 				  0, 1, page,
@@ -498,7 +498,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Right Face
-	if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX+1, y-minY, z-minZ) neighbors:chunks]) {
+	if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX+1, y-minY, z-minZ), chunks)) {
 		addVertex(x+L, y-L, z-L,
 				  1, 0, 0,
 				  0, 1, page,
@@ -529,7 +529,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
     }
 	
     // Left Face
-    if([GSChunkVoxelData isEmptyAtPoint:GSIntegerVector3_Make(x-minX-1, y-minY, z-minZ) neighbors:chunks]) {
+    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX-1, y-minY, z-minZ), chunks)) {
 		addVertex(x-L, y-L, z-L,
 				  -1, 0, 0,
 				  0, 1, page,
