@@ -12,6 +12,8 @@
 #import "GSVertex.h"
 
 
+static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint vboChunkTexCoords, GLuint vboChunkColors);
+
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
@@ -162,8 +164,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 
 - (void)dealloc
 {
-	// VBOs must be destroyed on the main thread as all OpenGL calls must be done on the main thread.
-	[self performSelectorOnMainThread:@selector(destroyVBOs) withObject:self waitUntilDone:YES];
+	[self destroyVBOs];
 	
     [lockGeometry lock];
     [self destroyGeometry];
@@ -598,22 +599,8 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 
 // Must only be called from the main thread.
 - (void)destroyVBOs
-{	
-    if(vboChunkVerts && glIsBuffer(vboChunkVerts)) {
-        glDeleteBuffers(1, &vboChunkVerts);
-    }
-    
-    if(vboChunkNorms && glIsBuffer(vboChunkNorms)) {
-        glDeleteBuffers(1, &vboChunkNorms);
-    }
-    
-    if(vboChunkTexCoords && glIsBuffer(vboChunkTexCoords)) {
-        glDeleteBuffers(1, &vboChunkTexCoords);
-    }
-    
-    if(vboChunkColors && glIsBuffer(vboChunkColors)) {
-        glDeleteBuffers(1, &vboChunkColors);
-    }
+{
+    destroyChunkVBOs(vboChunkVerts, vboChunkNorms, vboChunkTexCoords, vboChunkColors);
     
 	vboChunkVerts = 0;
 	vboChunkNorms = 0;
@@ -622,6 +609,29 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 }
 
 @end
+
+
+static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint vboChunkTexCoords, GLuint vboChunkColors)
+{
+	// Free the VBOs on the main thread. Doesn't have to be synchronous with this dealloc method, though.
+	dispatch_async(dispatch_get_main_queue(), ^{
+		if(vboChunkVerts && glIsBuffer(vboChunkVerts)) {
+			glDeleteBuffers(1, &vboChunkVerts);
+		}
+		
+		if(vboChunkNorms && glIsBuffer(vboChunkNorms)) {
+			glDeleteBuffers(1, &vboChunkNorms);
+		}
+		
+		if(vboChunkTexCoords && glIsBuffer(vboChunkTexCoords)) {
+			glDeleteBuffers(1, &vboChunkTexCoords);
+		}
+		
+		if(vboChunkColors && glIsBuffer(vboChunkColors)) {
+			glDeleteBuffers(1, &vboChunkColors);
+		}
+	});
+}
 
 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
