@@ -209,7 +209,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
-		[chunks[i]->lockVoxelData lockWhenCondition:READY];
+		[chunks[i]->lockVoxelData lockForReading];
 	}
 	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
 	
@@ -234,7 +234,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 	// Give up locks on the neighboring chunks' voxel data.
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
-		[chunks[i]->lockVoxelData unlockWithCondition:READY];
+		[chunks[i]->lockVoxelData unlockForReading];
 	}
 	
 	[chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion unlockWithCondition:READY];
