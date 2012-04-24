@@ -25,6 +25,8 @@
 
 #define CHUNK_LIGHTING_MAX (7)
 
+#define USE_AMBIENT_OCCLUSION (1)
+
 
 typedef struct
 {

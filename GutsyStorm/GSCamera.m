@@ -39,6 +39,7 @@
 - (void)dealloc
 {
     [frustum release];
+    [super dealloc];
 }
 
 

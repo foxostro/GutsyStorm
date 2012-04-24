@@ -27,6 +27,7 @@
 - (void)dealloc
 {
     FeepingCreature_DestroyNoiseContext(context);
+    [super dealloc];
 }
 
 

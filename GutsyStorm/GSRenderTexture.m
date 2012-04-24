@@ -90,6 +90,7 @@
     glDeleteTextures(1, &texID);
     glDeleteRenderbuffers(1, &depthBuffer);
     glDeleteFramebuffers(1, &fbo);
+    [super dealloc];
 }
 
 

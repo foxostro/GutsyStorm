@@ -203,7 +203,9 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 	NSMutableArray *indices = [[NSMutableArray alloc] init];
 	
     [chunks[CHUNK_NEIGHBOR_CENTER]->lockSunlight lockWhenCondition:READY];
-	[chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion lockWhenCondition:READY];
+#if USE_AMBIENT_OCCLUSION
+    [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion lockWhenCondition:READY];
+#endif
 	
 	// Atomically, grab all the voxel data we need to generate geometry for this chunk.
 	// We do this atomically to prevent deadlock.
@@ -238,7 +240,9 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 		[chunks[i]->lockVoxelData unlockForReading];
 	}
 	
-	[chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion unlockWithCondition:READY];
+#if USE_AMBIENT_OCCLUSION
+    [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion unlockWithCondition:READY];
+#endif
 	[chunks[CHUNK_NEIGHBOR_CENTER]->lockSunlight unlockWithCondition:READY];
     
     numChunkVerts = (GLsizei)[vertices count];
@@ -370,7 +374,20 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 	int sunlightLightLevel = [chunks[CHUNK_NEIGHBOR_CENTER] getSunlightAtPoint:chunkLocalPos];
     float sunlight = (MAX(0, sunlightLightLevel) / (float)CHUNK_LIGHTING_MAX) * 0.8 + 0.2;
 	float torchLight = 0.0; // TODO: add torch lighting to the world.
+    
+#if USE_AMBIENT_OCCLUSION
 	ambient_occlusion_t ambientOcclusion = [chunks[CHUNK_NEIGHBOR_CENTER] getAmbientOcclusionAtPoint:chunkLocalPos];
+#else
+    ambient_occlusion_t ambientOcclusion;
+    ambientOcclusion.ftr = 1.0;
+	ambientOcclusion.ftl = 1.0;
+	ambientOcclusion.fbr = 1.0;
+	ambientOcclusion.fbl = 1.0;
+	ambientOcclusion.btr = 1.0;
+	ambientOcclusion.btl = 1.0;
+	ambientOcclusion.bbr = 1.0;
+	ambientOcclusion.bbl = 1.0;
+#endif
 	
     // Top Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ), chunks)) {

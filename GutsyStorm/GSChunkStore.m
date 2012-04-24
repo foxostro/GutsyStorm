@@ -126,8 +126,8 @@
     [camera release];
 	[folder release];
     [terrainShader release];
-       
     [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
+    [super dealloc];
 }
 
 

@@ -179,7 +179,10 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	dispatch_async(queue, ^{
 		[self generateSunlightWithNeighbors:chunks];
-		[self generateAmbientOcclusionWithNeighbors:chunks];
+		
+#if USE_AMBIENT_OCCLUSION
+        [self generateAmbientOcclusionWithNeighbors:chunks];
+#endif
 		
 		// No longer need references to the neighboring chunks.
 		for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
