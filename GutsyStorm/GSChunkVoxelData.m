@@ -57,8 +57,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         // Initialization code here.        
         assert(terrainHeight >= 0.0);
         
-        lockVoxelData = [[NSConditionLock alloc] init];
-		[lockVoxelData setName:@"GSChunkVoxelData.lockVoxelData"];
+        lockVoxelData = [[GSReaderWriterLock alloc] init];
+		[lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
 		
 		lockSunlight = [[NSConditionLock alloc] init];
 		[lockSunlight setName:@"GSChunkVoxelData.lockSunlight"];
@@ -83,8 +83,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		// Fire off asynchronous task to generate voxel data.
         // When this finishes, the condition in lockVoxelData will be set to CONDITION_VOXEL_DATA_READY.
         dispatch_async(queue, ^{
-			[lockVoxelData lock];
-			
 			NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
 								relativeToURL:folder];
 			
@@ -99,7 +97,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 				[self saveVoxelDataToFileWithContainingFolder:folder];
 			}
 			
-			[lockVoxelData unlockWithCondition:READY];
+			[lockVoxelData unlockForWriting];
         });
     }
     
@@ -109,9 +107,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)dealloc
 {
-    [lockVoxelData lock];
+    [lockVoxelData lockForWriting];
     [self destroyVoxelData];
-    [lockVoxelData unlock];
+    [lockVoxelData unlockForWriting];
     [lockVoxelData release];
 	
     [lockSunlight lock];
@@ -406,7 +404,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
-		[chunks[i]->lockVoxelData lockWhenCondition:READY];
+		[chunks[i]->lockVoxelData lockForReading];
 	}
 	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
 	
@@ -459,7 +457,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	// Give up locks on the neighboring chunks.
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
-		[chunks[i]->lockVoxelData unlockWithCondition:READY];
+		[chunks[i]->lockVoxelData unlockForReading];
 	}
 	
 	[lockSunlight unlockWithCondition:READY];
@@ -601,7 +599,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
-		[chunks[i]->lockVoxelData lockWhenCondition:READY];
+		[chunks[i]->lockVoxelData lockForReading];
 	}
 	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
 	
@@ -626,7 +624,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	// Give up locks on the neighboring chunks.
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
-		[chunks[i]->lockVoxelData unlockWithCondition:READY];
+		[chunks[i]->lockVoxelData unlockForReading];
 	}
 	
     CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();

@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSChunkData.h"
 #import "GSIntegerVector3.h"
+#import "GSReaderWriterLock.h"
 
 
 #define CHUNK_NEIGHBOR_POS_X_NEG_Z  (0)
@@ -49,7 +50,7 @@ typedef struct
 @interface GSChunkVoxelData : GSChunkData
 {
  @public
-    NSConditionLock *lockVoxelData;
+    GSReaderWriterLock *lockVoxelData;
 	voxel_t *voxelData;
 	
 	NSConditionLock *lockSunlight;
