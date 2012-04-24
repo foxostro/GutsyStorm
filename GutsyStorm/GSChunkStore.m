@@ -85,6 +85,9 @@
         terrainShader = _terrainShader;
         [terrainShader retain];
 		
+		numVBOGenerationsAllowedPerFrame = 16;
+		numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
+		
         // Active region is bounded at y>=0.
 		NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         activeRegionExtent = GSVector3_Make(w, 128, w);
@@ -142,8 +145,8 @@
         GSChunkGeometryData *chunk = activeChunks[i];
         assert(chunk);
 		
-		if(chunk->visible) {
-			[chunk drawGeneratingVBOsIfNecessary:YES];
+		if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
+			//numVBOGenerationsRemaining--;
 		}
     }
     
@@ -158,6 +161,7 @@
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
+	numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame; // reset
 	[self recalculateActiveChunksWithCameraModifiedFlags:flags];
 }
 
