@@ -480,111 +480,188 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	
 	// If the block is empty then bail out early. The point p is always within the chunk.
 	if(voxelData[INDEX(p.x, p.y, p.z)].empty) {
-		ao->ftr = 0.0;
-		ao->ftl = 0.0;
-		ao->fbr = 0.0;
-		ao->fbl = 0.0;
-		ao->btr = 0.0;
-		ao->btl = 0.0;
-		ao->bbr = 0.0;
-		ao->bbl = 0.0;
-		
+		noAmbientOcclusion(ao);		
 		return;
 	}
-	
-	// Common subexpressions are factored out to reduce the number of neighbor checks.
-	const BOOL e1  = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y,   p.z-1), chunks);
-	const BOOL e2  = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y+1, p.z)  , chunks);
-	const BOOL e3  = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y+1, p.z-1), chunks);
-	const BOOL e4  = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y,   p.z)  , chunks);
-	const BOOL e5  = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y,   p.z-1), chunks);
-	const BOOL e6  = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y+1, p.z)  , chunks);
-	const BOOL e7  = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y,   p.z)  , chunks);
-	const BOOL e8  = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y,   p.z-1), chunks);
-	const BOOL e9  = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y+1, p.z)  , chunks);
-	const BOOL e10 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y-1, p.z)  , chunks);
-	const BOOL e11 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y-1, p.z-1), chunks);
-	const BOOL e12 = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y-1, p.z)  , chunks);
-	const BOOL e13 = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y-1, p.z)  , chunks);
-	const BOOL e14 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y,   p.z+1), chunks);
-	const BOOL e15 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y+1, p.z+1), chunks);
-	const BOOL e16 = isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y,   p.z+1), chunks);
-	const BOOL e17 = isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y,   p.z+1), chunks);
-	const BOOL e18 = isEmptyAtPoint(GSIntegerVector3_Make(p.x,   p.y-1, p.z+1), chunks);
-	
-	const float a = 1.0 / 7.0; // vertex brightness conferred by each additional empty neighbor
+    
+#define OCCLUSION(x, y, z) (occlusion[(x+1)*3*3 + (y+1)*3 + (z+1)])
+    
+    float occlusion[3*3*3];
+    
+    const float a = 1.0 / 4.0; // vertex brightness conferred by each additional empty neighbor
+    
+    for(ssize_t x = -1; x <= 1; ++x)
+    {
+        for(ssize_t y = -1; y <= 1; ++y)
+        {
+            for(ssize_t z = -1; z <= 1; ++z)
+            {
+                if(x==y==z==-1) {
+                    OCCLUSION(x, y, z) = 0.0;
+                } else {
+                    OCCLUSION(x, y, z) = isEmptyAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), chunks) ? a : 0.0;
+                }
+            }   
+        }
+    }
+    
+    // Top /////////////////////////////////////////////////////////////////////////////
+    
+    // x-L, y+L, z-L
+    ao->top[0]  = OCCLUSION( 0, 1,  0);
+    ao->top[0] += OCCLUSION( 0, 1, -1);
+    ao->top[0] += OCCLUSION(-1, 1,  0);
+    ao->top[0] += OCCLUSION(-1, 1, -1);
 
-	// front, top, right
-	ao->ftr =  e1 ? a : 0.0;
-	ao->ftr += e2 ? a : 0.0;
-	ao->ftr += e3 ? a : 0.0;
-	ao->ftr += e4 ? a : 0.0;
-	ao->ftr += e5 ? a : 0.0;
-	ao->ftr += e6 ? a : 0.0;
-	ao->ftr += isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y+1, p.z-1), chunks) ? a : 0.0;
-	
-	// front, top, left
-	ao->ftl =  e1 ? a : 0.0;
-	ao->ftl += e2 ? a : 0.0;
-	ao->ftl += e3 ? a : 0.0;
-	ao->ftl += e7 ? a : 0.0;
-	ao->ftl += e8 ? a : 0.0;
-	ao->ftl += e9 ? a : 0.0;
-	ao->ftl += isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y+1, p.z-1), chunks) ? a : 0.0;
-	
-	// front, bottom, right
-	ao->fbr =  e1 ? a : 0.0;
-	ao->fbr += e10 ? a : 0.0;
-	ao->fbr += e11 ? a : 0.0;
-	ao->fbr += e4 ? a : 0.0;
-	ao->fbr += e5 ? a : 0.0;
-	ao->fbr += e12 ? a : 0.0;
-	ao->fbr += isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y-1, p.z-1), chunks) ? a : 0.0;
-	
-	// front, bottom, left
-	ao->fbl =  e1 ? a : 0.0;
-	ao->fbl += e10 ? a : 0.0;
-	ao->fbl += e11 ? a : 0.0;
-	ao->fbl += e7 ? a : 0.0;
-	ao->fbl += e8 ? a : 0.0;
-	ao->fbl += e13 ? a : 0.0;
-	ao->fbl += isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y-1, p.z-1), chunks) ? a : 0.0;
-	
-	// back, top, right
-	ao->btr =  e14 ? a : 0.0;
-	ao->btr += e2 ? a : 0.0;
-	ao->btr += e15 ? a : 0.0;
-	ao->btr += e4 ? a : 0.0;
-	ao->btr += e16 ? a : 0.0;
-	ao->btr += e6 ? a : 0.0;
-	ao->btr += isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y+1, p.z+1), chunks) ? a : 0.0;
-	
-	// back, top, left
-	ao->btl =  e14 ? a : 0.0;
-	ao->btl += e2 ? a : 0.0;
-	ao->btl += e15 ? a : 0.0;
-	ao->btl += e7 ? a : 0.0;
-	ao->btl += e17 ? a : 0.0;
-	ao->btl += e9 ? a : 0.0;
-	ao->btl += isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y+1, p.z+1), chunks) ? a : 0.0;
-	
-	// back, bottom, right
-	ao->bbr =  e14 ? a : 0.0;
-	ao->bbr += e10 ? a : 0.0;
-	ao->bbr += e18 ? a : 0.0;
-	ao->bbr += e4 ? a : 0.0;
-	ao->bbr += e16 ? a : 0.0;
-	ao->bbr += e12 ? a : 0.0;
-	ao->bbr += isEmptyAtPoint(GSIntegerVector3_Make(p.x+1, p.y-1, p.z+1), chunks) ? a : 0.0;
-	
-	// back, bottom, left
-	ao->bbl =  e14 ? a : 0.0;
-	ao->bbl += e10 ? a : 0.0;
-	ao->bbl += e18 ? a : 0.0;
-	ao->bbl += e7 ? a : 0.0;
-	ao->bbl += e17 ? a : 0.0;
-	ao->bbl += e13 ? a : 0.0;
-	ao->bbl += isEmptyAtPoint(GSIntegerVector3_Make(p.x-1, p.y-1, p.z+1), chunks) ? a : 0.0;
+    // x-L, y+L, z+L
+    ao->top[1]  = OCCLUSION( 0, 1,  0);
+    ao->top[1] += OCCLUSION( 0, 1, +1);
+    ao->top[1] += OCCLUSION(-1, 1,  0);
+    ao->top[1] += OCCLUSION(-1, 1, +1);
+    
+    // x+L, y+L, z+L
+    ao->top[2]  = OCCLUSION( 0, 1,  0);
+    ao->top[2] += OCCLUSION( 0, 1, +1);
+    ao->top[2] += OCCLUSION(+1, 1,  0);
+    ao->top[2] += OCCLUSION(+1, 1, +1);
+    
+    // x+L, y+L, z-L
+    ao->top[3]  = OCCLUSION( 0, 1,  0);
+    ao->top[3] += OCCLUSION( 0, 1, -1);
+    ao->top[3] += OCCLUSION(+1, 1,  0);
+    ao->top[3] += OCCLUSION(+1, 1, -1);
+    
+    // Bottom ///////////////////////////////////////////////////////////////////////////
+    
+    // x-L, y-L, z-L
+    ao->bottom[0]  = OCCLUSION( 0, -1,  0);
+    ao->bottom[0] += OCCLUSION( 0, -1, -1);
+    ao->bottom[0] += OCCLUSION(-1, -1,  0);
+    ao->bottom[0] += OCCLUSION(-1, -1, -1);
+    
+    // x+L, y-L, z-L
+    ao->bottom[1]  = OCCLUSION( 0, -1,  0);
+    ao->bottom[1] += OCCLUSION( 0, -1, -1);
+    ao->bottom[1] += OCCLUSION(+1, -1,  0);
+    ao->bottom[1] += OCCLUSION(+1, -1, -1);
+    
+    // x+L, y-L, z+L
+    ao->bottom[2]  = OCCLUSION( 0, -1,  0);
+    ao->bottom[2] += OCCLUSION( 0, -1, +1);
+    ao->bottom[2] += OCCLUSION(+1, -1,  0);
+    ao->bottom[2] += OCCLUSION(+1, -1, +1);
+    
+    // x-L, y-L, z+L
+    ao->bottom[3]  = OCCLUSION( 0, -1,  0);
+    ao->bottom[3] += OCCLUSION( 0, -1, +1);
+    ao->bottom[3] += OCCLUSION(-1, -1,  0);
+    ao->bottom[3] += OCCLUSION(-1, -1, +1);
+    
+    // Back (+Z) ////////////////////////////////////////////////////////////////////////
+    
+    // x-L, y-L, z+L
+    ao->back[0]  = OCCLUSION( 0, -1, 1);
+    ao->back[0] += OCCLUSION( 0,  0, 1);
+    ao->back[0] += OCCLUSION(-1, -1, 1);
+    ao->back[0] += OCCLUSION(-1,  0, 1);
+    
+    // x+L, y-L, z+L
+    ao->back[1]  = OCCLUSION( 0, -1, 1);
+    ao->back[1] += OCCLUSION( 0,  0, 1);
+    ao->back[1] += OCCLUSION(+1, -1, 1);
+    ao->back[1] += OCCLUSION(+1,  0, 1);
+    
+    // x+L, y+L, z+L
+    ao->back[2]  = OCCLUSION( 0, +1, 1);
+    ao->back[2] += OCCLUSION( 0,  0, 1);
+    ao->back[2] += OCCLUSION(+1, +1, 1);
+    ao->back[2] += OCCLUSION(+1,  0, 1);
+    
+    // x-L, y+L, z+L
+    ao->back[3]  = OCCLUSION( 0, +1, 1);
+    ao->back[3] += OCCLUSION( 0,  0, 1);
+    ao->back[3] += OCCLUSION(-1, +1, 1);
+    ao->back[3] += OCCLUSION(-1,  0, 1);
+    
+    // Front (-Z) ///////////////////////////////////////////////////////////////////////
+    
+    // x-L, y-L, z-L
+    ao->front[0]  = OCCLUSION( 0, -1, -1);
+    ao->front[0] += OCCLUSION( 0,  0, -1);
+    ao->front[0] += OCCLUSION(-1, -1, -1);
+    ao->front[0] += OCCLUSION(-1,  0, -1);    
+    
+    // x-L, y+L, z-L
+    ao->front[1]  = OCCLUSION( 0, +1, -1);
+    ao->front[1] += OCCLUSION( 0,  0, -1);
+    ao->front[1] += OCCLUSION(-1, +1, -1);
+    ao->front[1] += OCCLUSION(-1,  0, -1);
+    
+    // x+L, y+L, z-L
+    ao->front[2]  = OCCLUSION( 0, +1, -1);
+    ao->front[2] += OCCLUSION( 0,  0, -1);
+    ao->front[2] += OCCLUSION(+1, +1, -1);
+    ao->front[2] += OCCLUSION(+1,  0, -1);
+    
+    // x+L, y-L, z-L
+    ao->front[3]  = OCCLUSION( 0, -1, -1);
+    ao->front[3] += OCCLUSION( 0,  0, -1);
+    ao->front[3] += OCCLUSION(+1, -1, -1);
+    ao->front[3] += OCCLUSION(+1,  0, -1);
+    
+    // Right ////////////////////////////////////////////////////////////////////////////
+    
+    // x+L, y-L, z-L
+    ao->right[0]  = OCCLUSION(+1,  0,  0);
+    ao->right[0] += OCCLUSION(+1,  0, -1);
+    ao->right[0] += OCCLUSION(+1, -1,  0);
+    ao->right[0] += OCCLUSION(+1, -1, -1);
+    
+    // x+L, y+L, z-L
+    ao->right[1]  = OCCLUSION(+1,  0,  0);
+    ao->right[1] += OCCLUSION(+1,  0, -1);
+    ao->right[1] += OCCLUSION(+1, +1,  0);
+    ao->right[1] += OCCLUSION(+1, +1, -1);
+    
+    // x+L, y+L, z+L
+    ao->right[2]  = OCCLUSION(+1,  0,  0);
+    ao->right[2] += OCCLUSION(+1,  0, +1);
+    ao->right[2] += OCCLUSION(+1, +1,  0);
+    ao->right[2] += OCCLUSION(+1, +1, +1);
+    
+    // x+L, y-L, z+L
+    ao->right[3]  = OCCLUSION(+1,  0,  0);
+    ao->right[3] += OCCLUSION(+1,  0, +1);
+    ao->right[3] += OCCLUSION(+1, -1,  0);
+    ao->right[3] += OCCLUSION(+1, -1, +1);
+    
+    // Left ////////////////////////////////////////////////////////////////////////////
+    
+    // x-L, y-L, z-L
+    ao->left[0]  = OCCLUSION(-1,  0,  0);
+    ao->left[0] += OCCLUSION(-1,  0, -1);
+    ao->left[0] += OCCLUSION(-1, -1,  0);
+    ao->left[0] += OCCLUSION(-1, -1, -1);
+    
+    // x-L, y-L, z+L
+    ao->left[1]  = OCCLUSION(-1,  0,  0);
+    ao->left[1] += OCCLUSION(-1,  0, +1);
+    ao->left[1] += OCCLUSION(-1, -1,  0);
+    ao->left[1] += OCCLUSION(-1, -1, +1);
+    
+    // x-L, y+L, z+L
+    ao->left[2]  = OCCLUSION(-1,  0,  0);
+    ao->left[2] += OCCLUSION(-1,  0, +1);
+    ao->left[2] += OCCLUSION(-1, +1,  0);
+    ao->left[2] += OCCLUSION(-1, +1, +1);
+    
+    // x-L, y+L, z-L
+    ao->left[3]  = OCCLUSION(-1,  0,  0);
+    ao->left[3] += OCCLUSION(-1,  0, -1);
+    ao->left[3] += OCCLUSION(-1, +1,  0);
+    ao->left[3] += OCCLUSION(-1, +1, -1);
+    
+#undef OCCLUSION
 }
 
 
@@ -778,4 +855,20 @@ BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
 	GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
 	
     return chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)].empty;
+}
+
+
+void noAmbientOcclusion(ambient_occlusion_t *ao)
+{
+    assert(ao);
+    
+    for(size_t i = 0; i < 4; ++i)
+    {
+        ao->top[i] = 1.0;
+        ao->bottom[i] = 1.0;
+        ao->left[i] = 1.0;
+        ao->right[i] = 1.0;
+        ao->front[i] = 1.0;
+        ao->back[i] = 1.0;
+    }
 }

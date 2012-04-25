@@ -17,16 +17,17 @@ static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
-                      GLfloat  color,
+                      GSVector3  color,
                       NSMutableArray *vertices,
                       NSMutableArray *indices);
 
 static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
 
-static inline float blockLight(float sunlight, float torchLight, float ambientOcclusion)
+static inline GSVector3 blockLight(float sunlight, float torchLight, float ambientOcclusion)
 {
-	return sunlight*ambientOcclusion + torchLight;
+    // Pack ambient occlusion into the Red channel, sunlight into the Green channel, and torch light into the Blue channel.
+    return GSVector3_Make(ambientOcclusion, sunlight, torchLight);
 }
 
 
@@ -379,14 +380,7 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 	ambient_occlusion_t ambientOcclusion = [chunks[CHUNK_NEIGHBOR_CENTER] getAmbientOcclusionAtPoint:chunkLocalPos];
 #else
     ambient_occlusion_t ambientOcclusion;
-    ambientOcclusion.ftr = 1.0;
-	ambientOcclusion.ftl = 1.0;
-	ambientOcclusion.fbr = 1.0;
-	ambientOcclusion.fbl = 1.0;
-	ambientOcclusion.btr = 1.0;
-	ambientOcclusion.btl = 1.0;
-	ambientOcclusion.bbr = 1.0;
-	ambientOcclusion.bbl = 1.0;
+    noAmbientOcclusion(&ambientOcclusion);
 #endif
 	
     // Top Face
@@ -396,28 +390,28 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 		addVertex(x-L, y+L, z-L,
 				  0, 1, 0,
 				  1, 0, grass,
-				  blockLight(sunlight, torchLight, ambientOcclusion.ftl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.top[0]),
 				  vertices,
 				  indices);
         
 		addVertex(x-L, y+L, z+L,
 				  0, 1, 0,
 				  1, 1, grass,
-				  blockLight(sunlight, torchLight, ambientOcclusion.btl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.top[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z+L,
 				  0, 1, 0,
 				  0, 1, grass,
-				  blockLight(sunlight, torchLight, ambientOcclusion.btr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.top[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
 				  0, 1, 0,
 				  0, 0, grass,
-				  blockLight(sunlight, torchLight, ambientOcclusion.ftr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.top[3]),
 				  vertices,
 				  indices);
     }
@@ -427,28 +421,28 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 		addVertex(x-L, y-L, z-L,
 				  0, -1, 0,
 				  1, 0, dirt,
-				  blockLight(sunlight, torchLight, ambientOcclusion.fbl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.bottom[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z-L,
 				  0, -1, 0,
 				  0, 0, dirt,
-				  blockLight(sunlight, torchLight, ambientOcclusion.fbr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.bottom[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z+L,
 				  0, -1, 0,
 				  0, 1, dirt,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bbr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.bottom[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y-L, z+L,
 				  0, -1, 0,
 				  1, 1, dirt,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bbl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.bottom[3]),
 				  vertices,
 				  indices);
     }
@@ -458,28 +452,28 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 		addVertex(x-L, y-L, z+L,
 				  0, 0, 1,
 				  0, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bbl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.back[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z+L,
 				  0, 0, 1,
 				  1, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bbr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.back[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z+L,
 				  0, 0, 1,
 				  1, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.btr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.back[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z+L,
 				  0, 0, 1,
 				  0, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.btl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.back[3]),
 				  vertices,
 				  indices);
     }
@@ -489,28 +483,28 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 		addVertex(x-L, y-L, z-L,
 				  0, 1, -1,
 				  0, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.fbl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.front[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z-L,
 				  0, 1, -1,
 				  0, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.ftl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.front[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
 				  0, 1, -1,
 				  1, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.ftr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.front[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z-L,
 				  0, 1, -1,
 				  1, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.fbr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.front[3]),
 				  vertices,
 				  indices);
     }
@@ -520,28 +514,28 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 		addVertex(x+L, y-L, z-L,
 				  1, 0, 0,
 				  0, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.fbr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.right[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
 				  1, 0, 0,
 				  0, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.ftr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.right[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z+L,
 				  1, 0, 0,
 				  1, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.btr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.right[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z+L,
 				  1, 0, 0,
 				  1, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bbr),
+				  blockLight(sunlight, torchLight, ambientOcclusion.right[3]),
 				  vertices,
 				  indices);
     }
@@ -551,28 +545,28 @@ static inline float blockLight(float sunlight, float torchLight, float ambientOc
 		addVertex(x-L, y-L, z-L,
 				  -1, 0, 0,
 				  0, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.fbl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.left[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y-L, z+L,
 				  -1, 0, 0,
 				  1, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bbl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.left[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z+L,
 				  -1, 0, 0,
 				  1, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.btl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.left[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z-L,
 				  -1, 0, 0,
 				  0, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.ftl),
+				  blockLight(sunlight, torchLight, ambientOcclusion.left[3]),
 				  vertices,
 				  indices);
     }
@@ -654,14 +648,14 @@ static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
-                      GLfloat  c,
+                      GSVector3 c,
                       NSMutableArray *vertices,
                       NSMutableArray *indices)
 {
 	GSBoxedVector *position = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(vx, vy, vz)] autorelease];
 	GSBoxedVector *normal   = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(nx, ny, nz)] autorelease];
 	GSBoxedVector *texCoord = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(tx, ty, tz)] autorelease];
-	GSBoxedVector *color = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(c, c, c)] autorelease];
+	GSBoxedVector *color = [[[GSBoxedVector alloc] initWithVector:c] autorelease];
 	
 	GSVertex *vertex = [[[GSVertex alloc] initWithPosition:position
 													normal:normal

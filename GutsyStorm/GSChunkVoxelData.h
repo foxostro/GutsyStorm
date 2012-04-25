@@ -23,7 +23,7 @@
 #define CHUNK_NEIGHBOR_CENTER       (8)
 #define CHUNK_NUM_NEIGHBORS         (9)
 
-#define CHUNK_LIGHTING_MAX (7)
+#define CHUNK_LIGHTING_MAX (15)
 
 #define USE_AMBIENT_OCCLUSION (1)
 
@@ -37,15 +37,16 @@ typedef struct
 
 typedef struct
 {
-	// Each block has eigh vertices, this is the ambient occlusion factors for each one.
-	float ftr;
-	float ftl;
-	float fbr;
-	float fbl;
-	float btr;
-	float btl;
-	float bbr;
-	float bbl;
+	/* Each face has four vertices, and we need an ambient occlusion factor for
+     * all 24 of these vertices.
+     */
+    
+    float top[4];
+    float bottom[4];
+    float left[4];
+    float right[4];
+    float front[4];
+    float back[4];
 } ambient_occlusion_t;
 
 
@@ -92,3 +93,6 @@ GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
 
 // Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
 BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
+
+
+void noAmbientOcclusion(ambient_occlusion_t *ao);
