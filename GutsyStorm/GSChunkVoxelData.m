@@ -375,72 +375,30 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 {
 	GSIntegerVector3 p = {0};
 	
+	[lockVoxelData lockForReading];
 	[lockSunlight lock];
 	
-	// Atomically, grab all the chunks relevant to lighting.
-	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
-	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-	{
-		[chunks[i]->lockVoxelData lockForReading];
-	}
-	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
-	
-	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-	
 	// Reset all empty, outside blocks to full sunlight.
-	for(int i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
 	{
-		for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+		for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
 		{
-			for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+			for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
 			{
-				for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-				{
-					size_t idx = INDEX(p.x, p.y, p.z);
-					assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));	
-					
-					if(chunks[i]->voxelData[idx].outside) {
-						chunks[i]->sunlight[idx] = CHUNK_LIGHTING_MAX;
-					}
+				size_t idx = INDEX(p.x, p.y, p.z);
+				assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));	
+				
+				if(voxelData[idx].outside) {
+					sunlight[idx] = CHUNK_LIGHTING_MAX;
+				} else {
+					sunlight[idx] = CHUNK_LIGHTING_MAX / 2;
 				}
 			}
 		}
 	}
 	
-	// Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
-	// Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
-	// Set the blocks we find to the next lower light level.
-	for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
-	{
-		for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-		{
-			for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-			{
-				for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-				{
-					size_t idx = INDEX(p.x, p.y, p.z);
-					assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));	
-					
-					if((sunlight[idx] < lightLevel) && [self isAdjacentToSunlightAtPoint:p
-																			  lightLevel:lightLevel
-																			   neighbors:chunks]) {
-						sunlight[idx] = MAX(sunlight[idx], lightLevel - 1);
-					}
-				}
-			}
-		}
-	}
-	
-	// Give up locks on the neighboring chunks.
-	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-	{
-		[chunks[i]->lockVoxelData unlockForReading];
-	}
-	
+	[lockVoxelData unlockForReading];
 	[lockSunlight unlockWithCondition:READY];
-	
-	//CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-	//NSLog(@"Finished calculating sunlight for chunk. It took %.3fs", timeEnd - timeStart);
 }
 
 
