@@ -516,34 +516,34 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 
 
 /* Assumes the caller is already holding "lockVoxelData".
- * Returns YES if any of the adjacent blocks is lit to the specified light level.
+ * Returns YES if any of the empty, adjacent blocks are lit to the specified light level.
  * NOTE: This totally ignores the neighboring chunks.
  */
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel
 {
 	if(p.y+1 >= CHUNK_SIZE_Y) {
 		return YES;
-	} else if(sunlight[INDEX(p.x, p.y+1, p.z)]) {
+	} else if(voxelData[INDEX(p.x, p.y+1, p.z)].empty && sunlight[INDEX(p.x, p.y+1, p.z)]) {
 		return YES;
 	}
 	
-	if(p.y-1 >= 0 && sunlight[INDEX(p.x, p.y-1, p.z)]) {
+	if(p.y-1 >= 0 && voxelData[INDEX(p.x, p.y-1, p.z)].empty && sunlight[INDEX(p.x, p.y-1, p.z)]) {
 		return YES;
 	}
 	
-	if(p.x-1 >= 0 && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
+	if(p.x-1 >= 0 && voxelData[INDEX(p.x-1, p.y, p.z)].empty && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
 		return YES;
 	}
 	
-	if(p.x+1 < CHUNK_SIZE_X && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
+	if(p.x+1 < CHUNK_SIZE_X && voxelData[INDEX(p.x+1, p.y, p.z)].empty && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
 		return YES;
 	}
 	
-	if(p.z-1 >= 0 && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
+	if(p.z-1 >= 0 && voxelData[INDEX(p.x, p.y, p.z-1)].empty && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
 		return YES;
 	}
 	
-	if(p.z+1 < CHUNK_SIZE_Z && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
+	if(p.z+1 < CHUNK_SIZE_Z && voxelData[INDEX(p.x, p.y, p.z+1)].empty && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
 		return YES;
 	}
 	
@@ -585,8 +585,6 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 		}
 	}
 	
-	[lockVoxelData unlockForReading];
-	
 	// Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
 	// Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
 	// Set the blocks we find to the next lower light level.
@@ -608,6 +606,8 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 			}
 		}
 	}
+	
+	[lockVoxelData unlockForReading];
 }
 
 
@@ -637,11 +637,7 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
         {
             for(ssize_t z = -1; z <= 1; ++z)
             {
-                if(x==y==z==-1) {
-                    OCCLUSION(x, y, z) = 0.0;
-                } else {
-                    OCCLUSION(x, y, z) = isEmptyAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), chunks) ? a : 0.0;
-                }
+                OCCLUSION(x, y, z) = isEmptyAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), chunks) ? a : 0.0;
             }   
         }
     }
@@ -882,7 +878,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
 	BOOL groundLayer = NO;
 	BOOL floatingMountain = NO;
-	BOOL test = NO;
 	
 	// Normal rolling hills
     {
@@ -930,7 +925,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 		}
 	}
 	
-	return groundLayer || test || floatingMountain;
+	return groundLayer || floatingMountain;
 }
 
 
