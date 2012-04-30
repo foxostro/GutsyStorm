@@ -7,6 +7,7 @@
 //
 
 #import "GSRenderTexture.h"
+#import <OpenGL/gl.h>
 
 @implementation GSRenderTexture
 

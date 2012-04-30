@@ -337,7 +337,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	NSData *data = [[NSData alloc] initWithContentsOfURL:url];
 	if([data length] != len) {
 		[NSException raise:@"Runtime Error"
-					format:@"Unexpected length of data for chunk. Got %ul bytes. Expected %lu bytes.", [data length], len];
+					format:@"Unexpected length of data for chunk. Got %zu bytes. Expected %zu bytes.", (size_t)[data length], len];
 	}
 	[data getBytes:voxelData length:len];
 	[data release];
