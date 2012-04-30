@@ -380,7 +380,11 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 	const float torchLight = 0.0; // TODO: add torch lighting to the world.
     
 	block_lighting_t ambientOcclusion = [chunks[CHUNK_NEIGHBOR_CENTER] getAmbientOcclusionAtPoint:chunkLocalPos];
-	block_lighting_t sunlight = [chunks[CHUNK_NEIGHBOR_CENTER] getSunlightAtPoint:chunkLocalPos neighbors:chunks];
+	
+	block_lighting_t sunlight;
+	[chunks[CHUNK_NEIGHBOR_CENTER] getSunlightAtPoint:chunkLocalPos
+											neighbors:chunks
+										  outLighting:&sunlight];
 	
     // Top Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ), chunks)) {

@@ -74,8 +74,10 @@ typedef struct
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
-// Assumes the caller is already holding "lockSunlight" on all neighbors.
-- (block_lighting_t)getSunlightAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)voxels;
+// Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
+- (void)getSunlightAtPoint:(GSIntegerVector3)p
+				 neighbors:(GSChunkVoxelData **)voxels
+			   outLighting:(block_lighting_t *)lighting;
 
 // Assumes the caller is already holding "lockAmbientOcclusion".
 - (block_lighting_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p;
@@ -93,4 +95,4 @@ GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
 BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
 
 
-void noAmbientOcclusion(block_lighting_t *ao);
+void fullBlockLighting(block_lighting_t *ao);
