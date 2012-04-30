@@ -535,12 +535,17 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 			for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
 			{
 				size_t idx = INDEX(p.x, p.y, p.z);
-				assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));	
+				assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
 				
-				if(voxelData[idx].outside) {
-					sunlight[idx] = CHUNK_LIGHTING_MAX;
+				if(!voxelData[idx].empty) { // Solid blocks always have zero sunlight. They pick up light from surrounding air.
+					sunlight[idx] = 0;
 				} else {
-					sunlight[idx] = CHUNK_LIGHTING_MAX / 2;
+					// This is "hard" lighting with exactly two lighting levels.
+					if(voxelData[idx].outside) {
+						sunlight[idx] = CHUNK_LIGHTING_MAX;
+					} else {
+						sunlight[idx] = CHUNK_LIGHTING_MAX / 2;
+					}
 				}
 			}
 		}
