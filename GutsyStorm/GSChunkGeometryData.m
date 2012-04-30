@@ -204,9 +204,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 	NSMutableArray *indices = [[NSMutableArray alloc] init];
 	
     [chunks[CHUNK_NEIGHBOR_CENTER]->lockSunlight lockWhenCondition:READY];
-#if USE_AMBIENT_OCCLUSION
     [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion lockWhenCondition:READY];
-#endif
 	
 	// Atomically, grab all the voxel data we need to generate geometry for this chunk.
 	// We do this atomically to prevent deadlock.
@@ -241,9 +239,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 		[chunks[i]->lockVoxelData unlockForReading];
 	}
 	
-#if USE_AMBIENT_OCCLUSION
     [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion unlockWithCondition:READY];
-#endif
 	[chunks[CHUNK_NEIGHBOR_CENTER]->lockSunlight unlockWithCondition:READY];
     
     numChunkVerts = (GLsizei)[vertices count];
@@ -372,16 +368,10 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
         return;
     }
     
-	int sunlightLightLevel = [chunks[CHUNK_NEIGHBOR_CENTER] getSunlightAtPoint:chunkLocalPos];
-    float sunlight = (MAX(0, sunlightLightLevel) / (float)CHUNK_LIGHTING_MAX) * 0.8 + 0.2;
-	float torchLight = 0.0; // TODO: add torch lighting to the world.
+	const float torchLight = 0.0; // TODO: add torch lighting to the world.
     
-#if USE_AMBIENT_OCCLUSION
-	ambient_occlusion_t ambientOcclusion = [chunks[CHUNK_NEIGHBOR_CENTER] getAmbientOcclusionAtPoint:chunkLocalPos];
-#else
-    ambient_occlusion_t ambientOcclusion;
-    noAmbientOcclusion(&ambientOcclusion);
-#endif
+	block_lighting_t ambientOcclusion = [chunks[CHUNK_NEIGHBOR_CENTER] getAmbientOcclusionAtPoint:chunkLocalPos];
+	block_lighting_t sunlight = [chunks[CHUNK_NEIGHBOR_CENTER] getSunlightAtPoint:chunkLocalPos neighbors:chunks];
 	
     // Top Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ), chunks)) {
@@ -390,28 +380,28 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 		addVertex(x-L, y+L, z-L,
 				  0, 1, 0,
 				  1, 0, grass,
-				  blockLight(sunlight, torchLight, ambientOcclusion.top[0]),
+				  blockLight(sunlight.top[0], torchLight, ambientOcclusion.top[0]),
 				  vertices,
 				  indices);
         
 		addVertex(x-L, y+L, z+L,
 				  0, 1, 0,
 				  1, 1, grass,
-				  blockLight(sunlight, torchLight, ambientOcclusion.top[1]),
+				  blockLight(sunlight.top[1], torchLight, ambientOcclusion.top[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z+L,
 				  0, 1, 0,
 				  0, 1, grass,
-				  blockLight(sunlight, torchLight, ambientOcclusion.top[2]),
+				  blockLight(sunlight.top[2], torchLight, ambientOcclusion.top[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
 				  0, 1, 0,
 				  0, 0, grass,
-				  blockLight(sunlight, torchLight, ambientOcclusion.top[3]),
+				  blockLight(sunlight.top[3], torchLight, ambientOcclusion.top[3]),
 				  vertices,
 				  indices);
     }
@@ -421,28 +411,28 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 		addVertex(x-L, y-L, z-L,
 				  0, -1, 0,
 				  1, 0, dirt,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bottom[0]),
+				  blockLight(sunlight.bottom[0], torchLight, ambientOcclusion.bottom[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z-L,
 				  0, -1, 0,
 				  0, 0, dirt,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bottom[1]),
+				  blockLight(sunlight.bottom[1], torchLight, ambientOcclusion.bottom[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z+L,
 				  0, -1, 0,
 				  0, 1, dirt,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bottom[2]),
+				  blockLight(sunlight.bottom[2], torchLight, ambientOcclusion.bottom[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y-L, z+L,
 				  0, -1, 0,
 				  1, 1, dirt,
-				  blockLight(sunlight, torchLight, ambientOcclusion.bottom[3]),
+				  blockLight(sunlight.bottom[3], torchLight, ambientOcclusion.bottom[3]),
 				  vertices,
 				  indices);
     }
@@ -452,28 +442,28 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 		addVertex(x-L, y-L, z+L,
 				  0, 0, 1,
 				  0, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.back[0]),
+				  blockLight(sunlight.back[0], torchLight, ambientOcclusion.back[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z+L,
 				  0, 0, 1,
 				  1, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.back[1]),
+				  blockLight(sunlight.back[1], torchLight, ambientOcclusion.back[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z+L,
 				  0, 0, 1,
 				  1, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.back[2]),
+				  blockLight(sunlight.back[2], torchLight, ambientOcclusion.back[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z+L,
 				  0, 0, 1,
 				  0, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.back[3]),
+				  blockLight(sunlight.back[3], torchLight, ambientOcclusion.back[3]),
 				  vertices,
 				  indices);
     }
@@ -483,28 +473,28 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 		addVertex(x-L, y-L, z-L,
 				  0, 1, -1,
 				  0, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.front[0]),
+				  blockLight(sunlight.front[0], torchLight, ambientOcclusion.front[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z-L,
 				  0, 1, -1,
 				  0, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.front[1]),
+				  blockLight(sunlight.front[1], torchLight, ambientOcclusion.front[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
 				  0, 1, -1,
 				  1, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.front[2]),
+				  blockLight(sunlight.front[2], torchLight, ambientOcclusion.front[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z-L,
 				  0, 1, -1,
 				  1, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.front[3]),
+				  blockLight(sunlight.front[3], torchLight, ambientOcclusion.front[3]),
 				  vertices,
 				  indices);
     }
@@ -514,28 +504,28 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 		addVertex(x+L, y-L, z-L,
 				  1, 0, 0,
 				  0, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.right[0]),
+				  blockLight(sunlight.right[0], torchLight, ambientOcclusion.right[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z-L,
 				  1, 0, 0,
 				  0, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.right[1]),
+				  blockLight(sunlight.right[1], torchLight, ambientOcclusion.right[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y+L, z+L,
 				  1, 0, 0,
 				  1, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.right[2]),
+				  blockLight(sunlight.right[2], torchLight, ambientOcclusion.right[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x+L, y-L, z+L,
 				  1, 0, 0,
 				  1, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.right[3]),
+				  blockLight(sunlight.right[3], torchLight, ambientOcclusion.right[3]),
 				  vertices,
 				  indices);
     }
@@ -545,28 +535,28 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 		addVertex(x-L, y-L, z-L,
 				  -1, 0, 0,
 				  0, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.left[0]),
+				  blockLight(sunlight.left[0], torchLight, ambientOcclusion.left[0]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y-L, z+L,
 				  -1, 0, 0,
 				  1, 1, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.left[1]),
+				  blockLight(sunlight.left[1], torchLight, ambientOcclusion.left[1]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z+L,
 				  -1, 0, 0,
 				  1, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.left[2]),
+				  blockLight(sunlight.left[2], torchLight, ambientOcclusion.left[2]),
 				  vertices,
 				  indices);
 		
 		addVertex(x-L, y+L, z-L,
 				  -1, 0, 0,
 				  0, 0, page,
-				  blockLight(sunlight, torchLight, ambientOcclusion.left[3]),
+				  blockLight(sunlight.left[3], torchLight, ambientOcclusion.left[3]),
 				  vertices,
 				  indices);
     }

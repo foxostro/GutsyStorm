@@ -32,10 +32,9 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 
 - (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
 										neighbors:(GSChunkVoxelData **)chunks
-							  outAmbientOcclusion:(ambient_occlusion_t*)ao;
+							  outAmbientOcclusion:(block_lighting_t*)ao;
 - (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks;
 
-- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel neighbors:(GSChunkVoxelData **)neighbors;
 - (void)generateSunlightWithNeighbors:(GSChunkVoxelData **)chunks;
 
 @end
@@ -168,21 +167,37 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 }
 
 
-// Assumes the caller is already holding "lockSunlight".
-- (int)getSunlightAtPoint:(GSIntegerVector3)p
+// Assumes the caller is already holding "lockSunlight" on all neighbors.
+- (block_lighting_t)getSunlightAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)voxels
 {
+	block_lighting_t lighting;
+	
 	assert(sunlight);
 	assert(p.x >= 0 && p.x < CHUNK_SIZE_X && p.y >= 0 && p.y < CHUNK_SIZE_Y && p.z >= 0 && p.z < CHUNK_SIZE_Z);
 	
 	size_t idx = INDEX(p.x, p.y, p.z);
 	assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
+	
+	float lightLevel = (float)sunlight[idx] / CHUNK_LIGHTING_MAX;
     
-    return sunlight[idx];
+    float s = lightLevel * 0.7 + 0.3;
+	
+	for(size_t i = 0; i < 4; ++i)
+	{
+		lighting.top[i] = s;
+		lighting.bottom[i] = s;
+		lighting.left[i] = s;
+		lighting.right[i] = s;
+		lighting.front[i] = s;
+		lighting.back[i] = s;
+	}
+	
+	return lighting;
 }
 
 
 // Assumes the caller is already holding "lockAmbientOcclusion".
-- (ambient_occlusion_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p
+- (block_lighting_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p
 {
 	assert(ambientOcclusion);
 	assert(p.x >= 0 && p.x < CHUNK_SIZE_X && p.y >= 0 && p.y < CHUNK_SIZE_Y && p.z >= 0 && p.z < CHUNK_SIZE_Z);
@@ -318,58 +333,6 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 }
 
 
-/* Assumes the caller is already holding "lockVoxelData".
- * Returns YES if any of the adjacent blocks is an empty block lit to the specified light level.
- * That is, light affects all cells, but only propagates through empty cells.
- */
-- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p
-						 lightLevel:(int)lightLevel
-						  neighbors:(GSChunkVoxelData **)neighbors
-{
-	if(p.y+1 >= CHUNK_SIZE_Y) {
-		return YES;
-	} else {
-		GSIntegerVector3 up    = GSIntegerVector3_Make(p.x, p.y+1, p.z);
-		GSIntegerVector3 adjustedUp = {0};
-		GSChunkVoxelData *chunkUp = getNeighborVoxelAtPoint(up, neighbors, &adjustedUp);
-		
-		if([chunkUp getVoxelAtPoint:adjustedUp].empty && [chunkUp getSunlightAtPoint:adjustedUp] == lightLevel) {
-			return YES;
-		}
-	}
-	
-	if(p.y-1 >= 0) {
-		GSIntegerVector3 down  = GSIntegerVector3_Make(p.x, p.y-1, p.z);
-		GSIntegerVector3 adjustedDown = {0};
-		GSChunkVoxelData *chunkDown = getNeighborVoxelAtPoint(down, neighbors, &adjustedDown);
-		
-		if([chunkDown getVoxelAtPoint:adjustedDown].empty && [chunkDown getSunlightAtPoint:adjustedDown] == lightLevel) {
-			return YES;
-		}
-	}
-	
-	GSIntegerVector3 dir[4] = {
-		GSIntegerVector3_Make(p.x-1, p.y, p.z),
-		GSIntegerVector3_Make(p.x+1, p.y, p.z),
-		GSIntegerVector3_Make(p.x, p.y, p.z-1),
-		GSIntegerVector3_Make(p.x, p.y, p.z+1)
-	};
-	
-	for(size_t i = 0; i < 4; ++i)
-	{
-		GSIntegerVector3 adjustedDir = {0};
-		GSChunkVoxelData *adjustedChunk = getNeighborVoxelAtPoint(dir[i], neighbors, &adjustedDir);
-		
-		if([adjustedChunk getVoxelAtPoint:adjustedDir].empty &&
-		   [adjustedChunk getSunlightAtPoint:adjustedDir] == lightLevel) {
-			return YES;
-		}
-	}
-	
-	return NO;
-}
-
-
 // Generates sunlight values for all blocks in the chunk.
 - (void)generateSunlightWithNeighbors:(GSChunkVoxelData **)chunks
 {
@@ -404,7 +367,7 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 
 - (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
 										neighbors:(GSChunkVoxelData **)chunks
-							  outAmbientOcclusion:(ambient_occlusion_t*)ao
+							  outAmbientOcclusion:(block_lighting_t*)ao
 {
 	/* Front is in the -Z direction and back is the +Z direction.
 	 * This is a totally arbitrary convention.
@@ -606,7 +569,7 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
     
 	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 	
-	ambientOcclusion = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(ambient_occlusion_t));
+	ambientOcclusion = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(block_lighting_t));
 	if(!ambientOcclusion) {
 		[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for ambientOcclusion array."];
 	}
@@ -795,7 +758,7 @@ BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
 }
 
 
-void noAmbientOcclusion(ambient_occlusion_t *ao)
+void noAmbientOcclusion(block_lighting_t *ao)
 {
     assert(ao);
     

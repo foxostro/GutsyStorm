@@ -25,8 +25,6 @@
 
 #define CHUNK_LIGHTING_MAX (15)
 
-#define USE_AMBIENT_OCCLUSION (1)
-
 
 typedef struct
 {
@@ -37,7 +35,7 @@ typedef struct
 
 typedef struct
 {
-	/* Each face has four vertices, and we need an ambient occlusion factor for
+	/* Each face has four vertices, and we need a brightness factor for
      * all 24 of these vertices.
      */
     
@@ -47,7 +45,7 @@ typedef struct
     float right[4];
     float front[4];
     float back[4];
-} ambient_occlusion_t;
+} block_lighting_t;
 
 
 @interface GSChunkVoxelData : GSChunkData
@@ -60,7 +58,7 @@ typedef struct
 	int *sunlight;
 	
 	NSConditionLock *lockAmbientOcclusion;
-	ambient_occlusion_t *ambientOcclusion;
+	block_lighting_t *ambientOcclusion;
 }
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
@@ -76,11 +74,11 @@ typedef struct
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
-// Assumes the caller is already holding "lockSunlight".
-- (int)getSunlightAtPoint:(GSIntegerVector3)p;
+// Assumes the caller is already holding "lockSunlight" on all neighbors.
+- (block_lighting_t)getSunlightAtPoint:(GSIntegerVector3)p neighbors:(GSChunkVoxelData **)voxels;
 
 // Assumes the caller is already holding "lockAmbientOcclusion".
-- (ambient_occlusion_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p;
+- (block_lighting_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p;
 
 @end
 
@@ -95,4 +93,4 @@ GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
 BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
 
 
-void noAmbientOcclusion(ambient_occlusion_t *ao);
+void noAmbientOcclusion(block_lighting_t *ao);
