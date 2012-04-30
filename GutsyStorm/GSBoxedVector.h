@@ -11,7 +11,7 @@
 
 @interface GSBoxedVector : NSObject
 {
-	GSVector3 v;
+    GSVector3 v;
 }
 
 @property (assign, nonatomic) GSVector3 v;

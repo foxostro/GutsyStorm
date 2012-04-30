@@ -18,9 +18,9 @@
 @interface GSCamera : NSObject
 {
     float ceilingHeight;
-	float cameraSpeed, cameraRotSpeed;
-	GSQuaternion cameraRot;
-	GSVector3 cameraEye, cameraCenter, cameraUp;
+    float cameraSpeed, cameraRotSpeed;
+    GSQuaternion cameraRot;
+    GSVector3 cameraEye, cameraCenter, cameraUp;
     GSFrustum *frustum;
 }
 
@@ -35,10 +35,10 @@
 - (void)resetCamera;
 - (void)submitCameraTransform;
 - (unsigned)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
-											   keysDown:(NSDictionary*)keysDown
-											mouseDeltaX:(int)mouseDeltaX
-											mouseDeltaY:(int)mouseDeltaY
-									   mouseSensitivity:(float)mouseSensitivity;
+                                               keysDown:(NSDictionary*)keysDown
+                                            mouseDeltaX:(int)mouseDeltaX
+                                            mouseDeltaY:(int)mouseDeltaY
+                                       mouseSensitivity:(float)mouseSensitivity;
 - (void)moveToPosition:(GSVector3)p;
 - (void)setCameraRot:(GSQuaternion)rot;
 - (void)reshapeWithBounds:(NSRect)bounds

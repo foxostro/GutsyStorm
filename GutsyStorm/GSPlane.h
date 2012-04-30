@@ -13,7 +13,7 @@
 
 typedef struct
 {
-	GSVector3 p, n;
+    GSVector3 p, n;
 } GSPlane;
 
 

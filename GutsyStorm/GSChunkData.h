@@ -19,7 +19,7 @@
 {
     GSVector3 minP;
     GSVector3 maxP;
-	GSVector3 centerP;
+    GSVector3 centerP;
 }
 
 @property (readonly, nonatomic) GSVector3 minP;

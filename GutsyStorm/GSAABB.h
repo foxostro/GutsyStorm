@@ -11,7 +11,7 @@
 
 @interface GSAABB : NSObject
 {
-	GSVector3 mins, maxs;
+    GSVector3 mins, maxs;
 }
 
 @property (assign, nonatomic) GSVector3 mins;

@@ -21,21 +21,21 @@
     
     NSConditionLock *lockGeometry;
     GLsizei numIndices;
-	GLsizei numChunkVerts;
+    GLsizei numChunkVerts;
     GLfloat *vertsBuffer;
     GLfloat *normsBuffer;
     GLfloat *texCoordsBuffer;
     GLfloat *colorBuffer;
-	GLushort *indexBuffer;
-	
+    GLushort *indexBuffer;
+    
 @public
     GSVector3 corners[8];
-	BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
+    BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
 }
 
 
 - (id)initWithMinP:(GSVector3)_minP
-		 voxelData:(GSChunkVoxelData **)voxels;
+         voxelData:(GSChunkVoxelData **)voxels;
 
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 

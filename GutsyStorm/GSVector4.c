@@ -12,6 +12,6 @@
 
 GSVector4 GSVector4_Make(float x, float y, float z, float w)
 {
-	GSVector4 r = {x, y, z, w};
-	return r;
+    GSVector4 r = {x, y, z, w};
+    return r;
 }

@@ -18,7 +18,7 @@
     self = [super init];
     if (self) {
         // Initialization code here.
-		ray = GSRay_Make(_ray.origin, _ray.direction);
+        ray = GSRay_Make(_ray.origin, _ray.direction);
     }
     
     return self;

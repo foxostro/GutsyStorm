@@ -13,7 +13,7 @@
 
 typedef struct
 {
-	float x, y, z, w;
+    float x, y, z, w;
 } GSQuaternion;
 
 int GSQuaternion_AreEqual(GSQuaternion a, GSQuaternion b);

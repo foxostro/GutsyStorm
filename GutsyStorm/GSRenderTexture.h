@@ -18,13 +18,13 @@
 
 @interface GSRenderTexture : NSObject
 {
-	GLuint texID;
-	GLuint fbo;
-	GLuint depthBuffer;
-	GLuint width;
-	GLuint height;
-	int originalViewport[4];
-	NSRect dimensions;
+    GLuint texID;
+    GLuint fbo;
+    GLuint depthBuffer;
+    GLuint width;
+    GLuint height;
+    int originalViewport[4];
+    NSRect dimensions;
     BOOL isCubeMap;
 }
 

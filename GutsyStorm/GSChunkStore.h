@@ -21,21 +21,21 @@
     NSCache *cacheVoxelData;
     NSCache *cacheVoxelLightingData;
     NSCache *cacheGeometryData;
-	
+    
     float terrainHeight;
     unsigned seed;
     GSCamera *camera;
-	NSString *oldCenterChunkID;
-	NSURL *folder;
+    NSString *oldCenterChunkID;
+    NSURL *folder;
     GSShader *terrainShader;
     GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
-	
-	size_t maxActiveChunks;
+    
+    size_t maxActiveChunks;
     GSChunkGeometryData **activeChunks;
-	
-	// Limit the number of times chunk VBOs can be generated per frame.
-	int numVBOGenerationsAllowedPerFrame;
-	int numVBOGenerationsRemaining;
+    
+    // Limit the number of times chunk VBOs can be generated per frame.
+    int numVBOGenerationsAllowedPerFrame;
+    int numVBOGenerationsRemaining;
 }
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;
@@ -44,12 +44,12 @@
 + (NSLock *)lockWhileLockingMultipleChunksSunlight;
 
 - (id)initWithSeed:(unsigned)_seed
-			camera:(GSCamera *)_camera
+            camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader;
 
 - (void)drawChunks;
 
 - (void)updateWithDeltaTime:(float)dt
-		cameraModifiedFlags:(unsigned)cameraModifiedFlags;
+        cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
 @end

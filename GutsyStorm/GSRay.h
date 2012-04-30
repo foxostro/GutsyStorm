@@ -14,7 +14,7 @@
 
 typedef struct
 {
-	GSVector3 origin, direction;
+    GSVector3 origin, direction;
 } GSRay;
 
 

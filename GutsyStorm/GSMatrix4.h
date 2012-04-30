@@ -15,7 +15,7 @@
 
 typedef struct
 {
-	float m[16];
+    float m[16];
 } GSMatrix4;
 
 

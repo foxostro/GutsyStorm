@@ -11,7 +11,7 @@
 
 typedef struct
 {
-	float x, y;
+    float x, y;
 } GSVector2;
 
 

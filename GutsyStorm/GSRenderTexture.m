@@ -20,10 +20,10 @@
     self = [super init];
     if(self) {
         // Initialization code here.
-		dimensions = _dimensions;
-		width = dimensions.size.width;
-		height = dimensions.size.height;
-		originalViewport[0] = originalViewport[1] = originalViewport[2] = originalViewport[3] = 0;
+        dimensions = _dimensions;
+        width = dimensions.size.width;
+        height = dimensions.size.height;
+        originalViewport[0] = originalViewport[1] = originalViewport[2] = originalViewport[3] = 0;
         isCubeMap = _isCubeMap;
         
         glGenTextures(1, &texID);
@@ -73,13 +73,13 @@
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
         }
-		
-		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-			[NSException raise:@"OpenGL Error" format:@"Failed to create complete framebuffer."];
-		}
-			
-		// unbind our framebuffer, return to default state
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            [NSException raise:@"OpenGL Error" format:@"Failed to create complete framebuffer."];
+        }
+            
+        // unbind our framebuffer, return to default state
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     
     return self;
@@ -98,10 +98,10 @@
 - (void)startRender
 {
     assert(!isCubeMap);
-	glGetIntegerv(GL_VIEWPORT, originalViewport);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	glGenerateMipmap(GL_TEXTURE_2D); // generate all mipmaps now
-	glViewport(0, 0, width, height);
+    glGetIntegerv(GL_VIEWPORT, originalViewport);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glGenerateMipmap(GL_TEXTURE_2D); // generate all mipmaps now
+    glViewport(0, 0, width, height);
 }
 
 
@@ -110,17 +110,17 @@
     assert(isCubeMap);
     assert(face >= 0 && face <= 5);
     
-	glGetIntegerv(GL_VIEWPORT, originalViewport);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glGetIntegerv(GL_VIEWPORT, originalViewport);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, texID, 0);
-	glViewport(0, 0, width, height);
+    glViewport(0, 0, width, height);
 }
 
 
 - (void)finishRender
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(originalViewport[0], originalViewport[1], originalViewport[2], originalViewport[3]);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(originalViewport[0], originalViewport[1], originalViewport[2], originalViewport[3]);
 }
 
 
@@ -128,7 +128,7 @@
 {
     glActiveTexture(GL_TEXTURE0);
     
-	if(isCubeMap) {
+    if(isCubeMap) {
         glBindTexture(GL_TEXTURE_CUBE_MAP, texID);
     } else {
         glBindTexture(GL_TEXTURE_2D, texID);
@@ -140,7 +140,7 @@
 {
     glActiveTexture(GL_TEXTURE0);
     
-	if(isCubeMap) {
+    if(isCubeMap) {
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     } else {
         glBindTexture(GL_TEXTURE_2D, 0);

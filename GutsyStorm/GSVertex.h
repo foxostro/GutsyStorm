@@ -11,10 +11,10 @@
 
 @interface GSVertex : NSObject
 {
-	GSBoxedVector *position;
-	GSBoxedVector *normal;
-	GSBoxedVector *texCoord;
-	GSBoxedVector *color;
+    GSBoxedVector *position;
+    GSBoxedVector *normal;
+    GSBoxedVector *texCoord;
+    GSBoxedVector *color;
 }
 
 @property (retain, nonatomic) GSBoxedVector *position;
@@ -23,9 +23,9 @@
 @property (retain, nonatomic) GSBoxedVector *color;
 
 - (id)initWithPosition:(GSBoxedVector *)position
-				normal:(GSBoxedVector *)normal
-			  texCoord:(GSBoxedVector *)texCoord
-				 color:(GSBoxedVector *)color;
+                normal:(GSBoxedVector *)normal
+              texCoord:(GSBoxedVector *)texCoord
+                 color:(GSBoxedVector *)color;
 - (BOOL)isEqual:(id)other;
 - (BOOL)isEqualToVertex:(GSVertex *)vector;
 - (NSUInteger)hash;

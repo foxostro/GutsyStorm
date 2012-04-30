@@ -11,7 +11,7 @@
 
 @interface GSBoxedRay : NSObject
 {
-	GSRay ray;
+    GSRay ray;
 }
 
 @property (assign, nonatomic) GSRay ray;

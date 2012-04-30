@@ -19,9 +19,9 @@
     self = [super init];
     if (self) {
         // Initialization code here.
-		minP = _minP;
-		maxP = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-		centerP = GSVector3_Scale(GSVector3_Add(minP, maxP), 0.5);
+        minP = _minP;
+        maxP = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        centerP = GSVector3_Scale(GSVector3_Add(minP, maxP), 0.5);
     }
     
     return self;

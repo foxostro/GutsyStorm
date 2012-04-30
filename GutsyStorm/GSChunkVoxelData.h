@@ -28,14 +28,14 @@
 
 typedef struct
 {
-	BOOL empty;   // YES, if the voxel is never drawn.
-	BOOL outside; // YES, if the voxel is exposed to the sky from directly above.
+    BOOL empty;   // YES, if the voxel is never drawn.
+    BOOL outside; // YES, if the voxel is exposed to the sky from directly above.
 } voxel_t;
 
 
 typedef struct
 {
-	/* Each face has four vertices, and we need a brightness factor for
+    /* Each face has four vertices, and we need a brightness factor for
      * all 24 of these vertices.
      */
     
@@ -52,13 +52,13 @@ typedef struct
 {
  @public
     GSReaderWriterLock *lockVoxelData;
-	voxel_t *voxelData;
-	
-	GSReaderWriterLock *lockSunlight;
-	int *sunlight;
-	
-	NSConditionLock *lockAmbientOcclusion;
-	block_lighting_t *ambientOcclusion;
+    voxel_t *voxelData;
+    
+    GSReaderWriterLock *lockSunlight;
+    int *sunlight;
+    
+    NSConditionLock *lockAmbientOcclusion;
+    block_lighting_t *ambientOcclusion;
 }
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
@@ -66,7 +66,7 @@ typedef struct
 - (id)initWithSeed:(unsigned)seed
               minP:(GSVector3)minP
      terrainHeight:(float)terrainHeight
-			folder:(NSURL *)folder;
+            folder:(NSURL *)folder;
 
 - (void)updateLightingWithNeighbors:(GSChunkVoxelData **)neighbors;
 
@@ -76,8 +76,8 @@ typedef struct
 
 // Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
 - (void)getSunlightAtPoint:(GSIntegerVector3)p
-				 neighbors:(GSChunkVoxelData **)voxels
-			   outLighting:(block_lighting_t *)lighting;
+                 neighbors:(GSChunkVoxelData **)voxels
+               outLighting:(block_lighting_t *)lighting;
 
 // Assumes the caller is already holding "lockAmbientOcclusion".
 - (block_lighting_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p;
@@ -87,8 +87,8 @@ typedef struct
 
 // Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
 GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
-										  GSChunkVoxelData **neighbors,
-										  GSIntegerVector3 *outRelativeToNeighborP);
+                                          GSChunkVoxelData **neighbors,
+                                          GSIntegerVector3 *outRelativeToNeighborP);
 
 
 // Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.

@@ -11,14 +11,14 @@
 
 typedef struct
 {
-	ssize_t x, y, z;
+    ssize_t x, y, z;
 } GSIntegerVector3;
 
 
 static inline GSIntegerVector3 GSIntegerVector3_Make(ssize_t x, ssize_t y, ssize_t z)
 {
-	GSIntegerVector3 p = {x, y, z};
-	return p;
+    GSIntegerVector3 p = {x, y, z};
+    return p;
 }
 
 #endif

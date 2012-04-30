@@ -125,32 +125,32 @@
 
 - (int)boxInFrustumWithBoxVertices:(GSVector3 *)vertices
 {
-	int result = GS_FRUSTUM_INSIDE, out,in;
+    int result = GS_FRUSTUM_INSIDE, out,in;
     
-	// for each plane do ...
-	for(int i=0; i < 6; i++) {
+    // for each plane do ...
+    for(int i=0; i < 6; i++) {
         
-		// reset counters for corners in and out
-		out=0;in=0;
-		// for each corner of the box do ...
-		// get out of the cycle as soon as a box as corners
-		// both inside and out of the frustum
-		for (int k = 0; k < 8 && (in==0 || out==0); k++) {
+        // reset counters for corners in and out
+        out=0;in=0;
+        // for each corner of the box do ...
+        // get out of the cycle as soon as a box as corners
+        // both inside and out of the frustum
+        for (int k = 0; k < 8 && (in==0 || out==0); k++) {
             
-			// is the corner outside or inside
-			if (GSPlane_Distance(pl[i], vertices[k]) < 0)
-				out++;
-			else
-				in++;
-		}
-		//if all corners are out
-		if (!in)
-			return (GS_FRUSTUM_OUTSIDE);
-		// if some corners are out and others are in	
-		else if (out)
-			result = GS_FRUSTUM_INTERSECT;
-	}
-	return(result);
+            // is the corner outside or inside
+            if (GSPlane_Distance(pl[i], vertices[k]) < 0)
+                out++;
+            else
+                in++;
+        }
+        //if all corners are out
+        if (!in)
+            return (GS_FRUSTUM_OUTSIDE);
+        // if some corners are out and others are in    
+        else if (out)
+            result = GS_FRUSTUM_INTERSECT;
+    }
+    return(result);
 }
 
 

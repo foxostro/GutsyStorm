@@ -11,7 +11,7 @@
 
 typedef struct
 {
-	float x, y, z;
+    float x, y, z;
 } GSVector3;
 
 float GSVector3_Length(GSVector3 v);

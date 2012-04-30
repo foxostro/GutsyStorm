@@ -22,28 +22,28 @@ extern int checkGLErrors(void);
         bounds = NSMakeRect(0, 0, [bitmap size].width, [bitmap size].height / numTextures);
         
         GLenum format = [bitmap hasAlpha] ? GL_RGBA : GL_RGB;
-		
+        
 #if 0
-		// Degamma the input
-		// XXX: Do this offline and bake into the texture itself.
-		size_t bpp = [bitmap hasAlpha] ? 4 : 3;
-		const float gamma = 2.2;
-		unsigned char * data = [bitmap bitmapData];
-		for(size_t x = 0; x < [bitmap size].width; ++x)
-		{
-			for(size_t y = 0; y < [bitmap size].height; ++y)
-			{
-				size_t idx = 0;
-				
-				idx = x*bpp + y*bounds.size.width*bpp;
-				
-				for(size_t i = 0; i < bpp; ++i)
-				{
-					float val = MAX(0, MIN(1, powf(data[idx+i] / 255.0, gamma)));
-					data[idx+i] = floorf(val * 255.0);
-				}
-			}
-		}
+        // Degamma the input
+        // XXX: Do this offline and bake into the texture itself.
+        size_t bpp = [bitmap hasAlpha] ? 4 : 3;
+        const float gamma = 2.2;
+        unsigned char * data = [bitmap bitmapData];
+        for(size_t x = 0; x < [bitmap size].width; ++x)
+        {
+            for(size_t y = 0; y < [bitmap size].height; ++y)
+            {
+                size_t idx = 0;
+                
+                idx = x*bpp + y*bounds.size.width*bpp;
+                
+                for(size_t i = 0; i < bpp; ++i)
+                {
+                    float val = MAX(0, MIN(1, powf(data[idx+i] / 255.0, gamma)));
+                    data[idx+i] = floorf(val * 255.0);
+                }
+            }
+        }
 #endif
         
         glGenTextures(1, &handle);        
@@ -56,7 +56,7 @@ extern int checkGLErrors(void);
         glTexImage3D(GL_TEXTURE_2D_ARRAY_EXT, 0, format,
                      bounds.size.width, bounds.size.height, numTextures,
                      0, GL_RGBA, GL_UNSIGNED_BYTE, [bitmap bitmapData]);
-		
+        
         glGenerateMipmap(GL_TEXTURE_2D_ARRAY_EXT);
         assert(checkGLErrors() == 0);
     }
@@ -80,7 +80,7 @@ extern int checkGLErrors(void);
 - (void)dealloc
 {
     glDeleteTextures(1, &handle);
-	[super dealloc];
+    [super dealloc];
 }
 
 @end

@@ -15,18 +15,18 @@
 
 @interface GSOpenGLView : NSOpenGLView
 {
-	NSTimer *renderTimer;
-	CFAbsoluteTime prevFrameTime, lastRenderTime;
-	CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
-	size_t numFramesSinceLastFpsLabelUpdate;
-	float cubeRotSpeed;
-	float cubeRotY;
-	NSMutableDictionary *keysDown;
-	int32_t mouseDeltaX, mouseDeltaY;
-	float mouseSensitivity;
-	GSCamera *camera;
-	GLString *fpsStringTex;
-	NSMutableDictionary *stringAttribs; // attributes for string textures
+    NSTimer *renderTimer;
+    CFAbsoluteTime prevFrameTime, lastRenderTime;
+    CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
+    size_t numFramesSinceLastFpsLabelUpdate;
+    float cubeRotSpeed;
+    float cubeRotY;
+    NSMutableDictionary *keysDown;
+    int32_t mouseDeltaX, mouseDeltaY;
+    float mouseSensitivity;
+    GSCamera *camera;
+    GLString *fpsStringTex;
+    NSMutableDictionary *stringAttribs; // attributes for string textures
     GSShader *terrainShader;
     GSTextureArray *textureArray;
     GSChunkStore *chunkStore;

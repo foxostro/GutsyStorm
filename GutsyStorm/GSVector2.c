@@ -12,6 +12,6 @@
 
 GSVector2 GSVector2_Make(float x, float y)
 {
-	GSVector2 r = {x, y};
-	return r;
+    GSVector2 r = {x, y};
+    return r;
 }

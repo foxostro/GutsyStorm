@@ -30,12 +30,12 @@ static const float EPS = 1e-5;
 {
     if(other == self) {
         return YES;
-	}
-	
+    }
+    
     if(!other || ![other isKindOfClass:[self class]]) {
         return NO;
-	}
-	
+    }
+    
     return [self isEqualToVector:other];
 }
 
@@ -44,11 +44,11 @@ static const float EPS = 1e-5;
 {
     if(self == vector) {
         return YES;
-	}
-	
+    }
+    
     return (fabs(vector.v.x - self.v.x) < EPS &&
-			fabs(vector.v.y - self.v.y) < EPS &&
-			fabs(vector.v.z - self.v.z) < EPS);
+            fabs(vector.v.y - self.v.y) < EPS &&
+            fabs(vector.v.z - self.v.z) < EPS);
 }
 
 
@@ -60,7 +60,7 @@ static const float EPS = 1e-5;
 
 - (NSString *)toString
 {
-	return [NSString stringWithFormat:@"%f_%f_%f", v.x, v.y, v.z];
+    return [NSString stringWithFormat:@"%f_%f_%f", v.x, v.y, v.z];
 }
 
 @end

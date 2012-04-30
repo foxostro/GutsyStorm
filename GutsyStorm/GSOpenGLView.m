@@ -21,7 +21,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
 // Enables vertical sync for drawing to limit FPS to the screen's refresh rate.
 - (void)enableVSync
 {
-	GLint swapInt = 1;
+    GLint swapInt = 1;
     [[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
 }
 
@@ -45,7 +45,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     [terrainShader release];
     
-	assert(checkGLErrors() == 0);
+    assert(checkGLErrors() == 0);
     
     NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.vert" ofType:@"txt"];
     NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.frag" ofType:@"txt"];
@@ -61,55 +61,55 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [terrainShader bind];
     [terrainShader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
     
-	assert(checkGLErrors() == 0);
+    assert(checkGLErrors() == 0);
 }
 
 
 - (void)buildFontsAndStrings
 {
-	// init fonts for use with strings
+    // init fonts for use with strings
     NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
-	stringAttribs = [[NSMutableDictionary dictionary] retain];
-	[stringAttribs setObject:font forKey:NSFontAttributeName];
-	[stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
-	[font release];
-	
-	fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
-									  withAttributes:stringAttribs
-									   withTextColor:[NSColor whiteColor]
-										withBoxColor:[NSColor colorWithDeviceRed:0.3f
-																		   green:0.3f
-																			blue:0.3f
-																		   alpha:1.0f]
-									 withBorderColor:[NSColor colorWithDeviceRed:0.7f
-																		   green:0.7f
-																			blue:0.7f
-																		   alpha:1.0f]];
+    stringAttribs = [[NSMutableDictionary dictionary] retain];
+    [stringAttribs setObject:font forKey:NSFontAttributeName];
+    [stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
+    [font release];
+    
+    fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
+                                      withAttributes:stringAttribs
+                                       withTextColor:[NSColor whiteColor]
+                                        withBoxColor:[NSColor colorWithDeviceRed:0.3f
+                                                                           green:0.3f
+                                                                            blue:0.3f
+                                                                           alpha:1.0f]
+                                     withBorderColor:[NSColor colorWithDeviceRed:0.7f
+                                                                           green:0.7f
+                                                                            blue:0.7f
+                                                                           alpha:1.0f]];
 
 }
 
 
 - (void)prepareOpenGL
 {
-	[[self openGLContext] makeCurrentContext];
-	assert(checkGLErrors() == 0);
-	
-	float glVersion;
-	sscanf((char *)glGetString(GL_VERSION), "%f", &glVersion);
-	if(glVersion < 2.0) {
-		[NSException raise:@"Graphics Card Does Not Meet Requirements"
-					format:@"Graphics card does not support required OpenGL version 2.0"];
-	}
-	
-	if(!checkForOpenGLExtension(@"GL_EXT_texture_array")) {
-		[NSException raise:@"Graphics Card Does Not Meet Requirements"
-					format:@"Graphics card does not support required extension: GL_EXT_texture_array"];
-	}
-	
-	glClearColor(0.2, 0.4, 0.5, 1.0);
-	
-	glDisable(GL_LIGHTING);
-	glEnable(GL_DEPTH_TEST);
+    [[self openGLContext] makeCurrentContext];
+    assert(checkGLErrors() == 0);
+    
+    float glVersion;
+    sscanf((char *)glGetString(GL_VERSION), "%f", &glVersion);
+    if(glVersion < 2.0) {
+        [NSException raise:@"Graphics Card Does Not Meet Requirements"
+                    format:@"Graphics card does not support required OpenGL version 2.0"];
+    }
+    
+    if(!checkForOpenGLExtension(@"GL_EXT_texture_array")) {
+        [NSException raise:@"Graphics Card Does Not Meet Requirements"
+                    format:@"Graphics card does not support required extension: GL_EXT_texture_array"];
+    }
+    
+    glClearColor(0.2, 0.4, 0.5, 1.0);
+    
+    glDisable(GL_LIGHTING);
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     
     glDisable(GL_TEXTURE_2D);
@@ -138,7 +138,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, materialDiffuse);
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, materialSpecular);
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, materialShininess);
-	
+    
     [self buildFontsAndStrings];
     [self buildTerrainShader];
     
@@ -150,70 +150,70 @@ BOOL checkForOpenGLExtension(NSString *extension);
     chunkStore = [[GSChunkStore alloc] initWithSeed:0
                                              camera:camera
                                       terrainShader:terrainShader];
-    	
-	[self enableVSync];
+        
+    [self enableVSync];
     
-	assert(checkGLErrors() == 0);
+    assert(checkGLErrors() == 0);
 }
 
 
 // Reset mouse input mechanism for camera.
 - (void)resetMouseInputSettings
 {
-	// Reset mouse input mechanism for camera.
-	mouseSensitivity = 500;
-	mouseDeltaX = 0;
-	mouseDeltaY = 0;
-	[self setMouseAtCenter];
+    // Reset mouse input mechanism for camera.
+    mouseSensitivity = 500;
+    mouseDeltaX = 0;
+    mouseDeltaY = 0;
+    [self setMouseAtCenter];
 }
 
 
 - (void)awakeFromNib
 {
-	cubeRotY = 0.0;
-	cubeRotSpeed = 10.0;
-	prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
-	fpsLabelUpdateInterval = 0.3;
-	numFramesSinceLastFpsLabelUpdate = 0;
-	keysDown = [[NSMutableDictionary alloc] init];
+    cubeRotY = 0.0;
+    cubeRotSpeed = 10.0;
+    prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
+    fpsLabelUpdateInterval = 0.3;
+    numFramesSinceLastFpsLabelUpdate = 0;
+    keysDown = [[NSMutableDictionary alloc] init];
     terrainShader = nil;
     textureArray = nil;
     chunkStore = nil;
-	
-	camera = [[GSCamera alloc] init];
+    
+    camera = [[GSCamera alloc] init];
     [camera moveToPosition:GSVector3_Make(85.70, 15, 134.25)];
-	[camera updateCameraLookVectors];
-	[self resetMouseInputSettings];
-	
-	// Register with window to accept user input.
-	[[self window] makeFirstResponder: self];
-	[[self window] setAcceptsMouseMovedEvents: YES];
-	
-	// Register a timer to drive the game loop.
-	renderTimer = [NSTimer timerWithTimeInterval:0.0167 // 60 FPS
-										  target:self
-										selector:@selector(timerFired:)
-										userInfo:nil
-										 repeats:YES];
-				   
-	[[NSRunLoop currentRunLoop] addTimer:renderTimer 
-								 forMode:NSDefaultRunLoopMode];
-	
-	[[NSRunLoop currentRunLoop] addTimer:renderTimer 
-								 forMode:NSEventTrackingRunLoopMode]; // Ensure timer fires during resize
+    [camera updateCameraLookVectors];
+    [self resetMouseInputSettings];
+    
+    // Register with window to accept user input.
+    [[self window] makeFirstResponder: self];
+    [[self window] setAcceptsMouseMovedEvents: YES];
+    
+    // Register a timer to drive the game loop.
+    renderTimer = [NSTimer timerWithTimeInterval:0.0167 // 60 FPS
+                                          target:self
+                                        selector:@selector(timerFired:)
+                                        userInfo:nil
+                                         repeats:YES];
+                   
+    [[NSRunLoop currentRunLoop] addTimer:renderTimer 
+                                 forMode:NSDefaultRunLoopMode];
+    
+    [[NSRunLoop currentRunLoop] addTimer:renderTimer 
+                                 forMode:NSEventTrackingRunLoopMode]; // Ensure timer fires during resize
 }
 
 
 - (BOOL)acceptsFirstResponder
 {
-	return YES;
+    return YES;
 }
 
 
 - (void)mouseMoved:(NSEvent *)theEvent
 {
     static BOOL first = YES;
-	
+    
     CGGetLastMouseDelta(&mouseDeltaX, &mouseDeltaY);
     
     if(first) {
@@ -222,32 +222,32 @@ BOOL checkForOpenGLExtension(NSString *extension);
         mouseDeltaY = 0;
     }
     
-	[self setMouseAtCenter];
+    [self setMouseAtCenter];
 }
 
 
 // Reset mouse to the center of the view so it can't leave the window.
 - (void)setMouseAtCenter
 {
-	NSRect bounds = [self bounds];
-	CGPoint viewCenter;
-	viewCenter.x = bounds.origin.x + bounds.size.width / 2;
-	viewCenter.x = bounds.origin.y + bounds.size.height / 2;
-	CGWarpMouseCursorPosition(viewCenter);
+    NSRect bounds = [self bounds];
+    CGPoint viewCenter;
+    viewCenter.x = bounds.origin.x + bounds.size.width / 2;
+    viewCenter.x = bounds.origin.y + bounds.size.height / 2;
+    CGWarpMouseCursorPosition(viewCenter);
 }
 
 
 - (void)keyDown:(NSEvent *)theEvent
 {
-	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-	[keysDown setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInt:key]];
+    int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+    [keysDown setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInt:key]];
 }
 
 
 - (void)keyUp:(NSEvent *)theEvent
 {
-	int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-	[keysDown setObject:[NSNumber numberWithBool:NO] forKey:[NSNumber numberWithInt:key]];
+    int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+    [keysDown setObject:[NSNumber numberWithBool:NO] forKey:[NSNumber numberWithInt:key]];
 }
 
 
@@ -257,141 +257,141 @@ BOOL checkForOpenGLExtension(NSString *extension);
     const float nearD = 0.1;
     const float farD = 724.0;
     
-	NSRect r = [self convertRectToBase:[self bounds]];
-	glViewport(0, 0, r.size.width, r.size.height);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(fov, r.size.width/r.size.height, nearD, farD);
-	glMatrixMode(GL_MODELVIEW);
+    NSRect r = [self convertRectToBase:[self bounds]];
+    glViewport(0, 0, r.size.width, r.size.height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(fov, r.size.width/r.size.height, nearD, farD);
+    glMatrixMode(GL_MODELVIEW);
     
     [camera reshapeWithBounds:r fov:fov nearD:nearD farD:farD];
-	
-	assert(checkGLErrors() == 0);
+    
+    assert(checkGLErrors() == 0);
 }
 
 
 // Handle user input and update the camera if it was modified.
 - (unsigned)handleUserInput:(float)dt
 {
-	unsigned cameraModifiedFlags;
-	
-	cameraModifiedFlags = [camera handleUserInputForFlyingCameraWithDeltaTime:dt
-																   keysDown:keysDown
-																mouseDeltaX:mouseDeltaX
-																mouseDeltaY:mouseDeltaY
-														   mouseSensitivity:mouseSensitivity];
-	
-	// Reset for the next update
-	mouseDeltaX = 0;
-	mouseDeltaY = 0;
-	
-	return cameraModifiedFlags;
+    unsigned cameraModifiedFlags;
+    
+    cameraModifiedFlags = [camera handleUserInputForFlyingCameraWithDeltaTime:dt
+                                                                   keysDown:keysDown
+                                                                mouseDeltaX:mouseDeltaX
+                                                                mouseDeltaY:mouseDeltaY
+                                                           mouseSensitivity:mouseSensitivity];
+    
+    // Reset for the next update
+    mouseDeltaX = 0;
+    mouseDeltaY = 0;
+    
+    return cameraModifiedFlags;
 }
 
 
 // Timer callback method
 - (void)timerFired:(id)sender
 {
-	CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
-	float dt = (float)(frameTime - prevFrameTime);
-	unsigned cameraModifiedFlags = 0;
-	
-	// Update the FPS label every so often.
-	if(frameTime - lastFpsLabelUpdateTime > fpsLabelUpdateInterval) {
-		float fps = numFramesSinceLastFpsLabelUpdate / (lastRenderTime - lastFpsLabelUpdateTime);
-		lastFpsLabelUpdateTime = frameTime;
-		numFramesSinceLastFpsLabelUpdate = 0;
-		NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
-		[[self window] setTitle:label];
-		//[fpsStringTex setString:label withAttributes:stringAttribs];
-	}
-	
-	// Handle user input and update the camera if it was modified.
-	cameraModifiedFlags = [self handleUserInput:dt];
+    CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
+    float dt = (float)(frameTime - prevFrameTime);
+    unsigned cameraModifiedFlags = 0;
+    
+    // Update the FPS label every so often.
+    if(frameTime - lastFpsLabelUpdateTime > fpsLabelUpdateInterval) {
+        float fps = numFramesSinceLastFpsLabelUpdate / (lastRenderTime - lastFpsLabelUpdateTime);
+        lastFpsLabelUpdateTime = frameTime;
+        numFramesSinceLastFpsLabelUpdate = 0;
+        NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
+        [[self window] setTitle:label];
+        //[fpsStringTex setString:label withAttributes:stringAttribs];
+    }
+    
+    // Handle user input and update the camera if it was modified.
+    cameraModifiedFlags = [self handleUserInput:dt];
     
     // Allow the chunkStore to update every frame.
     [chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
-	
-	prevFrameTime = frameTime;
-	[self setNeedsDisplay:YES];
+    
+    prevFrameTime = frameTime;
+    [self setNeedsDisplay:YES];
 }
 
 
 // Draws the HUD UI.
 - (void)drawHUD
 {
-	NSRect r = [self bounds];
-	GLfloat height = r.size.height;
-	GLfloat width = r.size.width;
-	
+    NSRect r = [self bounds];
+    GLfloat height = r.size.height;
+    GLfloat width = r.size.width;
+    
     glDisable(GL_LIGHTING);
-	glEnable(GL_TEXTURE_RECTANGLE_EXT);
-	glEnable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	
-	// set orthograhic 1:1 pixel transform in local view coords
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	glScalef(2.0f / width, -2.0f /  height, 1.0f);
-	glTranslatef(-width / 2.0f, -height / 2.0f, 0.0f);
-	
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	[fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f)];
-	
-	// reset orginal martices
-	glPopMatrix(); // GL_MODELVIEW
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
-	
+    glEnable(GL_TEXTURE_RECTANGLE_EXT);
+    glEnable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    
+    // set orthograhic 1:1 pixel transform in local view coords
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glScalef(2.0f / width, -2.0f /  height, 1.0f);
+    glTranslatef(-width / 2.0f, -height / 2.0f, 0.0f);
+    
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    [fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f)];
+    
+    // reset orginal martices
+    glPopMatrix(); // GL_MODELVIEW
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    
     glEnable(GL_LIGHTING);
-	glDisable(GL_TEXTURE_RECTANGLE_EXT);
-	glDisable(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_RECTANGLE_EXT);
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
 }
 
 
 - (void)drawRect:(NSRect)dirtyRect
 {
-	static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
+    static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
     
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glPushMatrix();
-	glLoadIdentity();
-	
-	glLoadIdentity();
-	[camera submitCameraTransform];
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPushMatrix();
+    glLoadIdentity();
+    
+    glLoadIdentity();
+    [camera submitCameraTransform];
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 
-	[chunkStore drawChunks];
-	
-	glPopMatrix(); // camera transform
-	
-	//[self drawHUD];
+    [chunkStore drawChunks];
+    
+    glPopMatrix(); // camera transform
+    
+    //[self drawHUD];
 
-	if ([self inLiveResize]) {
-		glFlush();
-	} else {
-		[[self openGLContext] flushBuffer];
-	}
-	
-	lastRenderTime = CFAbsoluteTimeGetCurrent();
-	numFramesSinceLastFpsLabelUpdate++;
+    if ([self inLiveResize]) {
+        glFlush();
+    } else {
+        [[self openGLContext] flushBuffer];
+    }
+    
+    lastRenderTime = CFAbsoluteTimeGetCurrent();
+    numFramesSinceLastFpsLabelUpdate++;
 }
 
 
 - (void)dealloc
 {
-	[keysDown release];
-	[camera release];
+    [keysDown release];
+    [camera release];
     [terrainShader release];
     [textureArray release];
     
-	[super dealloc];
+    [super dealloc];
 }
 
 @end
@@ -400,31 +400,31 @@ BOOL checkForOpenGLExtension(NSString *extension);
 // Returns YES if the given OpenGL extension is supported on this machine.
 BOOL checkForOpenGLExtension(NSString *extension)
 {
-	NSString *extensions = [NSString stringWithCString:(const char *)glGetString(GL_EXTENSIONS)
-											  encoding:NSMacOSRomanStringEncoding];
-	NSArray *extensionsArray = [extensions componentsSeparatedByString:@" "];
-	
-	for(NSString *item in extensionsArray)
-	{
-		if([item isEqualToString:extension]) {
-			return YES;
-		}
-	}
-	
-	return NO;
+    NSString *extensions = [NSString stringWithCString:(const char *)glGetString(GL_EXTENSIONS)
+                                              encoding:NSMacOSRomanStringEncoding];
+    NSArray *extensionsArray = [extensions componentsSeparatedByString:@" "];
+    
+    for(NSString *item in extensionsArray)
+    {
+        if([item isEqualToString:extension]) {
+            return YES;
+        }
+    }
+    
+    return NO;
 }
 
 
 // Checks for OpenGL errors and logs any that it find. Returns the number of errors.
 int checkGLErrors(void)
 {
-	int errCount = 0;
-	
-	for(GLenum currError = glGetError(); currError != GL_NO_ERROR; currError = glGetError())
-	{
-		NSLog(@"OpenGL Error: %s", (const char *)gluErrorString(currError));
-		++errCount;
-	}
+    int errCount = 0;
+    
+    for(GLenum currError = glGetError(); currError != GL_NO_ERROR; currError = glGetError())
+    {
+        NSLog(@"OpenGL Error: %s", (const char *)gluErrorString(currError));
+        ++errCount;
+    }
 
-	return errCount;
+    return errCount;
 }
