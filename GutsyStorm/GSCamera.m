@@ -10,6 +10,7 @@
 #import <OpenGL/gl.h>
 #import <OpenGL/glu.h>
 #import "GSCamera.h"
+#import "GSChunkData.h"
 
 @implementation GSCamera
 
@@ -63,7 +64,7 @@
 // Set the default camera and reset camera properties.
 - (void)resetCamera
 {	
-    ceilingHeight = 128;
+    ceilingHeight = CHUNK_SIZE_Y;
 	cameraSpeed = 10.0;
 	cameraRotSpeed = 1.0;
 	cameraEye = GSVector3_Make(0.0f, 0.0f, 0.0f);

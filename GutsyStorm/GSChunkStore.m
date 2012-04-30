@@ -105,7 +105,7 @@
 		
         // Active region is bounded at y>=0.
 		NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
-        activeRegionExtent = GSVector3_Make(w, 128, w);
+        activeRegionExtent = GSVector3_Make(w, CHUNK_SIZE_Y, w);
         assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
         assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
