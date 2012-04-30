@@ -26,7 +26,7 @@
     GLfloat *normsBuffer;
     GLfloat *texCoordsBuffer;
     GLfloat *colorBuffer;
-    GLushort *indexBuffer;
+    GLuint *indexBuffer;
     
 @public
     GSVector3 corners[8];

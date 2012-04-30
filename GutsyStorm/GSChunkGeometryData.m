@@ -156,7 +156,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
         glBindBuffer(GL_ARRAY_BUFFER, vboChunkColors);
         glColorPointer(3, GL_FLOAT, 0, 0);
         
-        glDrawElements(GL_QUADS, numIndices, GL_UNSIGNED_SHORT, indexBuffer);
+        glDrawElements(GL_QUADS, numIndices, GL_UNSIGNED_INT, indexBuffer);
     }
     
     return didGenerateVBOs;
@@ -257,7 +257,6 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     numIndices = (GLsizei)[indices count];
     
     // Take the vertices array and generate raw buffers for OpenGL to consume.
-    assert(numChunkVerts < 65536);
     vertsBuffer = allocateGeometryBuffer(numChunkVerts);
     normsBuffer = allocateGeometryBuffer(numChunkVerts);
     texCoordsBuffer = allocateGeometryBuffer(numChunkVerts);
@@ -293,7 +292,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     [vertices release];
     
     // Take the indices array and generate a raw index buffer for OpenGL to consume.
-    indexBuffer = malloc(sizeof(GLushort) * numIndices);
+    indexBuffer = malloc(sizeof(GLuint) * numIndices);
     if(!indexBuffer) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating index buffer."];
     }
