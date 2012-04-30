@@ -73,10 +73,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 			[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
 		}
 		
-		ambientOcclusion = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(ambient_occlusion_t));
-		if(!ambientOcclusion) {
-			[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for ambientOcclusion array."];
-		}
+		ambientOcclusion = NULL;
 		
 		dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 		
@@ -673,6 +670,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 	[lockAmbientOcclusion lock];
     
 	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+	
+	ambientOcclusion = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(ambient_occlusion_t));
+	if(!ambientOcclusion) {
+		[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for ambientOcclusion array."];
+	}
 	
 	// Atomically, grab all the chunks relevant to lighting.
 	// Needs to be atomic to avoid deadlock.
