@@ -54,7 +54,7 @@ typedef struct
     GSReaderWriterLock *lockVoxelData;
 	voxel_t *voxelData;
 	
-	NSConditionLock *lockSunlight;
+	GSReaderWriterLock *lockSunlight;
 	int *sunlight;
 	
 	NSConditionLock *lockAmbientOcclusion;

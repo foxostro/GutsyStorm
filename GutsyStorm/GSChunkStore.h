@@ -40,7 +40,8 @@
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;
 
-+ (NSLock *)lockWhileLockingMultipleChunks;
++ (NSLock *)lockWhileLockingMultipleChunksVoxelData;
++ (NSLock *)lockWhileLockingMultipleChunksSunlight;
 
 - (id)initWithSeed:(unsigned)_seed
 			camera:(GSCamera *)_camera

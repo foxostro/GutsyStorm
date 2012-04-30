@@ -203,19 +203,25 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     NSMutableArray *vertices = [[NSMutableArray alloc] init];
 	NSMutableArray *indices = [[NSMutableArray alloc] init];
 	
-    [chunks[CHUNK_NEIGHBOR_CENTER]->lockSunlight lockWhenCondition:READY];
-    [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion lockWhenCondition:READY];
-	
 	// Atomically, grab all the voxel data we need to generate geometry for this chunk.
 	// We do this atomically to prevent deadlock.
-	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
+	[[GSChunkStore lockWhileLockingMultipleChunksVoxelData] lock];
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
 		[chunks[i]->lockVoxelData lockForReading];
 	}
-	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
+	[[GSChunkStore lockWhileLockingMultipleChunksVoxelData] unlock];
 	
-	//CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+	// Atomically, grab all the sunlight data we need to generate geometry for this chunk.
+	// We do this atomically to prevent deadlock.
+	[[GSChunkStore lockWhileLockingMultipleChunksSunlight] lock];
+	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	{
+		[chunks[i]->lockSunlight lockForReading];
+	}
+	[[GSChunkStore lockWhileLockingMultipleChunksSunlight] unlock];
+	
+    [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion lockWhenCondition:READY];
 	
     // Iterate over all voxels in the chunk and generate geometry.
 	for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
@@ -233,15 +239,20 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
         }
     }
 	
-	// Give up locks on the neighboring chunks' voxel data.
+    [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion unlockWithCondition:READY];
+	
+	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	{
+		[chunks[i]->lockSunlight unlockForReading];
+	}
+	
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
 		[chunks[i]->lockVoxelData unlockForReading];
 	}
-	
-    [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion unlockWithCondition:READY];
-	[chunks[CHUNK_NEIGHBOR_CENTER]->lockSunlight unlockWithCondition:READY];
     
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
     numChunkVerts = (GLsizei)[vertices count];
     numIndices = (GLsizei)[indices count];
     
@@ -294,8 +305,6 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 	
 	[indices release];
 	
-    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished generating chunk geometry. It took %.3fs, including time to wait for voxels.", timeEnd - timeStart);
 	[lockGeometry unlockWithCondition:READY];
 }
 
@@ -324,7 +333,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 
 
 /* Assumes the caller is already holding "lockGeometry", "lockSunlight", "lockAmbientOcclusion",
- * and locks on all neighboring chunks.
+ * and locks on all neighboring chunks too.
  */
 - (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
 										vertices:(NSMutableArray *)vertices

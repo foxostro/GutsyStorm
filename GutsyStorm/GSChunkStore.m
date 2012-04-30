@@ -53,13 +53,28 @@
 }
 
 
-+ (NSLock *)lockWhileLockingMultipleChunks
++ (NSLock *)lockWhileLockingMultipleChunksVoxelData
 {
 	static dispatch_once_t onceToken;
 	static NSLock *doingNeighborhoodLock = nil;
 	
 	dispatch_once(&onceToken, ^{
 		doingNeighborhoodLock = [[NSLock alloc] init];
+		[doingNeighborhoodLock setName:@"lockWhileLockingMultipleChunksVoxelData"];
+	});
+	
+	return doingNeighborhoodLock;
+}
+
+
++ (NSLock *)lockWhileLockingMultipleChunksSunlight
+{
+	static dispatch_once_t onceToken;
+	static NSLock *doingNeighborhoodLock = nil;
+	
+	dispatch_once(&onceToken, ^{
+		doingNeighborhoodLock = [[NSLock alloc] init];
+		[doingNeighborhoodLock setName:@"lockWhileLockingMultipleChunksSunlight"];
 	});
 	
 	return doingNeighborhoodLock;

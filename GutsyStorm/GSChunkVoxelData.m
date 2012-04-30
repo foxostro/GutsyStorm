@@ -35,7 +35,7 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 							  outAmbientOcclusion:(block_lighting_t*)ao;
 - (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks;
 
-- (void)generateSunlightWithNeighbors:(GSChunkVoxelData **)chunks;
+- (void)generateSunlight;
 
 @end
 
@@ -61,19 +61,14 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
         lockVoxelData = [[GSReaderWriterLock alloc] init];
 		[lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
 		
-		lockSunlight = [[NSConditionLock alloc] init];
-		[lockSunlight setName:@"GSChunkVoxelData.lockSunlight"];
+		lockSunlight = [[GSReaderWriterLock alloc] init];
+		[lockSunlight lockForWriting]; // This is locked initially and unlocked at the end of the first update.
 		
 		lockAmbientOcclusion = [[NSConditionLock alloc] init];
 		[lockAmbientOcclusion setName:@"GSChunkVoxelData.lockAmbientOcclusion"];
 		
         voxelData = NULL;
-		
-		sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int));
-		if(!sunlight) {
-			[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
-		}
-		
+		sunlight = NULL;
 		ambientOcclusion = NULL;
 		
 		dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
@@ -96,6 +91,10 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 			}
 			
 			[lockVoxelData unlockForWriting];
+			
+			// And now generate sunlight for this chunk.
+			[self generateSunlight];
+			[lockSunlight unlockForWriting];
         });
     }
     
@@ -110,10 +109,10 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
     [lockVoxelData unlockForWriting];
     [lockVoxelData release];
 	
-    [lockSunlight lock];
+    [lockSunlight lockForWriting];
     free(sunlight);
 	sunlight = NULL;
-    [lockSunlight unlock];
+    [lockSunlight unlockForWriting];
     [lockSunlight release];
 	
     [lockAmbientOcclusion lock];
@@ -151,18 +150,12 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 - (void)updateLightingWithNeighbors:(GSChunkVoxelData **)_chunks
 {
 	GSChunkVoxelData **chunks1 = copyNeighbors(_chunks);
-	GSChunkVoxelData **chunks2 = copyNeighbors(_chunks);
 	
 	dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 	
 	dispatch_async(queue, ^{
-		[self generateSunlightWithNeighbors:chunks1];
+        [self generateAmbientOcclusionWithNeighbors:chunks1];
         freeNeighbors(chunks1);
-	});
-	
-	dispatch_async(queue, ^{
-        [self generateAmbientOcclusionWithNeighbors:chunks2];
-        freeNeighbors(chunks2);
 	});
 }
 
@@ -334,12 +327,17 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 
 
 // Generates sunlight values for all blocks in the chunk.
-- (void)generateSunlightWithNeighbors:(GSChunkVoxelData **)chunks
+// Assumes the caller has already holding "lockSunlight" for writing.
+- (void)generateSunlight
 {
 	GSIntegerVector3 p = {0};
 	
 	[lockVoxelData lockForReading];
-	[lockSunlight lock];
+	
+	sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int));
+	if(!sunlight) {
+		[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
+	}
 	
 	// Reset all empty, outside blocks to full sunlight.
 	for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
@@ -361,7 +359,6 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 	}
 	
 	[lockVoxelData unlockForReading];
-	[lockSunlight unlockWithCondition:READY];
 }
 
 
@@ -576,12 +573,12 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 	
 	// Atomically, grab all the chunks relevant to lighting.
 	// Needs to be atomic to avoid deadlock.
-	[[GSChunkStore lockWhileLockingMultipleChunks] lock];
+	[[GSChunkStore lockWhileLockingMultipleChunksVoxelData] lock];
 	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
 	{
 		[chunks[i]->lockVoxelData lockForReading];
 	}
-	[[GSChunkStore lockWhileLockingMultipleChunks] unlock];
+	[[GSChunkStore lockWhileLockingMultipleChunksVoxelData] unlock];
 	
 	// Count the empty neighbors of each vertex in the block.
 	for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
