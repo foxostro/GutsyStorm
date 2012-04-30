@@ -36,6 +36,7 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 							  outAmbientOcclusion:(block_lighting_t*)ao;
 - (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks;
 
+- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel;
 - (void)generateSunlight;
 
 @end
@@ -514,18 +515,56 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 }
 
 
-// Generates sunlight values for all blocks in the chunk.
-// Assumes the caller has already holding "lockSunlight" for writing.
+/* Assumes the caller is already holding "lockVoxelData".
+ * Returns YES if any of the adjacent blocks is lit to the specified light level.
+ * NOTE: This totally ignores the neighboring chunks.
+ */
+- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel
+{
+	if(p.y+1 >= CHUNK_SIZE_Y) {
+		return YES;
+	} else if(sunlight[INDEX(p.x, p.y+1, p.z)]) {
+		return YES;
+	}
+	
+	if(p.y-1 >= 0 && sunlight[INDEX(p.x, p.y-1, p.z)]) {
+		return YES;
+	}
+	
+	if(p.x-1 >= 0 && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
+		return YES;
+	}
+	
+	if(p.x+1 < CHUNK_SIZE_X && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
+		return YES;
+	}
+	
+	if(p.z-1 >= 0 && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
+		return YES;
+	}
+	
+	if(p.z+1 < CHUNK_SIZE_Z && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
+		return YES;
+	}
+	
+	return NO;
+}
+
+
+/* Generates sunlight values for all blocks in the chunk.
+ * Assumes the caller has already holding "lockSunlight" for writing.
+ * NOTE: This totally ignores the neighboring chunks.
+ */
 - (void)generateSunlight
 {
 	GSIntegerVector3 p = {0};
-	
-	[lockVoxelData lockForReading];
 	
 	sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int));
 	if(!sunlight) {
 		[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
 	}
+	
+	[lockVoxelData lockForReading];
 	
 	// Reset all empty, outside blocks to full sunlight.
 	for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
@@ -537,21 +576,38 @@ static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 				size_t idx = INDEX(p.x, p.y, p.z);
 				assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
 				
-				if(!voxelData[idx].empty) { // Solid blocks always have zero sunlight. They pick up light from surrounding air.
-					sunlight[idx] = 0;
-				} else {
-					// This is "hard" lighting with exactly two lighting levels.
-					if(voxelData[idx].outside) {
-						sunlight[idx] = CHUNK_LIGHTING_MAX;
-					} else {
-						sunlight[idx] = CHUNK_LIGHTING_MAX / 2;
-					}
+				// This is "hard" lighting with exactly two lighting levels.
+				// Solid blocks always have zero sunlight. They pick up light from surrounding air.
+				if(voxelData[idx].empty && voxelData[idx].outside) {
+					sunlight[idx] = CHUNK_LIGHTING_MAX;
 				}
 			}
 		}
 	}
 	
 	[lockVoxelData unlockForReading];
+	
+	// Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
+	// Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
+	// Set the blocks we find to the next lower light level.
+	for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
+	{
+		for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+		{
+			for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+			{
+				for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
+				{
+					size_t idx = INDEX(p.x, p.y, p.z);
+					assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));	
+					
+					if((sunlight[idx] < lightLevel) && [self isAdjacentToSunlightAtPoint:p lightLevel:lightLevel]) {
+						sunlight[idx] = MAX(sunlight[idx], lightLevel - 1);
+					}
+				}
+			}
+		}
+	}
 }
 
 

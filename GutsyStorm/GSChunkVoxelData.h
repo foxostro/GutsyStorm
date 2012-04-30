@@ -23,7 +23,7 @@
 #define CHUNK_NEIGHBOR_CENTER       (8)
 #define CHUNK_NUM_NEIGHBORS         (9)
 
-#define CHUNK_LIGHTING_MAX (15)
+#define CHUNK_LIGHTING_MAX (7)
 
 
 typedef struct
