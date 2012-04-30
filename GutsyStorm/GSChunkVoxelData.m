@@ -17,6 +17,8 @@
 
 static float groundGradient(float terrainHeight, GSVector3 p);
 static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
+static void freeNeighbors(GSChunkVoxelData **chunks);
+static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 
 
 @interface GSChunkVoxelData (Private)
@@ -149,44 +151,19 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)updateLightingWithNeighbors:(GSChunkVoxelData **)_chunks
 {
-	assert(_chunks);
-	assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
-	assert(_chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
-	assert(_chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
-	assert(_chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
-	assert(_chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
-	assert(_chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
-	assert(_chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
-	assert(_chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
-	assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
+	GSChunkVoxelData **chunks1 = copyNeighbors(_chunks);
+	GSChunkVoxelData **chunks2 = copyNeighbors(_chunks);
 	
-	// chunks array is freed by th asynchronous task to fetch/load the lighting data
-	GSChunkVoxelData **chunks = calloc(CHUNK_NUM_NEIGHBORS, sizeof(GSChunkVoxelData *));
-	if(!chunks) {
-		[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for temporary chunks array."];
-	}
-	
-	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-	{
-		chunks[i] = _chunks[i];
-		[chunks[i] retain];
-	}
-	
-	// Fire off asynchronous task to generate chunk sunlight values.
 	dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+	
 	dispatch_async(queue, ^{
-		[self generateSunlightWithNeighbors:chunks];
-		
-#if USE_AMBIENT_OCCLUSION
-        [self generateAmbientOcclusionWithNeighbors:chunks];
-#endif
-		
-		// No longer need references to the neighboring chunks.
-		for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-		{
-			[chunks[i] release];
-		}
-		free(chunks);
+		[self generateSunlightWithNeighbors:chunks1];
+        freeNeighbors(chunks1);
+	});
+	
+	dispatch_async(queue, ^{
+        [self generateAmbientOcclusionWithNeighbors:chunks2];
+        freeNeighbors(chunks2);
 	});
 }
 
@@ -873,4 +850,44 @@ void noAmbientOcclusion(ambient_occlusion_t *ao)
         ao->front[i] = 1.0;
         ao->back[i] = 1.0;
     }
+}
+
+
+void freeNeighbors(GSChunkVoxelData **chunks)
+{
+    // No longer need references to the neighboring chunks.
+    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        [chunks[i] release];
+    }
+    free(chunks);
+}
+
+
+GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks)
+{
+	assert(_chunks);
+	assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
+	assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
+	
+	// chunks array is freed by th asynchronous task to fetch/load the lighting data
+	GSChunkVoxelData **chunks = calloc(CHUNK_NUM_NEIGHBORS, sizeof(GSChunkVoxelData *));
+	if(!chunks) {
+		[NSException raise:@"Out of Memory" format:@"Failed to allocate memory for temporary chunks array."];
+	}
+	
+	for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+	{
+		chunks[i] = _chunks[i];
+		[chunks[i] retain];
+	}
+	
+	return chunks;
 }
