@@ -268,24 +268,29 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     GLfloat *_colorBuffer = colorBuffer;
     for(GSVertex *vertex in vertices)
     {
-        _vertsBuffer[0] = vertex.position.v.x;
-        _vertsBuffer[1] = vertex.position.v.y;
-        _vertsBuffer[2] = vertex.position.v.z;
+        GSVector3 v = [vertex.position getVector];
+        GSVector3 n = [vertex.normal getVector];
+        GSVector3 t = [vertex.texCoord getVector];
+        GSVector3 c = [vertex.color getVector];
+        
+        _vertsBuffer[0] = v.x;
+        _vertsBuffer[1] = v.y;
+        _vertsBuffer[2] = v.z;
         _vertsBuffer += 3;
         
-        _normsBuffer[0] = vertex.normal.v.x;
-        _normsBuffer[1] = vertex.normal.v.y;
-        _normsBuffer[2] = vertex.normal.v.z;
+        _normsBuffer[0] = n.x;
+        _normsBuffer[1] = n.y;
+        _normsBuffer[2] = n.z;
         _normsBuffer += 3;
         
-        _texCoordsBuffer[0] = vertex.texCoord.v.x;
-        _texCoordsBuffer[1] = vertex.texCoord.v.y;
-        _texCoordsBuffer[2] = vertex.texCoord.v.z;
+        _texCoordsBuffer[0] = t.x;
+        _texCoordsBuffer[1] = t.y;
+        _texCoordsBuffer[2] = t.z;
         _texCoordsBuffer += 3;
         
-        _colorBuffer[0] = vertex.color.v.x;
-        _colorBuffer[1] = vertex.color.v.y;
-        _colorBuffer[2] = vertex.color.v.z;
+        _colorBuffer[0] = c.x;
+        _colorBuffer[1] = c.y;
+        _colorBuffer[2] = c.z;
         _colorBuffer += 3;
     }
     

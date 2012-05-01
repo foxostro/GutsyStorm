@@ -281,8 +281,8 @@
     GSVector3 center = [camera cameraEye];
     
     return [unsortedPoints sortedArrayUsingComparator: ^(id a, id b) {
-        GSVector3 centerA = [(GSBoxedVector *)a v];
-        GSVector3 centerB = [(GSBoxedVector *)b v];
+        GSVector3 centerA = [(GSBoxedVector *)a getVector];
+        GSVector3 centerB = [(GSBoxedVector *)b getVector];
         float distA = GSVector3_Length(GSVector3_Sub(centerA, center));
         float distB = GSVector3_Length(GSVector3_Sub(centerB, center));
         return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
@@ -334,7 +334,7 @@
 
 - (chunk_id_t)getChunkIDWithMinP:(GSVector3)minP
 {
-    return [NSString stringWithFormat:@"%.0f_%.0f_%.0f", minP.x, minP.y, minP.z];
+    return [[[GSBoxedVector alloc] initWithVector:minP] autorelease];
 }
 
 
@@ -424,7 +424,7 @@
         size_t i = 0;
         for(GSBoxedVector *b in sortedChunks)
         {
-            activeChunks[i] = [self getChunkGeometryAtPoint:[b v]];
+            activeChunks[i] = [self getChunkGeometryAtPoint:[b getVector]];
             [activeChunks[i] retain];
             i++;
         }

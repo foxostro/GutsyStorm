@@ -12,17 +12,28 @@ static const float EPS = 1e-5;
 
 @implementation GSBoxedVector
 
-@synthesize v;
-
-- (id)initWithVector:(GSVector3)_v
+- (id)initWithVector:(GSVector3)v
 {
     self = [super init];
     if (self) {
         // Initialization code here.
-        v = _v;
+        [self setVector:v];
     }
     
     return self;
+}
+
+
+- (GSVector3)getVector
+{
+    return vector;
+}
+
+
+- (void)setVector:(GSVector3)v
+{
+    vector = v;
+    cachedHash = [[self toString] hash];
 }
 
 
@@ -40,21 +51,21 @@ static const float EPS = 1e-5;
 }
 
 
-- (BOOL)isEqualToVector:(GSBoxedVector *)vector
+- (BOOL)isEqualToVector:(GSBoxedVector *)otherVector
 {
-    if(self == vector) {
+    if(self == otherVector) {
         return YES;
     }
     
-    return (fabs(vector.v.x - self.v.x) < EPS &&
-            fabs(vector.v.y - self.v.y) < EPS &&
-            fabs(vector.v.z - self.v.z) < EPS);
+    GSVector3 vector2 = [otherVector getVector];
+    
+    return GSVector3_AreEqual(vector, vector2);
 }
 
 
 - (NSUInteger)hash
 {
-    return [[self toString] hash];
+    return cachedHash;
 }
 
 

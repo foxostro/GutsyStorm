@@ -16,7 +16,7 @@
 #import "GSRenderTexture.h"
 
 
-typedef NSString* chunk_id_t;
+typedef id chunk_id_t;
 
 
 @interface GSChunkStore : NSObject
