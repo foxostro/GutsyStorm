@@ -10,6 +10,29 @@
 
 static const float EPS = 1e-5;
 
+
+static NSUInteger sdbm(const size_t len, const char * str)
+{
+    // Source: <http://www.cse.yorku.ca/~oz/hash.html>
+    
+    NSUInteger hash = 0;
+    
+    for(size_t i = 0; i < len; ++i)
+    {
+        hash = str[i] + (hash << 6) + (hash << 16) - hash;
+    }
+    
+    return hash;
+}
+
+
+@interface GSBoxedVector (Private)
+
+- (NSUInteger)computeHash;
+
+@end
+
+
 @implementation GSBoxedVector
 
 - (id)initWithVector:(GSVector3)v
@@ -33,7 +56,7 @@ static const float EPS = 1e-5;
 - (void)setVector:(GSVector3)v
 {
     vector = v;
-    cachedHash = [[self toString] hash];
+    cachedHash = [self computeHash];
 }
 
 
@@ -71,7 +94,17 @@ static const float EPS = 1e-5;
 
 - (NSString *)toString
 {
-    return [NSString stringWithFormat:@"%f_%f_%f", v.x, v.y, v.z];
+    return [NSString stringWithFormat:@"%f_%f_%f", vector.x, vector.y, vector.z];
+}
+
+@end
+
+
+@implementation GSBoxedVector (Private)
+
+- (NSUInteger)computeHash
+{
+    return sdbm(sizeof(vector), (const char *)&vector);
 }
 
 @end
