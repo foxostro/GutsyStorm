@@ -16,6 +16,9 @@
 #import "GSRenderTexture.h"
 
 
+typedef NSString* chunk_id_t;
+
+
 @interface GSChunkStore : NSObject
 {
     NSCache *cacheVoxelData;
@@ -25,7 +28,7 @@
     float terrainHeight;
     unsigned seed;
     GSCamera *camera;
-    NSString *oldCenterChunkID;
+    chunk_id_t oldCenterChunkID;
     NSURL *folder;
     GSShader *terrainShader;
     GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.

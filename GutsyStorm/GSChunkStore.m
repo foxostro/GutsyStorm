@@ -21,7 +21,7 @@
 - (void)deallocChunksWithArray:(GSChunkData **)array len:(size_t)len;
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (GSVector3)computeChunkCenterForPoint:(GSVector3)p;
-- (NSString *)getChunkIDWithMinP:(GSVector3)minP;
+- (chunk_id_t)getChunkIDWithMinP:(GSVector3)minP;
 - (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
 - (void)computeChunkVisibility;
 - (void)computeActiveChunks:(BOOL)sorted;
@@ -189,7 +189,7 @@
 {
     GSChunkGeometryData *geometry = nil;
     GSVector3 minP = [self computeChunkMinPForPoint:p];
-    NSString *chunkID = [self getChunkIDWithMinP:minP];
+    chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
     
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
@@ -228,7 +228,7 @@
 - (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p
 {
     GSVector3 minP = [self computeChunkMinPForPoint:p];
-    NSString *chunkID = [self getChunkIDWithMinP:minP];
+    chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
     
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
@@ -332,7 +332,7 @@
 }
 
 
-- (NSString *)getChunkIDWithMinP:(GSVector3)minP
+- (chunk_id_t)getChunkIDWithMinP:(GSVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f", minP.x, minP.y, minP.z];
 }
@@ -456,9 +456,9 @@
     // If the camera moved then recalculate the set of active chunks.
     if(flags & CAMERA_MOVED) {
         // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
-        NSString *newCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
+        chunk_id_t newCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
         
-        if(![oldCenterChunkID isEqualToString:newCenterChunkID]) {
+        if(![oldCenterChunkID isEqual:newCenterChunkID]) {
             [self computeActiveChunks:NO];
             
             // Now save this chunk ID for comparison next update.
