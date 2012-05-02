@@ -302,8 +302,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
         lastFpsLabelUpdateTime = frameTime;
         numFramesSinceLastFpsLabelUpdate = 0;
         NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
-        [[self window] setTitle:label];
-        //[fpsStringTex setString:label withAttributes:stringAttribs];
+        [fpsStringTex setString:label withAttributes:stringAttribs];
     }
     
     // Handle user input and update the camera if it was modified.
@@ -371,7 +370,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     glPopMatrix(); // camera transform
     
-    //[self drawHUD];
+    [self drawHUD];
 
     if ([self inLiveResize]) {
         glFlush();
