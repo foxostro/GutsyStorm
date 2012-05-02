@@ -117,13 +117,10 @@
         activeChunks = calloc(maxActiveChunks, sizeof(GSChunkGeometryData *));
         
         cacheGeometryData = [[NSCache alloc] init];
-        [cacheGeometryData setCountLimit:10*maxActiveChunks];
-        
-        cacheVoxelLightingData = [[NSCache alloc] init];
-        [cacheVoxelLightingData setCountLimit:10*maxActiveChunks];
+        [cacheGeometryData setCountLimit:INT_MAX];
         
         cacheVoxelData = [[NSCache alloc] init];
-        [cacheVoxelData setCountLimit:2*maxActiveChunks];
+        [cacheVoxelData setCountLimit:INT_MAX];
         
         // Do a full refresh.
         [self computeActiveChunks:YES];
@@ -161,7 +158,7 @@
         assert(chunk);
         
         if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
-            //numVBOGenerationsRemaining--;
+            numVBOGenerationsRemaining--;
         }
     }
     
@@ -387,15 +384,16 @@
 }
 
 
-// Compute active chunks and take the time to ensure NEAR chunks come in before FAR chunks.
+// Compute active chunks. If sorted then take the time to ensure NEAR chunks come in before FAR chunks.
 - (void)computeActiveChunks:(BOOL)sorted
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     
-    // Copy the activeChunks array to retain all chunks. This prevents chunks from being deallocated when we do
-    // are in the process of selecting the new set of active chunks. This, in turn, can prevent eviction of chunks which were in
-    // the active region and will remain in the active region.
-    // Also, reset visibility computation on all active chunks. We'll recalculate a bit later.
+    /* Copy the activeChunks array to retain all chunks. This prevents chunks from being deallocated when we are in the process of
+     * selecting the new set of active chunks. This, in turn, can prevent eviction of chunks which were in the active region and
+     * will remain in the active region.
+     * Also, reset visibility computation on all active chunks. We'll recalculate a bit later.
+     */
     NSMutableArray *tmpActiveChunks = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
     for(size_t i = 0; i < maxActiveChunks; ++i)
     {
@@ -404,8 +402,13 @@
         if(geometry) {
             geometry->visible = NO;
             [tmpActiveChunks addObject:geometry];
-            [geometry release];
         }
+    }
+    
+    for(size_t i = 0; i < maxActiveChunks; ++i)
+    {
+        [activeChunks[i] release];
+        activeChunks[i] = nil;
     }
     
     if(sorted) {
@@ -441,9 +444,10 @@
         assert(i == maxActiveChunks);
     }
     
-    // Now release all the chunks in tmpActiveChunks. Chunks which remain in the
-    // active region have the same refcount as when we started the update. Chunks
-    // which left the active region are released entirely.
+    /* Now release all the chunks in tmpActiveChunks. Chunks which remain in the
+     * active region have the same refcount as when we started the update. Chunks
+     * which left the active region are released entirely.
+     */
     [tmpActiveChunks release];
     
     // Clean up

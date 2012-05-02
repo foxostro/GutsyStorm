@@ -190,7 +190,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [[self window] setAcceptsMouseMovedEvents: YES];
     
     // Register a timer to drive the game loop.
-    renderTimer = [NSTimer timerWithTimeInterval:0.0167 // 60 FPS
+    renderTimer = [NSTimer timerWithTimeInterval:0.001
                                           target:self
                                         selector:@selector(timerFired:)
                                         userInfo:nil
@@ -296,15 +296,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     float dt = (float)(frameTime - prevFrameTime);
     unsigned cameraModifiedFlags = 0;
     
-    // Update the FPS label every so often.
-    if(frameTime - lastFpsLabelUpdateTime > fpsLabelUpdateInterval) {
-        float fps = numFramesSinceLastFpsLabelUpdate / (lastRenderTime - lastFpsLabelUpdateTime);
-        lastFpsLabelUpdateTime = frameTime;
-        numFramesSinceLastFpsLabelUpdate = 0;
-        NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
-        [fpsStringTex setString:label withAttributes:stringAttribs];
-    }
-    
     // Handle user input and update the camera if it was modified.
     cameraModifiedFlags = [self handleUserInput:dt];
     
@@ -378,7 +369,18 @@ BOOL checkForOpenGLExtension(NSString *extension);
         [[self openGLContext] flushBuffer];
     }
     
-    lastRenderTime = CFAbsoluteTimeGetCurrent();
+    CFAbsoluteTime time = CFAbsoluteTimeGetCurrent();
+    
+    // Update the FPS label every so often.
+    if(time - lastFpsLabelUpdateTime > fpsLabelUpdateInterval) {
+        float fps = numFramesSinceLastFpsLabelUpdate / (time - lastFpsLabelUpdateTime);
+        lastFpsLabelUpdateTime = time;
+        numFramesSinceLastFpsLabelUpdate = 0;
+        NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
+        [fpsStringTex setString:label withAttributes:stringAttribs];
+    }
+    
+    lastRenderTime = time;
     numFramesSinceLastFpsLabelUpdate++;
 }
 

@@ -18,8 +18,6 @@
 static int getBlockSunlightAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
 static float groundGradient(float terrainHeight, GSVector3 p);
 static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
-static void freeNeighbors(GSChunkVoxelData **chunks);
-static GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks);
 
 
 @interface GSChunkVoxelData (Private)

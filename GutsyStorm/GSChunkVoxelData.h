@@ -96,3 +96,7 @@ BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
 
 
 void fullBlockLighting(block_lighting_t *ao);
+
+void freeNeighbors(GSChunkVoxelData **chunks);
+
+GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **chunks);

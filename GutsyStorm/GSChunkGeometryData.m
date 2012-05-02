@@ -93,28 +93,11 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
         
         visible = NO;
         
-        // chunks array is freed by th asynchronous task to fetch/load the lighting data
-        GSChunkVoxelData **chunks = calloc(CHUNK_NUM_NEIGHBORS, sizeof(GSChunkVoxelData *));
-        if(!chunks) {
-            [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for temporary chunks array."];
-        }
-        
-        for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-        {
-            chunks[i] = _chunks[i];
-            [chunks[i] retain];
-        }
-        
+        GSChunkVoxelData **chunks = copyNeighbors(_chunks);
         dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         dispatch_async(queue, ^{
             [self generateGeometryWithVoxelData:chunks];
-            
-            // No longer need references to the neighboring chunks.
-            for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-            {
-                [chunks[i] release];
-            }
-            free(chunks);
+            freeNeighbors(chunks);
         });
     }
     

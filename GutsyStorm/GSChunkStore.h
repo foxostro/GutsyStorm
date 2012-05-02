@@ -22,7 +22,6 @@ typedef id chunk_id_t;
 @interface GSChunkStore : NSObject
 {
     NSCache *cacheVoxelData;
-    NSCache *cacheVoxelLightingData;
     NSCache *cacheGeometryData;
     
     float terrainHeight;
