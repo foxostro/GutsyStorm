@@ -12,3 +12,34 @@ investing a considerable amount of effort toward performance optimizations.
 
 Author: Andrew Fox <foxostro@gmail.com>
 Project Home: <http://github.com/foxostro/GutsyStormCocoa>
+
+
+System Requirements for Using Gutsy Storm
+=========================================
+The game has been tested on two machines:
+ * MacBookPro5,1
+ * iMac??,? (yeah, I'll have to look up the model string)
+
+The game uses a large amount of memory and this could impair performance on your
+machine.
+
+In normal circumstances, there is a working set of voxel and geometry data
+which must be held in memory at all times and a set of data which is held purely
+for caching. The cache will be expanded and contracted automatically based on
+the amount of memory available on the system. So, the working set is the real
+concern here, especially if it is too large to hold in memory on your machine.
+
+If the frame rate is very low, try lowering the size of the "active region"
+by entering the following in Terminal:
+
+    % defaults write com.foxostro.GutsyStorm ActiveRegionExtent -int 128
+
+You may also want to this with a value of "64" or "192". (The default is 256.)
+
+Also, the active region size controls the draw distance of the terrain, so
+reducing this value can improve performance by reducing load to the GPU.
+
+
+Getting Started
+===============
+To build the game, just open it in Xcode and run! There is no bootstrap step.
