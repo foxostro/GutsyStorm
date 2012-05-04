@@ -241,6 +241,10 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     [keysDown setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInt:key]];
+    
+    if(key == ' ') {
+        [chunkStore twiddleTerrain];
+    }
 }
 
 

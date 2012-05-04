@@ -177,6 +177,12 @@
     [self recalculateActiveChunksWithCameraModifiedFlags:flags];
 }
 
+
+- (void)twiddleTerrain
+{
+    assert(!"unimplemented");
+}
+
 @end
 
 

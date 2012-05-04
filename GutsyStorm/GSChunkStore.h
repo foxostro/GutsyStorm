@@ -54,4 +54,6 @@ typedef id chunk_id_t;
 - (void)updateWithDeltaTime:(float)dt
         cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
+- (void)twiddleTerrain;
+
 @end
