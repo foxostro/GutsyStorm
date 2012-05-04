@@ -180,7 +180,31 @@
 
 - (void)twiddleTerrain
 {
-    assert(!"unimplemented");
+    GSVector3 pos = GSVector3_Make(85.70, 20, 134.25);
+    voxel_t *block;
+    GSVector3 chunkLocalP;
+    GSChunkVoxelData *chunk;
+    
+    chunk = [self getChunkVoxelsAtPoint:pos];
+    [chunk retain];
+    [chunk->lockVoxelData lockForWriting];
+    
+    chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+    block = [chunk getPointerToVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+    block->empty = !block->empty;
+    
+    [chunk->lockVoxelData unlockForWriting];
+    [chunk release];
+    
+    // Now to update geometry. We do this by trashing the geometry representation and creating a new one.
+    
+    // Remove the repr.
+    GSVector3 minP = [self computeChunkMinPForPoint:pos];
+    chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
+    [cacheGeometryData removeObjectForKey:chunkID];
+    
+    // Generate a new one.
+    [self getChunkGeometryAtPoint:pos];
 }
 
 @end
