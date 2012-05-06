@@ -27,6 +27,7 @@
     GLfloat *texCoordsBuffer;
     GLfloat *colorBuffer;
     GLuint *indexBuffer;
+    BOOL shouldUpdateVBO;
     
 @public
     GSVector3 corners[8];
@@ -36,6 +37,8 @@
 
 - (id)initWithMinP:(GSVector3)_minP
          voxelData:(GSChunkVoxelData **)voxels;
+
+- (void)updateWithVoxelData:(GSChunkVoxelData **)voxels;
 
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 

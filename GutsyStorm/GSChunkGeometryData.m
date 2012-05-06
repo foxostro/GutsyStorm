@@ -33,7 +33,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 
 @interface GSChunkGeometryData (Private)
 
-- (BOOL)tryToGenerateVBOs;
+- (BOOL)tryToGenerateVBOs:(BOOL)synchronous;
 - (void)destroyVBOs;
 - (void)destroyGeometry;
 - (void)generateGeometryWithVoxelData:(GSChunkVoxelData **)voxels;
@@ -51,17 +51,6 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 - (id)initWithMinP:(GSVector3)_minP
          voxelData:(GSChunkVoxelData **)_chunks
 {
-    assert(_chunks);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
-    
     self = [super initWithMinP:_minP];
     if (self) {
         // Initialization code here.
@@ -80,6 +69,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
         indexBuffer = NULL;
         numChunkVerts = 0;
         numIndices = 0;
+        shouldUpdateVBO = YES;
         
         // Frustum-Box testing requires the corners of the cube, so pre-calculate them here.
         corners[0] = minP;
@@ -93,15 +83,34 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
         
         visible = NO;
         
-        GSChunkVoxelData **chunks = copyNeighbors(_chunks);
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        dispatch_async(queue, ^{
-            [self generateGeometryWithVoxelData:chunks];
-            freeNeighbors(chunks);
-        });
+        [self updateWithVoxelData:_chunks];
     }
     
     return self;
+}
+
+
+- (void)updateWithVoxelData:(GSChunkVoxelData **)_chunks
+{
+    assert(_chunks);
+    assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
+    assert(_chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
+    assert(_chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
+    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
+    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
+    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
+    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
+    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
+    assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
+    
+    GSChunkVoxelData **chunks = copyNeighbors(_chunks);
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_async(queue, ^{
+        [self generateGeometryWithVoxelData:chunks];
+        freeNeighbors(chunks);
+    });
+    
+    shouldUpdateVBO = YES;
 }
 
 
@@ -110,19 +119,12 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 {
     BOOL didGenerateVBOs = NO;
     
-    if(numIndices <= 0) {
-        return didGenerateVBOs;
-    }
-    
-    // If VBOs have not been generated yet then attempt to do so now.
-    // OpenGL has no support for concurrency so we can't do this asynchronously.
-    // (Unless we use a global lock on OpenGL, but that sounds too complicated to deal with across the entire application.)
-    if(!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords || !vboChunkColors) {
-        // If VBOs cannot be generated yet then bail out.
-        if(allowVBOGeneration && ![self tryToGenerateVBOs]) {
-            return NO;
+    if(shouldUpdateVBO || (!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords || !vboChunkColors)) {
+        if(allowVBOGeneration) {
+            // Generate the VBO synchronously if an immediate update has been requested.
+            didGenerateVBOs = [self tryToGenerateVBOs:shouldUpdateVBO];
         } else {
-            didGenerateVBOs = YES;
+            didGenerateVBOs = NO;
         }
     }
     
@@ -563,9 +565,11 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 }
 
 
-- (BOOL)tryToGenerateVBOs
+- (BOOL)tryToGenerateVBOs:(BOOL)synchronous
 {
-    if(![lockGeometry tryLockWhenCondition:READY]) {
+    if(synchronous) {
+        [lockGeometry lockWhenCondition:READY];
+    } else if(![lockGeometry tryLockWhenCondition:READY]) {
         return NO;
     }
     
@@ -589,6 +593,8 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     glGenBuffers(1, &vboChunkColors);
     glBindBuffer(GL_ARRAY_BUFFER, vboChunkColors);
     glBufferData(GL_ARRAY_BUFFER, len, colorBuffer, GL_STATIC_DRAW);
+    
+    shouldUpdateVBO = NO;
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);

@@ -179,6 +179,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     terrainShader = nil;
     textureArray = nil;
     chunkStore = nil;
+    spaceBarDebounce = NO;
     
     camera = [[GSCamera alloc] init];
     [camera moveToPosition:GSVector3_Make(85.70, 15, 134.25)];
@@ -241,10 +242,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     [keysDown setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInt:key]];
-    
-    if(key == ' ') {
-        [chunkStore twiddleTerrain];
-    }
 }
 
 
@@ -302,6 +299,15 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     // Handle user input and update the camera if it was modified.
     cameraModifiedFlags = [self handleUserInput:dt];
+    
+    if([[keysDown objectForKey:[NSNumber numberWithInt:' ']] boolValue]) {
+        if(!spaceBarDebounce) {
+            spaceBarDebounce = YES;
+            [chunkStore twiddleTerrain];
+        }
+    } else {
+        spaceBarDebounce = NO;
+    }
     
     // Allow the chunkStore to update every frame.
     [chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];

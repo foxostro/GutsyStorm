@@ -30,6 +30,7 @@
     GSShader *terrainShader;
     GSTextureArray *textureArray;
     GSChunkStore *chunkStore;
+    BOOL spaceBarDebounce;
 }
 
 - (void)drawHUD;

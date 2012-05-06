@@ -196,19 +196,11 @@
     [chunk->lockVoxelData unlockForWriting];
     [chunk release];
     
-    // Now to update geometry. We do this by trashing the geometry representation and creating a new one.
-    
-    // Remove the repr.
-    GSVector3 minP = [self computeChunkMinPForPoint:pos];
-    chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
-    [cacheGeometryData removeObjectForKey:chunkID];
-    
-    // Generate a new one.
-    [self getChunkGeometryAtPoint:pos];
-    
-    // Need to recompute active chunks and visibility immediately so our changes show up imemdiately.s
-    [self computeActiveChunks:YES];
-    [self computeChunkVisibility];
+    // Now update geometry.
+    GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
+    [self getNeighborsForChunkAtPoint:pos outNeighbors:chunks];
+    [chunks[CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:chunks];
+    [[self getChunkGeometryAtPoint:pos] updateWithVoxelData:chunks];
 }
 
 @end
