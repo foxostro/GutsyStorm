@@ -205,6 +205,10 @@
     
     // Generate a new one.
     [self getChunkGeometryAtPoint:pos];
+    
+    // Need to recompute active chunks and visibility immediately so our changes show up imemdiately.s
+    [self computeActiveChunks:YES];
+    [self computeChunkVisibility];
 }
 
 @end
