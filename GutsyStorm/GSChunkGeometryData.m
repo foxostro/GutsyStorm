@@ -11,6 +11,8 @@
 #import "GSChunkStore.h"
 #import "GSVertex.h"
 
+#define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
+
 
 static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint vboChunkTexCoords, GLuint vboChunkColors);
 
@@ -33,7 +35,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 
 @interface GSChunkGeometryData (Private)
 
-- (BOOL)tryToGenerateVBOs:(BOOL)synchronous;
+- (BOOL)tryToGenerateVBOs;
 - (void)destroyVBOs;
 - (void)destroyGeometry;
 - (void)generateGeometryWithVoxelData:(GSChunkVoxelData **)voxels;
@@ -41,6 +43,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
                                         vertices:(NSMutableArray *)vertices
                                          indices:(NSMutableArray *)indices
                                        voxelData:(GSChunkVoxelData **)voxels;
+- (void)fillIndexBufferForGenerating:(NSMutableArray *)indices;
 
 @end
 
@@ -54,22 +57,28 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     self = [super initWithMinP:_minP];
     if (self) {
         // Initialization code here.
-        vboChunkVerts = 0;
-        vboChunkNorms = 0;
-        vboChunkTexCoords = 0;
-        vboChunkColors = 0;
         
+        // Geometry for the chunk is protected by lockGeometry and is generated asynchronously.
         lockGeometry = [[NSConditionLock alloc] init];
         [lockGeometry setName:@"GSChunkGeometryData.lockGeometry"];
-        
         vertsBuffer = NULL;
         normsBuffer = NULL;
         texCoordsBuffer = NULL;
         colorBuffer = NULL;
-        indexBuffer = NULL;
         numChunkVerts = 0;
-        numIndices = 0;
-        shouldUpdateVBO = YES;
+        numIndicesForGenerating = 0;
+        indexBufferForGenerating = NULL;
+        
+        /* VBO data is not lock protected and is either exclusively accessed on the main thread
+         * or is updated in ways that do not require locking for atomicity.
+         */
+        vboChunkVerts = 0;
+        vboChunkNorms = 0;
+        vboChunkTexCoords = 0;
+        vboChunkColors = 0;
+        numIndicesForDrawing = 0;
+        indexBufferForDrawing = NULL;
+        needsVBORegeneration = NO;
         
         // Frustum-Box testing requires the corners of the cube, so pre-calculate them here.
         corners[0] = minP;
@@ -109,8 +118,6 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
         [self generateGeometryWithVoxelData:chunks];
         freeNeighbors(chunks);
     });
-    
-    shouldUpdateVBO = YES;
 }
 
 
@@ -119,16 +126,19 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 {
     BOOL didGenerateVBOs = NO;
     
-    if(shouldUpdateVBO || (!vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords || !vboChunkColors)) {
+    BOOL vbosAreMissing = !vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords || !vboChunkColors;
+    
+    if(needsVBORegeneration || vbosAreMissing) {
         if(allowVBOGeneration) {
-            // Generate the VBO synchronously if an immediate update has been requested.
-            didGenerateVBOs = [self tryToGenerateVBOs:shouldUpdateVBO];
+            didGenerateVBOs = [self tryToGenerateVBOs];
         } else {
             didGenerateVBOs = NO;
         }
     }
     
-    if(vboChunkVerts && vboChunkNorms && vboChunkTexCoords && vboChunkColors && (numIndices>0) && indexBuffer) {
+    BOOL anyGeometryAtAll = (numIndicesForDrawing>0) && indexBufferForDrawing;
+    
+    if(anyGeometryAtAll && (didGenerateVBOs || !vbosAreMissing)) {
         glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
         glVertexPointer(3, GL_FLOAT, 0, 0);
         
@@ -141,7 +151,7 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
         glBindBuffer(GL_ARRAY_BUFFER, vboChunkColors);
         glColorPointer(3, GL_FLOAT, 0, 0);
         
-        glDrawElements(GL_QUADS, numIndices, GL_UNSIGNED_INT, indexBuffer);
+        glDrawElements(GL_QUADS, numIndicesForDrawing, GL_UNSIGNED_INT, indexBufferForDrawing);
     }
     
     return didGenerateVBOs;
@@ -239,7 +249,6 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
     numChunkVerts = (GLsizei)[vertices count];
-    numIndices = (GLsizei)[indices count];
     
     // Take the vertices array and generate raw buffers for OpenGL to consume.
     vertsBuffer = allocateGeometryBuffer(numChunkVerts);
@@ -281,20 +290,37 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     
     [vertices release];
     
-    // Take the indices array and generate a raw index buffer for OpenGL to consume.
-    indexBuffer = malloc(sizeof(GLuint) * numIndices);
-    if(!indexBuffer) {
+    [self fillIndexBufferForGenerating:indices];
+    [indices release];
+    
+    // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
+    // Updating a boolean should be atomic on x86_64 and i386;
+    needsVBORegeneration = YES;
+    
+    [lockGeometry unlockWithCondition:READY];
+}
+
+
+// Assumes the caller is already holding "lockGeometry".
+- (void)fillIndexBufferForGenerating:(NSMutableArray *)indices
+{
+    if(indexBufferForGenerating) {
+        free(indexBufferForGenerating);
+        indexBufferForGenerating = NULL;
+    }
+    
+    numIndicesForGenerating = (GLsizei)[indices count];
+    
+    // Take the indices array and generate a raw index buffer that OpenGL can consume.
+    indexBufferForGenerating = malloc(sizeof(GLuint) * numIndicesForGenerating);
+    if(!indexBufferForGenerating) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating index buffer."];
     }
     
-    for(GLsizei i = 0; i < numIndices; ++i)
+    for(GLsizei i = 0; i < numIndicesForGenerating; ++i)
     {
-        indexBuffer[i] = [[indices objectAtIndex:i] unsignedIntValue];
+        indexBufferForGenerating[i] = [[indices objectAtIndex:i] unsignedIntValue];
     }
-    
-    [indices release];
-    
-    [lockGeometry unlockWithCondition:READY];
 }
 
 
@@ -313,11 +339,11 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     free(colorBuffer);
     colorBuffer = NULL;
     
-    free(indexBuffer);
-    indexBuffer = NULL;
+    free(indexBufferForGenerating);
+    indexBufferForGenerating = NULL;
     
     numChunkVerts = 0;
-    numIndices = 0;
+    numIndicesForGenerating = 0;
 }
 
 
@@ -565,11 +591,9 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
 }
 
 
-- (BOOL)tryToGenerateVBOs:(BOOL)synchronous
+- (BOOL)tryToGenerateVBOs
 {
-    if(synchronous) {
-        [lockGeometry lockWhenCondition:READY];
-    } else if(![lockGeometry tryLockWhenCondition:READY]) {
+    if(![lockGeometry tryLockWhenCondition:READY]) {
         return NO;
     }
     
@@ -594,17 +618,20 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     glBindBuffer(GL_ARRAY_BUFFER, vboChunkColors);
     glBufferData(GL_ARRAY_BUFFER, len, colorBuffer, GL_STATIC_DRAW);
     
-    shouldUpdateVBO = NO;
+    // Simply quickly swap the index buffers to get the index buffer to use for actual drawing.
+    SWAP(indexBufferForDrawing, indexBufferForGenerating);
+    SWAP(numIndicesForDrawing, numIndicesForGenerating);
+    
+    needsVBORegeneration = NO; // reset
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);
-    [lockGeometry unlockWithCondition:READY];
+    [lockGeometry unlock];
     
     return YES;
 }
 
 
-// Must only be called from the main thread.
 - (void)destroyVBOs
 {
     destroyChunkVBOs(vboChunkVerts, vboChunkNorms, vboChunkTexCoords, vboChunkColors);
@@ -613,6 +640,10 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     vboChunkNorms = 0;
     vboChunkTexCoords = 0;
     vboChunkColors = 0;
+    
+    numIndicesForDrawing = 0;
+    free(indexBufferForDrawing);
+    indexBufferForDrawing = NULL;
 }
 
 @end

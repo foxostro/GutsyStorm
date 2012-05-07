@@ -17,19 +17,27 @@
 
 @interface GSChunkGeometryData : GSChunkData
 {
+    /* There are two copies of the index buffer so that one can be used for
+     * drawing the chunk while geometry generation is in progress. This
+     * removes the need to have any locking surrounding access to data
+     * related to VBO drawing.
+     */
+    
+    BOOL needsVBORegeneration;
+    GLsizei numIndicesForDrawing;
+    GLuint *indexBufferForDrawing; // Index buffer which is used when rendering VBOs.
     GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords, vboChunkColors;
     
     NSConditionLock *lockGeometry;
-    GLsizei numIndices;
     GLsizei numChunkVerts;
     GLfloat *vertsBuffer;
     GLfloat *normsBuffer;
     GLfloat *texCoordsBuffer;
     GLfloat *colorBuffer;
-    GLuint *indexBuffer;
-    BOOL shouldUpdateVBO;
+    GLsizei numIndicesForGenerating;
+    GLuint *indexBufferForGenerating; // Index buffer which is filled by the geometry generation routine.
     
-@public
+ @public
     GSVector3 corners[8];
     BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
 }
