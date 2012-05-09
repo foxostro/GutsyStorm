@@ -147,16 +147,27 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)_chunks
+- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)_chunks doItSynchronously:(BOOL)sync
 {
-    GSChunkVoxelData **chunks1 = copyNeighbors(_chunks);
+    GSChunkVoxelData **chunks = copyNeighbors(_chunks);
     
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    void (^b)(void) = ^{
+        [self generateAmbientOcclusionWithNeighbors:chunks];
+        
+        [lockSunlight lockForWriting];
+        [self generateSunlight];
+        [lockSunlight unlockForWriting];
+        
+        freeNeighbors(chunks);
+    };
     
-    dispatch_async(queue, ^{
-        [self generateAmbientOcclusionWithNeighbors:chunks1];
-        freeNeighbors(chunks1);
-    });
+    if(sync) {
+        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+        dispatch_sync(queue, b);
+    } else {
+        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        dispatch_async(queue, b);
+    }
 }
 
 
@@ -488,8 +499,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     [noiseSource0 release];
     [noiseSource1 release];
     
-    [self recalcOutsideVoxelsNoLock];
-    
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
 }
@@ -557,12 +566,18 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     GSIntegerVector3 p = {0};
     
-    sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int));
     if(!sunlight) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
+        sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int));
+        if(!sunlight) {
+            [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
+        }
+    } else {
+        bzero(sunlight, sizeof(int) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
     }
     
     [lockVoxelData lockForReading];
+    
+    [self recalcOutsideVoxelsNoLock];
     
     // Reset all empty, outside blocks to full sunlight.
     for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)

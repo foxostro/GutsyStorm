@@ -9,6 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import "GSCamera.h"
 #import "GLString.h"
+#import "GSCube.h"
 #import "GSShader.h"
 #import "GSTextureArray.h"
 #import "GSChunkStore.h"
@@ -31,6 +32,11 @@
     GSTextureArray *textureArray;
     GSChunkStore *chunkStore;
     BOOL spaceBarDebounce;
+    BOOL bKeyDebounce;
+    
+    BOOL cursorIsActive;
+    GSVector3 cursorPos;
+    GSCube *cursor;
 }
 
 - (void)drawHUD;
@@ -42,5 +48,7 @@
 - (NSString *)loadShaderSourceFileWithPath:(NSString *)path;
 - (void)buildTerrainShader;
 - (void)buildFontsAndStrings;
+- (void)placeBlockUnderCrosshairs;
+- (void)removeBlockUnderCrosshairs;
 
 @end

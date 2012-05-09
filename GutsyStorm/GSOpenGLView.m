@@ -10,6 +10,7 @@
 #import <OpenGL/gl.h>
 #import <OpenGL/glu.h>
 #import "GSOpenGLView.h"
+#import "GSVector2.h"
 
 
 int checkGLErrors(void);
@@ -150,6 +151,9 @@ BOOL checkForOpenGLExtension(NSString *extension);
     chunkStore = [[GSChunkStore alloc] initWithSeed:0
                                              camera:camera
                                       terrainShader:terrainShader];
+    
+    cursor = [[GSCube alloc] init];
+    [cursor generateVBO];
         
     [self enableVSync];
     
@@ -180,9 +184,15 @@ BOOL checkForOpenGLExtension(NSString *extension);
     textureArray = nil;
     chunkStore = nil;
     spaceBarDebounce = NO;
+    bKeyDebounce = NO;
+    
+    // XXX: Should the cursor be handled in its own unique class?
+    cursorIsActive = NO;
+    cursorPos = GSVector3_Make(0, 0, 0);
+    cursor = nil;
     
     camera = [[GSCamera alloc] init];
-    [camera moveToPosition:GSVector3_Make(85.70, 15, 134.25)];
+    [camera moveToPosition:GSVector3_Make(85, 16, 140)];
     [camera updateCameraLookVectors];
     [self resetMouseInputSettings];
     
@@ -282,11 +292,70 @@ BOOL checkForOpenGLExtension(NSString *extension);
                                                                 mouseDeltaY:mouseDeltaY
                                                            mouseSensitivity:mouseSensitivity];
     
+    if([[keysDown objectForKey:[NSNumber numberWithInt:' ']] boolValue]) {
+        if(!spaceBarDebounce) {
+            spaceBarDebounce = YES;
+            [self placeBlockUnderCrosshairs];
+        }
+    } else {
+        spaceBarDebounce = NO;
+    }
+    
+    if([[keysDown objectForKey:[NSNumber numberWithInt:'b']] boolValue]) {
+        if(!bKeyDebounce) {
+            bKeyDebounce = YES;
+            [self removeBlockUnderCrosshairs];
+        }
+    } else {
+        bKeyDebounce = NO;
+    }
+    
     // Reset for the next update
     mouseDeltaX = 0;
     mouseDeltaY = 0;
     
     return cameraModifiedFlags;
+}
+
+
+- (void)placeBlockUnderCrosshairs
+{
+    const float maxPlaceDistance = 4.0;
+    GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
+    float d;
+    
+    if([chunkStore getPositionOfBlockAlongRay:ray
+                                      maxDist:maxPlaceDistance
+                                  outDistance:&d]) {
+        // this block is full, so the previous step is where we ought to place the new block
+        GSVector3 placePos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), MAX(0, d - 0.1f))); // XXX: Messy
+        
+        voxel_t block;
+        block.empty = NO;
+        block.outside = NO; // will be recalculated later
+        
+        [chunkStore placeBlockAtPoint:placePos block:block];
+    }
+}
+
+
+- (void)removeBlockUnderCrosshairs
+{
+    const float maxPlaceDistance = 4.0;
+    GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
+    float d;
+    
+    if([chunkStore getPositionOfBlockAlongRay:ray
+                                      maxDist:maxPlaceDistance
+                                  outDistance:&d]) {
+        GSVector3 removePos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
+        
+        voxel_t block;
+        block.empty = YES;
+        block.outside = NO; // will be recalculated later
+        
+        [chunkStore placeBlockAtPoint:removePos block:block];
+    }
 }
 
 
@@ -300,13 +369,20 @@ BOOL checkForOpenGLExtension(NSString *extension);
     // Handle user input and update the camera if it was modified.
     cameraModifiedFlags = [self handleUserInput:dt];
     
-    if([[keysDown objectForKey:[NSNumber numberWithInt:' ']] boolValue]) {
-        if(!spaceBarDebounce) {
-            spaceBarDebounce = YES;
-            [chunkStore twiddleTerrain];
+    //Calculate the cursor position.
+    {
+        const float maxPlaceDistance = 4.0;
+        GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
+        float d;
+        if([chunkStore getPositionOfBlockAlongRay:ray
+                                      maxDist:maxPlaceDistance
+                                  outDistance:&d]) {
+            cursorPos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
+            cursorPos = GSVector3_Make((int)cursorPos.x, (int)cursorPos.y, (int)cursorPos.z);
+            cursorIsActive = YES;
+        } else {
+            cursorIsActive = NO;
         }
-    } else {
-        spaceBarDebounce = NO;
     }
     
     // Allow the chunkStore to update every frame.
@@ -339,6 +415,18 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glScalef(2.0f / width, -2.0f /  height, 1.0f);
     glTranslatef(-width / 2.0f, -height / 2.0f, 0.0f);
     
+    // Draw the crosshairs.
+    glLineWidth(4.0);
+    glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
+    glBegin(GL_LINES);
+    glVertex2f(-6 + width/2, -6 + height/2);
+    glVertex2f( 6 + width/2,  6 + height/2);
+    glVertex2f(-6 + width/2,  6 + height/2);
+    glVertex2f( 6 + width/2, -6 + height/2);
+    glEnd();
+    glLineWidth(1.0);
+    
+    // Draw the FPS counter.
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     [fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f)];
     
@@ -357,6 +445,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)drawRect:(NSRect)dirtyRect
 {
+    static const float edgeOffset = 1e-4;
     static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -367,7 +456,18 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [camera submitCameraTransform];
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 
+    glDepthRange(edgeOffset, 1.0); // Use glDepthRange so the block cursor is properly offset from the block itself.
     [chunkStore drawChunks];
+    
+    if(cursorIsActive) {
+        glDepthRange(0.0, 1.0 - edgeOffset);
+        glPushMatrix();
+        glTranslatef(cursorPos.x, cursorPos.y, cursorPos.z);
+        [cursor draw];
+        glPopMatrix();
+    }
+    
+    glDepthRange(0.0, 1.0);
     
     glPopMatrix(); // camera transform
     
@@ -401,6 +501,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [camera release];
     [terrainShader release];
     [textureArray release];
+    [cursor release];
     
     [super dealloc];
 }

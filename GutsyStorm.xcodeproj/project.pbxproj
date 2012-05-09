@@ -26,6 +26,7 @@
 		4A9EC91A15282ADA009C80FF /* GSAABB.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9EC91915282ADA009C80FF /* GSAABB.m */; };
 		4A9EC920152900C6009C80FF /* GSMatrix4.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A9EC91F152900C6009C80FF /* GSMatrix4.c */; };
 		4A9EC92215290452009C80FF /* GSVector4.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A9EC92115290452009C80FF /* GSVector4.c */; };
+		4AC7C9F91559E00000806635 /* GSCube.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AC7C9F81559E00000806635 /* GSCube.m */; };
 		4ACB9C2A1527CF50005D50B8 /* GSRay.c in Sources */ = {isa = PBXBuildFile; fileRef = 4ACB9C291527CF50005D50B8 /* GSRay.c */; };
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
@@ -85,6 +86,8 @@
 		4A9EC91F152900C6009C80FF /* GSMatrix4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSMatrix4.c; sourceTree = "<group>"; };
 		4A9EC92115290452009C80FF /* GSVector4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSVector4.c; sourceTree = "<group>"; };
 		4A9EC9231529045C009C80FF /* GSVector4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVector4.h; sourceTree = "<group>"; };
+		4AC7C9F71559E00000806635 /* GSCube.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSCube.h; sourceTree = "<group>"; };
+		4AC7C9F81559E00000806635 /* GSCube.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSCube.m; sourceTree = "<group>"; };
 		4ACB9C271527CF45005D50B8 /* GSRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSRay.h; sourceTree = "<group>"; };
 		4ACB9C291527CF50005D50B8 /* GSRay.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSRay.c; sourceTree = "<group>"; usesTabs = 1; };
 		4AD9531815142AA000C2AF8E /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = ../../../../../System/Library/Frameworks/OpenGL.framework; sourceTree = "<group>"; };
@@ -183,6 +186,8 @@
 		4A2CCFFC1513C3FC006C6551 /* GutsyStorm */ = {
 			isa = PBXGroup;
 			children = (
+				4AC7C9F71559E00000806635 /* GSCube.h */,
+				4AC7C9F81559E00000806635 /* GSCube.m */,
 				ACE99D72151FED59006055F6 /* snoise3.h */,
 				ACE99D6F151FE922006055F6 /* snoise3.c */,
 				AC5B27FE151DC7BA0045B6E4 /* GSNoise.h */,
@@ -369,6 +374,7 @@
 				4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */,
 				4A2310C7153E112900A4EBE6 /* GSChunkData.m in Sources */,
 				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
+				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

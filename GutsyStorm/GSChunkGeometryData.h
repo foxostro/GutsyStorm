@@ -46,7 +46,7 @@
 - (id)initWithMinP:(GSVector3)_minP
          voxelData:(GSChunkVoxelData **)voxels;
 
-- (void)updateWithVoxelData:(GSChunkVoxelData **)voxels;
+- (void)updateWithVoxelData:(GSChunkVoxelData **)voxels doItSynchronously:(BOOL)sync;
 
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 

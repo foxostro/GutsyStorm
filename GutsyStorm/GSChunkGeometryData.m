@@ -92,14 +92,14 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
         
         visible = NO;
         
-        [self updateWithVoxelData:_chunks];
+        [self updateWithVoxelData:_chunks doItSynchronously:NO];
     }
     
     return self;
 }
 
 
-- (void)updateWithVoxelData:(GSChunkVoxelData **)_chunks
+- (void)updateWithVoxelData:(GSChunkVoxelData **)_chunks doItSynchronously:(BOOL)sync
 {
     assert(_chunks);
     assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
@@ -113,11 +113,19 @@ static inline GSVector3 blockLight(float sunlight, float torchLight, float ambie
     assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
     
     GSChunkVoxelData **chunks = copyNeighbors(_chunks);
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    dispatch_async(queue, ^{
+    
+    void (^b)(void) = ^{
         [self generateGeometryWithVoxelData:chunks];
         freeNeighbors(chunks);
-    });
+    };
+    
+    if(sync) {
+        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+        dispatch_sync(queue, b);
+    } else {
+        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        dispatch_async(queue, b);
+    }
 }
 
 

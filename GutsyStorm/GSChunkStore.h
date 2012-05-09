@@ -54,6 +54,12 @@ typedef id chunk_id_t;
 - (void)updateWithDeltaTime:(float)dt
         cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
-- (void)twiddleTerrain;
+- (BOOL)getPositionOfBlockAlongRay:(GSRay)ray
+                           maxDist:(float)maxDist
+                       outDistance:(float *)outDistance;
+
+- (voxel_t)getVoxelAtPoint:(GSVector3)pos;
+
+- (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)block;
 
 @end

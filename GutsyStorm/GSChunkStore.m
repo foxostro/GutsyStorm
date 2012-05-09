@@ -151,6 +151,8 @@
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
+    
+    glTranslatef(0.5, 0.5, 0.5);
         
     for(size_t i = 0; i < maxActiveChunks; ++i)
     {
@@ -178,9 +180,8 @@
 }
 
 
-- (void)twiddleTerrain
+- (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)newBlock
 {
-    GSVector3 pos = GSVector3_Make(85.70, 20, 134.25);
     voxel_t *block;
     GSVector3 chunkLocalP;
     GSChunkVoxelData *chunk;
@@ -191,16 +192,66 @@
     
     chunkLocalP = GSVector3_Sub(pos, chunk.minP);
     block = [chunk getPointerToVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
-    block->empty = !block->empty;
+    assert(block);
+    *block = newBlock;
     
     [chunk->lockVoxelData unlockForWriting];
     [chunk release];
     
-    // Now update geometry.
+    // Now update geometry for this chunk and its neighbors.
+    // Do it all synchronously too, so changes will appear "immediately."
     GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
     [self getNeighborsForChunkAtPoint:pos outNeighbors:chunks];
-    [chunks[CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:chunks];
-    [[self getChunkGeometryAtPoint:pos] updateWithVoxelData:chunks];
+    
+    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        GSChunkVoxelData *neighbors[CHUNK_NUM_NEIGHBORS] = {nil};
+        [self getNeighborsForChunkAtPoint:chunks[i].centerP outNeighbors:neighbors];
+        [chunks[i] updateLightingWithNeighbors:neighbors doItSynchronously:YES];
+        [[self getChunkGeometryAtPoint:chunks[i].centerP] updateWithVoxelData:neighbors doItSynchronously:YES];
+    }
+}
+
+
+- (voxel_t)getVoxelAtPoint:(GSVector3)pos
+{
+    GSChunkVoxelData *chunk = [self getChunkVoxelsAtPoint:pos];
+    [chunk retain];
+    [chunk->lockVoxelData lockForReading];
+
+    GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+    
+    voxel_t block = [chunk getVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+
+    [chunk->lockVoxelData unlockForReading];
+    [chunk release];
+    
+    return block;
+}
+
+
+- (BOOL)getPositionOfBlockAlongRay:(GSRay)ray
+                           maxDist:(float)maxDist
+                       outDistance:(float *)outDistance
+{
+    assert(maxDist > 0);
+    assert(outDistance);
+    
+    const float step = 0.5f;
+    
+    for(float d = 0.0; d < maxDist; d += step)
+    {
+        GSVector3 pos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
+        
+        voxel_t block = [self getVoxelAtPoint:pos];
+        
+        if(!block.empty) {
+            *outDistance = d;
+            return YES;
+        }
+    }
+    
+    return NO;
 }
 
 @end
@@ -223,7 +274,7 @@
         [self getNeighborsForChunkAtPoint:p outNeighbors:chunks];
         
         // Now that neighboring chunks are actually available, spin off a task to asynchronously update lighting in the chunk.
-        [chunks[CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:chunks];
+        [chunks[CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:chunks doItSynchronously:NO];
         
         geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP voxelData:chunks] autorelease];
         

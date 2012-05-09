@@ -68,7 +68,7 @@ typedef struct
      terrainHeight:(float)terrainHeight
             folder:(NSURL *)folder;
 
-- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)neighbors;
+- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)neighbors doItSynchronously:(BOOL)sync;
 
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
