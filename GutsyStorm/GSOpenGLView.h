@@ -33,6 +33,7 @@
     GSChunkStore *chunkStore;
     BOOL spaceBarDebounce;
     BOOL bKeyDebounce;
+    float maxPlaceDistance;
     
     BOOL cursorIsActive;
     GSVector3 cursorPos;
@@ -50,5 +51,6 @@
 - (void)buildFontsAndStrings;
 - (void)placeBlockUnderCrosshairs;
 - (void)removeBlockUnderCrosshairs;
+- (void)recalcCursorPosition;
 
 @end

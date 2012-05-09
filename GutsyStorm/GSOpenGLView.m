@@ -185,6 +185,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     chunkStore = nil;
     spaceBarDebounce = NO;
     bKeyDebounce = NO;
+    maxPlaceDistance = 4.0;
     
     // XXX: Should the cursor be handled in its own unique class?
     cursorIsActive = NO;
@@ -320,7 +321,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)placeBlockUnderCrosshairs
 {
-    const float maxPlaceDistance = 4.0;
     GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
     float d;
     
@@ -335,13 +335,13 @@ BOOL checkForOpenGLExtension(NSString *extension);
         block.outside = NO; // will be recalculated later
         
         [chunkStore placeBlockAtPoint:placePos block:block];
+        [self recalcCursorPosition];
     }
 }
 
 
 - (void)removeBlockUnderCrosshairs
 {
-    const float maxPlaceDistance = 4.0;
     GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
     float d;
     
@@ -355,6 +355,23 @@ BOOL checkForOpenGLExtension(NSString *extension);
         block.outside = NO; // will be recalculated later
         
         [chunkStore placeBlockAtPoint:removePos block:block];
+        [self recalcCursorPosition];
+    }
+}
+
+
+- (void)recalcCursorPosition
+{
+    GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
+    float d;
+    if([chunkStore getPositionOfBlockAlongRay:ray
+                                      maxDist:maxPlaceDistance
+                                  outDistance:&d]) {
+        cursorPos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
+        cursorPos = GSVector3_Make((int)cursorPos.x, (int)cursorPos.y, (int)cursorPos.z);
+        cursorIsActive = YES;
+    } else {
+        cursorIsActive = NO;
     }
 }
 
@@ -370,19 +387,8 @@ BOOL checkForOpenGLExtension(NSString *extension);
     cameraModifiedFlags = [self handleUserInput:dt];
     
     //Calculate the cursor position.
-    {
-        const float maxPlaceDistance = 4.0;
-        GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
-        float d;
-        if([chunkStore getPositionOfBlockAlongRay:ray
-                                      maxDist:maxPlaceDistance
-                                  outDistance:&d]) {
-            cursorPos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
-            cursorPos = GSVector3_Make((int)cursorPos.x, (int)cursorPos.y, (int)cursorPos.z);
-            cursorIsActive = YES;
-        } else {
-            cursorIsActive = NO;
-        }
+    if(cameraModifiedFlags) {
+        [self recalcCursorPosition];
     }
     
     // Allow the chunkStore to update every frame.
