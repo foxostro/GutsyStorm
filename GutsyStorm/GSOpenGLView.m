@@ -422,15 +422,12 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glTranslatef(-width / 2.0f, -height / 2.0f, 0.0f);
     
     // Draw the crosshairs.
-    glLineWidth(4.0);
+    glPointSize(5.0);
     glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
-    glBegin(GL_LINES);
-    glVertex2f(-6 + width/2, -6 + height/2);
-    glVertex2f( 6 + width/2,  6 + height/2);
-    glVertex2f(-6 + width/2,  6 + height/2);
-    glVertex2f( 6 + width/2, -6 + height/2);
+    glBegin(GL_POINTS);
+    glVertex2f(width/2, height/2);
     glEnd();
-    glLineWidth(1.0);
+    glPointSize(1.0);
     
     // Draw the FPS counter.
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
