@@ -20,6 +20,6 @@ typedef struct
 
 GSRay GSRay_Make(GSVector3 origin, GSVector3 direction);
 int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GSVector3 *intersectionPointOut);
-int GSRay_IntersectsAABB(GSRay ray, GSVector3 minP, GSVector3 maxP, float *intersectionDistanceOut);
+int GSRay_IntersectsAABB(GSRay ray, GSVector3 minP, GSVector3 maxP, float *distanceToEntrance, float *distanceToExit);
 
 #endif

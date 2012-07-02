@@ -62,43 +62,57 @@ int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GSVector3 *intersectionPoint
 }
 
 
-// Perform intersection test against the three front-facing planes and return the closest intersection.
-int GSRay_IntersectsAABB(GSRay r, GSVector3 minP, GSVector3 maxP, float *intersectionDistanceOut)
-{    
-    GSVector3 dirfrac;
-    float t = 0;
-    
-    dirfrac.x = 1.0f / r.direction.x;
-    dirfrac.y = 1.0f / r.direction.y;
-    dirfrac.z = 1.0f / r.direction.z;
-    
-    float t1 = (minP.x - r.origin.x)*dirfrac.x;
-    float t2 = (maxP.x - r.origin.x)*dirfrac.x;
-    float t3 = (minP.y - r.origin.y)*dirfrac.y;
-    float t4 = (maxP.y - r.origin.y)*dirfrac.y;
-    float t5 = (minP.z - r.origin.z)*dirfrac.z;
-    float t6 = (maxP.z - r.origin.z)*dirfrac.z;
-    
-    float tmin = MAX(MAX(MIN(t1, t2), MIN(t3, t4)), MIN(t5, t6));
-    float tmax = MIN(MIN(MAX(t1, t2), MAX(t3, t4)), MAX(t5, t6));
-    
-    // if tmax < 0, ray (line) is intersecting AABB, but whole AABB is behind us
-    if (tmax < 0) {
-        t = tmax;
-        return 0;
-    }
-    
-    // if tmin > tmax, ray doesn't intersect AABB
-    if (tmin > tmax) {
-        t = tmax;
-        return 0;
-    }
-    
-    t = tmin;
-    
-    if(intersectionDistanceOut) {
-        *intersectionDistanceOut = t;
-    }
+/* Perform intersection test against the three front-facing planes and return the intersection distance where the ray enters and 
+ * exits the box. If the ray originates within the box then distanceToEntrance will be set to NAN.
+ * Returns 1 if there is an intersection, and 0 if there is no intersection at all.
+ */
+int GSRay_IntersectsAABB(GSRay r, GSVector3 minP, GSVector3 maxP, float *distanceToEntrance, float *distanceToExit)
+{
+	struct {
+		float t1, t2;
+	} slabT[3] = { {(minP.x - r.origin.x) / r.direction.x, (maxP.x - r.origin.x) / r.direction.x},
+				   {(minP.y - r.origin.y) / r.direction.y, (maxP.y - r.origin.y) / r.direction.y},
+		           {(minP.z - r.origin.z) / r.direction.z, (maxP.z - r.origin.z) / r.direction.z}
+	};
+	
+	float intersectT[3];
+	
+	for(size_t i = 0; i < 3; ++i)
+	{
+		intersectT[i] = MIN(slabT[i].t1, slabT[i].t2);
+	}
+	
+	if(r.origin.x >= minP.x &&
+	   r.origin.x <= maxP.x &&
+	   r.origin.y >= minP.y &&
+	   r.origin.y <= maxP.y &&
+	   r.origin.z >= minP.z &&
+	   r.origin.z <= maxP.z) {
+		// The ray originates within the box and we are only looking for the exit point.
+		
+		if(distanceToEntrance) {
+			*distanceToEntrance = NAN;
+		}
+		
+        if(distanceToExit) {
+			float exitT = MIN(MIN(intersectT[0], intersectT[1]), intersectT[2]);
+			*distanceToExit = exitT;
+		}
+	} else {
+		// The ray does not originate within the box so there is definitely an entrance and an exit point. (These may be the same.)
+		float enterT = MIN(MIN(intersectT[0], intersectT[1]), intersectT[2]);
+		float exitT = MIN(MIN(MIN(MAX(enterT, intersectT[0]), intersectT[1]),
+							  MAX(enterT, intersectT[1])),
+						  MAX(enterT, intersectT[2]));
+		
+		if(distanceToEntrance) {
+			*distanceToEntrance = enterT;
+		}
+		
+        if(distanceToExit) {
+			*distanceToExit = exitT;
+		}
+	}
     
     return 1;
 }

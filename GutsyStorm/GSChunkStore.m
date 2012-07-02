@@ -234,21 +234,48 @@
                            maxDist:(float)maxDist
                        outDistance:(float *)outDistance
 {
+    const size_t hardcap = 5; // hard cap on the number of blocks to check
     assert(maxDist > 0);
     assert(outDistance);
     
-    const float step = 0.5f;
+    GSVector3 pos = ray.origin;
     
-    for(float d = 0.0; d < maxDist; d += step)
+    for(size_t i = 0; i < hardcap && GSVector3_Length(GSVector3_Sub(pos, ray.origin)) < maxDist; ++i)
     {
-        GSVector3 pos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
+        float distanceToEntrance = 0;
+        float distanceToExit = 0;
         
-        voxel_t block = [self getVoxelAtPoint:pos];
+        GSVector3 minP = GSVector3_Make((int)(pos.x + 0.5) - 0.5f, (int)(pos.y + 0.5) - 0.5f, (int)(pos.z + 0.5) - 0.5f);
+        GSVector3 maxP = GSVector3_Add(minP, GSVector3_Make(1.0f, 1.0f, 1.0f));
+        
+        if(!GSRay_IntersectsAABB(ray, minP, maxP, &distanceToEntrance, &distanceToExit)) {
+            [NSException raise:@"This should never happen" format:@""];
+        } else{
+            NSLog(@"i = %zu\nminP: (%.1f, %.1f, %.1f)\nmaxP: (%.1f, %.1f, %.1f)\ndistanceToEntrance = %.2f\ndistanceToExit = %.2f\n",
+                  i,
+                  minP.x, minP.y, minP.z,
+                  maxP.x, maxP.y, maxP.z,
+                  distanceToEntrance, distanceToExit);
+        }
+        
+        voxel_t block;
+        
+        // distanceToEntrance is NAN when the ray originates within the block.
+        if(isnan(distanceToEntrance)) {
+            block = [self getVoxelAtPoint:ray.origin];
+        } else {
+            block = [self getVoxelAtPoint:GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), distanceToEntrance))];
+        }
         
         if(!block.empty) {
-            *outDistance = d;
+            *outDistance = distanceToEntrance;
             return YES;
         }
+        
+        // On the next iteration, test the next block along the ray's path.
+        pos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), distanceToExit));
+        
+        NSLog(@"pos = (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
     }
     
     return NO;
