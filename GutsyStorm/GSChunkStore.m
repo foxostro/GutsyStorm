@@ -100,7 +100,7 @@
         terrainShader = _terrainShader;
         [terrainShader retain];
         
-        numVBOGenerationsAllowedPerFrame = 16;
+        numVBOGenerationsAllowedPerFrame = 1;
         numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
         
         // Active region is bounded at y>=0.
