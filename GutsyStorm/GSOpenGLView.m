@@ -189,11 +189,11 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     // XXX: Should the cursor be handled in its own unique class?
     cursorIsActive = NO;
-    cursorPos = GSVector3_Make(0, 0, 0);
+    cursorPos = cursorPlacePos = GSVector3_Make(0, 0, 0);
     cursor = nil;
     
     camera = [[GSCamera alloc] init];
-    [camera moveToPosition:GSVector3_Make(85, 16, 140)];
+    [camera moveToPosition:GSVector3_Make(85.1, 16.1, 140.1)];
     [camera updateCameraLookVectors];
     [self resetMouseInputSettings];
     
@@ -321,20 +321,12 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)placeBlockUnderCrosshairs
 {
-    GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
-    float d;
-    
-    if([chunkStore getPositionOfBlockAlongRay:ray
-                                      maxDist:maxPlaceDistance
-                                  outDistance:&d]) {
-        // this block is full, so the previous step is where we ought to place the new block
-        GSVector3 placePos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), MAX(0, d - 0.1f))); // XXX: Messy
-        
+    if(cursorIsActive) {
         voxel_t block;
         block.empty = NO;
         block.outside = NO; // will be recalculated later
         
-        [chunkStore placeBlockAtPoint:placePos block:block];
+        [chunkStore placeBlockAtPoint:cursorPlacePos block:block];
         [self recalcCursorPosition];
     }
 }
@@ -342,19 +334,12 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)removeBlockUnderCrosshairs
 {
-    GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
-    float d;
-    
-    if([chunkStore getPositionOfBlockAlongRay:ray
-                                      maxDist:maxPlaceDistance
-                                  outDistance:&d]) {
-        GSVector3 removePos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
-        
+    if(cursorIsActive) {
         voxel_t block;
         block.empty = YES;
         block.outside = NO; // will be recalculated later
         
-        [chunkStore placeBlockAtPoint:removePos block:block];
+        [chunkStore placeBlockAtPoint:cursorPos block:block];
         [self recalcCursorPosition];
     }
 }
@@ -363,12 +348,19 @@ BOOL checkForOpenGLExtension(NSString *extension);
 - (void)recalcCursorPosition
 {
     GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
-    float d;
-    if([chunkStore getPositionOfBlockAlongRay:ray
-                                      maxDist:maxPlaceDistance
-                                  outDistance:&d]) {
-        cursorPos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
+    float distBefore = 0, distAfter = 0;
+    BOOL foundABlock = [chunkStore getPositionOfBlockAlongRay:ray
+                                                      maxDist:maxPlaceDistance
+                                            outDistanceBefore:&distBefore
+                                             outDistanceAfter:&distAfter];
+    
+    if(foundABlock) {
+        cursorPos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), distAfter));
         cursorPos = GSVector3_Make((int)cursorPos.x, (int)cursorPos.y, (int)cursorPos.z);
+        
+        cursorPlacePos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), distBefore));
+        cursorPlacePos = GSVector3_Make((int)cursorPlacePos.x, (int)cursorPlacePos.y, (int)cursorPlacePos.z);
+        
         cursorIsActive = YES;
     } else {
         cursorIsActive = NO;

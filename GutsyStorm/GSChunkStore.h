@@ -56,7 +56,8 @@ typedef id chunk_id_t;
 
 - (BOOL)getPositionOfBlockAlongRay:(GSRay)ray
                            maxDist:(float)maxDist
-                       outDistance:(float *)outDistance;
+                 outDistanceBefore:(float *)outDistanceBefore
+                  outDistanceAfter:(float *)outDistanceAfter;
 
 - (voxel_t)getVoxelAtPoint:(GSVector3)pos;
 

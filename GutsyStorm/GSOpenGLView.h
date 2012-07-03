@@ -37,6 +37,7 @@
     
     BOOL cursorIsActive;
     GSVector3 cursorPos;
+    GSVector3 cursorPlacePos;
     GSCube *cursor;
 }
 

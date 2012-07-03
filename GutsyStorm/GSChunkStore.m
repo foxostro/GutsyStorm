@@ -230,55 +230,56 @@
 }
 
 
+/* Get the distance to the first intersection of the ray with a solid block.
+ * A distance before the intersection will be returned in outDistanceBefore.
+ * A distance after the intersection will be returned in outDistanceAfter.
+ * Will not look farther than maxDist.
+ * Returns YES if an intersection could be found, false otherwise.
+ */
 - (BOOL)getPositionOfBlockAlongRay:(GSRay)ray
                            maxDist:(float)maxDist
-                       outDistance:(float *)outDistance
+                  outDistanceBefore:(float *)outDistanceBefore
+                  outDistanceAfter:(float *)outDistanceAfter
 {
-    const size_t hardcap = 5; // hard cap on the number of blocks to check
     assert(maxDist > 0);
-    assert(outDistance);
     
-    GSVector3 pos = ray.origin;
+    const size_t MAX_PASSES = 6;
+    const float step[MAX_PASSES] = {1.0f, 0.1f, 0.01f, 0.001f, 0.0001f, 0.00001f};
     
-    for(size_t i = 0; i < hardcap && GSVector3_Length(GSVector3_Sub(pos, ray.origin)) < maxDist; ++i)
+    BOOL foundAnything = NO;
+    float d = 0, prevD = 0;
+    
+    for(size_t i = 0; i < MAX_PASSES; ++i)
     {
-        float distanceToEntrance = 0;
-        float distanceToExit = 0;
-        
-        GSVector3 minP = GSVector3_Make((int)(pos.x + 0.5) - 0.5f, (int)(pos.y + 0.5) - 0.5f, (int)(pos.z + 0.5) - 0.5f);
-        GSVector3 maxP = GSVector3_Add(minP, GSVector3_Make(1.0f, 1.0f, 1.0f));
-        
-        if(!GSRay_IntersectsAABB(ray, minP, maxP, &distanceToEntrance, &distanceToExit)) {
-            [NSException raise:@"This should never happen" format:@""];
-        } else{
-            NSLog(@"i = %zu\nminP: (%.1f, %.1f, %.1f)\nmaxP: (%.1f, %.1f, %.1f)\ndistanceToEntrance = %.2f\ndistanceToExit = %.2f\n",
-                  i,
-                  minP.x, minP.y, minP.z,
-                  maxP.x, maxP.y, maxP.z,
-                  distanceToEntrance, distanceToExit);
+        // Sweep forward to find the intersection point.
+        for(d = prevD; d < maxDist; d += step[i])
+        {
+            GSVector3 pos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
+            
+            voxel_t block = [self getVoxelAtPoint:pos];
+            
+            if(!block.empty) {
+                foundAnything = YES;
+                break;
+            }
+            
+            prevD = d;
         }
         
-        voxel_t block;
-        
-        // distanceToEntrance is NAN when the ray originates within the block.
-        if(isnan(distanceToEntrance)) {
-            block = [self getVoxelAtPoint:ray.origin];
-        } else {
-            block = [self getVoxelAtPoint:GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), distanceToEntrance))];
+        if(!foundAnything) {
+            return NO;
         }
-        
-        if(!block.empty) {
-            *outDistance = distanceToEntrance;
-            return YES;
-        }
-        
-        // On the next iteration, test the next block along the ray's path.
-        pos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), distanceToExit));
-        
-        NSLog(@"pos = (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
     }
     
-    return NO;
+    if(outDistanceBefore) {
+        *outDistanceBefore = prevD;
+    }
+    
+    if(outDistanceAfter) {
+        *outDistanceAfter = d;
+    }
+    
+    return YES;
 }
 
 @end

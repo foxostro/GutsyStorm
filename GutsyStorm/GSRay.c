@@ -75,13 +75,6 @@ int GSRay_IntersectsAABB(GSRay r, GSVector3 minP, GSVector3 maxP, float *distanc
 		           {(minP.z - r.origin.z) / r.direction.z, (maxP.z - r.origin.z) / r.direction.z}
 	};
 	
-	float intersectT[3];
-	
-	for(size_t i = 0; i < 3; ++i)
-	{
-		intersectT[i] = MIN(slabT[i].t1, slabT[i].t2);
-	}
-	
 	if(r.origin.x >= minP.x &&
 	   r.origin.x <= maxP.x &&
 	   r.origin.y >= minP.y &&
@@ -89,22 +82,55 @@ int GSRay_IntersectsAABB(GSRay r, GSVector3 minP, GSVector3 maxP, float *distanc
 	   r.origin.z >= minP.z &&
 	   r.origin.z <= maxP.z) {
 		// The ray originates within the box and we are only looking for the exit point.
+		// exitT is the closest intersection distance
+		float exitT = INFINITY;
+		
+		for(size_t i = 0; i < 3; ++i)
+		{
+			if(slabT[i].t1 > 0.0 && fabsf(slabT[i].t1) < fabsf(exitT)) {
+				exitT = slabT[i].t1;
+			}
+			
+			if(slabT[i].t2 > 0.0 && fabsf(slabT[i].t2) < fabsf(exitT)) {
+				exitT = slabT[i].t2;
+			}
+		}
 		
 		if(distanceToEntrance) {
 			*distanceToEntrance = NAN;
 		}
 		
         if(distanceToExit) {
-			float exitT = MIN(MIN(intersectT[0], intersectT[1]), intersectT[2]);
 			*distanceToExit = exitT;
 		}
 	} else {
-		// The ray does not originate within the box so there is definitely an entrance and an exit point. (These may be the same.)
-		float enterT = MIN(MIN(intersectT[0], intersectT[1]), intersectT[2]);
-		float exitT = MIN(MIN(MIN(MAX(enterT, intersectT[0]), intersectT[1]),
-							  MAX(enterT, intersectT[1])),
-						  MAX(enterT, intersectT[2]));
+		// enterT is the closest intersection distance
+		// exitT is the second closest intersection distance
+		float enterT = INFINITY, exitT = INFINITY;
 		
+		for(size_t i = 0; i < 3; ++i)
+		{
+			if(slabT[i].t1 > 0.0 && fabsf(slabT[i].t1) < fabsf(enterT)) {
+				enterT = slabT[i].t1;
+			}
+			
+			if(slabT[i].t2 > 0.0 && fabsf(slabT[i].t2) < fabsf(enterT)) {
+				enterT = slabT[i].t2;
+			}
+		}
+		
+		for(size_t i = 0; i < 3; ++i)
+		{
+			if(slabT[i].t1 > 0.0 && fabsf(slabT[i].t1) < fabsf(exitT) && fabsf(slabT[i].t1) > fabsf(enterT)) {
+				exitT = slabT[i].t1;
+			}
+			
+			if(slabT[i].t2 > 0.0 && fabsf(slabT[i].t2) < fabsf(exitT) && fabsf(slabT[i].t2) > fabsf(enterT)) {
+				exitT = slabT[i].t2;
+			}
+		}
+		
+		// The ray does not originate within the box so there is definitely an entrance and an exit point. (These may be the same.)
 		if(distanceToEntrance) {
 			*distanceToEntrance = enterT;
 		}
