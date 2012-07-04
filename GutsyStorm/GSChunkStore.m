@@ -274,6 +274,16 @@
         {
             GSVector3 pos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
             
+            // world does not extend below y=0
+            if(pos.y < 0) {
+                return NO;
+            }
+            
+            // world does not extend below y=activeRegionExtent.y
+            if(pos.y >= activeRegionExtent.y) {
+                return NO;
+            }
+            
             voxel_t block = [self getVoxelAtPoint:pos];
             
             if(!block.empty) {
