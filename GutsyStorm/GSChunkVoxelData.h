@@ -50,6 +50,10 @@ typedef struct
 
 @interface GSChunkVoxelData : GSChunkData
 {
+    NSURL *folder;
+    BOOL dirty;
+    dispatch_group_t groupForSaving;
+    
  @public
     GSReaderWriterLock *lockVoxelData;
     voxel_t *voxelData;
@@ -66,9 +70,12 @@ typedef struct
 - (id)initWithSeed:(unsigned)seed
               minP:(GSVector3)minP
      terrainHeight:(float)terrainHeight
-            folder:(NSURL *)folder;
+            folder:(NSURL *)folder
+    groupForSaving:(dispatch_group_t)groupForSaving;
 
 - (void)updateLightingWithNeighbors:(GSChunkVoxelData **)neighbors doItSynchronously:(BOOL)sync;
+
+- (void)markAsDirtyAndSpinOffSavingTask;
 
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;

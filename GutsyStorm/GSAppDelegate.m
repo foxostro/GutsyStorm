@@ -11,10 +11,28 @@
 @implementation GSAppDelegate
 
 @synthesize window;
+@synthesize chunkStore;
+
+- (id)init
+{
+    self = [super init];
+    if (self) {
+        // Initialization code here.
+        chunkStore = nil;
+    }
+    
+    return self;
+}
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     // Insert code here to initialize your application
+}
+
+
+- (void)applicationWillTerminate:(NSNotification *)aNotification
+{
+    [chunkStore waitForSaveToFinish];
 }
 
 @end

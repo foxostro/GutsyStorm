@@ -24,6 +24,8 @@ typedef id chunk_id_t;
     NSCache *cacheVoxelData;
     NSCache *cacheGeometryData;
     
+    dispatch_group_t groupForSaving;
+    
     float terrainHeight;
     unsigned seed;
     GSCamera *camera;
@@ -62,5 +64,7 @@ typedef id chunk_id_t;
 - (voxel_t)getVoxelAtPoint:(GSVector3)pos;
 
 - (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)block;
+
+- (void)waitForSaveToFinish;
 
 @end

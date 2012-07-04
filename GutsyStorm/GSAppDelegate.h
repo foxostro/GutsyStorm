@@ -7,11 +7,16 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import "GSChunkStore.h"
 
-@interface GSAppDelegate : NSObject <NSApplicationDelegate> {
+
+@interface GSAppDelegate : NSObject <NSApplicationDelegate>
+{
     NSWindow *window;
+    GSChunkStore *chunkStore;
 }
 
 @property (assign) IBOutlet NSWindow *window;
+@property (retain) GSChunkStore *chunkStore;
 
 @end

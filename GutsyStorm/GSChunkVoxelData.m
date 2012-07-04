@@ -24,10 +24,10 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
-- (void)saveVoxelDataToFileWithContainingFolder:(NSURL *)folder;
 - (void)loadVoxelDataFromFile:(NSURL *)url;
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (void)recalcOutsideVoxelsNoLock;
+- (void)saveVoxelDataToFile;
 
 - (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
                                         neighbors:(GSChunkVoxelData **)chunks
@@ -51,12 +51,19 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (id)initWithSeed:(unsigned)seed
               minP:(GSVector3)_minP
      terrainHeight:(float)terrainHeight
-            folder:(NSURL *)folder;
+            folder:(NSURL *)_folder
+    groupForSaving:(dispatch_group_t)_groupForSaving;
 {
     self = [super initWithMinP:_minP];
     if (self) {
-        // Initialization code here.        
+        // Initialization code here.
         assert(terrainHeight >= 0.0);
+        
+        groupForSaving = _groupForSaving; // dispatch group used for tasks related to saving chunks to disk
+        dispatch_retain(groupForSaving);
+        
+        folder = _folder;
+        [folder retain];
         
         lockVoxelData = [[GSReaderWriterLock alloc] init];
         [lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
@@ -87,7 +94,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             } else {
                 // Generate chunk from scratch.
                 [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
-                [self saveVoxelDataToFileWithContainingFolder:folder];
+                [self markAsDirtyAndSpinOffSavingTask];
             }
             
             [lockVoxelData unlockForWriting];
@@ -104,6 +111,10 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)dealloc
 {
+    dispatch_release(groupForSaving);
+    
+    [folder release];
+    
     [lockVoxelData lockForWriting];
     [self destroyVoxelData];
     [lockVoxelData unlockForWriting];
@@ -399,10 +410,44 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     return ambientOcclusion[idx];    
 }
 
+
+- (void)markAsDirtyAndSpinOffSavingTask
+{
+    // first, mark as dirty
+    [lockVoxelData lockForWriting];
+    dirty = YES;
+    [lockVoxelData unlockForWriting];
+    
+    // second, spin off a task to save the chunk (marks as clean when complete)
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
+    dispatch_group_async(groupForSaving, queue, ^{
+        [lockVoxelData lockForWriting];
+        [self saveVoxelDataToFile];
+        [lockVoxelData unlockForWriting];
+    });
+}
+
 @end
 
 
 @implementation GSChunkVoxelData (Private)
+
+// Assumes the caller is already holding "lockVoxelData" for writing. ("writing" so we can protect `dirty')
+- (void)saveVoxelDataToFile
+{
+    if(!dirty) {
+        return;
+    }
+    
+    const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
+    
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
+                        relativeToURL:folder];
+    
+    [[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
+    
+    dirty = YES;
+}
 
 
 // Assumes the caller is already holding "lockVoxelData".
@@ -422,18 +467,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     free(voxelData);
     voxelData = NULL;
-}
-
-
-// Assumes the caller is already holding "lockVoxelData".
-- (void)saveVoxelDataToFileWithContainingFolder:(NSURL *)folder
-{
-    const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
-    
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
-                        relativeToURL:folder];
-    
-    [[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
 }
 
 
@@ -473,7 +506,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
  * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
  * the chunk is equal to maxP-minP. Ditto for the other major axii.
  *
- * Assumes the caller already holds "lockVoxelData".
+ * Assumes the caller already holds "lockVoxelData" for writing.
  */
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight
 {
@@ -499,13 +532,15 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     [noiseSource0 release];
     [noiseSource1 release];
     
+    dirty = YES;
+    
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
 }
 
 
 /* Returns YES if the chunk data is reachable on the filesystem and loading was successful.
- * Assumes the caller already holds "lockVoxelData".
+ * Assumes the caller already holds "lockVoxelData" for writing.
  */
 - (void)loadVoxelDataFromFile:(NSURL *)url
 {
@@ -519,6 +554,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
     [data getBytes:voxelData length:len];
     [data release];
+    
+    dirty = NO;
 }
 
 

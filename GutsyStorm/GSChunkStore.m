@@ -91,6 +91,7 @@
         seed = _seed;
         terrainHeight = 40.0;
         folder = [GSChunkStore createWorldSaveFolderWithSeed:seed];
+        groupForSaving = dispatch_group_create();
         
         camera = _camera;
         [camera retain];
@@ -131,8 +132,19 @@
 }
 
 
+- (void)waitForSaveToFinish
+{
+    NSLog(@"Waiting for all chunk-saving tasks to complete.");
+    dispatch_group_wait(groupForSaving, DISPATCH_TIME_FOREVER); // wait for save operations to complete
+    NSLog(@"All chunks have been saved.");
+}
+
+
 - (void)dealloc
 {
+    [self waitForSaveToFinish];
+    dispatch_release(groupForSaving);
+    
     [cacheVoxelData release];
     [cacheGeometryData release];
     [camera release];
@@ -182,6 +194,10 @@
 
 - (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)newBlock
 {
+    /* XXX: There is a bug where geometry may fail to update after changing a block in the chunk.
+     *      This occurs frequently when running in Debug mode and infrequently when running in Release mode.
+     */
+    
     voxel_t *block;
     GSVector3 chunkLocalP;
     GSChunkVoxelData *chunk;
@@ -196,6 +212,8 @@
     *block = newBlock;
     
     [chunk->lockVoxelData unlockForWriting];
+    
+    [chunk markAsDirtyAndSpinOffSavingTask]; // save the changes asynchronously
     [chunk release];
     
     // Now update geometry for this chunk and its neighbors.
@@ -340,7 +358,8 @@
         voxels = [[[GSChunkVoxelData alloc] initWithSeed:seed
                                                     minP:minP
                                            terrainHeight:terrainHeight
-                                                  folder:folder] autorelease];
+                                                  folder:folder
+                                          groupForSaving:groupForSaving] autorelease];
         
         [cacheVoxelData setObject:voxels forKey:chunkID];
     }

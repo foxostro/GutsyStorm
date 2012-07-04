@@ -11,6 +11,7 @@
 #import <OpenGL/glu.h>
 #import "GSOpenGLView.h"
 #import "GSVector2.h"
+#import "GSAppDelegate.h"
 
 
 int checkGLErrors(void);
@@ -151,6 +152,9 @@ BOOL checkForOpenGLExtension(NSString *extension);
     chunkStore = [[GSChunkStore alloc] initWithSeed:0
                                              camera:camera
                                       terrainShader:terrainShader];
+    
+    GSAppDelegate *appDelegate = [[NSApplication sharedApplication] delegate];
+    appDelegate.chunkStore = chunkStore;
     
     cursor = [[GSCube alloc] init];
     [cursor generateVBO];
