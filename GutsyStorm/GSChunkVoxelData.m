@@ -94,7 +94,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             } else {
                 // Generate chunk from scratch.
                 [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
-                [self markAsDirtyAndSpinOffSavingTask];
+                [self saveVoxelDataToFile];
             }
             
             [lockVoxelData unlockForWriting];
