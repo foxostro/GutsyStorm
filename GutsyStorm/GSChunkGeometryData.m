@@ -242,6 +242,11 @@ static inline GSVector3 blockLight(uint8_t sunlight, uint8_t torchLight, uint8_t
         }
     }
     
+    // We don't need this anymore so free it now.
+    // XXX: What if we need it again in the future?
+    free(chunks[CHUNK_NEIGHBOR_CENTER]->ambientOcclusion);
+    chunks[CHUNK_NEIGHBOR_CENTER]->ambientOcclusion = NULL;
+    
     [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion unlockWithCondition:READY];
     
     for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
