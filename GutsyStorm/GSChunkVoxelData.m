@@ -207,7 +207,7 @@ static inline void fullBlockLighting(block_lighting_t *ao)
      */
     
     // If the block is empty then bail out early. The point p is always within the chunk.
-    if(VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y, p.z)])) {
+    if(isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z)])) {
         fullBlockLighting(lighting);        
         return;
     }
@@ -477,7 +477,7 @@ static inline void fullBlockLighting(block_lighting_t *ao)
                 GSIntegerVector3 p = {x, heightOfHighestVoxel, z};
                 voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
                 
-                if(!VOXEL_IS_EMPTY(*voxel)) {
+                if(!isVoxelEmpty(*voxel)) {
                     break;
                 }
             }
@@ -569,27 +569,27 @@ static inline void fullBlockLighting(block_lighting_t *ao)
 {
     if(p.y+1 >= CHUNK_SIZE_Y) {
         return YES;
-    } else if(VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y+1, p.z)]) && sunlight[INDEX(p.x, p.y+1, p.z)]) {
+    } else if(isVoxelEmpty(voxelData[INDEX(p.x, p.y+1, p.z)]) && sunlight[INDEX(p.x, p.y+1, p.z)]) {
         return YES;
     }
     
-    if(p.y-1 >= 0 && VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y-1, p.z)]) && sunlight[INDEX(p.x, p.y-1, p.z)]) {
+    if(p.y-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y-1, p.z)]) && sunlight[INDEX(p.x, p.y-1, p.z)]) {
         return YES;
     }
     
-    if(p.x-1 >= 0 && VOXEL_IS_EMPTY(voxelData[INDEX(p.x-1, p.y, p.z)]) && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
+    if(p.x-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x-1, p.y, p.z)]) && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
         return YES;
     }
     
-    if(p.x+1 < CHUNK_SIZE_X && VOXEL_IS_EMPTY(voxelData[INDEX(p.x+1, p.y, p.z)]) && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
+    if(p.x+1 < CHUNK_SIZE_X && isVoxelEmpty(voxelData[INDEX(p.x+1, p.y, p.z)]) && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
         return YES;
     }
     
-    if(p.z-1 >= 0 && VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y, p.z-1)]) && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
+    if(p.z-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z-1)]) && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
         return YES;
     }
     
-    if(p.z+1 < CHUNK_SIZE_Z && VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y, p.z+1)]) && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
+    if(p.z+1 < CHUNK_SIZE_Z && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z+1)]) && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
         return YES;
     }
     
@@ -630,7 +630,7 @@ static inline void fullBlockLighting(block_lighting_t *ao)
                 
                 // This is "hard" lighting with exactly two lighting levels.
                 // Solid blocks always have zero sunlight. They pick up light from surrounding air.
-                if(VOXEL_IS_EMPTY(voxelData[idx]) && VOXEL_IS_OUTSIDE(voxelData[idx])) {
+                if(isVoxelEmpty(voxelData[idx]) && isVoxelOutside(voxelData[idx])) {
                     sunlight[idx] = CHUNK_LIGHTING_MAX;
                 }
             }
@@ -672,7 +672,7 @@ static inline void fullBlockLighting(block_lighting_t *ao)
      */
     
     // If the block is empty then bail out early. The point p is always within the chunk.
-    if(VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y, p.z)])) {
+    if(isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z)])) {
         fullBlockLighting(ao);        
         return;
     }
@@ -1069,7 +1069,9 @@ BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
     GSIntegerVector3 adjustedPos = {0};
     GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
     
-    return VOXEL_IS_EMPTY(chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)]);
+    voxel_t voxel = chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)];
+    
+    return isVoxelEmpty(voxel);
 }
 
 

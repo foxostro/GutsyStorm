@@ -286,7 +286,7 @@
             
             voxel_t block = [self getVoxelAtPoint:pos];
             
-            if(!VOXEL_IS_EMPTY(block)) {
+            if(!isVoxelEmpty(block)) {
                 foundAnything = YES;
                 break;
             }

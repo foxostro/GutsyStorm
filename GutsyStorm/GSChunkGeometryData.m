@@ -396,7 +396,7 @@ static inline GSVector3 blockLight(uint8_t sunlight, uint8_t torchLight, uint8_t
     
     voxel_t *thisVoxel = [voxels getPointerToVoxelAtPoint:chunkLocalPos];
     
-    if(VOXEL_IS_EMPTY(*thisVoxel)) {
+    if(isVoxelEmpty(*thisVoxel)) {
         return;
     }
     

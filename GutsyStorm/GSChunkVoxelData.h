@@ -29,10 +29,19 @@
 #define VOXEL_EMPTY   (1) // a flag on the first LSB
 #define VOXEL_OUTSIDE (2) // a flag on the second LSB
 
-#define VOXEL_IS_EMPTY(flags)   ((flags) & VOXEL_EMPTY)
-#define VOXEL_IS_OUTSIDE(flags) ((flags) & VOXEL_OUTSIDE)
-
 typedef uint8_t voxel_t;
+
+
+static inline BOOL isVoxelEmpty(voxel_t voxel)
+{
+    return voxel & VOXEL_EMPTY;
+}
+
+
+static inline BOOL isVoxelOutside(voxel_t voxel)
+{
+    return voxel & VOXEL_OUTSIDE;
+}
 
 
 static inline uint8_t avgSunlight(float a, float b, float c, float d)
