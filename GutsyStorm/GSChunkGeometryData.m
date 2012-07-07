@@ -26,10 +26,10 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
 
-static inline GSVector3 blockLight(float sunlight, float torchLight, float ambientOcclusion)
+static inline GSVector3 blockLight(uint8_t sunlight, uint8_t torchLight, uint8_t ambientOcclusion)
 {
     // Pack ambient occlusion into the Red channel, sunlight into the Green channel, and torch light into the Blue channel.
-    return GSVector3_Make(ambientOcclusion, sunlight, torchLight);
+    return GSVector3_Make(ambientOcclusion / 255.0f, sunlight / 255.0f, torchLight / 255.0f);
 }
 
 

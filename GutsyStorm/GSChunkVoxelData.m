@@ -217,182 +217,158 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     // Top /////////////////////////////////////////////////////////////////////////////
     
     // x-L, y+L, z-L
-    lighting->top[0]  = SUNLIGHT( 0, 1,  0);
-    lighting->top[0] += SUNLIGHT( 0, 1, -1);
-    lighting->top[0] += SUNLIGHT(-1, 1,  0);
-    lighting->top[0] += SUNLIGHT(-1, 1, -1);
-    lighting->top[0] *= 0.25;
+    lighting->top[0] = avgSunlight(SUNLIGHT( 0, 1,  0),
+                                   SUNLIGHT( 0, 1, -1),
+                                   SUNLIGHT(-1, 1,  0),
+                                   SUNLIGHT(-1, 1, -1));
     
     // x-L, y+L, z+L
-    lighting->top[1]  = SUNLIGHT( 0, 1,  0);
-    lighting->top[1] += SUNLIGHT( 0, 1, +1);
-    lighting->top[1] += SUNLIGHT(-1, 1,  0);
-    lighting->top[1] += SUNLIGHT(-1, 1, +1);
-    lighting->top[1] *= 0.25;
+    lighting->top[1] = avgSunlight(SUNLIGHT( 0, 1,  0),
+                                   SUNLIGHT( 0, 1, +1),
+                                   SUNLIGHT(-1, 1,  0),
+                                   SUNLIGHT(-1, 1, +1));
     
     // x+L, y+L, z+L
-    lighting->top[2]  = SUNLIGHT( 0, 1,  0);
-    lighting->top[2] += SUNLIGHT( 0, 1, +1);
-    lighting->top[2] += SUNLIGHT(+1, 1,  0);
-    lighting->top[2] += SUNLIGHT(+1, 1, +1);
-    lighting->top[2] *= 0.25;
+    lighting->top[2] = avgSunlight(SUNLIGHT( 0, 1,  0),
+                                   SUNLIGHT( 0, 1, +1),
+                                   SUNLIGHT(+1, 1,  0),
+                                   SUNLIGHT(+1, 1, +1));
     
     // x+L, y+L, z-L
-    lighting->top[3]  = SUNLIGHT( 0, 1,  0);
-    lighting->top[3] += SUNLIGHT( 0, 1, -1);
-    lighting->top[3] += SUNLIGHT(+1, 1,  0);
-    lighting->top[3] += SUNLIGHT(+1, 1, -1);
-    lighting->top[3] *= 0.25;
+    lighting->top[3] = avgSunlight(SUNLIGHT( 0, 1,  0),
+                                   SUNLIGHT( 0, 1, -1),
+                                   SUNLIGHT(+1, 1,  0),
+                                   SUNLIGHT(+1, 1, -1));
     
     // Bottom ///////////////////////////////////////////////////////////////////////////
     
     // x-L, y-L, z-L
-    lighting->bottom[0]  = SUNLIGHT( 0, -1,  0);
-    lighting->bottom[0] += SUNLIGHT( 0, -1, -1);
-    lighting->bottom[0] += SUNLIGHT(-1, -1,  0);
-    lighting->bottom[0] += SUNLIGHT(-1, -1, -1);
-    lighting->bottom[0] *= 0.25;
+    lighting->bottom[0]  = avgSunlight(SUNLIGHT( 0, -1,  0),
+                                       SUNLIGHT( 0, -1, -1),
+                                       SUNLIGHT(-1, -1,  0),
+                                       SUNLIGHT(-1, -1, -1));
     
     // x+L, y-L, z-L
-    lighting->bottom[1]  = SUNLIGHT( 0, -1,  0);
-    lighting->bottom[1] += SUNLIGHT( 0, -1, -1);
-    lighting->bottom[1] += SUNLIGHT(+1, -1,  0);
-    lighting->bottom[1] += SUNLIGHT(+1, -1, -1);
-    lighting->bottom[1] *= 0.25;
+    lighting->bottom[1]  = avgSunlight(SUNLIGHT( 0, -1,  0),
+                                       SUNLIGHT( 0, -1, -1),
+                                       SUNLIGHT(+1, -1,  0),
+                                       SUNLIGHT(+1, -1, -1));
     
     // x+L, y-L, z+L
-    lighting->bottom[2]  = SUNLIGHT( 0, -1,  0);
-    lighting->bottom[2] += SUNLIGHT( 0, -1, +1);
-    lighting->bottom[2] += SUNLIGHT(+1, -1,  0);
-    lighting->bottom[2] += SUNLIGHT(+1, -1, +1);
-    lighting->bottom[2] *= 0.25;
+    lighting->bottom[2]  = avgSunlight(SUNLIGHT( 0, -1,  0),
+                                       SUNLIGHT( 0, -1, +1),
+                                       SUNLIGHT(+1, -1,  0),
+                                       SUNLIGHT(+1, -1, +1));
     
     // x-L, y-L, z+L
-    lighting->bottom[3]  = SUNLIGHT( 0, -1,  0);
-    lighting->bottom[3] += SUNLIGHT( 0, -1, +1);
-    lighting->bottom[3] += SUNLIGHT(-1, -1,  0);
-    lighting->bottom[3] += SUNLIGHT(-1, -1, +1);
-    lighting->bottom[3] *= 0.25;
+    lighting->bottom[3]  = avgSunlight(SUNLIGHT( 0, -1,  0),
+                                       SUNLIGHT( 0, -1, +1),
+                                       SUNLIGHT(-1, -1,  0),
+                                       SUNLIGHT(-1, -1, +1));
     
     // Back (+Z) ////////////////////////////////////////////////////////////////////////
     
     // x-L, y-L, z+L
-    lighting->back[0]  = SUNLIGHT( 0, -1, 1);
-    lighting->back[0] += SUNLIGHT( 0,  0, 1);
-    lighting->back[0] += SUNLIGHT(-1, -1, 1);
-    lighting->back[0] += SUNLIGHT(-1,  0, 1);
-    lighting->back[0] *= 0.25;
+    lighting->back[0]  = avgSunlight(SUNLIGHT( 0, -1, 1),
+                                     SUNLIGHT( 0,  0, 1),
+                                     SUNLIGHT(-1, -1, 1),
+                                     SUNLIGHT(-1,  0, 1));
     
     // x+L, y-L, z+L
-    lighting->back[1]  = SUNLIGHT( 0, -1, 1);
-    lighting->back[1] += SUNLIGHT( 0,  0, 1);
-    lighting->back[1] += SUNLIGHT(+1, -1, 1);
-    lighting->back[1] += SUNLIGHT(+1,  0, 1);
-    lighting->back[1] *= 0.25;
+    lighting->back[1]  = avgSunlight(SUNLIGHT( 0, -1, 1),
+                                     SUNLIGHT( 0,  0, 1),
+                                     SUNLIGHT(+1, -1, 1),
+                                     SUNLIGHT(+1,  0, 1));
     
     // x+L, y+L, z+L
-    lighting->back[2]  = SUNLIGHT( 0, +1, 1);
-    lighting->back[2] += SUNLIGHT( 0,  0, 1);
-    lighting->back[2] += SUNLIGHT(+1, +1, 1);
-    lighting->back[2] += SUNLIGHT(+1,  0, 1);
-    lighting->back[2] *= 0.25;
+    lighting->back[2]  = avgSunlight(SUNLIGHT( 0, +1, 1),
+                                     SUNLIGHT( 0,  0, 1),
+                                     SUNLIGHT(+1, +1, 1),
+                                     SUNLIGHT(+1,  0, 1));
     
     // x-L, y+L, z+L
-    lighting->back[3]  = SUNLIGHT( 0, +1, 1);
-    lighting->back[3] += SUNLIGHT( 0,  0, 1);
-    lighting->back[3] += SUNLIGHT(-1, +1, 1);
-    lighting->back[3] += SUNLIGHT(-1,  0, 1);
-    lighting->back[3] *= 0.25;
+    lighting->back[3]  = avgSunlight(SUNLIGHT( 0, +1, 1),
+                                     SUNLIGHT( 0,  0, 1),
+                                     SUNLIGHT(-1, +1, 1),
+                                     SUNLIGHT(-1,  0, 1));
     
     // Front (-Z) ///////////////////////////////////////////////////////////////////////
     
     // x-L, y-L, z-L
-    lighting->front[0]  = SUNLIGHT( 0, -1, -1);
-    lighting->front[0] += SUNLIGHT( 0,  0, -1);
-    lighting->front[0] += SUNLIGHT(-1, -1, -1);
-    lighting->front[0] += SUNLIGHT(-1,  0, -1);
-    lighting->front[0] *= 0.25;
+    lighting->front[0] = avgSunlight(SUNLIGHT( 0, -1, -1),
+                                     SUNLIGHT( 0,  0, -1),
+                                     SUNLIGHT(-1, -1, -1),
+                                     SUNLIGHT(-1,  0, -1));
     
     // x-L, y+L, z-L
-    lighting->front[1]  = SUNLIGHT( 0, +1, -1);
-    lighting->front[1] += SUNLIGHT( 0,  0, -1);
-    lighting->front[1] += SUNLIGHT(-1, +1, -1);
-    lighting->front[1] += SUNLIGHT(-1,  0, -1);
-    lighting->front[1] *= 0.25;
+    lighting->front[1] = avgSunlight(SUNLIGHT( 0, +1, -1),
+                                     SUNLIGHT( 0,  0, -1),
+                                     SUNLIGHT(-1, +1, -1),
+                                     SUNLIGHT(-1,  0, -1));
     
     // x+L, y+L, z-L
-    lighting->front[2]  = SUNLIGHT( 0, +1, -1);
-    lighting->front[2] += SUNLIGHT( 0,  0, -1);
-    lighting->front[2] += SUNLIGHT(+1, +1, -1);
-    lighting->front[2] += SUNLIGHT(+1,  0, -1);
-    lighting->front[2] *= 0.25;
+    lighting->front[2] = avgSunlight(SUNLIGHT( 0, +1, -1),
+                                     SUNLIGHT( 0,  0, -1),
+                                     SUNLIGHT(+1, +1, -1),
+                                     SUNLIGHT(+1,  0, -1));
     
     // x+L, y-L, z-L
-    lighting->front[3]  = SUNLIGHT( 0, -1, -1);
-    lighting->front[3] += SUNLIGHT( 0,  0, -1);
-    lighting->front[3] += SUNLIGHT(+1, -1, -1);
-    lighting->front[3] += SUNLIGHT(+1,  0, -1);
-    lighting->front[3] *= 0.25;
+    lighting->front[3] = avgSunlight(SUNLIGHT( 0, -1, -1),
+                                     SUNLIGHT( 0,  0, -1),
+                                     SUNLIGHT(+1, -1, -1),
+                                     SUNLIGHT(+1,  0, -1));
     
     // Right ////////////////////////////////////////////////////////////////////////////
     
     // x+L, y-L, z-L
-    lighting->right[0]  = SUNLIGHT(+1,  0,  0);
-    lighting->right[0] += SUNLIGHT(+1,  0, -1);
-    lighting->right[0] += SUNLIGHT(+1, -1,  0);
-    lighting->right[0] += SUNLIGHT(+1, -1, -1);
-    lighting->right[0] *= 0.25;
+    lighting->right[0] = avgSunlight(SUNLIGHT(+1,  0,  0),
+                                     SUNLIGHT(+1,  0, -1),
+                                     SUNLIGHT(+1, -1,  0),
+                                     SUNLIGHT(+1, -1, -1));
     
     // x+L, y+L, z-L
-    lighting->right[1]  = SUNLIGHT(+1,  0,  0);
-    lighting->right[1] += SUNLIGHT(+1,  0, -1);
-    lighting->right[1] += SUNLIGHT(+1, +1,  0);
-    lighting->right[1] += SUNLIGHT(+1, +1, -1);
-    lighting->right[1] *= 0.25;
+    lighting->right[1] = avgSunlight(SUNLIGHT(+1,  0,  0),
+                                     SUNLIGHT(+1,  0, -1),
+                                     SUNLIGHT(+1, +1,  0),
+                                     SUNLIGHT(+1, +1, -1));
     
     // x+L, y+L, z+L
-    lighting->right[2]  = SUNLIGHT(+1,  0,  0);
-    lighting->right[2] += SUNLIGHT(+1,  0, +1);
-    lighting->right[2] += SUNLIGHT(+1, +1,  0);
-    lighting->right[2] += SUNLIGHT(+1, +1, +1);
-    lighting->right[2] *= 0.25;
+    lighting->right[2] = avgSunlight(SUNLIGHT(+1,  0,  0),
+                                     SUNLIGHT(+1,  0, +1),
+                                     SUNLIGHT(+1, +1,  0),
+                                     SUNLIGHT(+1, +1, +1));
     
     // x+L, y-L, z+L
-    lighting->right[3]  = SUNLIGHT(+1,  0,  0);
-    lighting->right[3] += SUNLIGHT(+1,  0, +1);
-    lighting->right[3] += SUNLIGHT(+1, -1,  0);
-    lighting->right[3] += SUNLIGHT(+1, -1, +1);
-    lighting->right[3] *= 0.25;
+    lighting->right[3] = avgSunlight(SUNLIGHT(+1,  0,  0),
+                                     SUNLIGHT(+1,  0, +1),
+                                     SUNLIGHT(+1, -1,  0),
+                                     SUNLIGHT(+1, -1, +1));
     
     // Left ////////////////////////////////////////////////////////////////////////////
     
     // x-L, y-L, z-L
-    lighting->left[0]  = SUNLIGHT(-1,  0,  0);
-    lighting->left[0] += SUNLIGHT(-1,  0, -1);
-    lighting->left[0] += SUNLIGHT(-1, -1,  0);
-    lighting->left[0] += SUNLIGHT(-1, -1, -1);
-    lighting->left[0] *= 0.25;
+    lighting->left[0] = avgSunlight(SUNLIGHT(-1,  0,  0),
+                                    SUNLIGHT(-1,  0, -1),
+                                    SUNLIGHT(-1, -1,  0),
+                                    SUNLIGHT(-1, -1, -1));
     
     // x-L, y-L, z+L
-    lighting->left[1]  = SUNLIGHT(-1,  0,  0);
-    lighting->left[1] += SUNLIGHT(-1,  0, +1);
-    lighting->left[1] += SUNLIGHT(-1, -1,  0);
-    lighting->left[1] += SUNLIGHT(-1, -1, +1);
-    lighting->left[1] *= 0.25;
+    lighting->left[1] = avgSunlight(SUNLIGHT(-1,  0,  0),
+                                    SUNLIGHT(-1,  0, +1),
+                                    SUNLIGHT(-1, -1,  0),
+                                    SUNLIGHT(-1, -1, +1));
     
     // x-L, y+L, z+L
-    lighting->left[2]  = SUNLIGHT(-1,  0,  0);
-    lighting->left[2] += SUNLIGHT(-1,  0, +1);
-    lighting->left[2] += SUNLIGHT(-1, +1,  0);
-    lighting->left[2] += SUNLIGHT(-1, +1, +1);
-    lighting->left[2] *= 0.25;
+    lighting->left[2] = avgSunlight(SUNLIGHT(-1,  0,  0),
+                                    SUNLIGHT(-1,  0, +1),
+                                    SUNLIGHT(-1, +1,  0),
+                                    SUNLIGHT(-1, +1, +1));
     
     // x-L, y+L, z-L
-    lighting->left[3]  = SUNLIGHT(-1,  0,  0);
-    lighting->left[3] += SUNLIGHT(-1,  0, -1);
-    lighting->left[3] += SUNLIGHT(-1, +1,  0);
-    lighting->left[3] += SUNLIGHT(-1, +1, -1);
-    lighting->left[3] *= 0.25;
+    lighting->left[3] = avgSunlight(SUNLIGHT(-1,  0,  0),
+                                    SUNLIGHT(-1,  0, -1),
+                                    SUNLIGHT(-1, +1,  0),
+                                    SUNLIGHT(-1, +1, -1));
     
 #undef SUNLIGHT
 }
@@ -695,158 +671,158 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     // Top /////////////////////////////////////////////////////////////////////////////
     
     // x-L, y+L, z-L
-    ao->top[0]  = OCCLUSION( 0, 1,  0);
-    ao->top[0] += OCCLUSION( 0, 1, -1);
-    ao->top[0] += OCCLUSION(-1, 1,  0);
-    ao->top[0] += OCCLUSION(-1, 1, -1);
-
+    ao->top[0] = calcFinalOcclusion(OCCLUSION( 0, 1,  0),
+                                    OCCLUSION( 0, 1, -1),
+                                    OCCLUSION(-1, 1,  0),
+                                    OCCLUSION(-1, 1, -1));
+    
     // x-L, y+L, z+L
-    ao->top[1]  = OCCLUSION( 0, 1,  0);
-    ao->top[1] += OCCLUSION( 0, 1, +1);
-    ao->top[1] += OCCLUSION(-1, 1,  0);
-    ao->top[1] += OCCLUSION(-1, 1, +1);
+    ao->top[1] = calcFinalOcclusion(OCCLUSION( 0, 1,  0),
+                                    OCCLUSION( 0, 1, +1),
+                                    OCCLUSION(-1, 1,  0),
+                                    OCCLUSION(-1, 1, +1));
     
     // x+L, y+L, z+L
-    ao->top[2]  = OCCLUSION( 0, 1,  0);
-    ao->top[2] += OCCLUSION( 0, 1, +1);
-    ao->top[2] += OCCLUSION(+1, 1,  0);
-    ao->top[2] += OCCLUSION(+1, 1, +1);
+    ao->top[2] = calcFinalOcclusion(OCCLUSION( 0, 1,  0),
+                                    OCCLUSION( 0, 1, +1),
+                                    OCCLUSION(+1, 1,  0),
+                                    OCCLUSION(+1, 1, +1));
     
     // x+L, y+L, z-L
-    ao->top[3]  = OCCLUSION( 0, 1,  0);
-    ao->top[3] += OCCLUSION( 0, 1, -1);
-    ao->top[3] += OCCLUSION(+1, 1,  0);
-    ao->top[3] += OCCLUSION(+1, 1, -1);
+    ao->top[3] = calcFinalOcclusion(OCCLUSION( 0, 1,  0),
+                                    OCCLUSION( 0, 1, -1),
+                                    OCCLUSION(+1, 1,  0),
+                                    OCCLUSION(+1, 1, -1));
     
     // Bottom ///////////////////////////////////////////////////////////////////////////
     
     // x-L, y-L, z-L
-    ao->bottom[0]  = OCCLUSION( 0, -1,  0);
-    ao->bottom[0] += OCCLUSION( 0, -1, -1);
-    ao->bottom[0] += OCCLUSION(-1, -1,  0);
-    ao->bottom[0] += OCCLUSION(-1, -1, -1);
+    ao->bottom[0] = calcFinalOcclusion(OCCLUSION( 0, -1,  0),
+                                       OCCLUSION( 0, -1, -1),
+                                       OCCLUSION(-1, -1,  0),
+                                       OCCLUSION(-1, -1, -1));
     
     // x+L, y-L, z-L
-    ao->bottom[1]  = OCCLUSION( 0, -1,  0);
-    ao->bottom[1] += OCCLUSION( 0, -1, -1);
-    ao->bottom[1] += OCCLUSION(+1, -1,  0);
-    ao->bottom[1] += OCCLUSION(+1, -1, -1);
+    ao->bottom[1] = calcFinalOcclusion(OCCLUSION( 0, -1,  0),
+                                       OCCLUSION( 0, -1, -1),
+                                       OCCLUSION(+1, -1,  0),
+                                       OCCLUSION(+1, -1, -1));
     
     // x+L, y-L, z+L
-    ao->bottom[2]  = OCCLUSION( 0, -1,  0);
-    ao->bottom[2] += OCCLUSION( 0, -1, +1);
-    ao->bottom[2] += OCCLUSION(+1, -1,  0);
-    ao->bottom[2] += OCCLUSION(+1, -1, +1);
+    ao->bottom[2] = calcFinalOcclusion(OCCLUSION( 0, -1,  0),
+                                       OCCLUSION( 0, -1, +1),
+                                       OCCLUSION(+1, -1,  0),
+                                       OCCLUSION(+1, -1, +1));
     
     // x-L, y-L, z+L
-    ao->bottom[3]  = OCCLUSION( 0, -1,  0);
-    ao->bottom[3] += OCCLUSION( 0, -1, +1);
-    ao->bottom[3] += OCCLUSION(-1, -1,  0);
-    ao->bottom[3] += OCCLUSION(-1, -1, +1);
+    ao->bottom[3] = calcFinalOcclusion(OCCLUSION( 0, -1,  0),
+                                       OCCLUSION( 0, -1, +1),
+                                       OCCLUSION(-1, -1,  0),
+                                       OCCLUSION(-1, -1, +1));
     
     // Back (+Z) ////////////////////////////////////////////////////////////////////////
     
     // x-L, y-L, z+L
-    ao->back[0]  = OCCLUSION( 0, -1, 1);
-    ao->back[0] += OCCLUSION( 0,  0, 1);
-    ao->back[0] += OCCLUSION(-1, -1, 1);
-    ao->back[0] += OCCLUSION(-1,  0, 1);
+    ao->back[0] = calcFinalOcclusion(OCCLUSION( 0, -1, 1),
+                                     OCCLUSION( 0,  0, 1),
+                                     OCCLUSION(-1, -1, 1),
+                                     OCCLUSION(-1,  0, 1));
     
     // x+L, y-L, z+L
-    ao->back[1]  = OCCLUSION( 0, -1, 1);
-    ao->back[1] += OCCLUSION( 0,  0, 1);
-    ao->back[1] += OCCLUSION(+1, -1, 1);
-    ao->back[1] += OCCLUSION(+1,  0, 1);
+    ao->back[1] = calcFinalOcclusion(OCCLUSION( 0, -1, 1),
+                                     OCCLUSION( 0,  0, 1),
+                                     OCCLUSION(+1, -1, 1),
+                                     OCCLUSION(+1,  0, 1));
     
     // x+L, y+L, z+L
-    ao->back[2]  = OCCLUSION( 0, +1, 1);
-    ao->back[2] += OCCLUSION( 0,  0, 1);
-    ao->back[2] += OCCLUSION(+1, +1, 1);
-    ao->back[2] += OCCLUSION(+1,  0, 1);
+    ao->back[2] = calcFinalOcclusion(OCCLUSION( 0, +1, 1),
+                                     OCCLUSION( 0,  0, 1),
+                                     OCCLUSION(+1, +1, 1),
+                                     OCCLUSION(+1,  0, 1));
     
     // x-L, y+L, z+L
-    ao->back[3]  = OCCLUSION( 0, +1, 1);
-    ao->back[3] += OCCLUSION( 0,  0, 1);
-    ao->back[3] += OCCLUSION(-1, +1, 1);
-    ao->back[3] += OCCLUSION(-1,  0, 1);
+    ao->back[3] = calcFinalOcclusion(OCCLUSION( 0, +1, 1),
+                                     OCCLUSION( 0,  0, 1),
+                                     OCCLUSION(-1, +1, 1),
+                                     OCCLUSION(-1,  0, 1));
     
     // Front (-Z) ///////////////////////////////////////////////////////////////////////
     
     // x-L, y-L, z-L
-    ao->front[0]  = OCCLUSION( 0, -1, -1);
-    ao->front[0] += OCCLUSION( 0,  0, -1);
-    ao->front[0] += OCCLUSION(-1, -1, -1);
-    ao->front[0] += OCCLUSION(-1,  0, -1);    
+    ao->front[0] = calcFinalOcclusion(OCCLUSION( 0, -1, -1),
+                                      OCCLUSION( 0,  0, -1),
+                                      OCCLUSION(-1, -1, -1),
+                                      OCCLUSION(-1,  0, -1));
     
     // x-L, y+L, z-L
-    ao->front[1]  = OCCLUSION( 0, +1, -1);
-    ao->front[1] += OCCLUSION( 0,  0, -1);
-    ao->front[1] += OCCLUSION(-1, +1, -1);
-    ao->front[1] += OCCLUSION(-1,  0, -1);
+    ao->front[1] = calcFinalOcclusion(OCCLUSION( 0, +1, -1),
+                                      OCCLUSION( 0,  0, -1),
+                                      OCCLUSION(-1, +1, -1),
+                                      OCCLUSION(-1,  0, -1));
     
     // x+L, y+L, z-L
-    ao->front[2]  = OCCLUSION( 0, +1, -1);
-    ao->front[2] += OCCLUSION( 0,  0, -1);
-    ao->front[2] += OCCLUSION(+1, +1, -1);
-    ao->front[2] += OCCLUSION(+1,  0, -1);
+    ao->front[2] = calcFinalOcclusion(OCCLUSION( 0, +1, -1),
+                                      OCCLUSION( 0,  0, -1),
+                                      OCCLUSION(+1, +1, -1),
+                                      OCCLUSION(+1,  0, -1));
     
     // x+L, y-L, z-L
-    ao->front[3]  = OCCLUSION( 0, -1, -1);
-    ao->front[3] += OCCLUSION( 0,  0, -1);
-    ao->front[3] += OCCLUSION(+1, -1, -1);
-    ao->front[3] += OCCLUSION(+1,  0, -1);
+    ao->front[3] = calcFinalOcclusion(OCCLUSION( 0, -1, -1),
+                                      OCCLUSION( 0,  0, -1),
+                                      OCCLUSION(+1, -1, -1),
+                                      OCCLUSION(+1,  0, -1));
     
     // Right ////////////////////////////////////////////////////////////////////////////
     
     // x+L, y-L, z-L
-    ao->right[0]  = OCCLUSION(+1,  0,  0);
-    ao->right[0] += OCCLUSION(+1,  0, -1);
-    ao->right[0] += OCCLUSION(+1, -1,  0);
-    ao->right[0] += OCCLUSION(+1, -1, -1);
+    ao->right[0] = calcFinalOcclusion(OCCLUSION(+1,  0,  0),
+                                      OCCLUSION(+1,  0, -1),
+                                      OCCLUSION(+1, -1,  0),
+                                      OCCLUSION(+1, -1, -1));
     
     // x+L, y+L, z-L
-    ao->right[1]  = OCCLUSION(+1,  0,  0);
-    ao->right[1] += OCCLUSION(+1,  0, -1);
-    ao->right[1] += OCCLUSION(+1, +1,  0);
-    ao->right[1] += OCCLUSION(+1, +1, -1);
+    ao->right[1] = calcFinalOcclusion(OCCLUSION(+1,  0,  0),
+                                      OCCLUSION(+1,  0, -1),
+                                      OCCLUSION(+1, +1,  0),
+                                      OCCLUSION(+1, +1, -1));
     
     // x+L, y+L, z+L
-    ao->right[2]  = OCCLUSION(+1,  0,  0);
-    ao->right[2] += OCCLUSION(+1,  0, +1);
-    ao->right[2] += OCCLUSION(+1, +1,  0);
-    ao->right[2] += OCCLUSION(+1, +1, +1);
+    ao->right[2] = calcFinalOcclusion(OCCLUSION(+1,  0,  0),
+                                      OCCLUSION(+1,  0, +1),
+                                      OCCLUSION(+1, +1,  0),
+                                      OCCLUSION(+1, +1, +1));
     
     // x+L, y-L, z+L
-    ao->right[3]  = OCCLUSION(+1,  0,  0);
-    ao->right[3] += OCCLUSION(+1,  0, +1);
-    ao->right[3] += OCCLUSION(+1, -1,  0);
-    ao->right[3] += OCCLUSION(+1, -1, +1);
+    ao->right[3] = calcFinalOcclusion(OCCLUSION(+1,  0,  0),
+                                      OCCLUSION(+1,  0, +1),
+                                      OCCLUSION(+1, -1,  0),
+                                      OCCLUSION(+1, -1, +1));
     
     // Left ////////////////////////////////////////////////////////////////////////////
     
     // x-L, y-L, z-L
-    ao->left[0]  = OCCLUSION(-1,  0,  0);
-    ao->left[0] += OCCLUSION(-1,  0, -1);
-    ao->left[0] += OCCLUSION(-1, -1,  0);
-    ao->left[0] += OCCLUSION(-1, -1, -1);
+    ao->left[0] = calcFinalOcclusion(OCCLUSION(-1,  0,  0),
+                                     OCCLUSION(-1,  0, -1),
+                                     OCCLUSION(-1, -1,  0),
+                                     OCCLUSION(-1, -1, -1));
     
     // x-L, y-L, z+L
-    ao->left[1]  = OCCLUSION(-1,  0,  0);
-    ao->left[1] += OCCLUSION(-1,  0, +1);
-    ao->left[1] += OCCLUSION(-1, -1,  0);
-    ao->left[1] += OCCLUSION(-1, -1, +1);
+    ao->left[1] = calcFinalOcclusion(OCCLUSION(-1,  0,  0),
+                                     OCCLUSION(-1,  0, +1),
+                                     OCCLUSION(-1, -1,  0),
+                                     OCCLUSION(-1, -1, +1));
     
     // x-L, y+L, z+L
-    ao->left[2]  = OCCLUSION(-1,  0,  0);
-    ao->left[2] += OCCLUSION(-1,  0, +1);
-    ao->left[2] += OCCLUSION(-1, +1,  0);
-    ao->left[2] += OCCLUSION(-1, +1, +1);
+    ao->left[2] = calcFinalOcclusion(OCCLUSION(-1,  0,  0),
+                                     OCCLUSION(-1,  0, +1),
+                                     OCCLUSION(-1, +1,  0),
+                                     OCCLUSION(-1, +1, +1));
     
     // x-L, y+L, z-L
-    ao->left[3]  = OCCLUSION(-1,  0,  0);
-    ao->left[3] += OCCLUSION(-1,  0, -1);
-    ao->left[3] += OCCLUSION(-1, +1,  0);
-    ao->left[3] += OCCLUSION(-1, +1, -1);
+    ao->left[3] = calcFinalOcclusion(OCCLUSION(-1,  0,  0),
+                                     OCCLUSION(-1,  0, -1),
+                                     OCCLUSION(-1, +1,  0),
+                                     OCCLUSION(-1, +1, -1));
     
 #undef OCCLUSION
 }

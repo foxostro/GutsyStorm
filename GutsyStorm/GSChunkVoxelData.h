@@ -26,6 +26,23 @@
 #define CHUNK_LIGHTING_MAX (7)
 
 
+static inline uint8_t avgSunlight(float a, float b, float c, float d)
+{
+    // Average four sunlight values (each is between 0.0 and 1.0)
+    float average = ((a+b+c+d)*0.25f);
+    
+    return (uint8_t)(average * 255.0f); // convert to integer between 0 and 255
+}
+
+
+static inline uint8_t calcFinalOcclusion(float a, float b, float c, float d)
+{
+    float occlusion = a+b+c+d;
+    
+    return (uint8_t)(occlusion * 255.0f); // convert to integer between 0 and 255
+}
+
+
 typedef struct
 {
     BOOL empty;   // YES, if the voxel is never drawn.
@@ -39,12 +56,12 @@ typedef struct
      * all 24 of these vertices.
      */
     
-    float top[4];
-    float bottom[4];
-    float left[4];
-    float right[4];
-    float front[4];
-    float back[4];
+    uint8_t top[4];
+    uint8_t bottom[4];
+    uint8_t left[4];
+    uint8_t right[4];
+    uint8_t front[4];
+    uint8_t back[4];
 } block_lighting_t;
 
 
@@ -59,7 +76,7 @@ typedef struct
     voxel_t *voxelData;
     
     GSReaderWriterLock *lockSunlight;
-    int8_t *sunlight;
+    uint8_t *sunlight;
     
     NSConditionLock *lockAmbientOcclusion;
     block_lighting_t *ambientOcclusion;
