@@ -19,6 +19,21 @@ static int getBlockSunlightAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighb
 static float groundGradient(float terrainHeight, GSVector3 p);
 static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
 
+static inline void fullBlockLighting(block_lighting_t *ao)
+{
+    assert(ao);
+    
+    for(size_t i = 0; i < 4; ++i)
+    {
+        ao->top[i] = 255;
+        ao->bottom[i] = 255;
+        ao->left[i] = 255;
+        ao->right[i] = 255;
+        ao->front[i] = 255;
+        ao->back[i] = 255;
+    }
+}
+
 
 @interface GSChunkVoxelData (Private)
 
@@ -1055,22 +1070,6 @@ BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
     GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
     
     return VOXEL_IS_EMPTY(chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)]);
-}
-
-
-void fullBlockLighting(block_lighting_t *ao)
-{
-    assert(ao);
-    
-    for(size_t i = 0; i < 4; ++i)
-    {
-        ao->top[i] = 1.0;
-        ao->bottom[i] = 1.0;
-        ao->left[i] = 1.0;
-        ao->right[i] = 1.0;
-        ao->front[i] = 1.0;
-        ao->back[i] = 1.0;
-    }
 }
 
 
