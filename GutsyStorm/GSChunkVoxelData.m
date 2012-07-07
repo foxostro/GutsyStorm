@@ -192,7 +192,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
      */
     
     // If the block is empty then bail out early. The point p is always within the chunk.
-    if(voxelData[INDEX(p.x, p.y, p.z)].empty) {
+    if(VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y, p.z)])) {
         fullBlockLighting(lighting);        
         return;
     }
@@ -462,7 +462,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                 GSIntegerVector3 p = {x, heightOfHighestVoxel, z};
                 voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
                 
-                if(!voxel->empty) {
+                if(!VOXEL_IS_EMPTY(*voxel)) {
                     break;
                 }
             }
@@ -471,7 +471,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             {
                 GSIntegerVector3 p = {x, y, z};
                 voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
-                voxel->outside = (y >= heightOfHighestVoxel);
+                
+                if(y >= heightOfHighestVoxel) {
+                    *voxel |= VOXEL_OUTSIDE;
+                } else {
+                    *voxel &= ~VOXEL_OUTSIDE;
+                }
             }
         }
     }
@@ -499,8 +504,14 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             {
                 GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
                 voxel_t *voxel = [self getPointerToVoxelAtPoint:GSIntegerVector3_Make(x, y, z)];
-                voxel->empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
-                voxel->outside = NO; // updated below
+                
+                if(isGround(terrainHeight, noiseSource0, noiseSource1, p)) {
+                    *voxel &= ~VOXEL_EMPTY;
+                } else {
+                    *voxel |= VOXEL_EMPTY;
+                }
+                
+                // whether the block is outside or not is calculated later
             }
         }
     }
@@ -543,27 +554,27 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     if(p.y+1 >= CHUNK_SIZE_Y) {
         return YES;
-    } else if(voxelData[INDEX(p.x, p.y+1, p.z)].empty && sunlight[INDEX(p.x, p.y+1, p.z)]) {
+    } else if(VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y+1, p.z)]) && sunlight[INDEX(p.x, p.y+1, p.z)]) {
         return YES;
     }
     
-    if(p.y-1 >= 0 && voxelData[INDEX(p.x, p.y-1, p.z)].empty && sunlight[INDEX(p.x, p.y-1, p.z)]) {
+    if(p.y-1 >= 0 && VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y-1, p.z)]) && sunlight[INDEX(p.x, p.y-1, p.z)]) {
         return YES;
     }
     
-    if(p.x-1 >= 0 && voxelData[INDEX(p.x-1, p.y, p.z)].empty && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
+    if(p.x-1 >= 0 && VOXEL_IS_EMPTY(voxelData[INDEX(p.x-1, p.y, p.z)]) && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
         return YES;
     }
     
-    if(p.x+1 < CHUNK_SIZE_X && voxelData[INDEX(p.x+1, p.y, p.z)].empty && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
+    if(p.x+1 < CHUNK_SIZE_X && VOXEL_IS_EMPTY(voxelData[INDEX(p.x+1, p.y, p.z)]) && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
         return YES;
     }
     
-    if(p.z-1 >= 0 && voxelData[INDEX(p.x, p.y, p.z-1)].empty && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
+    if(p.z-1 >= 0 && VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y, p.z-1)]) && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
         return YES;
     }
     
-    if(p.z+1 < CHUNK_SIZE_Z && voxelData[INDEX(p.x, p.y, p.z+1)].empty && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
+    if(p.z+1 < CHUNK_SIZE_Z && VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y, p.z+1)]) && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
         return YES;
     }
     
@@ -604,7 +615,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                 
                 // This is "hard" lighting with exactly two lighting levels.
                 // Solid blocks always have zero sunlight. They pick up light from surrounding air.
-                if(voxelData[idx].empty && voxelData[idx].outside) {
+                if(VOXEL_IS_EMPTY(voxelData[idx]) && VOXEL_IS_OUTSIDE(voxelData[idx])) {
                     sunlight[idx] = CHUNK_LIGHTING_MAX;
                 }
             }
@@ -646,7 +657,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
      */
     
     // If the block is empty then bail out early. The point p is always within the chunk.
-    if(voxelData[INDEX(p.x, p.y, p.z)].empty) {
+    if(VOXEL_IS_EMPTY(voxelData[INDEX(p.x, p.y, p.z)])) {
         fullBlockLighting(ao);        
         return;
     }
@@ -1043,7 +1054,7 @@ BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
     GSIntegerVector3 adjustedPos = {0};
     GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
     
-    return chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)].empty;
+    return VOXEL_IS_EMPTY(chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)]);
 }
 
 

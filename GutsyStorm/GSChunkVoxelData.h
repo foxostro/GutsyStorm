@@ -26,6 +26,15 @@
 #define CHUNK_LIGHTING_MAX (7)
 
 
+#define VOXEL_EMPTY   (1) // a flag on the first LSB
+#define VOXEL_OUTSIDE (2) // a flag on the second LSB
+
+#define VOXEL_IS_EMPTY(flags)   ((flags) & VOXEL_EMPTY)
+#define VOXEL_IS_OUTSIDE(flags) ((flags) & VOXEL_OUTSIDE)
+
+typedef uint8_t voxel_t;
+
+
 static inline uint8_t avgSunlight(float a, float b, float c, float d)
 {
     // Average four sunlight values (each is between 0.0 and 1.0)
@@ -41,13 +50,6 @@ static inline uint8_t calcFinalOcclusion(float a, float b, float c, float d)
     
     return (uint8_t)(occlusion * 255.0f); // convert to integer between 0 and 255
 }
-
-
-typedef struct
-{
-    BOOL empty;   // YES, if the voxel is never drawn.
-    BOOL outside; // YES, if the voxel is exposed to the sky from directly above.
-} voxel_t;
 
 
 typedef struct
