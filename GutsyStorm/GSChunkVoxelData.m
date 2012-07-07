@@ -604,12 +604,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     GSIntegerVector3 p = {0};
     
     if(!sunlight) {
-        sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int));
+        sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
         if(!sunlight) {
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
         }
     } else {
-        bzero(sunlight, sizeof(int) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
+        bzero(sunlight, sizeof(int8_t) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
     }
     
     [lockVoxelData lockForReading];
