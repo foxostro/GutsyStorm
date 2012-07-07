@@ -32,6 +32,24 @@
 typedef uint8_t voxel_t;
 
 
+static inline void markVoxelAsEmpty(BOOL empty, voxel_t * voxel)
+{
+    const voxel_t originalVoxel = *voxel;
+    const voxel_t emptyVoxel = originalVoxel | VOXEL_EMPTY;
+    const voxel_t nonEmptyVoxel = originalVoxel & ~VOXEL_EMPTY;
+    *voxel = empty ? emptyVoxel : nonEmptyVoxel;
+}
+
+
+static inline void markVoxelAsOutside(BOOL outside, voxel_t * voxel)
+{
+    const voxel_t originalVoxel = *voxel;
+    const voxel_t outsideVoxel = originalVoxel | VOXEL_OUTSIDE;
+    const voxel_t nonOutsideVoxel = originalVoxel & ~VOXEL_OUTSIDE;
+    *voxel = outside ? outsideVoxel : nonOutsideVoxel;
+}
+
+
 static inline BOOL isVoxelEmpty(voxel_t voxel)
 {
     return voxel & VOXEL_EMPTY;

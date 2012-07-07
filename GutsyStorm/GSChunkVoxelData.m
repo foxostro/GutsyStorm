@@ -486,12 +486,9 @@ static inline void fullBlockLighting(block_lighting_t *ao)
             {
                 GSIntegerVector3 p = {x, y, z};
                 voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
+                BOOL outside = y >= heightOfHighestVoxel;
                 
-                if(y >= heightOfHighestVoxel) {
-                    *voxel |= VOXEL_OUTSIDE;
-                } else {
-                    *voxel &= ~VOXEL_OUTSIDE;
-                }
+                markVoxelAsOutside(outside, voxel);
             }
         }
     }
@@ -519,12 +516,9 @@ static inline void fullBlockLighting(block_lighting_t *ao)
             {
                 GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
                 voxel_t *voxel = [self getPointerToVoxelAtPoint:GSIntegerVector3_Make(x, y, z)];
+                BOOL empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
                 
-                if(isGround(terrainHeight, noiseSource0, noiseSource1, p)) {
-                    *voxel &= ~VOXEL_EMPTY;
-                } else {
-                    *voxel |= VOXEL_EMPTY;
-                }
+                markVoxelAsEmpty(empty, voxel);
                 
                 // whether the block is outside or not is calculated later
             }
