@@ -24,6 +24,7 @@
 #define CHUNK_NUM_NEIGHBORS         (9)
 
 #define CHUNK_LIGHTING_MAX (7)
+#define CHUNK_MAX_AO_COUNT (4)
 
 
 #define VOXEL_EMPTY   (1) // a flag on the first LSB
@@ -62,20 +63,48 @@ static inline BOOL isVoxelOutside(voxel_t voxel)
 }
 
 
-static inline uint8_t avgSunlight(float a, float b, float c, float d)
+static inline unsigned avgSunlight(unsigned a, unsigned b, unsigned c, unsigned d)
 {
-    // Average four sunlight values (each is between 0.0 and 1.0)
-    float average = ((a+b+c+d)*0.25f);
-    
-    return (uint8_t)(average * 255.0f); // convert to integer between 0 and 255
+    return (a+b+c+d) >> 2;
 }
 
 
-static inline uint8_t calcFinalOcclusion(float a, float b, float c, float d)
+static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 {
-    float occlusion = a+b+c+d;
+    return (a?1:0) + (b?1:0) + (c?1:0) + (d?1:0);
+}
+
+
+typedef uint16_t block_lighting_vertex_t;
+
+
+// Pack four block lighting values into a single unsigned integer value.
+static inline block_lighting_vertex_t packBlockLightingValuesForVertex(unsigned v0, unsigned v1, unsigned v2, unsigned v3)
+{
+    block_lighting_vertex_t packed1;
     
-    return (uint8_t)(occlusion * 255.0f); // convert to integer between 0 and 255
+    const unsigned m = 15;
+    
+    packed1 =  (v0 & m)
+            | ((v1 <<  4) & (m <<  4))
+            | ((v2 <<  8) & (m <<  8))
+            | ((v3 << 12) & (m << 12));
+    
+    return packed1;
+}
+
+
+// Extact four block lighting values from a single unsigned integer value.
+static inline void unpackBlockLightingValuesForVertex(block_lighting_vertex_t packed, unsigned * outValues)
+{
+    assert(outValues);
+    
+    const unsigned m = 15;
+    
+    outValues[0] = (packed & m);
+    outValues[1] = (packed & (m <<  4)) >>  4;
+    outValues[2] = (packed & (m <<  8)) >>  8;
+    outValues[3] = (packed & (m << 12)) >> 12;
 }
 
 
@@ -85,12 +114,12 @@ typedef struct
      * all 24 of these vertices.
      */
     
-    uint8_t top[4];
-    uint8_t bottom[4];
-    uint8_t left[4];
-    uint8_t right[4];
-    uint8_t front[4];
-    uint8_t back[4];
+    block_lighting_vertex_t top;
+    block_lighting_vertex_t bottom;
+    block_lighting_vertex_t left;
+    block_lighting_vertex_t right;
+    block_lighting_vertex_t front;
+    block_lighting_vertex_t back;
 } block_lighting_t;
 
 

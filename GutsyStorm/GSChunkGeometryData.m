@@ -26,10 +26,12 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
 
-static inline GSVector3 blockLight(uint8_t sunlight, uint8_t torchLight, uint8_t ambientOcclusion)
+static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsigned ambientOcclusion)
 {
     // Pack ambient occlusion into the Red channel, sunlight into the Green channel, and torch light into the Blue channel.
-    return GSVector3_Make(ambientOcclusion / 255.0f, sunlight / 255.0f, torchLight / 255.0f);
+    return GSVector3_Make(ambientOcclusion / (float)CHUNK_MAX_AO_COUNT,
+                          (sunlight / (float)CHUNK_LIGHTING_MAX) * 0.7f + 0.3f,
+                          torchLight / (float)CHUNK_LIGHTING_MAX);
 }
 
 
@@ -414,190 +416,211 @@ static inline GSVector3 blockLight(uint8_t sunlight, uint8_t torchLight, uint8_t
                                             neighbors:chunks
                                           outLighting:&sunlight];
     
+    unsigned unpackedSunlight[4];
+    unsigned unpackedAO[4];
+    
     // Top Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ), chunks)) {
         page = side;
         
+        unpackBlockLightingValuesForVertex(sunlight.top, unpackedSunlight);
+        unpackBlockLightingValuesForVertex(ambientOcclusion.top, unpackedAO);
+        
         addVertex(x-L, y+L, z-L,
                   0, 1, 0,
                   1, 0, grass,
-                  blockLight(sunlight.top[0], torchLight, ambientOcclusion.top[0]),
+                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
                   vertices,
                   indices);
         
         addVertex(x-L, y+L, z+L,
                   0, 1, 0,
                   1, 1, grass,
-                  blockLight(sunlight.top[1], torchLight, ambientOcclusion.top[1]),
+                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
                   vertices,
                   indices);
         
         addVertex(x+L, y+L, z+L,
                   0, 1, 0,
                   0, 1, grass,
-                  blockLight(sunlight.top[2], torchLight, ambientOcclusion.top[2]),
+                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
                   vertices,
                   indices);
         
         addVertex(x+L, y+L, z-L,
                   0, 1, 0,
                   0, 0, grass,
-                  blockLight(sunlight.top[3], torchLight, ambientOcclusion.top[3]),
+                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
                   vertices,
                   indices);
     }
     
     // Bottom Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY-1, z-minZ), chunks)) {
+        unpackBlockLightingValuesForVertex(sunlight.bottom, unpackedSunlight);
+        unpackBlockLightingValuesForVertex(ambientOcclusion.bottom, unpackedAO);
+        
         addVertex(x-L, y-L, z-L,
                   0, -1, 0,
                   1, 0, dirt,
-                  blockLight(sunlight.bottom[0], torchLight, ambientOcclusion.bottom[0]),
+                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
                   vertices,
                   indices);
         
         addVertex(x+L, y-L, z-L,
                   0, -1, 0,
                   0, 0, dirt,
-                  blockLight(sunlight.bottom[1], torchLight, ambientOcclusion.bottom[1]),
+                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
                   vertices,
                   indices);
         
         addVertex(x+L, y-L, z+L,
                   0, -1, 0,
                   0, 1, dirt,
-                  blockLight(sunlight.bottom[2], torchLight, ambientOcclusion.bottom[2]),
+                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
                   vertices,
                   indices);
         
         addVertex(x-L, y-L, z+L,
                   0, -1, 0,
                   1, 1, dirt,
-                  blockLight(sunlight.bottom[3], torchLight, ambientOcclusion.bottom[3]),
+                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
                   vertices,
                   indices);
     }
     
     // Back Face (+Z)
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY, z-minZ+1), chunks)) {
+        unpackBlockLightingValuesForVertex(sunlight.back, unpackedSunlight);
+        unpackBlockLightingValuesForVertex(ambientOcclusion.back, unpackedAO);
+        
         addVertex(x-L, y-L, z+L,
                   0, 0, 1,
                   0, 1, page,
-                  blockLight(sunlight.back[0], torchLight, ambientOcclusion.back[0]),
+                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
                   vertices,
                   indices);
         
         addVertex(x+L, y-L, z+L,
                   0, 0, 1,
                   1, 1, page,
-                  blockLight(sunlight.back[1], torchLight, ambientOcclusion.back[1]),
+                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
                   vertices,
                   indices);
         
         addVertex(x+L, y+L, z+L,
                   0, 0, 1,
                   1, 0, page,
-                  blockLight(sunlight.back[2], torchLight, ambientOcclusion.back[2]),
+                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
                   vertices,
                   indices);
         
         addVertex(x-L, y+L, z+L,
                   0, 0, 1,
                   0, 0, page,
-                  blockLight(sunlight.back[3], torchLight, ambientOcclusion.back[3]),
+                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
                   vertices,
                   indices);
     }
     
     // Front Face (-Z)
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY, z-minZ-1), chunks)) {
+        unpackBlockLightingValuesForVertex(sunlight.front, unpackedSunlight);
+        unpackBlockLightingValuesForVertex(ambientOcclusion.front, unpackedAO);
+        
         addVertex(x-L, y-L, z-L,
                   0, 1, -1,
                   0, 1, page,
-                  blockLight(sunlight.front[0], torchLight, ambientOcclusion.front[0]),
+                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
                   vertices,
                   indices);
         
         addVertex(x-L, y+L, z-L,
                   0, 1, -1,
                   0, 0, page,
-                  blockLight(sunlight.front[1], torchLight, ambientOcclusion.front[1]),
+                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
                   vertices,
                   indices);
         
         addVertex(x+L, y+L, z-L,
                   0, 1, -1,
                   1, 0, page,
-                  blockLight(sunlight.front[2], torchLight, ambientOcclusion.front[2]),
+                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
                   vertices,
                   indices);
         
         addVertex(x+L, y-L, z-L,
                   0, 1, -1,
                   1, 1, page,
-                  blockLight(sunlight.front[3], torchLight, ambientOcclusion.front[3]),
+                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
                   vertices,
                   indices);
     }
     
     // Right Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX+1, y-minY, z-minZ), chunks)) {
+        unpackBlockLightingValuesForVertex(sunlight.right, unpackedSunlight);
+        unpackBlockLightingValuesForVertex(ambientOcclusion.right, unpackedAO);
+        
         addVertex(x+L, y-L, z-L,
                   1, 0, 0,
                   0, 1, page,
-                  blockLight(sunlight.right[0], torchLight, ambientOcclusion.right[0]),
+                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
                   vertices,
                   indices);
         
         addVertex(x+L, y+L, z-L,
                   1, 0, 0,
                   0, 0, page,
-                  blockLight(sunlight.right[1], torchLight, ambientOcclusion.right[1]),
+                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
                   vertices,
                   indices);
         
         addVertex(x+L, y+L, z+L,
                   1, 0, 0,
                   1, 0, page,
-                  blockLight(sunlight.right[2], torchLight, ambientOcclusion.right[2]),
+                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
                   vertices,
                   indices);
         
         addVertex(x+L, y-L, z+L,
                   1, 0, 0,
                   1, 1, page,
-                  blockLight(sunlight.right[3], torchLight, ambientOcclusion.right[3]),
+                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
                   vertices,
                   indices);
     }
     
     // Left Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX-1, y-minY, z-minZ), chunks)) {
+        unpackBlockLightingValuesForVertex(sunlight.left, unpackedSunlight);
+        unpackBlockLightingValuesForVertex(ambientOcclusion.left, unpackedAO);
+        
         addVertex(x-L, y-L, z-L,
                   -1, 0, 0,
                   0, 1, page,
-                  blockLight(sunlight.left[0], torchLight, ambientOcclusion.left[0]),
+                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
                   vertices,
                   indices);
         
         addVertex(x-L, y-L, z+L,
                   -1, 0, 0,
                   1, 1, page,
-                  blockLight(sunlight.left[1], torchLight, ambientOcclusion.left[1]),
+                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
                   vertices,
                   indices);
         
         addVertex(x-L, y+L, z+L,
                   -1, 0, 0,
                   1, 0, page,
-                  blockLight(sunlight.left[2], torchLight, ambientOcclusion.left[2]),
+                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
                   vertices,
                   indices);
         
         addVertex(x-L, y+L, z-L,
                   -1, 0, 0,
                   0, 0, page,
-                  blockLight(sunlight.left[3], torchLight, ambientOcclusion.left[3]),
+                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
                   vertices,
                   indices);
     }

@@ -23,15 +23,17 @@ static inline void fullBlockLighting(block_lighting_t *ao)
 {
     assert(ao);
     
-    for(size_t i = 0; i < 4; ++i)
-    {
-        ao->top[i] = 255;
-        ao->bottom[i] = 255;
-        ao->left[i] = 255;
-        ao->right[i] = 255;
-        ao->front[i] = 255;
-        ao->back[i] = 255;
-    }
+    block_lighting_vertex_t packed = packBlockLightingValuesForVertex(CHUNK_LIGHTING_MAX,
+                                                                      CHUNK_LIGHTING_MAX,
+                                                                      CHUNK_LIGHTING_MAX,
+                                                                      CHUNK_LIGHTING_MAX);
+
+    ao->top = packed;
+    ao->bottom = packed;
+    ao->left = packed;
+    ao->right = packed;
+    ao->front = packed;
+    ao->back = packed;
 }
 
 
@@ -214,7 +216,7 @@ static inline void fullBlockLighting(block_lighting_t *ao)
     
 #define SUNLIGHT(x, y, z) (samples[(x+1)*3*3 + (y+1)*3 + (z+1)])
     
-    float samples[3*3*3];
+    unsigned samples[3*3*3];
     
     for(ssize_t x = -1; x <= 1; ++x)
     {
@@ -223,167 +225,113 @@ static inline void fullBlockLighting(block_lighting_t *ao)
             for(ssize_t z = -1; z <= 1; ++z)
             {
                 int lightLevel = getBlockSunlightAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), voxels);
-                
-                SUNLIGHT(x, y, z) = ((float)lightLevel / CHUNK_LIGHTING_MAX) * 0.7 + 0.3;
+                assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
+                SUNLIGHT(x, y, z) = lightLevel;
             }
         }
     }
     
-    // Top /////////////////////////////////////////////////////////////////////////////
+    lighting->top = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                                 SUNLIGHT( 0, 1, -1),
+                                                                 SUNLIGHT(-1, 1,  0),
+                                                                 SUNLIGHT(-1, 1, -1)),
+                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                                 SUNLIGHT( 0, 1, +1),
+                                                                 SUNLIGHT(-1, 1,  0),
+                                                                 SUNLIGHT(-1, 1, +1)),
+                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                                 SUNLIGHT( 0, 1, +1),
+                                                                 SUNLIGHT(+1, 1,  0),
+                                                                 SUNLIGHT(+1, 1, +1)),
+                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                                 SUNLIGHT( 0, 1, -1),
+                                                                 SUNLIGHT(+1, 1,  0),
+                                                                 SUNLIGHT(+1, 1, -1)));
     
-    // x-L, y+L, z-L
-    lighting->top[0] = avgSunlight(SUNLIGHT( 0, 1,  0),
-                                   SUNLIGHT( 0, 1, -1),
-                                   SUNLIGHT(-1, 1,  0),
-                                   SUNLIGHT(-1, 1, -1));
+    lighting->bottom = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                                    SUNLIGHT( 0, -1, -1),
+                                                                    SUNLIGHT(-1, -1,  0),
+                                                                    SUNLIGHT(-1, -1, -1)),
+                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                                    SUNLIGHT( 0, -1, -1),
+                                                                    SUNLIGHT(+1, -1,  0),
+                                                                    SUNLIGHT(+1, -1, -1)),
+                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                                    SUNLIGHT( 0, -1, +1),
+                                                                    SUNLIGHT(+1, -1,  0),
+                                                                    SUNLIGHT(+1, -1, +1)),
+                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                                    SUNLIGHT( 0, -1, +1),
+                                                                    SUNLIGHT(-1, -1,  0),
+                                                                    SUNLIGHT(-1, -1, +1)));
     
-    // x-L, y+L, z+L
-    lighting->top[1] = avgSunlight(SUNLIGHT( 0, 1,  0),
-                                   SUNLIGHT( 0, 1, +1),
-                                   SUNLIGHT(-1, 1,  0),
-                                   SUNLIGHT(-1, 1, +1));
+    lighting->back = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1, 1),
+                                                                  SUNLIGHT( 0,  0, 1),
+                                                                  SUNLIGHT(-1, -1, 1),
+                                                                  SUNLIGHT(-1,  0, 1)),
+                                                      avgSunlight(SUNLIGHT( 0, -1, 1),
+                                                                  SUNLIGHT( 0,  0, 1),
+                                                                  SUNLIGHT(+1, -1, 1),
+                                                                  SUNLIGHT(+1,  0, 1)),
+                                                      avgSunlight(SUNLIGHT( 0, +1, 1),
+                                                                  SUNLIGHT( 0,  0, 1),
+                                                                  SUNLIGHT(+1, +1, 1),
+                                                                  SUNLIGHT(+1,  0, 1)),
+                                                      avgSunlight(SUNLIGHT( 0, +1, 1),
+                                                                  SUNLIGHT( 0,  0, 1),
+                                                                  SUNLIGHT(-1, +1, 1),
+                                                                  SUNLIGHT(-1,  0, 1)));
     
-    // x+L, y+L, z+L
-    lighting->top[2] = avgSunlight(SUNLIGHT( 0, 1,  0),
-                                   SUNLIGHT( 0, 1, +1),
-                                   SUNLIGHT(+1, 1,  0),
-                                   SUNLIGHT(+1, 1, +1));
+    lighting->front = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1, -1),
+                                                                   SUNLIGHT( 0,  0, -1),
+                                                                   SUNLIGHT(-1, -1, -1),
+                                                                   SUNLIGHT(-1,  0, -1)),
+                                                       avgSunlight(SUNLIGHT( 0, +1, -1),
+                                                                   SUNLIGHT( 0,  0, -1),
+                                                                   SUNLIGHT(-1, +1, -1),
+                                                                   SUNLIGHT(-1,  0, -1)),
+                                                       avgSunlight(SUNLIGHT( 0, +1, -1),
+                                                                   SUNLIGHT( 0,  0, -1),
+                                                                   SUNLIGHT(+1, +1, -1),
+                                                                   SUNLIGHT(+1,  0, -1)),
+                                                       avgSunlight(SUNLIGHT( 0, -1, -1),
+                                                                   SUNLIGHT( 0,  0, -1),
+                                                                   SUNLIGHT(+1, -1, -1),
+                                                                   SUNLIGHT(+1,  0, -1)));
     
-    // x+L, y+L, z-L
-    lighting->top[3] = avgSunlight(SUNLIGHT( 0, 1,  0),
-                                   SUNLIGHT( 0, 1, -1),
-                                   SUNLIGHT(+1, 1,  0),
-                                   SUNLIGHT(+1, 1, -1));
+    lighting->right = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                                   SUNLIGHT(+1,  0, -1),
+                                                                   SUNLIGHT(+1, -1,  0),
+                                                                   SUNLIGHT(+1, -1, -1)),
+                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                                   SUNLIGHT(+1,  0, -1),
+                                                                   SUNLIGHT(+1, +1,  0),
+                                                                   SUNLIGHT(+1, +1, -1)),
+                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                                   SUNLIGHT(+1,  0, +1),
+                                                                   SUNLIGHT(+1, +1,  0),
+                                                                   SUNLIGHT(+1, +1, +1)),
+                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                                   SUNLIGHT(+1,  0, +1),
+                                                                   SUNLIGHT(+1, -1,  0),
+                                                                   SUNLIGHT(+1, -1, +1)));
     
-    // Bottom ///////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    lighting->bottom[0]  = avgSunlight(SUNLIGHT( 0, -1,  0),
-                                       SUNLIGHT( 0, -1, -1),
-                                       SUNLIGHT(-1, -1,  0),
-                                       SUNLIGHT(-1, -1, -1));
-    
-    // x+L, y-L, z-L
-    lighting->bottom[1]  = avgSunlight(SUNLIGHT( 0, -1,  0),
-                                       SUNLIGHT( 0, -1, -1),
-                                       SUNLIGHT(+1, -1,  0),
-                                       SUNLIGHT(+1, -1, -1));
-    
-    // x+L, y-L, z+L
-    lighting->bottom[2]  = avgSunlight(SUNLIGHT( 0, -1,  0),
-                                       SUNLIGHT( 0, -1, +1),
-                                       SUNLIGHT(+1, -1,  0),
-                                       SUNLIGHT(+1, -1, +1));
-    
-    // x-L, y-L, z+L
-    lighting->bottom[3]  = avgSunlight(SUNLIGHT( 0, -1,  0),
-                                       SUNLIGHT( 0, -1, +1),
-                                       SUNLIGHT(-1, -1,  0),
-                                       SUNLIGHT(-1, -1, +1));
-    
-    // Back (+Z) ////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z+L
-    lighting->back[0]  = avgSunlight(SUNLIGHT( 0, -1, 1),
-                                     SUNLIGHT( 0,  0, 1),
-                                     SUNLIGHT(-1, -1, 1),
-                                     SUNLIGHT(-1,  0, 1));
-    
-    // x+L, y-L, z+L
-    lighting->back[1]  = avgSunlight(SUNLIGHT( 0, -1, 1),
-                                     SUNLIGHT( 0,  0, 1),
-                                     SUNLIGHT(+1, -1, 1),
-                                     SUNLIGHT(+1,  0, 1));
-    
-    // x+L, y+L, z+L
-    lighting->back[2]  = avgSunlight(SUNLIGHT( 0, +1, 1),
-                                     SUNLIGHT( 0,  0, 1),
-                                     SUNLIGHT(+1, +1, 1),
-                                     SUNLIGHT(+1,  0, 1));
-    
-    // x-L, y+L, z+L
-    lighting->back[3]  = avgSunlight(SUNLIGHT( 0, +1, 1),
-                                     SUNLIGHT( 0,  0, 1),
-                                     SUNLIGHT(-1, +1, 1),
-                                     SUNLIGHT(-1,  0, 1));
-    
-    // Front (-Z) ///////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    lighting->front[0] = avgSunlight(SUNLIGHT( 0, -1, -1),
-                                     SUNLIGHT( 0,  0, -1),
-                                     SUNLIGHT(-1, -1, -1),
-                                     SUNLIGHT(-1,  0, -1));
-    
-    // x-L, y+L, z-L
-    lighting->front[1] = avgSunlight(SUNLIGHT( 0, +1, -1),
-                                     SUNLIGHT( 0,  0, -1),
-                                     SUNLIGHT(-1, +1, -1),
-                                     SUNLIGHT(-1,  0, -1));
-    
-    // x+L, y+L, z-L
-    lighting->front[2] = avgSunlight(SUNLIGHT( 0, +1, -1),
-                                     SUNLIGHT( 0,  0, -1),
-                                     SUNLIGHT(+1, +1, -1),
-                                     SUNLIGHT(+1,  0, -1));
-    
-    // x+L, y-L, z-L
-    lighting->front[3] = avgSunlight(SUNLIGHT( 0, -1, -1),
-                                     SUNLIGHT( 0,  0, -1),
-                                     SUNLIGHT(+1, -1, -1),
-                                     SUNLIGHT(+1,  0, -1));
-    
-    // Right ////////////////////////////////////////////////////////////////////////////
-    
-    // x+L, y-L, z-L
-    lighting->right[0] = avgSunlight(SUNLIGHT(+1,  0,  0),
-                                     SUNLIGHT(+1,  0, -1),
-                                     SUNLIGHT(+1, -1,  0),
-                                     SUNLIGHT(+1, -1, -1));
-    
-    // x+L, y+L, z-L
-    lighting->right[1] = avgSunlight(SUNLIGHT(+1,  0,  0),
-                                     SUNLIGHT(+1,  0, -1),
-                                     SUNLIGHT(+1, +1,  0),
-                                     SUNLIGHT(+1, +1, -1));
-    
-    // x+L, y+L, z+L
-    lighting->right[2] = avgSunlight(SUNLIGHT(+1,  0,  0),
-                                     SUNLIGHT(+1,  0, +1),
-                                     SUNLIGHT(+1, +1,  0),
-                                     SUNLIGHT(+1, +1, +1));
-    
-    // x+L, y-L, z+L
-    lighting->right[3] = avgSunlight(SUNLIGHT(+1,  0,  0),
-                                     SUNLIGHT(+1,  0, +1),
-                                     SUNLIGHT(+1, -1,  0),
-                                     SUNLIGHT(+1, -1, +1));
-    
-    // Left ////////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    lighting->left[0] = avgSunlight(SUNLIGHT(-1,  0,  0),
-                                    SUNLIGHT(-1,  0, -1),
-                                    SUNLIGHT(-1, -1,  0),
-                                    SUNLIGHT(-1, -1, -1));
-    
-    // x-L, y-L, z+L
-    lighting->left[1] = avgSunlight(SUNLIGHT(-1,  0,  0),
-                                    SUNLIGHT(-1,  0, +1),
-                                    SUNLIGHT(-1, -1,  0),
-                                    SUNLIGHT(-1, -1, +1));
-    
-    // x-L, y+L, z+L
-    lighting->left[2] = avgSunlight(SUNLIGHT(-1,  0,  0),
-                                    SUNLIGHT(-1,  0, +1),
-                                    SUNLIGHT(-1, +1,  0),
-                                    SUNLIGHT(-1, +1, +1));
-    
-    // x-L, y+L, z-L
-    lighting->left[3] = avgSunlight(SUNLIGHT(-1,  0,  0),
-                                    SUNLIGHT(-1,  0, -1),
-                                    SUNLIGHT(-1, +1,  0),
-                                    SUNLIGHT(-1, +1, -1));
+    lighting->left = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                                  SUNLIGHT(-1,  0, -1),
+                                                                  SUNLIGHT(-1, -1,  0),
+                                                                  SUNLIGHT(-1, -1, -1)),
+                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                                  SUNLIGHT(-1,  0, +1),
+                                                                  SUNLIGHT(-1, -1,  0),
+                                                                  SUNLIGHT(-1, -1, +1)),
+                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                                  SUNLIGHT(-1,  0, +1),
+                                                                  SUNLIGHT(-1, +1,  0),
+                                                                  SUNLIGHT(-1, +1, +1)),
+                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                                  SUNLIGHT(-1,  0, -1),
+                                                                  SUNLIGHT(-1, +1,  0),
+                                                                  SUNLIGHT(-1, +1, -1)));
     
 #undef SUNLIGHT
 }
@@ -673,9 +621,7 @@ static inline void fullBlockLighting(block_lighting_t *ao)
     
 #define OCCLUSION(x, y, z) (occlusion[(x+1)*3*3 + (y+1)*3 + (z+1)])
     
-    float occlusion[3*3*3];
-    
-    const float a = 1.0 / 4.0; // vertex brightness conferred by each additional empty neighbor
+    BOOL occlusion[3*3*3];
     
     for(ssize_t x = -1; x <= 1; ++x)
     {
@@ -683,168 +629,112 @@ static inline void fullBlockLighting(block_lighting_t *ao)
         {
             for(ssize_t z = -1; z <= 1; ++z)
             {
-                OCCLUSION(x, y, z) = isEmptyAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), chunks) ? a : 0.0;
+                OCCLUSION(x, y, z) = isEmptyAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), chunks);
             }   
         }
     }
     
-    // Top /////////////////////////////////////////////////////////////////////////////
+    ao->top = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, 1,  0),
+                                                                  OCCLUSION( 0, 1, -1),
+                                                                  OCCLUSION(-1, 1,  0),
+                                                                  OCCLUSION(-1, 1, -1)),
+                                               calcFinalOcclusion(OCCLUSION( 0, 1,  0),
+                                                                  OCCLUSION( 0, 1, +1),
+                                                                  OCCLUSION(-1, 1,  0),
+                                                                  OCCLUSION(-1, 1, +1)),
+                                               calcFinalOcclusion(OCCLUSION( 0, 1,  0),
+                                                                  OCCLUSION( 0, 1, +1),
+                                                                  OCCLUSION(+1, 1,  0),
+                                                                  OCCLUSION(+1, 1, +1)),
+                                               calcFinalOcclusion(OCCLUSION( 0, 1,  0),
+                                                                  OCCLUSION( 0, 1, -1),
+                                                                  OCCLUSION(+1, 1,  0),
+                                                                  OCCLUSION(+1, 1, -1)));
     
-    // x-L, y+L, z-L
-    ao->top[0] = calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                    OCCLUSION( 0, 1, -1),
-                                    OCCLUSION(-1, 1,  0),
-                                    OCCLUSION(-1, 1, -1));
+    ao->bottom = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, -1,  0),
+                                                                     OCCLUSION( 0, -1, -1),
+                                                                     OCCLUSION(-1, -1,  0),
+                                                                     OCCLUSION(-1, -1, -1)),
+                                                  calcFinalOcclusion(OCCLUSION( 0, -1,  0),
+                                                                     OCCLUSION( 0, -1, -1),
+                                                                     OCCLUSION(+1, -1,  0),
+                                                                     OCCLUSION(+1, -1, -1)),
+                                                  calcFinalOcclusion(OCCLUSION( 0, -1,  0),
+                                                                     OCCLUSION( 0, -1, +1),
+                                                                     OCCLUSION(+1, -1,  0),
+                                                                     OCCLUSION(+1, -1, +1)),
+                                                  calcFinalOcclusion(OCCLUSION( 0, -1,  0),
+                                                                     OCCLUSION( 0, -1, +1),
+                                                                     OCCLUSION(-1, -1,  0),
+                                                                     OCCLUSION(-1, -1, +1)));
     
-    // x-L, y+L, z+L
-    ao->top[1] = calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                    OCCLUSION( 0, 1, +1),
-                                    OCCLUSION(-1, 1,  0),
-                                    OCCLUSION(-1, 1, +1));
+    ao->back = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, -1, 1),
+                                                                   OCCLUSION( 0,  0, 1),
+                                                                   OCCLUSION(-1, -1, 1),
+                                                                   OCCLUSION(-1,  0, 1)),
+                                                calcFinalOcclusion(OCCLUSION( 0, -1, 1),
+                                                                   OCCLUSION( 0,  0, 1),
+                                                                   OCCLUSION(+1, -1, 1),
+                                                                   OCCLUSION(+1,  0, 1)),
+                                                calcFinalOcclusion(OCCLUSION( 0, +1, 1),
+                                                                   OCCLUSION( 0,  0, 1),
+                                                                   OCCLUSION(+1, +1, 1),
+                                                                   OCCLUSION(+1,  0, 1)),
+                                                calcFinalOcclusion(OCCLUSION( 0, +1, 1),
+                                                                   OCCLUSION( 0,  0, 1),
+                                                                   OCCLUSION(-1, +1, 1),
+                                                                   OCCLUSION(-1,  0, 1)));
     
-    // x+L, y+L, z+L
-    ao->top[2] = calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                    OCCLUSION( 0, 1, +1),
-                                    OCCLUSION(+1, 1,  0),
-                                    OCCLUSION(+1, 1, +1));
+    ao->front = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, -1, -1),
+                                                                    OCCLUSION( 0,  0, -1),
+                                                                    OCCLUSION(-1, -1, -1),
+                                                                    OCCLUSION(-1,  0, -1)),
+                                                 calcFinalOcclusion(OCCLUSION( 0, +1, -1),
+                                                                    OCCLUSION( 0,  0, -1),
+                                                                    OCCLUSION(-1, +1, -1),
+                                                                    OCCLUSION(-1,  0, -1)),
+                                                 calcFinalOcclusion(OCCLUSION( 0, +1, -1),
+                                                                    OCCLUSION( 0,  0, -1),
+                                                                    OCCLUSION(+1, +1, -1),
+                                                                    OCCLUSION(+1,  0, -1)),
+                                                 calcFinalOcclusion(OCCLUSION( 0, -1, -1),
+                                                                    OCCLUSION( 0,  0, -1),
+                                                                    OCCLUSION(+1, -1, -1),
+                                                                    OCCLUSION(+1,  0, -1)));
     
-    // x+L, y+L, z-L
-    ao->top[3] = calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                    OCCLUSION( 0, 1, -1),
-                                    OCCLUSION(+1, 1,  0),
-                                    OCCLUSION(+1, 1, -1));
+    ao->right = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION(+1,  0,  0),
+                                                                    OCCLUSION(+1,  0, -1),
+                                                                    OCCLUSION(+1, -1,  0),
+                                                                    OCCLUSION(+1, -1, -1)),
+                                                 calcFinalOcclusion(OCCLUSION(+1,  0,  0),
+                                                                    OCCLUSION(+1,  0, -1),
+                                                                    OCCLUSION(+1, +1,  0),
+                                                                    OCCLUSION(+1, +1, -1)),
+                                                 calcFinalOcclusion(OCCLUSION(+1,  0,  0),
+                                                                    OCCLUSION(+1,  0, +1),
+                                                                    OCCLUSION(+1, +1,  0),
+                                                                    OCCLUSION(+1, +1, +1)),
+                                                 calcFinalOcclusion(OCCLUSION(+1,  0,  0),
+                                                                    OCCLUSION(+1,  0, +1),
+                                                                    OCCLUSION(+1, -1,  0),
+                                                                    OCCLUSION(+1, -1, +1)));
     
-    // Bottom ///////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    ao->bottom[0] = calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                       OCCLUSION( 0, -1, -1),
-                                       OCCLUSION(-1, -1,  0),
-                                       OCCLUSION(-1, -1, -1));
-    
-    // x+L, y-L, z-L
-    ao->bottom[1] = calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                       OCCLUSION( 0, -1, -1),
-                                       OCCLUSION(+1, -1,  0),
-                                       OCCLUSION(+1, -1, -1));
-    
-    // x+L, y-L, z+L
-    ao->bottom[2] = calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                       OCCLUSION( 0, -1, +1),
-                                       OCCLUSION(+1, -1,  0),
-                                       OCCLUSION(+1, -1, +1));
-    
-    // x-L, y-L, z+L
-    ao->bottom[3] = calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                       OCCLUSION( 0, -1, +1),
-                                       OCCLUSION(-1, -1,  0),
-                                       OCCLUSION(-1, -1, +1));
-    
-    // Back (+Z) ////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z+L
-    ao->back[0] = calcFinalOcclusion(OCCLUSION( 0, -1, 1),
-                                     OCCLUSION( 0,  0, 1),
-                                     OCCLUSION(-1, -1, 1),
-                                     OCCLUSION(-1,  0, 1));
-    
-    // x+L, y-L, z+L
-    ao->back[1] = calcFinalOcclusion(OCCLUSION( 0, -1, 1),
-                                     OCCLUSION( 0,  0, 1),
-                                     OCCLUSION(+1, -1, 1),
-                                     OCCLUSION(+1,  0, 1));
-    
-    // x+L, y+L, z+L
-    ao->back[2] = calcFinalOcclusion(OCCLUSION( 0, +1, 1),
-                                     OCCLUSION( 0,  0, 1),
-                                     OCCLUSION(+1, +1, 1),
-                                     OCCLUSION(+1,  0, 1));
-    
-    // x-L, y+L, z+L
-    ao->back[3] = calcFinalOcclusion(OCCLUSION( 0, +1, 1),
-                                     OCCLUSION( 0,  0, 1),
-                                     OCCLUSION(-1, +1, 1),
-                                     OCCLUSION(-1,  0, 1));
-    
-    // Front (-Z) ///////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    ao->front[0] = calcFinalOcclusion(OCCLUSION( 0, -1, -1),
-                                      OCCLUSION( 0,  0, -1),
-                                      OCCLUSION(-1, -1, -1),
-                                      OCCLUSION(-1,  0, -1));
-    
-    // x-L, y+L, z-L
-    ao->front[1] = calcFinalOcclusion(OCCLUSION( 0, +1, -1),
-                                      OCCLUSION( 0,  0, -1),
-                                      OCCLUSION(-1, +1, -1),
-                                      OCCLUSION(-1,  0, -1));
-    
-    // x+L, y+L, z-L
-    ao->front[2] = calcFinalOcclusion(OCCLUSION( 0, +1, -1),
-                                      OCCLUSION( 0,  0, -1),
-                                      OCCLUSION(+1, +1, -1),
-                                      OCCLUSION(+1,  0, -1));
-    
-    // x+L, y-L, z-L
-    ao->front[3] = calcFinalOcclusion(OCCLUSION( 0, -1, -1),
-                                      OCCLUSION( 0,  0, -1),
-                                      OCCLUSION(+1, -1, -1),
-                                      OCCLUSION(+1,  0, -1));
-    
-    // Right ////////////////////////////////////////////////////////////////////////////
-    
-    // x+L, y-L, z-L
-    ao->right[0] = calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                      OCCLUSION(+1,  0, -1),
-                                      OCCLUSION(+1, -1,  0),
-                                      OCCLUSION(+1, -1, -1));
-    
-    // x+L, y+L, z-L
-    ao->right[1] = calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                      OCCLUSION(+1,  0, -1),
-                                      OCCLUSION(+1, +1,  0),
-                                      OCCLUSION(+1, +1, -1));
-    
-    // x+L, y+L, z+L
-    ao->right[2] = calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                      OCCLUSION(+1,  0, +1),
-                                      OCCLUSION(+1, +1,  0),
-                                      OCCLUSION(+1, +1, +1));
-    
-    // x+L, y-L, z+L
-    ao->right[3] = calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                      OCCLUSION(+1,  0, +1),
-                                      OCCLUSION(+1, -1,  0),
-                                      OCCLUSION(+1, -1, +1));
-    
-    // Left ////////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    ao->left[0] = calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                     OCCLUSION(-1,  0, -1),
-                                     OCCLUSION(-1, -1,  0),
-                                     OCCLUSION(-1, -1, -1));
-    
-    // x-L, y-L, z+L
-    ao->left[1] = calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                     OCCLUSION(-1,  0, +1),
-                                     OCCLUSION(-1, -1,  0),
-                                     OCCLUSION(-1, -1, +1));
-    
-    // x-L, y+L, z+L
-    ao->left[2] = calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                     OCCLUSION(-1,  0, +1),
-                                     OCCLUSION(-1, +1,  0),
-                                     OCCLUSION(-1, +1, +1));
-    
-    // x-L, y+L, z-L
-    ao->left[3] = calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                     OCCLUSION(-1,  0, -1),
-                                     OCCLUSION(-1, +1,  0),
-                                     OCCLUSION(-1, +1, -1));
-    
-#undef OCCLUSION
+    ao->left = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION(-1,  0,  0),
+                                                                   OCCLUSION(-1,  0, -1),
+                                                                   OCCLUSION(-1, -1,  0),
+                                                                   OCCLUSION(-1, -1, -1)),
+                                                calcFinalOcclusion(OCCLUSION(-1,  0,  0),
+                                                                   OCCLUSION(-1,  0, +1),
+                                                                   OCCLUSION(-1, -1,  0),
+                                                                   OCCLUSION(-1, -1, +1)),
+                                                calcFinalOcclusion(OCCLUSION(-1,  0,  0),
+                                                                   OCCLUSION(-1,  0, +1),
+                                                                   OCCLUSION(-1, +1,  0),
+                                                                   OCCLUSION(-1, +1, +1)),
+                                                calcFinalOcclusion(OCCLUSION(-1,  0,  0),
+                                                                   OCCLUSION(-1,  0, -1),
+                                                                   OCCLUSION(-1, +1,  0),
+                                                                   OCCLUSION(-1, +1, -1)));
 }
 
 
