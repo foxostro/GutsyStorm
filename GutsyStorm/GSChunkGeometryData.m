@@ -660,6 +660,9 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
     
     needsVBORegeneration = NO; // reset
     
+    // Geometry isn't needed anymore, so free it now.
+    [self destroyGeometry];
+    
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);
     [lockGeometry unlock];
