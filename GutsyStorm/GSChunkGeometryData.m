@@ -19,9 +19,11 @@ static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
-                      GSVector3  color,
-                      NSMutableArray *vertices,
-                      NSMutableArray *indices);
+                      GSVector3 c,
+                      GLfloat **verts,
+                      GLfloat **norms,
+                      GLfloat **txcds,
+                      GLfloat **color);
 
 static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
@@ -41,11 +43,15 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
 - (void)destroyVBOs;
 - (void)destroyGeometry;
 - (void)generateGeometryWithVoxelData:(GSChunkVoxelData **)voxels;
-- (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-                                        vertices:(NSMutableArray *)vertices
-                                         indices:(NSMutableArray *)indices
-                                       voxelData:(GSChunkVoxelData **)voxels;
-- (void)fillIndexBufferForGenerating:(NSMutableArray *)indices;
+- (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
+                                        vertsBuffer:(GLfloat **)_vertsBuffer
+                                        normsBuffer:(GLfloat **)_normsBuffer
+                                    texCoordsBuffer:(GLfloat **)_texCoordsBuffer
+                                        colorBuffer:(GLfloat **)_colorBuffer
+                                        indexBuffer:(GLuint **)_indexBuffer
+                                          voxelData:(GSChunkVoxelData **)chunks
+                                  onlyDoingCounting:(BOOL)onlyDoingCounting;
+- (void)fillIndexBufferForGenerating:(GLsizei)n;
 
 @end
 
@@ -205,9 +211,6 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
     
     [self destroyGeometry];
     
-    NSMutableArray *vertices = [[NSMutableArray alloc] init];
-    NSMutableArray *indices = [[NSMutableArray alloc] init];
-    
     // Atomically, grab all the voxel data we need to generate geometry for this chunk.
     // We do this atomically to prevent deadlock.
     [[GSChunkStore lockWhileLockingMultipleChunksVoxelData] lock];
@@ -228,6 +231,40 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
     
     [chunks[CHUNK_NEIGHBOR_CENTER]->lockAmbientOcclusion lockWhenCondition:READY];
     
+    // Iterate over all voxels in the chunk and count the number of vertices that would be generated.
+    numChunkVerts = 0;
+    for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
+    {
+        for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
+        {
+            for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
+            {
+                numChunkVerts += [self generateGeometryForSingleBlockAtPosition:pos
+                                                                    vertsBuffer:NULL
+                                                                    normsBuffer:NULL
+                                                                texCoordsBuffer:NULL
+                                                                    colorBuffer:NULL
+                                                                    indexBuffer:NULL
+                                                                      voxelData:chunks
+                                                              onlyDoingCounting:YES];
+                
+            }
+        }
+    }
+    assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
+    
+    // Take the vertices array and generate raw buffers for OpenGL to consume.
+    vertsBuffer = allocateGeometryBuffer(numChunkVerts);
+    normsBuffer = allocateGeometryBuffer(numChunkVerts);
+    texCoordsBuffer = allocateGeometryBuffer(numChunkVerts);
+    colorBuffer = allocateGeometryBuffer(numChunkVerts);
+    
+    GLfloat *_vertsBuffer = vertsBuffer;
+    GLfloat *_normsBuffer = normsBuffer;
+    GLfloat *_texCoordsBuffer = texCoordsBuffer;
+    GLfloat *_colorBuffer = colorBuffer;
+    GLuint *_indexBufferForGenerating = indexBufferForGenerating;
+    
     // Iterate over all voxels in the chunk and generate geometry.
     for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
     {
@@ -236,16 +273,20 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
             for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
             {
                 [self generateGeometryForSingleBlockAtPosition:pos
-                                                      vertices:vertices
-                                                       indices:indices
-                                                     voxelData:chunks];
+                                                   vertsBuffer:&_vertsBuffer
+                                                   normsBuffer:&_normsBuffer
+                                               texCoordsBuffer:&_texCoordsBuffer
+                                                   colorBuffer:&_colorBuffer
+                                                   indexBuffer:&_indexBufferForGenerating
+                                                     voxelData:chunks
+                                             onlyDoingCounting:NO];
                 
             }
         }
     }
     
     // We don't need this anymore so free it now.
-    // XXX: What if we need it again in the future?
+    // XXX: What if we need it again in the future? Is this used anywhere else, ever?
     free(chunks[CHUNK_NEIGHBOR_CENTER]->ambientOcclusion);
     chunks[CHUNK_NEIGHBOR_CENTER]->ambientOcclusion = NULL;
     
@@ -261,52 +302,7 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
         [chunks[i]->lockVoxelData unlockForReading];
     }
     
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
-    numChunkVerts = (GLsizei)[vertices count];
-    
-    // Take the vertices array and generate raw buffers for OpenGL to consume.
-    vertsBuffer = allocateGeometryBuffer(numChunkVerts);
-    normsBuffer = allocateGeometryBuffer(numChunkVerts);
-    texCoordsBuffer = allocateGeometryBuffer(numChunkVerts);
-    colorBuffer = allocateGeometryBuffer(numChunkVerts);
-    
-    GLfloat *_vertsBuffer = vertsBuffer;
-    GLfloat *_normsBuffer = normsBuffer;
-    GLfloat *_texCoordsBuffer = texCoordsBuffer;
-    GLfloat *_colorBuffer = colorBuffer;
-    for(GSVertex *vertex in vertices)
-    {
-        GSVector3 v = [vertex.position getVector];
-        GSVector3 n = [vertex.normal getVector];
-        GSVector3 t = [vertex.texCoord getVector];
-        GSVector3 c = [vertex.color getVector];
-        
-        _vertsBuffer[0] = v.x;
-        _vertsBuffer[1] = v.y;
-        _vertsBuffer[2] = v.z;
-        _vertsBuffer += 3;
-        
-        _normsBuffer[0] = n.x;
-        _normsBuffer[1] = n.y;
-        _normsBuffer[2] = n.z;
-        _normsBuffer += 3;
-        
-        _texCoordsBuffer[0] = t.x;
-        _texCoordsBuffer[1] = t.y;
-        _texCoordsBuffer[2] = t.z;
-        _texCoordsBuffer += 3;
-        
-        _colorBuffer[0] = c.x;
-        _colorBuffer[1] = c.y;
-        _colorBuffer[2] = c.z;
-        _colorBuffer += 3;
-    }
-    
-    [vertices release];
-    
-    [self fillIndexBufferForGenerating:indices];
-    [indices release];
+    [self fillIndexBufferForGenerating:numChunkVerts];
     
     // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
     // Updating a boolean should be atomic on x86_64 and i386;
@@ -317,14 +313,14 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
 
 
 // Assumes the caller is already holding "lockGeometry".
-- (void)fillIndexBufferForGenerating:(NSMutableArray *)indices
+- (void)fillIndexBufferForGenerating:(GLsizei)n
 {
     if(indexBufferForGenerating) {
         free(indexBufferForGenerating);
         indexBufferForGenerating = NULL;
     }
     
-    numIndicesForGenerating = (GLsizei)[indices count];
+    numIndicesForGenerating = n;
     
     // Take the indices array and generate a raw index buffer that OpenGL can consume.
     indexBufferForGenerating = malloc(sizeof(GLuint) * numIndicesForGenerating);
@@ -334,7 +330,7 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
     
     for(GLsizei i = 0; i < numIndicesForGenerating; ++i)
     {
-        indexBufferForGenerating[i] = [[indices objectAtIndex:i] unsignedIntValue];
+        indexBufferForGenerating[i] = i; // a simple linear walk
     }
 }
 
@@ -365,13 +361,15 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
 /* Assumes the caller is already holding "lockGeometry", "lockSunlight", "lockAmbientOcclusion",
  * and locks on all neighboring chunks too.
  */
-- (void)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-                                        vertices:(NSMutableArray *)vertices
-                                         indices:(NSMutableArray *)indices
-                                       voxelData:(GSChunkVoxelData **)chunks
+- (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
+                                        vertsBuffer:(GLfloat **)_vertsBuffer
+                                        normsBuffer:(GLfloat **)_normsBuffer
+                                    texCoordsBuffer:(GLfloat **)_texCoordsBuffer
+                                        colorBuffer:(GLfloat **)_colorBuffer
+                                        indexBuffer:(GLuint **)_indexBuffer
+                                          voxelData:(GSChunkVoxelData **)chunks
+                                  onlyDoingCounting:(BOOL)onlyDoingCounting
 {
-    assert(vertices);
-    assert(indices);
     assert(chunks);
     assert(chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
     assert(chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
@@ -383,6 +381,12 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
     assert(chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
     assert(chunks[CHUNK_NEIGHBOR_CENTER]);
     
+    if(!onlyDoingCounting && !(_vertsBuffer && _normsBuffer && _texCoordsBuffer && _colorBuffer && _indexBuffer)) {
+        [NSException raise:NSInvalidArgumentException format:@"If countOnly is NO then pointers to buffers must be provided."];
+    }
+    
+    GLsizei count = 0;
+
     const GLfloat L = 0.5f; // half the length of a block along one side
     const GLfloat grass = 0;
     const GLfloat dirt = 1;
@@ -404,7 +408,7 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
     voxel_t *thisVoxel = [voxels getPointerToVoxelAtPoint:chunkLocalPos];
     
     if(isVoxelEmpty(*thisVoxel)) {
-        return;
+        return count;
     }
     
     const float torchLight = 0.0; // TODO: add torch lighting to the world.
@@ -421,209 +425,283 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
     
     // Top Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ), chunks)) {
-        page = side;
+        count += 4;
         
-        unpackBlockLightingValuesForVertex(sunlight.top, unpackedSunlight);
-        unpackBlockLightingValuesForVertex(ambientOcclusion.top, unpackedAO);
-        
-        addVertex(x-L, y+L, z-L,
-                  0, 1, 0,
-                  1, 0, grass,
-                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
-                  vertices,
-                  indices);
-        
-        addVertex(x-L, y+L, z+L,
-                  0, 1, 0,
-                  1, 1, grass,
-                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y+L, z+L,
-                  0, 1, 0,
-                  0, 1, grass,
-                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y+L, z-L,
-                  0, 1, 0,
-                  0, 0, grass,
-                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
-                  vertices,
-                  indices);
+        if(!onlyDoingCounting) {
+            page = side;
+            
+            unpackBlockLightingValuesForVertex(sunlight.top, unpackedSunlight);
+            unpackBlockLightingValuesForVertex(ambientOcclusion.top, unpackedAO);
+            
+            addVertex(x-L, y+L, z-L,
+                      0, 1, 0,
+                      1, 0, grass,
+                      blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x-L, y+L, z+L,
+                      0, 1, 0,
+                      1, 1, grass,
+                      blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y+L, z+L,
+                      0, 1, 0,
+                      0, 1, grass,
+                      blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y+L, z-L,
+                      0, 1, 0,
+                      0, 0, grass,
+                      blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+        }
     }
     
     // Bottom Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY-1, z-minZ), chunks)) {
-        unpackBlockLightingValuesForVertex(sunlight.bottom, unpackedSunlight);
-        unpackBlockLightingValuesForVertex(ambientOcclusion.bottom, unpackedAO);
+        count += 4;
         
-        addVertex(x-L, y-L, z-L,
-                  0, -1, 0,
-                  1, 0, dirt,
-                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y-L, z-L,
-                  0, -1, 0,
-                  0, 0, dirt,
-                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y-L, z+L,
-                  0, -1, 0,
-                  0, 1, dirt,
-                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
-                  vertices,
-                  indices);
-        
-        addVertex(x-L, y-L, z+L,
-                  0, -1, 0,
-                  1, 1, dirt,
-                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
-                  vertices,
-                  indices);
+        if(!onlyDoingCounting) {
+            unpackBlockLightingValuesForVertex(sunlight.bottom, unpackedSunlight);
+            unpackBlockLightingValuesForVertex(ambientOcclusion.bottom, unpackedAO);
+            
+            addVertex(x-L, y-L, z-L,
+                      0, -1, 0,
+                      1, 0, dirt,
+                      blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y-L, z-L,
+                      0, -1, 0,
+                      0, 0, dirt,
+                      blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y-L, z+L,
+                      0, -1, 0,
+                      0, 1, dirt,
+                      blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x-L, y-L, z+L,
+                      0, -1, 0,
+                      1, 1, dirt,
+                      blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+        }
     }
     
     // Back Face (+Z)
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY, z-minZ+1), chunks)) {
-        unpackBlockLightingValuesForVertex(sunlight.back, unpackedSunlight);
-        unpackBlockLightingValuesForVertex(ambientOcclusion.back, unpackedAO);
+        count += 4;
         
-        addVertex(x-L, y-L, z+L,
-                  0, 0, 1,
-                  0, 1, page,
-                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y-L, z+L,
-                  0, 0, 1,
-                  1, 1, page,
-                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y+L, z+L,
-                  0, 0, 1,
-                  1, 0, page,
-                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
-                  vertices,
-                  indices);
-        
-        addVertex(x-L, y+L, z+L,
-                  0, 0, 1,
-                  0, 0, page,
-                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
-                  vertices,
-                  indices);
+        if(!onlyDoingCounting) {
+            unpackBlockLightingValuesForVertex(sunlight.back, unpackedSunlight);
+            unpackBlockLightingValuesForVertex(ambientOcclusion.back, unpackedAO);
+            
+            addVertex(x-L, y-L, z+L,
+                      0, 0, 1,
+                      0, 1, page,
+                      blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y-L, z+L,
+                      0, 0, 1,
+                      1, 1, page,
+                      blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y+L, z+L,
+                      0, 0, 1,
+                      1, 0, page,
+                      blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x-L, y+L, z+L,
+                      0, 0, 1,
+                      0, 0, page,
+                      blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+        }
     }
     
     // Front Face (-Z)
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY, z-minZ-1), chunks)) {
-        unpackBlockLightingValuesForVertex(sunlight.front, unpackedSunlight);
-        unpackBlockLightingValuesForVertex(ambientOcclusion.front, unpackedAO);
+        count += 4;
         
-        addVertex(x-L, y-L, z-L,
-                  0, 1, -1,
-                  0, 1, page,
-                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
-                  vertices,
-                  indices);
-        
-        addVertex(x-L, y+L, z-L,
-                  0, 1, -1,
-                  0, 0, page,
-                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y+L, z-L,
-                  0, 1, -1,
-                  1, 0, page,
-                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y-L, z-L,
-                  0, 1, -1,
-                  1, 1, page,
-                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
-                  vertices,
-                  indices);
+        if(!onlyDoingCounting) {
+            unpackBlockLightingValuesForVertex(sunlight.front, unpackedSunlight);
+            unpackBlockLightingValuesForVertex(ambientOcclusion.front, unpackedAO);
+            
+            addVertex(x-L, y-L, z-L,
+                      0, 1, -1,
+                      0, 1, page,
+                      blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x-L, y+L, z-L,
+                      0, 1, -1,
+                      0, 0, page,
+                      blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y+L, z-L,
+                      0, 1, -1,
+                      1, 0, page,
+                      blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y-L, z-L,
+                      0, 1, -1,
+                      1, 1, page,
+                      blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+        }
     }
     
     // Right Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX+1, y-minY, z-minZ), chunks)) {
-        unpackBlockLightingValuesForVertex(sunlight.right, unpackedSunlight);
-        unpackBlockLightingValuesForVertex(ambientOcclusion.right, unpackedAO);
+        count += 4;
         
-        addVertex(x+L, y-L, z-L,
-                  1, 0, 0,
-                  0, 1, page,
-                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y+L, z-L,
-                  1, 0, 0,
-                  0, 0, page,
-                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y+L, z+L,
-                  1, 0, 0,
-                  1, 0, page,
-                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
-                  vertices,
-                  indices);
-        
-        addVertex(x+L, y-L, z+L,
-                  1, 0, 0,
-                  1, 1, page,
-                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
-                  vertices,
-                  indices);
+        if(!onlyDoingCounting) {
+            unpackBlockLightingValuesForVertex(sunlight.right, unpackedSunlight);
+            unpackBlockLightingValuesForVertex(ambientOcclusion.right, unpackedAO);
+            
+            addVertex(x+L, y-L, z-L,
+                      1, 0, 0,
+                      0, 1, page,
+                      blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y+L, z-L,
+                      1, 0, 0,
+                      0, 0, page,
+                      blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y+L, z+L,
+                      1, 0, 0,
+                      1, 0, page,
+                      blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x+L, y-L, z+L,
+                      1, 0, 0,
+                      1, 1, page,
+                      blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+        }
     }
     
     // Left Face
     if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX-1, y-minY, z-minZ), chunks)) {
-        unpackBlockLightingValuesForVertex(sunlight.left, unpackedSunlight);
-        unpackBlockLightingValuesForVertex(ambientOcclusion.left, unpackedAO);
+        count += 4;
         
-        addVertex(x-L, y-L, z-L,
-                  -1, 0, 0,
-                  0, 1, page,
-                  blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
-                  vertices,
-                  indices);
-        
-        addVertex(x-L, y-L, z+L,
-                  -1, 0, 0,
-                  1, 1, page,
-                  blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
-                  vertices,
-                  indices);
-        
-        addVertex(x-L, y+L, z+L,
-                  -1, 0, 0,
-                  1, 0, page,
-                  blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
-                  vertices,
-                  indices);
-        
-        addVertex(x-L, y+L, z-L,
-                  -1, 0, 0,
-                  0, 0, page,
-                  blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
-                  vertices,
-                  indices);
+        if(!onlyDoingCounting) {
+            unpackBlockLightingValuesForVertex(sunlight.left, unpackedSunlight);
+            unpackBlockLightingValuesForVertex(ambientOcclusion.left, unpackedAO);
+            
+            addVertex(x-L, y-L, z-L,
+                      -1, 0, 0,
+                      0, 1, page,
+                      blockLight(unpackedSunlight[0], torchLight, unpackedAO[0]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x-L, y-L, z+L,
+                      -1, 0, 0,
+                      1, 1, page,
+                      blockLight(unpackedSunlight[1], torchLight, unpackedAO[1]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x-L, y+L, z+L,
+                      -1, 0, 0,
+                      1, 0, page,
+                      blockLight(unpackedSunlight[2], torchLight, unpackedAO[2]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+            
+            addVertex(x-L, y+L, z-L,
+                      -1, 0, 0,
+                      0, 0, page,
+                      blockLight(unpackedSunlight[3], torchLight, unpackedAO[3]),
+                      _vertsBuffer,
+                      _normsBuffer,
+                      _texCoordsBuffer,
+                      _colorBuffer);
+        }
     }
+    
+    return count;
 }
 
 
@@ -715,21 +793,26 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
                       GLfloat tx, GLfloat ty, GLfloat tz,
                       GSVector3 c,
-                      NSMutableArray *vertices,
-                      NSMutableArray *indices)
+                      GLfloat **verts,
+                      GLfloat **norms,
+                      GLfloat **txcds,
+                      GLfloat **color)
 {
-    GSBoxedVector *position = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(vx, vy, vz)] autorelease];
-    GSBoxedVector *normal   = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(nx, ny, nz)] autorelease];
-    GSBoxedVector *texCoord = [[[GSBoxedVector alloc] initWithVector:GSVector3_Make(tx, ty, tz)] autorelease];
-    GSBoxedVector *color = [[[GSBoxedVector alloc] initWithVector:c] autorelease];
+    **verts = vx; (*verts)++;
+    **verts = vy; (*verts)++;
+    **verts = vz; (*verts)++;
     
-    GSVertex *vertex = [[[GSVertex alloc] initWithPosition:position
-                                                    normal:normal
-                                                  texCoord:texCoord
-                                                     color:color] autorelease];
+    **norms = nx; (*norms)++;
+    **norms = ny; (*norms)++;
+    **norms = nz; (*norms)++;
     
-    [vertices addObject:vertex];
-    [indices addObject:[NSNumber numberWithUnsignedInteger:[vertices count]-1]];
+    **txcds = tx; (*txcds)++;
+    **txcds = ty; (*txcds)++;
+    **txcds = tz; (*txcds)++;
+    
+    **color = c.x; (*color)++;
+    **color = c.y; (*color)++;
+    **color = c.z; (*color)++;
 }
 
 
