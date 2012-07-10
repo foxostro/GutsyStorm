@@ -69,12 +69,6 @@ static inline unsigned avgSunlight(unsigned a, unsigned b, unsigned c, unsigned 
 }
 
 
-static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
-{
-    return (a?1:0) + (b?1:0) + (c?1:0) + (d?1:0);
-}
-
-
 typedef uint16_t block_lighting_vertex_t;
 
 
@@ -135,9 +129,6 @@ typedef struct
     
     GSReaderWriterLock *lockSunlight;
     uint8_t *sunlight;
-    
-    NSConditionLock *lockAmbientOcclusion;
-    block_lighting_t *ambientOcclusion;
 }
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
@@ -160,9 +151,6 @@ typedef struct
 - (void)getSunlightAtPoint:(GSIntegerVector3)p
                  neighbors:(GSChunkVoxelData **)voxels
                outLighting:(block_lighting_t *)lighting;
-
-// Assumes the caller is already holding "lockAmbientOcclusion".
-- (block_lighting_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p;
 
 @end
 

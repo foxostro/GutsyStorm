@@ -19,23 +19,6 @@ static int getBlockSunlightAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighb
 static float groundGradient(float terrainHeight, GSVector3 p);
 static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
 
-static inline void fullBlockLighting(block_lighting_t *ao)
-{
-    assert(ao);
-    
-    block_lighting_vertex_t packed = packBlockLightingValuesForVertex(CHUNK_LIGHTING_MAX,
-                                                                      CHUNK_LIGHTING_MAX,
-                                                                      CHUNK_LIGHTING_MAX,
-                                                                      CHUNK_LIGHTING_MAX);
-
-    ao->top = packed;
-    ao->bottom = packed;
-    ao->left = packed;
-    ao->right = packed;
-    ao->front = packed;
-    ao->back = packed;
-}
-
 
 @interface GSChunkVoxelData (Private)
 
@@ -45,12 +28,6 @@ static inline void fullBlockLighting(block_lighting_t *ao)
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (void)recalcOutsideVoxelsNoLock;
 - (void)saveVoxelDataToFile;
-
-- (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
-                                        neighbors:(GSChunkVoxelData **)chunks
-                              outAmbientOcclusion:(block_lighting_t*)ao;
-- (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks;
-
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel;
 - (void)generateSunlight;
 
@@ -88,12 +65,8 @@ static inline void fullBlockLighting(block_lighting_t *ao)
         lockSunlight = [[GSReaderWriterLock alloc] init];
         [lockSunlight lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         
-        lockAmbientOcclusion = [[NSConditionLock alloc] init];
-        [lockAmbientOcclusion setName:@"GSChunkVoxelData.lockAmbientOcclusion"];
-        
         voxelData = NULL;
         sunlight = NULL;
-        ambientOcclusion = NULL;
         
         dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         
@@ -143,12 +116,6 @@ static inline void fullBlockLighting(block_lighting_t *ao)
     [lockSunlight unlockForWriting];
     [lockSunlight release];
     
-    [lockAmbientOcclusion lock];
-    free(ambientOcclusion);
-    ambientOcclusion = NULL;
-    [lockAmbientOcclusion unlock];
-    [lockAmbientOcclusion release];
-    
     [super dealloc];
 }
 
@@ -180,8 +147,6 @@ static inline void fullBlockLighting(block_lighting_t *ao)
     GSChunkVoxelData **chunks = copyNeighbors(_chunks);
     
     void (^b)(void) = ^{
-        [self generateAmbientOcclusionWithNeighbors:chunks];
-        
         [lockSunlight lockForWriting];
         [self generateSunlight];
         [lockSunlight unlockForWriting];
@@ -210,7 +175,17 @@ static inline void fullBlockLighting(block_lighting_t *ao)
     
     // If the block is empty then bail out early. The point p is always within the chunk.
     if(isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z)])) {
-        fullBlockLighting(lighting);        
+        block_lighting_vertex_t packed = packBlockLightingValuesForVertex(CHUNK_LIGHTING_MAX,
+                                                                          CHUNK_LIGHTING_MAX,
+                                                                          CHUNK_LIGHTING_MAX,
+                                                                          CHUNK_LIGHTING_MAX);
+        
+        lighting->top = packed;
+        lighting->bottom = packed;
+        lighting->left = packed;
+        lighting->right = packed;
+        lighting->front = packed;
+        lighting->back = packed;
         return;
     }
     
@@ -334,19 +309,6 @@ static inline void fullBlockLighting(block_lighting_t *ao)
                                                                   SUNLIGHT(-1, +1, -1)));
     
 #undef SUNLIGHT
-}
-
-
-// Assumes the caller is already holding "lockAmbientOcclusion".
-- (block_lighting_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p
-{
-    assert(ambientOcclusion);
-    assert(p.x >= 0 && p.x < CHUNK_SIZE_X && p.y >= 0 && p.y < CHUNK_SIZE_Y && p.z >= 0 && p.z < CHUNK_SIZE_Z);
-    
-    size_t idx = INDEX(p.x, p.y, p.z);
-    assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
-    
-    return ambientOcclusion[idx];    
 }
 
 
@@ -602,193 +564,6 @@ static inline void fullBlockLighting(block_lighting_t *ao)
     }
     
     [lockVoxelData unlockForReading];
-}
-
-
-- (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
-                                        neighbors:(GSChunkVoxelData **)chunks
-                              outAmbientOcclusion:(block_lighting_t*)ao
-{
-    /* Front is in the -Z direction and back is the +Z direction.
-     * This is a totally arbitrary convention.
-     */
-    
-    // If the block is empty then bail out early. The point p is always within the chunk.
-    if(isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z)])) {
-        fullBlockLighting(ao);        
-        return;
-    }
-    
-#define OCCLUSION(x, y, z) (occlusion[(x+1)*3*3 + (y+1)*3 + (z+1)])
-    
-    BOOL occlusion[3*3*3];
-    
-    for(ssize_t x = -1; x <= 1; ++x)
-    {
-        for(ssize_t y = -1; y <= 1; ++y)
-        {
-            for(ssize_t z = -1; z <= 1; ++z)
-            {
-                OCCLUSION(x, y, z) = isEmptyAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), chunks);
-            }   
-        }
-    }
-    
-    ao->top = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                                                  OCCLUSION( 0, 1, -1),
-                                                                  OCCLUSION(-1, 1,  0),
-                                                                  OCCLUSION(-1, 1, -1)),
-                                               calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                                                  OCCLUSION( 0, 1, +1),
-                                                                  OCCLUSION(-1, 1,  0),
-                                                                  OCCLUSION(-1, 1, +1)),
-                                               calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                                                  OCCLUSION( 0, 1, +1),
-                                                                  OCCLUSION(+1, 1,  0),
-                                                                  OCCLUSION(+1, 1, +1)),
-                                               calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                                                  OCCLUSION( 0, 1, -1),
-                                                                  OCCLUSION(+1, 1,  0),
-                                                                  OCCLUSION(+1, 1, -1)));
-    
-    ao->bottom = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                                                     OCCLUSION( 0, -1, -1),
-                                                                     OCCLUSION(-1, -1,  0),
-                                                                     OCCLUSION(-1, -1, -1)),
-                                                  calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                                                     OCCLUSION( 0, -1, -1),
-                                                                     OCCLUSION(+1, -1,  0),
-                                                                     OCCLUSION(+1, -1, -1)),
-                                                  calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                                                     OCCLUSION( 0, -1, +1),
-                                                                     OCCLUSION(+1, -1,  0),
-                                                                     OCCLUSION(+1, -1, +1)),
-                                                  calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                                                     OCCLUSION( 0, -1, +1),
-                                                                     OCCLUSION(-1, -1,  0),
-                                                                     OCCLUSION(-1, -1, +1)));
-    
-    ao->back = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, -1, 1),
-                                                                   OCCLUSION( 0,  0, 1),
-                                                                   OCCLUSION(-1, -1, 1),
-                                                                   OCCLUSION(-1,  0, 1)),
-                                                calcFinalOcclusion(OCCLUSION( 0, -1, 1),
-                                                                   OCCLUSION( 0,  0, 1),
-                                                                   OCCLUSION(+1, -1, 1),
-                                                                   OCCLUSION(+1,  0, 1)),
-                                                calcFinalOcclusion(OCCLUSION( 0, +1, 1),
-                                                                   OCCLUSION( 0,  0, 1),
-                                                                   OCCLUSION(+1, +1, 1),
-                                                                   OCCLUSION(+1,  0, 1)),
-                                                calcFinalOcclusion(OCCLUSION( 0, +1, 1),
-                                                                   OCCLUSION( 0,  0, 1),
-                                                                   OCCLUSION(-1, +1, 1),
-                                                                   OCCLUSION(-1,  0, 1)));
-    
-    ao->front = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, -1, -1),
-                                                                    OCCLUSION( 0,  0, -1),
-                                                                    OCCLUSION(-1, -1, -1),
-                                                                    OCCLUSION(-1,  0, -1)),
-                                                 calcFinalOcclusion(OCCLUSION( 0, +1, -1),
-                                                                    OCCLUSION( 0,  0, -1),
-                                                                    OCCLUSION(-1, +1, -1),
-                                                                    OCCLUSION(-1,  0, -1)),
-                                                 calcFinalOcclusion(OCCLUSION( 0, +1, -1),
-                                                                    OCCLUSION( 0,  0, -1),
-                                                                    OCCLUSION(+1, +1, -1),
-                                                                    OCCLUSION(+1,  0, -1)),
-                                                 calcFinalOcclusion(OCCLUSION( 0, -1, -1),
-                                                                    OCCLUSION( 0,  0, -1),
-                                                                    OCCLUSION(+1, -1, -1),
-                                                                    OCCLUSION(+1,  0, -1)));
-    
-    ao->right = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                                                    OCCLUSION(+1,  0, -1),
-                                                                    OCCLUSION(+1, -1,  0),
-                                                                    OCCLUSION(+1, -1, -1)),
-                                                 calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                                                    OCCLUSION(+1,  0, -1),
-                                                                    OCCLUSION(+1, +1,  0),
-                                                                    OCCLUSION(+1, +1, -1)),
-                                                 calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                                                    OCCLUSION(+1,  0, +1),
-                                                                    OCCLUSION(+1, +1,  0),
-                                                                    OCCLUSION(+1, +1, +1)),
-                                                 calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                                                    OCCLUSION(+1,  0, +1),
-                                                                    OCCLUSION(+1, -1,  0),
-                                                                    OCCLUSION(+1, -1, +1)));
-    
-    ao->left = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                                                   OCCLUSION(-1,  0, -1),
-                                                                   OCCLUSION(-1, -1,  0),
-                                                                   OCCLUSION(-1, -1, -1)),
-                                                calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                                                   OCCLUSION(-1,  0, +1),
-                                                                   OCCLUSION(-1, -1,  0),
-                                                                   OCCLUSION(-1, -1, +1)),
-                                                calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                                                   OCCLUSION(-1,  0, +1),
-                                                                   OCCLUSION(-1, +1,  0),
-                                                                   OCCLUSION(-1, +1, +1)),
-                                                calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                                                   OCCLUSION(-1,  0, -1),
-                                                                   OCCLUSION(-1, +1,  0),
-                                                                   OCCLUSION(-1, +1, -1)));
-}
-
-
-// Generates ambient occlusion values for all blocks in the chunk.
-- (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks
-{
-    GSIntegerVector3 p = {0};
-    
-    [lockAmbientOcclusion lock];
-    
-    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-    
-    ambientOcclusion = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(block_lighting_t));
-    if(!ambientOcclusion) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for ambientOcclusion array."];
-    }
-    
-    // Atomically, grab all the chunks relevant to lighting.
-    // Needs to be atomic to avoid deadlock.
-    [[GSChunkStore lockWhileLockingMultipleChunksVoxelData] lock];
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i]->lockVoxelData lockForReading];
-    }
-    [[GSChunkStore lockWhileLockingMultipleChunksVoxelData] unlock];
-    
-    // Count the empty neighbors of each vertex in the block.
-    for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
-    {
-        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-        {
-            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-            {
-                for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-                {
-                    size_t idx = INDEX(p.x, p.y, p.z);
-                    [self countNeighborsForAmbientOcclusionsAtPoint:p
-                                                          neighbors:chunks
-                                                outAmbientOcclusion:&ambientOcclusion[idx]];
-                }
-            }
-        }
-    }
-    
-    // Give up locks on the neighboring chunks.
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i]->lockVoxelData unlockForReading];
-    }
-    
-    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished generating chunk ambient occlusion. It took %.3fs", timeEnd - timeStart);
-    
-    [lockAmbientOcclusion unlockWithCondition:READY];
 }
 
 @end
