@@ -24,13 +24,82 @@
 #define CHUNK_NUM_NEIGHBORS         (9)
 
 #define CHUNK_LIGHTING_MAX (7)
+#define CHUNK_MAX_AO_COUNT (4)
 
 
-typedef struct
+#define VOXEL_EMPTY   (1) // a flag on the first LSB
+#define VOXEL_OUTSIDE (2) // a flag on the second LSB
+
+typedef uint8_t voxel_t;
+
+
+static inline void markVoxelAsEmpty(BOOL empty, voxel_t * voxel)
 {
-    BOOL empty;   // YES, if the voxel is never drawn.
-    BOOL outside; // YES, if the voxel is exposed to the sky from directly above.
-} voxel_t;
+    const voxel_t originalVoxel = *voxel;
+    const voxel_t emptyVoxel = originalVoxel | VOXEL_EMPTY;
+    const voxel_t nonEmptyVoxel = originalVoxel & ~VOXEL_EMPTY;
+    *voxel = empty ? emptyVoxel : nonEmptyVoxel;
+}
+
+
+static inline void markVoxelAsOutside(BOOL outside, voxel_t * voxel)
+{
+    const voxel_t originalVoxel = *voxel;
+    const voxel_t outsideVoxel = originalVoxel | VOXEL_OUTSIDE;
+    const voxel_t nonOutsideVoxel = originalVoxel & ~VOXEL_OUTSIDE;
+    *voxel = outside ? outsideVoxel : nonOutsideVoxel;
+}
+
+
+static inline BOOL isVoxelEmpty(voxel_t voxel)
+{
+    return voxel & VOXEL_EMPTY;
+}
+
+
+static inline BOOL isVoxelOutside(voxel_t voxel)
+{
+    return voxel & VOXEL_OUTSIDE;
+}
+
+
+static inline unsigned avgSunlight(unsigned a, unsigned b, unsigned c, unsigned d)
+{
+    return (a+b+c+d) >> 2;
+}
+
+
+typedef uint16_t block_lighting_vertex_t;
+
+
+// Pack four block lighting values into a single unsigned integer value.
+static inline block_lighting_vertex_t packBlockLightingValuesForVertex(unsigned v0, unsigned v1, unsigned v2, unsigned v3)
+{
+    block_lighting_vertex_t packed1;
+    
+    const unsigned m = 15;
+    
+    packed1 =  (v0 & m)
+            | ((v1 <<  4) & (m <<  4))
+            | ((v2 <<  8) & (m <<  8))
+            | ((v3 << 12) & (m << 12));
+    
+    return packed1;
+}
+
+
+// Extact four block lighting values from a single unsigned integer value.
+static inline void unpackBlockLightingValuesForVertex(block_lighting_vertex_t packed, unsigned * outValues)
+{
+    assert(outValues);
+    
+    const unsigned m = 15;
+    
+    outValues[0] = (packed & m);
+    outValues[1] = (packed & (m <<  4)) >>  4;
+    outValues[2] = (packed & (m <<  8)) >>  8;
+    outValues[3] = (packed & (m << 12)) >> 12;
+}
 
 
 typedef struct
@@ -39,12 +108,12 @@ typedef struct
      * all 24 of these vertices.
      */
     
-    float top[4];
-    float bottom[4];
-    float left[4];
-    float right[4];
-    float front[4];
-    float back[4];
+    block_lighting_vertex_t top;
+    block_lighting_vertex_t bottom;
+    block_lighting_vertex_t left;
+    block_lighting_vertex_t right;
+    block_lighting_vertex_t front;
+    block_lighting_vertex_t back;
 } block_lighting_t;
 
 
@@ -59,10 +128,7 @@ typedef struct
     voxel_t *voxelData;
     
     GSReaderWriterLock *lockSunlight;
-    int *sunlight;
-    
-    NSConditionLock *lockAmbientOcclusion;
-    block_lighting_t *ambientOcclusion;
+    uint8_t *sunlight;
 }
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
@@ -86,9 +152,6 @@ typedef struct
                  neighbors:(GSChunkVoxelData **)voxels
                outLighting:(block_lighting_t *)lighting;
 
-// Assumes the caller is already holding "lockAmbientOcclusion".
-- (block_lighting_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p;
-
 @end
 
 
@@ -101,8 +164,6 @@ GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
 // Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
 BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
 
-
-void fullBlockLighting(block_lighting_t *ao);
 
 void freeNeighbors(GSChunkVoxelData **chunks);
 

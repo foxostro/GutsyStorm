@@ -326,9 +326,10 @@ BOOL checkForOpenGLExtension(NSString *extension);
 - (void)placeBlockUnderCrosshairs
 {
     if(cursorIsActive) {
-        voxel_t block;
-        block.empty = NO;
-        block.outside = NO; // will be recalculated later
+        voxel_t block = 0;
+        
+        markVoxelAsEmpty(NO, &block);
+        markVoxelAsOutside(NO, &block); // outside-ness value will be recalculated later
         
         [chunkStore placeBlockAtPoint:cursorPlacePos block:block];
         [self recalcCursorPosition];
@@ -339,9 +340,10 @@ BOOL checkForOpenGLExtension(NSString *extension);
 - (void)removeBlockUnderCrosshairs
 {
     if(cursorIsActive) {
-        voxel_t block;
-        block.empty = YES;
-        block.outside = NO; // will be recalculated later
+        voxel_t block = 0;
+        
+        markVoxelAsEmpty(YES, &block);
+        markVoxelAsOutside(NO, &block); // outside-ness value will be recalculated later
         
         [chunkStore placeBlockAtPoint:cursorPos block:block];
         [self recalcCursorPosition];

@@ -28,12 +28,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
 - (void)recalcOutsideVoxelsNoLock;
 - (void)saveVoxelDataToFile;
-
-- (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
-                                        neighbors:(GSChunkVoxelData **)chunks
-                              outAmbientOcclusion:(block_lighting_t*)ao;
-- (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks;
-
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel;
 - (void)generateSunlight;
 
@@ -71,12 +65,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         lockSunlight = [[GSReaderWriterLock alloc] init];
         [lockSunlight lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         
-        lockAmbientOcclusion = [[NSConditionLock alloc] init];
-        [lockAmbientOcclusion setName:@"GSChunkVoxelData.lockAmbientOcclusion"];
-        
         voxelData = NULL;
         sunlight = NULL;
-        ambientOcclusion = NULL;
         
         dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         
@@ -126,12 +116,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     [lockSunlight unlockForWriting];
     [lockSunlight release];
     
-    [lockAmbientOcclusion lock];
-    free(ambientOcclusion);
-    ambientOcclusion = NULL;
-    [lockAmbientOcclusion unlock];
-    [lockAmbientOcclusion release];
-    
     [super dealloc];
 }
 
@@ -163,8 +147,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     GSChunkVoxelData **chunks = copyNeighbors(_chunks);
     
     void (^b)(void) = ^{
-        [self generateAmbientOcclusionWithNeighbors:chunks];
-        
         [lockSunlight lockForWriting];
         [self generateSunlight];
         [lockSunlight unlockForWriting];
@@ -192,14 +174,24 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
      */
     
     // If the block is empty then bail out early. The point p is always within the chunk.
-    if(voxelData[INDEX(p.x, p.y, p.z)].empty) {
-        fullBlockLighting(lighting);        
+    if(isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z)])) {
+        block_lighting_vertex_t packed = packBlockLightingValuesForVertex(CHUNK_LIGHTING_MAX,
+                                                                          CHUNK_LIGHTING_MAX,
+                                                                          CHUNK_LIGHTING_MAX,
+                                                                          CHUNK_LIGHTING_MAX);
+        
+        lighting->top = packed;
+        lighting->bottom = packed;
+        lighting->left = packed;
+        lighting->right = packed;
+        lighting->front = packed;
+        lighting->back = packed;
         return;
     }
     
 #define SUNLIGHT(x, y, z) (samples[(x+1)*3*3 + (y+1)*3 + (z+1)])
     
-    float samples[3*3*3];
+    unsigned samples[3*3*3];
     
     for(ssize_t x = -1; x <= 1; ++x)
     {
@@ -208,206 +200,115 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             for(ssize_t z = -1; z <= 1; ++z)
             {
                 int lightLevel = getBlockSunlightAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), voxels);
-                
-                SUNLIGHT(x, y, z) = ((float)lightLevel / CHUNK_LIGHTING_MAX) * 0.7 + 0.3;
+                assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
+                SUNLIGHT(x, y, z) = lightLevel;
             }
         }
     }
     
-    // Top /////////////////////////////////////////////////////////////////////////////
+    lighting->top = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                                 SUNLIGHT( 0, 1, -1),
+                                                                 SUNLIGHT(-1, 1,  0),
+                                                                 SUNLIGHT(-1, 1, -1)),
+                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                                 SUNLIGHT( 0, 1, +1),
+                                                                 SUNLIGHT(-1, 1,  0),
+                                                                 SUNLIGHT(-1, 1, +1)),
+                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                                 SUNLIGHT( 0, 1, +1),
+                                                                 SUNLIGHT(+1, 1,  0),
+                                                                 SUNLIGHT(+1, 1, +1)),
+                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                                 SUNLIGHT( 0, 1, -1),
+                                                                 SUNLIGHT(+1, 1,  0),
+                                                                 SUNLIGHT(+1, 1, -1)));
     
-    // x-L, y+L, z-L
-    lighting->top[0]  = SUNLIGHT( 0, 1,  0);
-    lighting->top[0] += SUNLIGHT( 0, 1, -1);
-    lighting->top[0] += SUNLIGHT(-1, 1,  0);
-    lighting->top[0] += SUNLIGHT(-1, 1, -1);
-    lighting->top[0] *= 0.25;
+    lighting->bottom = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                                    SUNLIGHT( 0, -1, -1),
+                                                                    SUNLIGHT(-1, -1,  0),
+                                                                    SUNLIGHT(-1, -1, -1)),
+                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                                    SUNLIGHT( 0, -1, -1),
+                                                                    SUNLIGHT(+1, -1,  0),
+                                                                    SUNLIGHT(+1, -1, -1)),
+                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                                    SUNLIGHT( 0, -1, +1),
+                                                                    SUNLIGHT(+1, -1,  0),
+                                                                    SUNLIGHT(+1, -1, +1)),
+                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                                    SUNLIGHT( 0, -1, +1),
+                                                                    SUNLIGHT(-1, -1,  0),
+                                                                    SUNLIGHT(-1, -1, +1)));
     
-    // x-L, y+L, z+L
-    lighting->top[1]  = SUNLIGHT( 0, 1,  0);
-    lighting->top[1] += SUNLIGHT( 0, 1, +1);
-    lighting->top[1] += SUNLIGHT(-1, 1,  0);
-    lighting->top[1] += SUNLIGHT(-1, 1, +1);
-    lighting->top[1] *= 0.25;
+    lighting->back = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1, 1),
+                                                                  SUNLIGHT( 0,  0, 1),
+                                                                  SUNLIGHT(-1, -1, 1),
+                                                                  SUNLIGHT(-1,  0, 1)),
+                                                      avgSunlight(SUNLIGHT( 0, -1, 1),
+                                                                  SUNLIGHT( 0,  0, 1),
+                                                                  SUNLIGHT(+1, -1, 1),
+                                                                  SUNLIGHT(+1,  0, 1)),
+                                                      avgSunlight(SUNLIGHT( 0, +1, 1),
+                                                                  SUNLIGHT( 0,  0, 1),
+                                                                  SUNLIGHT(+1, +1, 1),
+                                                                  SUNLIGHT(+1,  0, 1)),
+                                                      avgSunlight(SUNLIGHT( 0, +1, 1),
+                                                                  SUNLIGHT( 0,  0, 1),
+                                                                  SUNLIGHT(-1, +1, 1),
+                                                                  SUNLIGHT(-1,  0, 1)));
     
-    // x+L, y+L, z+L
-    lighting->top[2]  = SUNLIGHT( 0, 1,  0);
-    lighting->top[2] += SUNLIGHT( 0, 1, +1);
-    lighting->top[2] += SUNLIGHT(+1, 1,  0);
-    lighting->top[2] += SUNLIGHT(+1, 1, +1);
-    lighting->top[2] *= 0.25;
+    lighting->front = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1, -1),
+                                                                   SUNLIGHT( 0,  0, -1),
+                                                                   SUNLIGHT(-1, -1, -1),
+                                                                   SUNLIGHT(-1,  0, -1)),
+                                                       avgSunlight(SUNLIGHT( 0, +1, -1),
+                                                                   SUNLIGHT( 0,  0, -1),
+                                                                   SUNLIGHT(-1, +1, -1),
+                                                                   SUNLIGHT(-1,  0, -1)),
+                                                       avgSunlight(SUNLIGHT( 0, +1, -1),
+                                                                   SUNLIGHT( 0,  0, -1),
+                                                                   SUNLIGHT(+1, +1, -1),
+                                                                   SUNLIGHT(+1,  0, -1)),
+                                                       avgSunlight(SUNLIGHT( 0, -1, -1),
+                                                                   SUNLIGHT( 0,  0, -1),
+                                                                   SUNLIGHT(+1, -1, -1),
+                                                                   SUNLIGHT(+1,  0, -1)));
     
-    // x+L, y+L, z-L
-    lighting->top[3]  = SUNLIGHT( 0, 1,  0);
-    lighting->top[3] += SUNLIGHT( 0, 1, -1);
-    lighting->top[3] += SUNLIGHT(+1, 1,  0);
-    lighting->top[3] += SUNLIGHT(+1, 1, -1);
-    lighting->top[3] *= 0.25;
+    lighting->right = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                                   SUNLIGHT(+1,  0, -1),
+                                                                   SUNLIGHT(+1, -1,  0),
+                                                                   SUNLIGHT(+1, -1, -1)),
+                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                                   SUNLIGHT(+1,  0, -1),
+                                                                   SUNLIGHT(+1, +1,  0),
+                                                                   SUNLIGHT(+1, +1, -1)),
+                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                                   SUNLIGHT(+1,  0, +1),
+                                                                   SUNLIGHT(+1, +1,  0),
+                                                                   SUNLIGHT(+1, +1, +1)),
+                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                                   SUNLIGHT(+1,  0, +1),
+                                                                   SUNLIGHT(+1, -1,  0),
+                                                                   SUNLIGHT(+1, -1, +1)));
     
-    // Bottom ///////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    lighting->bottom[0]  = SUNLIGHT( 0, -1,  0);
-    lighting->bottom[0] += SUNLIGHT( 0, -1, -1);
-    lighting->bottom[0] += SUNLIGHT(-1, -1,  0);
-    lighting->bottom[0] += SUNLIGHT(-1, -1, -1);
-    lighting->bottom[0] *= 0.25;
-    
-    // x+L, y-L, z-L
-    lighting->bottom[1]  = SUNLIGHT( 0, -1,  0);
-    lighting->bottom[1] += SUNLIGHT( 0, -1, -1);
-    lighting->bottom[1] += SUNLIGHT(+1, -1,  0);
-    lighting->bottom[1] += SUNLIGHT(+1, -1, -1);
-    lighting->bottom[1] *= 0.25;
-    
-    // x+L, y-L, z+L
-    lighting->bottom[2]  = SUNLIGHT( 0, -1,  0);
-    lighting->bottom[2] += SUNLIGHT( 0, -1, +1);
-    lighting->bottom[2] += SUNLIGHT(+1, -1,  0);
-    lighting->bottom[2] += SUNLIGHT(+1, -1, +1);
-    lighting->bottom[2] *= 0.25;
-    
-    // x-L, y-L, z+L
-    lighting->bottom[3]  = SUNLIGHT( 0, -1,  0);
-    lighting->bottom[3] += SUNLIGHT( 0, -1, +1);
-    lighting->bottom[3] += SUNLIGHT(-1, -1,  0);
-    lighting->bottom[3] += SUNLIGHT(-1, -1, +1);
-    lighting->bottom[3] *= 0.25;
-    
-    // Back (+Z) ////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z+L
-    lighting->back[0]  = SUNLIGHT( 0, -1, 1);
-    lighting->back[0] += SUNLIGHT( 0,  0, 1);
-    lighting->back[0] += SUNLIGHT(-1, -1, 1);
-    lighting->back[0] += SUNLIGHT(-1,  0, 1);
-    lighting->back[0] *= 0.25;
-    
-    // x+L, y-L, z+L
-    lighting->back[1]  = SUNLIGHT( 0, -1, 1);
-    lighting->back[1] += SUNLIGHT( 0,  0, 1);
-    lighting->back[1] += SUNLIGHT(+1, -1, 1);
-    lighting->back[1] += SUNLIGHT(+1,  0, 1);
-    lighting->back[1] *= 0.25;
-    
-    // x+L, y+L, z+L
-    lighting->back[2]  = SUNLIGHT( 0, +1, 1);
-    lighting->back[2] += SUNLIGHT( 0,  0, 1);
-    lighting->back[2] += SUNLIGHT(+1, +1, 1);
-    lighting->back[2] += SUNLIGHT(+1,  0, 1);
-    lighting->back[2] *= 0.25;
-    
-    // x-L, y+L, z+L
-    lighting->back[3]  = SUNLIGHT( 0, +1, 1);
-    lighting->back[3] += SUNLIGHT( 0,  0, 1);
-    lighting->back[3] += SUNLIGHT(-1, +1, 1);
-    lighting->back[3] += SUNLIGHT(-1,  0, 1);
-    lighting->back[3] *= 0.25;
-    
-    // Front (-Z) ///////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    lighting->front[0]  = SUNLIGHT( 0, -1, -1);
-    lighting->front[0] += SUNLIGHT( 0,  0, -1);
-    lighting->front[0] += SUNLIGHT(-1, -1, -1);
-    lighting->front[0] += SUNLIGHT(-1,  0, -1);
-    lighting->front[0] *= 0.25;
-    
-    // x-L, y+L, z-L
-    lighting->front[1]  = SUNLIGHT( 0, +1, -1);
-    lighting->front[1] += SUNLIGHT( 0,  0, -1);
-    lighting->front[1] += SUNLIGHT(-1, +1, -1);
-    lighting->front[1] += SUNLIGHT(-1,  0, -1);
-    lighting->front[1] *= 0.25;
-    
-    // x+L, y+L, z-L
-    lighting->front[2]  = SUNLIGHT( 0, +1, -1);
-    lighting->front[2] += SUNLIGHT( 0,  0, -1);
-    lighting->front[2] += SUNLIGHT(+1, +1, -1);
-    lighting->front[2] += SUNLIGHT(+1,  0, -1);
-    lighting->front[2] *= 0.25;
-    
-    // x+L, y-L, z-L
-    lighting->front[3]  = SUNLIGHT( 0, -1, -1);
-    lighting->front[3] += SUNLIGHT( 0,  0, -1);
-    lighting->front[3] += SUNLIGHT(+1, -1, -1);
-    lighting->front[3] += SUNLIGHT(+1,  0, -1);
-    lighting->front[3] *= 0.25;
-    
-    // Right ////////////////////////////////////////////////////////////////////////////
-    
-    // x+L, y-L, z-L
-    lighting->right[0]  = SUNLIGHT(+1,  0,  0);
-    lighting->right[0] += SUNLIGHT(+1,  0, -1);
-    lighting->right[0] += SUNLIGHT(+1, -1,  0);
-    lighting->right[0] += SUNLIGHT(+1, -1, -1);
-    lighting->right[0] *= 0.25;
-    
-    // x+L, y+L, z-L
-    lighting->right[1]  = SUNLIGHT(+1,  0,  0);
-    lighting->right[1] += SUNLIGHT(+1,  0, -1);
-    lighting->right[1] += SUNLIGHT(+1, +1,  0);
-    lighting->right[1] += SUNLIGHT(+1, +1, -1);
-    lighting->right[1] *= 0.25;
-    
-    // x+L, y+L, z+L
-    lighting->right[2]  = SUNLIGHT(+1,  0,  0);
-    lighting->right[2] += SUNLIGHT(+1,  0, +1);
-    lighting->right[2] += SUNLIGHT(+1, +1,  0);
-    lighting->right[2] += SUNLIGHT(+1, +1, +1);
-    lighting->right[2] *= 0.25;
-    
-    // x+L, y-L, z+L
-    lighting->right[3]  = SUNLIGHT(+1,  0,  0);
-    lighting->right[3] += SUNLIGHT(+1,  0, +1);
-    lighting->right[3] += SUNLIGHT(+1, -1,  0);
-    lighting->right[3] += SUNLIGHT(+1, -1, +1);
-    lighting->right[3] *= 0.25;
-    
-    // Left ////////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    lighting->left[0]  = SUNLIGHT(-1,  0,  0);
-    lighting->left[0] += SUNLIGHT(-1,  0, -1);
-    lighting->left[0] += SUNLIGHT(-1, -1,  0);
-    lighting->left[0] += SUNLIGHT(-1, -1, -1);
-    lighting->left[0] *= 0.25;
-    
-    // x-L, y-L, z+L
-    lighting->left[1]  = SUNLIGHT(-1,  0,  0);
-    lighting->left[1] += SUNLIGHT(-1,  0, +1);
-    lighting->left[1] += SUNLIGHT(-1, -1,  0);
-    lighting->left[1] += SUNLIGHT(-1, -1, +1);
-    lighting->left[1] *= 0.25;
-    
-    // x-L, y+L, z+L
-    lighting->left[2]  = SUNLIGHT(-1,  0,  0);
-    lighting->left[2] += SUNLIGHT(-1,  0, +1);
-    lighting->left[2] += SUNLIGHT(-1, +1,  0);
-    lighting->left[2] += SUNLIGHT(-1, +1, +1);
-    lighting->left[2] *= 0.25;
-    
-    // x-L, y+L, z-L
-    lighting->left[3]  = SUNLIGHT(-1,  0,  0);
-    lighting->left[3] += SUNLIGHT(-1,  0, -1);
-    lighting->left[3] += SUNLIGHT(-1, +1,  0);
-    lighting->left[3] += SUNLIGHT(-1, +1, -1);
-    lighting->left[3] *= 0.25;
+    lighting->left = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                                  SUNLIGHT(-1,  0, -1),
+                                                                  SUNLIGHT(-1, -1,  0),
+                                                                  SUNLIGHT(-1, -1, -1)),
+                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                                  SUNLIGHT(-1,  0, +1),
+                                                                  SUNLIGHT(-1, -1,  0),
+                                                                  SUNLIGHT(-1, -1, +1)),
+                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                                  SUNLIGHT(-1,  0, +1),
+                                                                  SUNLIGHT(-1, +1,  0),
+                                                                  SUNLIGHT(-1, +1, +1)),
+                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                                  SUNLIGHT(-1,  0, -1),
+                                                                  SUNLIGHT(-1, +1,  0),
+                                                                  SUNLIGHT(-1, +1, -1)));
     
 #undef SUNLIGHT
-}
-
-
-// Assumes the caller is already holding "lockAmbientOcclusion".
-- (block_lighting_t)getAmbientOcclusionAtPoint:(GSIntegerVector3)p
-{
-    assert(ambientOcclusion);
-    assert(p.x >= 0 && p.x < CHUNK_SIZE_X && p.y >= 0 && p.y < CHUNK_SIZE_Y && p.z >= 0 && p.z < CHUNK_SIZE_Z);
-    
-    size_t idx = INDEX(p.x, p.y, p.z);
-    assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
-    
-    return ambientOcclusion[idx];    
 }
 
 
@@ -486,7 +387,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                 GSIntegerVector3 p = {x, heightOfHighestVoxel, z};
                 voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
                 
-                if(!voxel->empty) {
+                if(!isVoxelEmpty(*voxel)) {
                     break;
                 }
             }
@@ -495,7 +396,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             {
                 GSIntegerVector3 p = {x, y, z};
                 voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
-                voxel->outside = (y >= heightOfHighestVoxel);
+                BOOL outside = y >= heightOfHighestVoxel;
+                
+                markVoxelAsOutside(outside, voxel);
             }
         }
     }
@@ -523,8 +426,11 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             {
                 GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
                 voxel_t *voxel = [self getPointerToVoxelAtPoint:GSIntegerVector3_Make(x, y, z)];
-                voxel->empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
-                voxel->outside = NO; // updated below
+                BOOL empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
+                
+                markVoxelAsEmpty(empty, voxel);
+                
+                // whether the block is outside or not is calculated later
             }
         }
     }
@@ -567,27 +473,27 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     if(p.y+1 >= CHUNK_SIZE_Y) {
         return YES;
-    } else if(voxelData[INDEX(p.x, p.y+1, p.z)].empty && sunlight[INDEX(p.x, p.y+1, p.z)]) {
+    } else if(isVoxelEmpty(voxelData[INDEX(p.x, p.y+1, p.z)]) && sunlight[INDEX(p.x, p.y+1, p.z)]) {
         return YES;
     }
     
-    if(p.y-1 >= 0 && voxelData[INDEX(p.x, p.y-1, p.z)].empty && sunlight[INDEX(p.x, p.y-1, p.z)]) {
+    if(p.y-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y-1, p.z)]) && sunlight[INDEX(p.x, p.y-1, p.z)]) {
         return YES;
     }
     
-    if(p.x-1 >= 0 && voxelData[INDEX(p.x-1, p.y, p.z)].empty && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
+    if(p.x-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x-1, p.y, p.z)]) && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
         return YES;
     }
     
-    if(p.x+1 < CHUNK_SIZE_X && voxelData[INDEX(p.x+1, p.y, p.z)].empty && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
+    if(p.x+1 < CHUNK_SIZE_X && isVoxelEmpty(voxelData[INDEX(p.x+1, p.y, p.z)]) && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
         return YES;
     }
     
-    if(p.z-1 >= 0 && voxelData[INDEX(p.x, p.y, p.z-1)].empty && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
+    if(p.z-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z-1)]) && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
         return YES;
     }
     
-    if(p.z+1 < CHUNK_SIZE_Z && voxelData[INDEX(p.x, p.y, p.z+1)].empty && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
+    if(p.z+1 < CHUNK_SIZE_Z && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z+1)]) && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
         return YES;
     }
     
@@ -604,12 +510,12 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     GSIntegerVector3 p = {0};
     
     if(!sunlight) {
-        sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int));
+        sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
         if(!sunlight) {
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
         }
     } else {
-        bzero(sunlight, sizeof(int) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
+        bzero(sunlight, sizeof(int8_t) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
     }
     
     [lockVoxelData lockForReading];
@@ -628,7 +534,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                 
                 // This is "hard" lighting with exactly two lighting levels.
                 // Solid blocks always have zero sunlight. They pick up light from surrounding air.
-                if(voxelData[idx].empty && voxelData[idx].outside) {
+                if(isVoxelEmpty(voxelData[idx]) && isVoxelOutside(voxelData[idx])) {
                     sunlight[idx] = CHUNK_LIGHTING_MAX;
                 }
             }
@@ -658,251 +564,6 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
     
     [lockVoxelData unlockForReading];
-}
-
-
-- (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
-                                        neighbors:(GSChunkVoxelData **)chunks
-                              outAmbientOcclusion:(block_lighting_t*)ao
-{
-    /* Front is in the -Z direction and back is the +Z direction.
-     * This is a totally arbitrary convention.
-     */
-    
-    // If the block is empty then bail out early. The point p is always within the chunk.
-    if(voxelData[INDEX(p.x, p.y, p.z)].empty) {
-        fullBlockLighting(ao);        
-        return;
-    }
-    
-#define OCCLUSION(x, y, z) (occlusion[(x+1)*3*3 + (y+1)*3 + (z+1)])
-    
-    float occlusion[3*3*3];
-    
-    const float a = 1.0 / 4.0; // vertex brightness conferred by each additional empty neighbor
-    
-    for(ssize_t x = -1; x <= 1; ++x)
-    {
-        for(ssize_t y = -1; y <= 1; ++y)
-        {
-            for(ssize_t z = -1; z <= 1; ++z)
-            {
-                OCCLUSION(x, y, z) = isEmptyAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), chunks) ? a : 0.0;
-            }   
-        }
-    }
-    
-    // Top /////////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y+L, z-L
-    ao->top[0]  = OCCLUSION( 0, 1,  0);
-    ao->top[0] += OCCLUSION( 0, 1, -1);
-    ao->top[0] += OCCLUSION(-1, 1,  0);
-    ao->top[0] += OCCLUSION(-1, 1, -1);
-
-    // x-L, y+L, z+L
-    ao->top[1]  = OCCLUSION( 0, 1,  0);
-    ao->top[1] += OCCLUSION( 0, 1, +1);
-    ao->top[1] += OCCLUSION(-1, 1,  0);
-    ao->top[1] += OCCLUSION(-1, 1, +1);
-    
-    // x+L, y+L, z+L
-    ao->top[2]  = OCCLUSION( 0, 1,  0);
-    ao->top[2] += OCCLUSION( 0, 1, +1);
-    ao->top[2] += OCCLUSION(+1, 1,  0);
-    ao->top[2] += OCCLUSION(+1, 1, +1);
-    
-    // x+L, y+L, z-L
-    ao->top[3]  = OCCLUSION( 0, 1,  0);
-    ao->top[3] += OCCLUSION( 0, 1, -1);
-    ao->top[3] += OCCLUSION(+1, 1,  0);
-    ao->top[3] += OCCLUSION(+1, 1, -1);
-    
-    // Bottom ///////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    ao->bottom[0]  = OCCLUSION( 0, -1,  0);
-    ao->bottom[0] += OCCLUSION( 0, -1, -1);
-    ao->bottom[0] += OCCLUSION(-1, -1,  0);
-    ao->bottom[0] += OCCLUSION(-1, -1, -1);
-    
-    // x+L, y-L, z-L
-    ao->bottom[1]  = OCCLUSION( 0, -1,  0);
-    ao->bottom[1] += OCCLUSION( 0, -1, -1);
-    ao->bottom[1] += OCCLUSION(+1, -1,  0);
-    ao->bottom[1] += OCCLUSION(+1, -1, -1);
-    
-    // x+L, y-L, z+L
-    ao->bottom[2]  = OCCLUSION( 0, -1,  0);
-    ao->bottom[2] += OCCLUSION( 0, -1, +1);
-    ao->bottom[2] += OCCLUSION(+1, -1,  0);
-    ao->bottom[2] += OCCLUSION(+1, -1, +1);
-    
-    // x-L, y-L, z+L
-    ao->bottom[3]  = OCCLUSION( 0, -1,  0);
-    ao->bottom[3] += OCCLUSION( 0, -1, +1);
-    ao->bottom[3] += OCCLUSION(-1, -1,  0);
-    ao->bottom[3] += OCCLUSION(-1, -1, +1);
-    
-    // Back (+Z) ////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z+L
-    ao->back[0]  = OCCLUSION( 0, -1, 1);
-    ao->back[0] += OCCLUSION( 0,  0, 1);
-    ao->back[0] += OCCLUSION(-1, -1, 1);
-    ao->back[0] += OCCLUSION(-1,  0, 1);
-    
-    // x+L, y-L, z+L
-    ao->back[1]  = OCCLUSION( 0, -1, 1);
-    ao->back[1] += OCCLUSION( 0,  0, 1);
-    ao->back[1] += OCCLUSION(+1, -1, 1);
-    ao->back[1] += OCCLUSION(+1,  0, 1);
-    
-    // x+L, y+L, z+L
-    ao->back[2]  = OCCLUSION( 0, +1, 1);
-    ao->back[2] += OCCLUSION( 0,  0, 1);
-    ao->back[2] += OCCLUSION(+1, +1, 1);
-    ao->back[2] += OCCLUSION(+1,  0, 1);
-    
-    // x-L, y+L, z+L
-    ao->back[3]  = OCCLUSION( 0, +1, 1);
-    ao->back[3] += OCCLUSION( 0,  0, 1);
-    ao->back[3] += OCCLUSION(-1, +1, 1);
-    ao->back[3] += OCCLUSION(-1,  0, 1);
-    
-    // Front (-Z) ///////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    ao->front[0]  = OCCLUSION( 0, -1, -1);
-    ao->front[0] += OCCLUSION( 0,  0, -1);
-    ao->front[0] += OCCLUSION(-1, -1, -1);
-    ao->front[0] += OCCLUSION(-1,  0, -1);    
-    
-    // x-L, y+L, z-L
-    ao->front[1]  = OCCLUSION( 0, +1, -1);
-    ao->front[1] += OCCLUSION( 0,  0, -1);
-    ao->front[1] += OCCLUSION(-1, +1, -1);
-    ao->front[1] += OCCLUSION(-1,  0, -1);
-    
-    // x+L, y+L, z-L
-    ao->front[2]  = OCCLUSION( 0, +1, -1);
-    ao->front[2] += OCCLUSION( 0,  0, -1);
-    ao->front[2] += OCCLUSION(+1, +1, -1);
-    ao->front[2] += OCCLUSION(+1,  0, -1);
-    
-    // x+L, y-L, z-L
-    ao->front[3]  = OCCLUSION( 0, -1, -1);
-    ao->front[3] += OCCLUSION( 0,  0, -1);
-    ao->front[3] += OCCLUSION(+1, -1, -1);
-    ao->front[3] += OCCLUSION(+1,  0, -1);
-    
-    // Right ////////////////////////////////////////////////////////////////////////////
-    
-    // x+L, y-L, z-L
-    ao->right[0]  = OCCLUSION(+1,  0,  0);
-    ao->right[0] += OCCLUSION(+1,  0, -1);
-    ao->right[0] += OCCLUSION(+1, -1,  0);
-    ao->right[0] += OCCLUSION(+1, -1, -1);
-    
-    // x+L, y+L, z-L
-    ao->right[1]  = OCCLUSION(+1,  0,  0);
-    ao->right[1] += OCCLUSION(+1,  0, -1);
-    ao->right[1] += OCCLUSION(+1, +1,  0);
-    ao->right[1] += OCCLUSION(+1, +1, -1);
-    
-    // x+L, y+L, z+L
-    ao->right[2]  = OCCLUSION(+1,  0,  0);
-    ao->right[2] += OCCLUSION(+1,  0, +1);
-    ao->right[2] += OCCLUSION(+1, +1,  0);
-    ao->right[2] += OCCLUSION(+1, +1, +1);
-    
-    // x+L, y-L, z+L
-    ao->right[3]  = OCCLUSION(+1,  0,  0);
-    ao->right[3] += OCCLUSION(+1,  0, +1);
-    ao->right[3] += OCCLUSION(+1, -1,  0);
-    ao->right[3] += OCCLUSION(+1, -1, +1);
-    
-    // Left ////////////////////////////////////////////////////////////////////////////
-    
-    // x-L, y-L, z-L
-    ao->left[0]  = OCCLUSION(-1,  0,  0);
-    ao->left[0] += OCCLUSION(-1,  0, -1);
-    ao->left[0] += OCCLUSION(-1, -1,  0);
-    ao->left[0] += OCCLUSION(-1, -1, -1);
-    
-    // x-L, y-L, z+L
-    ao->left[1]  = OCCLUSION(-1,  0,  0);
-    ao->left[1] += OCCLUSION(-1,  0, +1);
-    ao->left[1] += OCCLUSION(-1, -1,  0);
-    ao->left[1] += OCCLUSION(-1, -1, +1);
-    
-    // x-L, y+L, z+L
-    ao->left[2]  = OCCLUSION(-1,  0,  0);
-    ao->left[2] += OCCLUSION(-1,  0, +1);
-    ao->left[2] += OCCLUSION(-1, +1,  0);
-    ao->left[2] += OCCLUSION(-1, +1, +1);
-    
-    // x-L, y+L, z-L
-    ao->left[3]  = OCCLUSION(-1,  0,  0);
-    ao->left[3] += OCCLUSION(-1,  0, -1);
-    ao->left[3] += OCCLUSION(-1, +1,  0);
-    ao->left[3] += OCCLUSION(-1, +1, -1);
-    
-#undef OCCLUSION
-}
-
-
-// Generates ambient occlusion values for all blocks in the chunk.
-- (void)generateAmbientOcclusionWithNeighbors:(GSChunkVoxelData **)chunks
-{
-    GSIntegerVector3 p = {0};
-    
-    [lockAmbientOcclusion lock];
-    
-    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-    
-    ambientOcclusion = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(block_lighting_t));
-    if(!ambientOcclusion) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for ambientOcclusion array."];
-    }
-    
-    // Atomically, grab all the chunks relevant to lighting.
-    // Needs to be atomic to avoid deadlock.
-    [[GSChunkStore lockWhileLockingMultipleChunksVoxelData] lock];
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i]->lockVoxelData lockForReading];
-    }
-    [[GSChunkStore lockWhileLockingMultipleChunksVoxelData] unlock];
-    
-    // Count the empty neighbors of each vertex in the block.
-    for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
-    {
-        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-        {
-            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-            {
-                for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-                {
-                    size_t idx = INDEX(p.x, p.y, p.z);
-                    [self countNeighborsForAmbientOcclusionsAtPoint:p
-                                                          neighbors:chunks
-                                                outAmbientOcclusion:&ambientOcclusion[idx]];
-                }
-            }
-        }
-    }
-    
-    // Give up locks on the neighboring chunks.
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i]->lockVoxelData unlockForReading];
-    }
-    
-    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished generating chunk ambient occlusion. It took %.3fs", timeEnd - timeStart);
-    
-    [lockAmbientOcclusion unlockWithCondition:READY];
 }
 
 @end
@@ -1067,23 +728,9 @@ BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
     GSIntegerVector3 adjustedPos = {0};
     GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
     
-    return chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)].empty;
-}
-
-
-void fullBlockLighting(block_lighting_t *ao)
-{
-    assert(ao);
+    voxel_t voxel = chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)];
     
-    for(size_t i = 0; i < 4; ++i)
-    {
-        ao->top[i] = 1.0;
-        ao->bottom[i] = 1.0;
-        ao->left[i] = 1.0;
-        ao->right[i] = 1.0;
-        ao->front[i] = 1.0;
-        ao->back[i] = 1.0;
-    }
+    return isVoxelEmpty(voxel);
 }
 
 
