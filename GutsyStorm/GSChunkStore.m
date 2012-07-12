@@ -49,6 +49,11 @@
         [[NSUserDefaults standardUserDefaults] registerDefaults:values];
     }
     
+    if(![defaults objectForKey:@"NumVBOGenerationsAllowedPerFrame"]) {
+        NSDictionary *values = [NSDictionary dictionaryWithObjectsAndKeys:@"64", @"NumVBOGenerationsAllowedPerFrame", nil];
+        [[NSUserDefaults standardUserDefaults] registerDefaults:values];
+    }
+    
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
@@ -104,7 +109,9 @@
         /* VBO generation must be performed on the main thread.
          * To preserve responsiveness, limit the number of VBOs we create per frame.
          */
-        numVBOGenerationsAllowedPerFrame = 1;
+        NSInteger n = [[NSUserDefaults standardUserDefaults] integerForKey:@"NumVBOGenerationsAllowedPerFrame"];
+        assert(n > 0 && n < INT_MAX);
+        numVBOGenerationsAllowedPerFrame = (int)n;
         numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
         
         /* GCD keeps a pool of threads for all concurrent queues which is surprisingly small: only 1 thread per CPU core. When a
