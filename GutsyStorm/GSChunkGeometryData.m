@@ -904,24 +904,36 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 
 static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint vboChunkTexCoords, GLuint vboChunkColors)
 {
+    dispatch_queue_t queue = dispatch_get_main_queue();
+    dispatch_retain(queue);
+    
     // Free the VBOs on the main thread. Doesn't have to be synchronous with this dealloc method, though.
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if(vboChunkVerts && glIsBuffer(vboChunkVerts)) {
+    
+    if(vboChunkVerts) {
+        dispatch_async(dispatch_get_main_queue(), ^{
             glDeleteBuffers(1, &vboChunkVerts);
-        }
-        
-        if(vboChunkNorms && glIsBuffer(vboChunkNorms)) {
+        });
+    }
+    
+    if(vboChunkNorms) {
+        dispatch_async(dispatch_get_main_queue(), ^{
             glDeleteBuffers(1, &vboChunkNorms);
-        }
-        
-        if(vboChunkTexCoords && glIsBuffer(vboChunkTexCoords)) {
+        });
+    }
+    
+    if(vboChunkTexCoords) {
+        dispatch_async(dispatch_get_main_queue(), ^{
             glDeleteBuffers(1, &vboChunkTexCoords);
-        }
-        
-        if(vboChunkColors && glIsBuffer(vboChunkColors)) {
+        });
+    }
+    
+    if(vboChunkColors) {
+        dispatch_async(dispatch_get_main_queue(), ^{
             glDeleteBuffers(1, &vboChunkColors);
-        }
-    });
+        });
+    }
+        
+    dispatch_release(queue);
 }
 
 
