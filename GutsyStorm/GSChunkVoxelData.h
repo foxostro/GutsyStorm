@@ -158,12 +158,6 @@ typedef struct
 
 
 // Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
-GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
-                                          GSChunkVoxelData **neighbors,
-                                          GSIntegerVector3 *outRelativeToNeighborP);
-
-
-// Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
 BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
 
 

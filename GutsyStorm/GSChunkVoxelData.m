@@ -19,6 +19,9 @@ static int getBlockSunlightAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighb
 static float groundGradient(float terrainHeight, GSVector3 p);
 static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
 
+// Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
+static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, GSChunkVoxelData **neighbors);
+
 
 @interface GSChunkVoxelData (Private)
 
@@ -596,7 +599,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     // Normal rolling hills
     {
         const float freqScale = 0.025;
-        float n = [noiseSource0 getNoiseAtPoint:GSVector3_Scale(p, freqScale) numOctaves:4];
+        float n = [noiseSource0 getNoiseAtPointWithFourOctaves:GSVector3_Scale(p, freqScale)];
         float turbScaleX = 2.0;
         float turbScaleY = terrainHeight / 2.0;
         float yFreq = turbScaleX * ((n+1) / 2.0);
@@ -627,8 +630,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             float azimuthalAngle = acosf(toMountainCenter.z / distance);
             float polarAngle = atan2f(toMountainCenter.y, toMountainCenter.x);
             
-            float t = turbScale * [noiseSource0 getNoiseAtPoint:GSVector3_Make(azimuthalAngle * freqScale, polarAngle * freqScale, 0.0)
-                                                     numOctaves:4];
+            float t = turbScale * [noiseSource0 getNoiseAtPointWithFourOctaves:GSVector3_Make(azimuthalAngle * freqScale, polarAngle * freqScale, 0.0)];
             
             // Flatten the top.
             if(p.y > mountainCenter.y) {
@@ -647,42 +649,38 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
  * also returns the position in the local coordinate system of that chunk.
  * The position must be contained in this chunk or any of the specified neighbors.
  */
-GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
-                                          GSChunkVoxelData **neighbors,
-                                          GSIntegerVector3 *outRelativeToNeighborP)
+static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, GSChunkVoxelData **neighbors)
 {
-    (*outRelativeToNeighborP) = chunkLocalP;
-    
-    if(chunkLocalP.x >= CHUNK_SIZE_X) {
-        outRelativeToNeighborP->x -= CHUNK_SIZE_X;
+    if(chunkLocalP->x >= CHUNK_SIZE_X) {
+        chunkLocalP->x -= CHUNK_SIZE_X;
         
-        if(chunkLocalP.z < 0) {
-            outRelativeToNeighborP->z += CHUNK_SIZE_Z;
+        if(chunkLocalP->z < 0) {
+            chunkLocalP->z += CHUNK_SIZE_Z;
             return neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z];
-        } else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-            outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
+        } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
+            chunkLocalP->z -= CHUNK_SIZE_Z;
             return neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z];
         } else {
             return neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z];
         }
-    } else if(chunkLocalP.x < 0) {
-        outRelativeToNeighborP->x += CHUNK_SIZE_X;
+    } else if(chunkLocalP->x < 0) {
+        chunkLocalP->x += CHUNK_SIZE_X;
         
-        if(chunkLocalP.z < 0) {
-            outRelativeToNeighborP->z += CHUNK_SIZE_Z;
+        if(chunkLocalP->z < 0) {
+            chunkLocalP->z += CHUNK_SIZE_Z;
             return neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z];
-        } else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-            outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
+        } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
+            chunkLocalP->z -= CHUNK_SIZE_Z;
             return neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z];
         } else {
             return neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z];
         }
     } else {
-        if(chunkLocalP.z < 0) {
-            outRelativeToNeighborP->z += CHUNK_SIZE_Z;
+        if(chunkLocalP->z < 0) {
+            chunkLocalP->z += CHUNK_SIZE_Z;
             return neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z];
-        } else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-            outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
+        } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
+            chunkLocalP->z -= CHUNK_SIZE_Z;
             return neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z];
         } else {
             return neighbors[CHUNK_NEIGHBOR_CENTER];
@@ -706,10 +704,9 @@ int getBlockSunlightAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
         return CHUNK_LIGHTING_MAX; // Space above the world is always bright.
     }
     
-    GSIntegerVector3 adjustedPos = {0};
-    GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
+    GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(&p, neighbors);
     
-    return chunk->sunlight[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)];
+    return chunk->sunlight[INDEX(p.x, p.y, p.z)];
 }
 
 
@@ -728,10 +725,9 @@ BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
         return YES; // Space above the world is always empty.
     }
     
-    GSIntegerVector3 adjustedPos = {0};
-    GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
+    GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(&p, neighbors);
     
-    voxel_t voxel = chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)];
+    voxel_t voxel = chunk->voxelData[INDEX(p.x, p.y, p.z)];
     
     return isVoxelEmpty(voxel);
 }
