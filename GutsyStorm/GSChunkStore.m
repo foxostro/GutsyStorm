@@ -101,8 +101,27 @@
         terrainShader = _terrainShader;
         [terrainShader retain];
         
+        /* VBO generation must be performed on the main thread.
+         * To preserve responsiveness, limit the number of VBOs we create per frame.
+         */
         numVBOGenerationsAllowedPerFrame = 1;
         numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
+        
+        /* GCD keeps a pool of threads for all concurrent queues which is surprisingly small: only 1 thread per CPU core. When a
+         * large number of CPU-bound blocks are submitted to such a queue they all become essentially serialized. (GCD is concurrent
+         * only to a point.) Unfortunately, the system (i.e. AppKit) will block the main thread for things like distributed
+         * notifications that dispatch blocks through GCD synchronously. The main thread remains blocked for as long as the GCD
+         * queues remain congested; the app SPODs (Spinning Pizza of Death, aka Rainbow Pinwheel) for tens of seconds.
+         *
+         * So, create a separate serial queue for background chunk tasks. If this queue is created as a serial queue then GCD
+         * apparently creates a new thread for the queue. The global queue doesn't become congested and random SPODs do not occur.
+         *
+         * Please note that the API explicitly does not garauntee that blocks executed on a new serial queue will be executed
+         * on a thread separate from the thread pool used for concurrent queues. From the man page: "Queues are not bound to any 
+         * specific thread of execution." Regardless, this seems to be reliable on this version of Mac OS, at least. The alternative
+         * would be to not use GCD.
+         */
+        chunkTaskQueue = dispatch_queue_create("com.foxostro.chunkTaskQueue", DISPATCH_QUEUE_SERIAL);
         
         // Active region is bounded at y>=0.
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
@@ -151,6 +170,7 @@
     [folder release];
     [terrainShader release];
     [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
+    dispatch_release(chunkTaskQueue);
     [super dealloc];
 }
 
@@ -194,10 +214,6 @@
 
 - (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)newBlock
 {
-    /* XXX: There is a bug where geometry may fail to update after changing a block in the chunk.
-     *      This occurs frequently when running in Debug mode and infrequently when running in Release mode.
-     */
-    
     voxel_t *block;
     GSVector3 chunkLocalP;
     GSChunkVoxelData *chunk;
@@ -332,7 +348,9 @@
         // Now that neighboring chunks are actually available, spin off a task to asynchronously update lighting in the chunk.
         [chunks[CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:chunks doItSynchronously:NO];
         
-        geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP voxelData:chunks] autorelease];
+        geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
+                                                    voxelData:chunks
+                                               chunkTaskQueue:chunkTaskQueue] autorelease];
         
         [cacheGeometryData setObject:geometry forKey:chunkID];
     }
@@ -369,7 +387,8 @@
                                                     minP:minP
                                            terrainHeight:terrainHeight
                                                   folder:folder
-                                          groupForSaving:groupForSaving] autorelease];
+                                          groupForSaving:groupForSaving
+                                          chunkTaskQueue:chunkTaskQueue] autorelease];
         
         [cacheVoxelData setObject:voxels forKey:chunkID];
     }

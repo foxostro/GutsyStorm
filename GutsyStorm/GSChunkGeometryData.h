@@ -37,6 +37,8 @@
     GLsizei numIndicesForGenerating;
     GLuint *indexBufferForGenerating; // Index buffer which is filled by the geometry generation routine.
     
+    dispatch_queue_t chunkTaskQueue;
+    
  @public
     GSVector3 corners[8];
     BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
@@ -44,7 +46,8 @@
 
 
 - (id)initWithMinP:(GSVector3)_minP
-         voxelData:(GSChunkVoxelData **)voxels;
+         voxelData:(GSChunkVoxelData **)voxels
+    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue;
 
 - (void)updateWithVoxelData:(GSChunkVoxelData **)voxels doItSynchronously:(BOOL)sync;
 

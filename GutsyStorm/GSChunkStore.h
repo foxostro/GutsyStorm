@@ -25,6 +25,7 @@ typedef id chunk_id_t;
     NSCache *cacheGeometryData;
     
     dispatch_group_t groupForSaving;
+    dispatch_queue_t chunkTaskQueue;
     
     float terrainHeight;
     unsigned seed;
@@ -37,7 +38,6 @@ typedef id chunk_id_t;
     size_t maxActiveChunks;
     GSChunkGeometryData **activeChunks;
     
-    // Limit the number of times chunk VBOs can be generated per frame.
     int numVBOGenerationsAllowedPerFrame;
     int numVBOGenerationsRemaining;
 }

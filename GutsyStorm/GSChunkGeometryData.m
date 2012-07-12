@@ -70,10 +70,14 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 
 - (id)initWithMinP:(GSVector3)_minP
          voxelData:(GSChunkVoxelData **)_chunks
+    chunkTaskQueue:(dispatch_queue_t)_chunkTaskQueue
 {
     self = [super initWithMinP:_minP];
     if (self) {
         // Initialization code here.
+        
+        chunkTaskQueue = _chunkTaskQueue; // dispatch queue used for chunk background work
+        dispatch_retain(_chunkTaskQueue);
         
         // Geometry for the chunk is protected by lockGeometry and is generated asynchronously.
         lockGeometry = [[NSConditionLock alloc] init];
@@ -137,11 +141,9 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     };
     
     if(sync) {
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
-        dispatch_sync(queue, b);
+        b();
     } else {
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        dispatch_async(queue, b);
+        dispatch_async(chunkTaskQueue, b);
     }
 }
 
@@ -191,6 +193,8 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     [self destroyGeometry];
     [lockGeometry unlockWithCondition:!READY];
     [lockGeometry release];
+    
+    dispatch_release(chunkTaskQueue);
     
     [super dealloc];
 }

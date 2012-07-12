@@ -46,7 +46,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
               minP:(GSVector3)_minP
      terrainHeight:(float)terrainHeight
             folder:(NSURL *)_folder
-    groupForSaving:(dispatch_group_t)_groupForSaving;
+    groupForSaving:(dispatch_group_t)_groupForSaving
+    chunkTaskQueue:(dispatch_queue_t)_chunkTaskQueue
 {
     self = [super initWithMinP:_minP];
     if (self) {
@@ -55,6 +56,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         
         groupForSaving = _groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         dispatch_retain(groupForSaving);
+        
+        chunkTaskQueue = _chunkTaskQueue; // dispatch queue used for chunk background work
+        dispatch_retain(_chunkTaskQueue);
         
         folder = _folder;
         [folder retain];
@@ -68,11 +72,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         voxelData = NULL;
         sunlight = NULL;
         
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        
         // Fire off asynchronous task to generate voxel data.
         // When this finishes, the condition in lockVoxelData will be set to CONDITION_VOXEL_DATA_READY.
-        dispatch_async(queue, ^{
+        dispatch_async(chunkTaskQueue, ^{
             NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
                                 relativeToURL:folder];
             
@@ -102,7 +104,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)dealloc
 {
     dispatch_release(groupForSaving);
-    
+    dispatch_release(chunkTaskQueue);
     [folder release];
     
     [lockVoxelData lockForWriting];
@@ -155,11 +157,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     };
     
     if(sync) {
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
-        dispatch_sync(queue, b);
+        b();
     } else {
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        dispatch_async(queue, b);
+        dispatch_async(chunkTaskQueue, b);
     }
 }
 
@@ -314,13 +314,16 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 - (void)markAsDirtyAndSpinOffSavingTask
 {
-    // first, mark as dirty
+    // Mark as dirty
     [lockVoxelData lockForWriting];
     dirty = YES;
     [lockVoxelData unlockForWriting];
     
-    // second, spin off a task to save the chunk (marks as clean when complete)
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
+    /* Spin off a task to save the chunk. (Marks as clean when complete.)
+     * This is latency sensitive, so submit to the global queue. Do not use `chunkTaskQueue' as that would cause the block to be
+     * added to the end of a long queue of basically serialized background tasks.
+     */
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     dispatch_group_async(groupForSaving, queue, ^{
         [lockVoxelData lockForWriting];
         [self saveVoxelDataToFile];

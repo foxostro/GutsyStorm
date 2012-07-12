@@ -122,6 +122,7 @@ typedef struct
     NSURL *folder;
     BOOL dirty;
     dispatch_group_t groupForSaving;
+    dispatch_queue_t chunkTaskQueue;
     
  @public
     GSReaderWriterLock *lockVoxelData;
@@ -137,7 +138,8 @@ typedef struct
               minP:(GSVector3)minP
      terrainHeight:(float)terrainHeight
             folder:(NSURL *)folder
-    groupForSaving:(dispatch_group_t)groupForSaving;
+    groupForSaving:(dispatch_group_t)groupForSaving
+    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue;
 
 - (void)updateLightingWithNeighbors:(GSChunkVoxelData **)neighbors doItSynchronously:(BOOL)sync;
 
