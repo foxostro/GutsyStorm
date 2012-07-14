@@ -114,15 +114,21 @@
         numVBOGenerationsAllowedPerFrame = (int)n;
         numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
         
-        /* GCD keeps a pool of threads for all concurrent queues which is surprisingly small: only 1 thread per CPU core. When a
-         * large number of CPU-bound blocks are submitted to such a queue they all become essentially serialized. (GCD is concurrent
-         * only to a point.) Unfortunately, the system (i.e. AppKit) will block the main thread for things like distributed
-         * notifications that dispatch blocks through GCD synchronously. The main thread remains blocked for as long as the GCD
-         * queues remain congested; the app SPODs (Spinning Pizza of Death, aka Rainbow Pinwheel) for tens of seconds.
+        /* Why are we specfying the background-priority global dispatch queue here?
          *
-         * So, we must never submit CPU-bound blocks to DISPATCH_QUEUE_PRIORITY_DEFAULT or DISPATCH_QUEUE_PRIORITY_HIGH.
+         * Answer:
+         * My use of locks does not work well with libdispatch. Neither does the way I'm handling the loading of chunks from disk.
+         * When a dispatch block blocks the thread its running on, libdispatch will create a new thread to begin execution of the
+         * next block in the queue (up to a limit). Because I'm using locks all over the place, I cause many, many new threads to be
+         * created. These put too much load on the system, and cause the main thread to get less execution time; frame deadlines are
+         * missed, and FPS drops. These threads eventually quiet down as computation to generate/load the active region is
+         * completed. So, eventually, the "warm up" period ends, and FPS jumps up to a steady 60.
+         *
+         * The threads that execute blocks on background queue run with a less favorable scheduling priority, allowing the main
+         * thread to meet its deadlines. They also run with I/O throttling per setpriority(2) and so is not a good long-term
+         * solution.
          */
-        chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
+        chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
         
         // Active region is bounded at y>=0.
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];

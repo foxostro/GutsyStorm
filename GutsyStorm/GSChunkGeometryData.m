@@ -14,9 +14,6 @@
 #define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
 
 
-static dispatch_semaphore_t limitParallelism; // XXX: nasty global
-
-
 static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint vboChunkTexCoords, GLuint vboChunkColors);
 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
@@ -81,11 +78,6 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
         
         chunkTaskQueue = _chunkTaskQueue; // dispatch queue used for chunk background work
         dispatch_retain(_chunkTaskQueue);
-        
-        static dispatch_once_t onceToken;
-        dispatch_once(&onceToken, ^{
-            limitParallelism = dispatch_semaphore_create(4);
-        });
         
         // Geometry for the chunk is protected by lockGeometry and is generated asynchronously.
         lockGeometry = [[NSConditionLock alloc] init];
@@ -228,8 +220,6 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     assert(chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
     assert(chunks[CHUNK_NEIGHBOR_CENTER]);
     
-    dispatch_semaphore_wait(limitParallelism, DISPATCH_TIME_FOREVER);
-    
     [lockGeometry lock];
     
     [self destroyGeometry];
@@ -323,8 +313,6 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     needsVBORegeneration = YES;
     
     [lockGeometry unlockWithCondition:READY];
-    
-    dispatch_semaphore_signal(limitParallelism);
 }
 
 
@@ -887,7 +875,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     needsVBORegeneration = NO; // reset
     
     // Geometry isn't needed anymore, so free it now.
-    //[self destroyGeometry];
+    [self destroyGeometry];
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);
