@@ -120,15 +120,9 @@
          * notifications that dispatch blocks through GCD synchronously. The main thread remains blocked for as long as the GCD
          * queues remain congested; the app SPODs (Spinning Pizza of Death, aka Rainbow Pinwheel) for tens of seconds.
          *
-         * So, create a separate serial queue for background chunk tasks. If this queue is created as a serial queue then GCD
-         * apparently creates a new thread for the queue. The global queue doesn't become congested and random SPODs do not occur.
-         *
-         * Please note that the API explicitly does not garauntee that blocks executed on a new serial queue will be executed
-         * on a thread separate from the thread pool used for concurrent queues. From the man page: "Queues are not bound to any 
-         * specific thread of execution." Regardless, this seems to be reliable on this version of Mac OS, at least. The alternative
-         * would be to not use GCD.
+         * So, we must never submit CPU-bound blocks to DISPATCH_QUEUE_PRIORITY_DEFAULT or DISPATCH_QUEUE_PRIORITY_HIGH.
          */
-        chunkTaskQueue = dispatch_queue_create("com.foxostro.chunkTaskQueue", DISPATCH_QUEUE_SERIAL);
+        chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
         
         // Active region is bounded at y>=0.
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];

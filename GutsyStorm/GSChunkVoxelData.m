@@ -382,8 +382,7 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
 {
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
-    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
-    {
+    dispatch_apply(CHUNK_SIZE_X, chunkTaskQueue, ^(size_t x) {
         for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
         {
             // Get the y value of the highest non-empty voxel in the chunk.
@@ -407,7 +406,7 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
                 markVoxelAsOutside(outside, voxel);
             }
         }
-    }
+   });
 }
 
 
@@ -424,8 +423,7 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
     GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
     GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:(seed+1)];
     
-    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
-    {
+    dispatch_apply(CHUNK_SIZE_X, chunkTaskQueue, ^(size_t x) {
         for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
         {
             for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
@@ -438,8 +436,8 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
                 
                 // whether the block is outside or not is calculated later
             }
-        }
-    }
+       }
+    });
     
     [noiseSource0 release];
     [noiseSource1 release];
@@ -513,8 +511,6 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
  */
 - (void)generateSunlight
 {
-    GSIntegerVector3 p = {0};
-    
     if(!sunlight) {
         sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
         if(!sunlight) {
@@ -528,9 +524,13 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
     
     [self recalcOutsideVoxelsNoLock];
     
+
     // Reset all empty, outside blocks to full sunlight.
-    for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-    {
+    dispatch_apply(CHUNK_SIZE_X, chunkTaskQueue, ^(size_t x) {
+        GSIntegerVector3 p = {0};
+        
+        p.x = x;
+        
         for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
         {
             for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
@@ -544,29 +544,32 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
                     sunlight[idx] = CHUNK_LIGHTING_MAX;
                 }
             }
-        }
-    }
+       }
+    });
     
     // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
     // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
     // Set the blocks we find to the next lower light level.
     for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
     {
-        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-        {
+        dispatch_apply(CHUNK_SIZE_X, chunkTaskQueue, ^(size_t x) {
+            GSIntegerVector3 p = {0};
+            
+            p.x = x;
+            
             for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
             {
                 for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
                 {
                     size_t idx = INDEX(p.x, p.y, p.z);
-                    assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));    
+                    assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
                     
                     if((sunlight[idx] < lightLevel) && [self isAdjacentToSunlightAtPoint:p lightLevel:lightLevel]) {
                         sunlight[idx] = MAX(sunlight[idx], lightLevel - 1);
                     }
                 }
             }
-        }
+        });
     }
     
     [lockVoxelData unlockForReading];
