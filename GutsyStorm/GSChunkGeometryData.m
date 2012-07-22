@@ -14,7 +14,13 @@
 #define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
 
 
-static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint vboChunkTexCoords, GLuint vboChunkColors);
+static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
+
+static void asyncDestroyChunkVBOs(NSOpenGLContext *context,
+                                  GLuint vboChunkVerts,
+                                  GLuint vboChunkNorms,
+                                  GLuint vboChunkTexCoords,
+                                  GLuint vboChunkColors);
 
 static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
                       GLfloat nx, GLfloat ny, GLfloat nz,
@@ -71,6 +77,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 - (id)initWithMinP:(GSVector3)_minP
          voxelData:(GSChunkVoxelData **)_chunks
     chunkTaskQueue:(dispatch_queue_t)_chunkTaskQueue
+         glContext:(NSOpenGLContext *)_glContext
 {
     self = [super initWithMinP:_minP];
     if (self) {
@@ -78,6 +85,9 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
         
         chunkTaskQueue = _chunkTaskQueue; // dispatch queue used for chunk background work
         dispatch_retain(_chunkTaskQueue);
+        
+        glContext = _glContext;
+        [glContext retain];
         
         // Geometry for the chunk is protected by lockGeometry and is generated asynchronously.
         lockGeometry = [[NSConditionLock alloc] init];
@@ -194,6 +204,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     [lockGeometry unlockWithCondition:!READY];
     [lockGeometry release];
     
+    [glContext release];
     dispatch_release(chunkTaskQueue);
     
     [super dealloc];
@@ -887,7 +898,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 
 - (void)destroyVBOs
 {
-    destroyChunkVBOs(vboChunkVerts, vboChunkNorms, vboChunkTexCoords, vboChunkColors);
+    asyncDestroyChunkVBOs(glContext, vboChunkVerts, vboChunkNorms, vboChunkTexCoords, vboChunkColors);
     
     vboChunkVerts = 0;
     vboChunkNorms = 0;
@@ -902,38 +913,46 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 @end
 
 
-static void destroyChunkVBOs(GLuint vboChunkVerts, GLuint vboChunkNorms, GLuint vboChunkTexCoords, GLuint vboChunkColors)
+static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo)
 {
-    dispatch_queue_t queue = dispatch_get_main_queue();
-    dispatch_retain(queue);
-    
-    // Free the VBOs on the main thread. Doesn't have to be synchronous with this dealloc method, though.
+    [context makeCurrentContext];
+    CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
+    glDeleteBuffers(1, &vbo);
+    CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
+}
+
+
+static void asyncDestroyChunkVBOs(NSOpenGLContext *context,
+                                  GLuint vboChunkVerts,
+                                  GLuint vboChunkNorms,
+                                  GLuint vboChunkTexCoords,
+                                  GLuint vboChunkColors)
+{
+    // Free the VBOs on the main thread. Doesn't have to be synchronous with the dealloc method, though.
     
     if(vboChunkVerts) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            glDeleteBuffers(1, &vboChunkVerts);
+            syncDestroySingleVBO(context, vboChunkVerts);
         });
     }
     
     if(vboChunkNorms) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            glDeleteBuffers(1, &vboChunkNorms);
+            syncDestroySingleVBO(context, vboChunkNorms);
         });
     }
     
     if(vboChunkTexCoords) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            glDeleteBuffers(1, &vboChunkTexCoords);
+            syncDestroySingleVBO(context, vboChunkTexCoords);
         });
     }
     
     if(vboChunkColors) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            glDeleteBuffers(1, &vboChunkColors);
+            syncDestroySingleVBO(context, vboChunkColors);
         });
     }
-        
-    dispatch_release(queue);
 }
 
 

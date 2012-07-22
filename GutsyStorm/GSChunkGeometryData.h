@@ -37,6 +37,7 @@
     GLsizei numIndicesForGenerating;
     GLuint *indexBufferForGenerating; // Index buffer which is filled by the geometry generation routine.
     
+    NSOpenGLContext *glContext;
     dispatch_queue_t chunkTaskQueue;
     
  @public
@@ -47,7 +48,8 @@
 
 - (id)initWithMinP:(GSVector3)_minP
          voxelData:(GSChunkVoxelData **)voxels
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue;
+    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+         glContext:(NSOpenGLContext *)_glContext;
 
 - (void)updateWithVoxelData:(GSChunkVoxelData **)voxels doItSynchronously:(BOOL)sync;
 

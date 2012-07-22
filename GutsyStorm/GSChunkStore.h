@@ -38,6 +38,10 @@ typedef id chunk_id_t;
     size_t maxActiveChunks;
     GSChunkGeometryData **activeChunks;
     
+    NSOpenGLContext *glContext;
+    
+    NSLock *lock;
+    
     int numVBOGenerationsAllowedPerFrame;
     int numVBOGenerationsRemaining;
 }
@@ -49,8 +53,12 @@ typedef id chunk_id_t;
 
 - (id)initWithSeed:(unsigned)_seed
             camera:(GSCamera *)_camera
-     terrainShader:(GSShader *)_terrainShader;
+     terrainShader:(GSShader *)_terrainShader
+         glContext:(NSOpenGLContext *)_glContext;
 
+/* Assumes the caller has already locked the GL context or
+ * otherwise ensures no concurrent GL calls will be made.
+ */
 - (void)drawChunks;
 
 - (void)updateWithDeltaTime:(float)dt

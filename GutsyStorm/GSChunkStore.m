@@ -17,6 +17,7 @@
 
 @interface GSChunkStore (Private)
 
+- (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos;
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
 - (void)deallocChunksWithArray:(GSChunkData **)array len:(size_t)len;
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
@@ -89,6 +90,7 @@
 - (id)initWithSeed:(unsigned)_seed
             camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader
+         glContext:(NSOpenGLContext *)_glContext
 {
     self = [super init];
     if (self) {
@@ -105,6 +107,11 @@
         
         terrainShader = _terrainShader;
         [terrainShader retain];
+        
+        glContext = _glContext;
+        [glContext retain];
+        
+        lock = [[NSLock alloc] init];
         
         /* VBO generation must be performed on the main thread.
          * To preserve responsiveness, limit the number of VBOs we create per frame.
@@ -160,9 +167,11 @@
 
 - (void)waitForSaveToFinish
 {
+    [lock lock];
     NSLog(@"Waiting for all chunk-saving tasks to complete.");
     dispatch_group_wait(groupForSaving, DISPATCH_TIME_FOREVER); // wait for save operations to complete
     NSLog(@"All chunks have been saved.");
+    [lock unlock];
 }
 
 
@@ -176,14 +185,19 @@
     [camera release];
     [folder release];
     [terrainShader release];
+    [glContext release];
+    [lock release];
     [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
     dispatch_release(chunkTaskQueue);
+    
     [super dealloc];
 }
 
 
 - (void)drawChunks
 {
+    [lock lock];
+    
     [terrainShader bind];
     
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -209,13 +223,17 @@
     glDisableClientState(GL_VERTEX_ARRAY);
     
     [terrainShader unbind];
+    
+    [lock unlock];
 }
 
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
+    [lock lock];
     numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame; // reset
     [self recalculateActiveChunksWithCameraModifiedFlags:flags];
+    [lock unlock];
 }
 
 
@@ -224,6 +242,8 @@
     voxel_t *block;
     GSVector3 chunkLocalP;
     GSChunkVoxelData *chunk;
+    
+    [lock lock];
     
     chunk = [self getChunkVoxelsAtPoint:pos];
     [chunk retain];
@@ -251,23 +271,19 @@
         [chunks[i] updateLightingWithNeighbors:neighbors doItSynchronously:YES];
         [[self getChunkGeometryAtPoint:chunks[i].centerP] updateWithVoxelData:neighbors doItSynchronously:YES];
     }
+    
+    [lock unlock];
 }
 
 
 - (voxel_t)getVoxelAtPoint:(GSVector3)pos
 {
-    GSChunkVoxelData *chunk = [self getChunkVoxelsAtPoint:pos];
-    [chunk retain];
-    [chunk->lockVoxelData lockForReading];
-
-    GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+    voxel_t voxel;
+    [lock lock];
+    voxel = [self getVoxelAtPointNoLock:pos];
+    [lock unlock];
     
-    voxel_t block = [chunk getVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
-
-    [chunk->lockVoxelData unlockForReading];
-    [chunk release];
-    
-    return block;
+    return voxel;
 }
 
 
@@ -282,6 +298,8 @@
                   outDistanceBefore:(float *)outDistanceBefore
                   outDistanceAfter:(float *)outDistanceAfter
 {
+    [lock lock];
+    
     assert(maxDist > 0);
     
     const size_t MAX_PASSES = 6;
@@ -299,15 +317,17 @@
             
             // world does not extend below y=0
             if(pos.y < 0) {
+                [lock unlock];
                 return NO;
             }
             
             // world does not extend below y=activeRegionExtent.y
             if(pos.y >= activeRegionExtent.y) {
+                [lock unlock];
                 return NO;
             }
             
-            voxel_t block = [self getVoxelAtPoint:pos];
+            voxel_t block = [self getVoxelAtPointNoLock:pos];
             
             if(!isVoxelEmpty(block)) {
                 foundAnything = YES;
@@ -318,6 +338,7 @@
         }
         
         if(!foundAnything) {
+            [lock unlock];
             return NO;
         }
     }
@@ -330,6 +351,7 @@
         *outDistanceAfter = d;
     }
     
+    [lock unlock];
     return YES;
 }
 
@@ -337,6 +359,23 @@
 
 
 @implementation GSChunkStore (Private)
+
+- (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos
+{
+    GSChunkVoxelData *chunk = [self getChunkVoxelsAtPoint:pos];
+    [chunk retain];
+    [chunk->lockVoxelData lockForReading];
+    
+    GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+    
+    voxel_t block = [chunk getVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+    
+    [chunk->lockVoxelData unlockForReading];
+    [chunk release];
+    
+    return block;
+}
+
 
 - (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p
 {
@@ -357,7 +396,8 @@
         
         geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
                                                     voxelData:chunks
-                                               chunkTaskQueue:chunkTaskQueue] autorelease];
+                                               chunkTaskQueue:chunkTaskQueue
+                                                    glContext:glContext] autorelease];
         
         [cacheGeometryData setObject:geometry forKey:chunkID];
     }
