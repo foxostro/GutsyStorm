@@ -19,7 +19,6 @@
 
 - (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos;
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
-- (void)deallocChunksWithArray:(GSChunkData **)array len:(size_t)len;
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (GSVector3)computeChunkCenterForPoint:(GSVector3)p;
 - (chunk_id_t)getChunkIDWithMinP:(GSVector3)minP;
@@ -38,8 +37,6 @@
 
 
 @implementation GSChunkStore
-
-@synthesize activeRegionExtent;
 
 + (void)initialize
 {
@@ -111,16 +108,7 @@
         
         // Active region is bounded at y>=0.
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
-        activeRegionExtent = GSVector3_Make(w, CHUNK_SIZE_Y, w);
-        assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
-        assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
-        assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
-        
-        maxActiveChunks = (2*activeRegionExtent.x/CHUNK_SIZE_X) *
-                          (activeRegionExtent.y/CHUNK_SIZE_Y) *
-                          (2*activeRegionExtent.z/CHUNK_SIZE_Z);
-        
-        activeChunks = calloc(maxActiveChunks, sizeof(GSChunkGeometryData *));
+        activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:GSVector3_Make(w, CHUNK_SIZE_Y, w)];
         
         cacheGeometryData = [[NSCache alloc] init];
         [cacheGeometryData setCountLimit:INT_MAX];
@@ -159,7 +147,7 @@
     [terrainShader release];
     [glContext release];
     [lock release];
-    [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
+    [activeRegion release];
     dispatch_release(chunkTaskQueue);
     
     [super dealloc];
@@ -178,16 +166,12 @@
     glEnableClientState(GL_COLOR_ARRAY);
     
     glTranslatef(0.5, 0.5, 0.5);
-        
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        GSChunkGeometryData *chunk = activeChunks[i];
-        assert(chunk);
-        
-        if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
+    
+    [activeRegion forEachChunkDoBlock:^(GSChunkGeometryData *chunk) {
+        if(chunk && chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
             numVBOGenerationsRemaining--;
         }
-    }
+    }];
     
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -289,7 +273,7 @@
             }
             
             // world does not extend below y=activeRegionExtent.y
-            if(pos.y >= activeRegionExtent.y) {
+            if(pos.y >= activeRegion.activeRegionExtent.y) {
                 [lock unlock];
                 return NO;
             }
@@ -348,7 +332,7 @@
     chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
     
     assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    assert(p.y < activeRegion.activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
     geometry = [cacheGeometryData objectForKey:chunkID];
     if(!geometry) {
@@ -389,7 +373,7 @@
     chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
     
     assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    assert(p.y < activeRegion.activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
     GSChunkVoxelData *voxels = [cacheVoxelData objectForKey:chunkID];
     if(!voxels) {
@@ -404,17 +388,6 @@
     }
     
     return voxels;
-}
-
-
-- (void)deallocChunksWithArray:(GSChunkData **)array len:(size_t)len
-{
-    for(size_t i = 0; i < len; ++i)
-    {
-        [array[i] release];
-        array[i] = nil;
-    }
-    free(array);
 }
 
 
@@ -504,12 +477,9 @@
 
     GSFrustum *frustum = [camera frustum];
     
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        GSChunkGeometryData *geometry = activeChunks[i];
-        assert(geometry);
+    [activeRegion forEachChunkDoBlock:^(GSChunkGeometryData *geometry) {
         geometry->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry->corners]);
-    }
+    }];
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished chunk visibility checks. It took %.3fs", timeEnd - timeStart);
@@ -519,6 +489,7 @@
 - (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock
 {
     const GSVector3 center = [camera cameraEye];
+    const GSVector3 activeRegionExtent = activeRegion.activeRegionExtent;
     const ssize_t activeRegionExtentX = activeRegionExtent.x/CHUNK_SIZE_X;
     const ssize_t activeRegionExtentZ = activeRegionExtent.z/CHUNK_SIZE_Z;
     const ssize_t activeRegionSizeY = activeRegionExtent.y/CHUNK_SIZE_Y;
@@ -557,22 +528,16 @@
      * will remain in the active region.
      * Also, reset visibility computation on all active chunks. We'll recalculate a bit later.
      */
-    NSMutableArray *tmpActiveChunks = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        GSChunkGeometryData *geometry = activeChunks[i];
-        
+    NSMutableArray *tmpActiveChunks = [[NSMutableArray alloc] initWithCapacity:activeRegion.maxActiveChunks];
+    
+    [activeRegion forEachChunkDoBlock:^(GSChunkGeometryData *geometry) {
         if(geometry) {
             geometry->visible = NO;
             [tmpActiveChunks addObject:geometry];
         }
-    }
+    }];
     
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        [activeChunks[i] release];
-        activeChunks[i] = nil;
-    }
+    [activeRegion removeAllActiveChunks];
     
     if(sorted) {
         NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
@@ -587,24 +552,22 @@
         NSArray *sortedChunks = [self sortPointsByDistFromCamera:unsortedChunks]; // is autorelease
         
         // Fill the activeChunks array.
-        size_t i = 0;
+        NSUInteger i = 0;
         for(GSBoxedVector *b in sortedChunks)
         {
-            activeChunks[i] = [self getChunkGeometryAtPoint:[b getVector]];
-            [activeChunks[i] retain];
+            [activeRegion setActiveChunk:[self getChunkGeometryAtPoint:[b getVector]] atIndex:i];
             i++;
         }
-        assert(i == maxActiveChunks);
+        assert(i == activeRegion.maxActiveChunks);
         
         [unsortedChunks release];
     } else {
-        __block size_t i = 0;
+        __block NSUInteger i = 0;
         [self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
-            activeChunks[i] = [self getChunkGeometryAtPoint:p];
-            [activeChunks[i] retain];
+            [activeRegion setActiveChunk:[self getChunkGeometryAtPoint:p] atIndex:i];
             i++;
         }];
-        assert(i == maxActiveChunks);
+        assert(i == activeRegion.maxActiveChunks);
     }
     
     /* Now release all the chunks in tmpActiveChunks. Chunks which remain in the

@@ -13,7 +13,7 @@
 #import "GSChunkGeometryData.h"
 #import "GSCamera.h"
 #import "GSShader.h"
-#import "GSRenderTexture.h"
+#import "GSActiveRegion.h"
 
 
 typedef id chunk_id_t;
@@ -33,11 +33,7 @@ typedef id chunk_id_t;
     chunk_id_t oldCenterChunkID;
     NSURL *folder;
     GSShader *terrainShader;
-    GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
-    
-    size_t maxActiveChunks;
-    GSChunkGeometryData **activeChunks;
-    
+    GSActiveRegion *activeRegion;
     NSOpenGLContext *glContext;
     
     NSLock *lock;
@@ -45,8 +41,6 @@ typedef id chunk_id_t;
     int numVBOGenerationsAllowedPerFrame;
     int numVBOGenerationsRemaining;
 }
-
-@property (readonly, nonatomic) GSVector3 activeRegionExtent;
 
 
 - (id)initWithSeed:(unsigned)_seed
