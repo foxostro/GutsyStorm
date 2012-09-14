@@ -29,7 +29,7 @@
 - (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
-- (void)getNeighborsForChunkAtPoint:(GSVector3)p outNeighbors:(GSChunkVoxelData **)neighbors;
+- (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p;
 
 - (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p;
 - (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p;
@@ -56,34 +56,6 @@
     }
     
     [[NSUserDefaults standardUserDefaults] synchronize];
-}
-
-
-+ (NSLock *)lockWhileLockingMultipleChunksVoxelData
-{
-    static dispatch_once_t onceToken;
-    static NSLock *doingNeighborhoodLock = nil;
-    
-    dispatch_once(&onceToken, ^{
-        doingNeighborhoodLock = [[NSLock alloc] init];
-        [doingNeighborhoodLock setName:@"lockWhileLockingMultipleChunksVoxelData"];
-    });
-    
-    return doingNeighborhoodLock;
-}
-
-
-+ (NSLock *)lockWhileLockingMultipleChunksSunlight
-{
-    static dispatch_once_t onceToken;
-    static NSLock *doingNeighborhoodLock = nil;
-    
-    dispatch_once(&onceToken, ^{
-        doingNeighborhoodLock = [[NSLock alloc] init];
-        [doingNeighborhoodLock setName:@"lockWhileLockingMultipleChunksSunlight"];
-    });
-    
-    return doingNeighborhoodLock;
 }
 
 
@@ -239,38 +211,33 @@
 
 - (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)newBlock
 {
-    voxel_t *block;
-    GSVector3 chunkLocalP;
     GSChunkVoxelData *chunk;
     
     [lock lock];
     
     chunk = [self getChunkVoxelsAtPoint:pos];
-    [chunk retain];
-    [chunk->lockVoxelData lockForWriting];
     
-    chunkLocalP = GSVector3_Sub(pos, chunk.minP);
-    block = [chunk getPointerToVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
-    assert(block);
-    *block = newBlock;
-    
-    [chunk->lockVoxelData unlockForWriting];
+    [chunk writerAccessToVoxelDataUsingBlock:^{
+        GSVector3 chunkLocalP;
+        voxel_t *block;
+        
+        chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+        
+        block = [chunk getPointerToVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+        assert(block);
+        
+        *block = newBlock;
+    }];
     
     [chunk markAsDirtyAndSpinOffSavingTask]; // save the changes asynchronously
-    [chunk release];
     
     // Now update geometry for this chunk and its neighbors.
     // Do it all synchronously too, so changes will appear "immediately."
-    GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
-    [self getNeighborsForChunkAtPoint:pos outNeighbors:chunks];
-    
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        GSChunkVoxelData *neighbors[CHUNK_NUM_NEIGHBORS] = {nil};
-        [self getNeighborsForChunkAtPoint:chunks[i].centerP outNeighbors:neighbors];
-        [chunks[i] updateLightingWithNeighbors:neighbors doItSynchronously:YES];
-        [[self getChunkGeometryAtPoint:chunks[i].centerP] updateWithVoxelData:neighbors doItSynchronously:YES];
-    }
+    [[self neighborhoodAtPoint:pos] forEachNeighbor:^(GSChunkVoxelData *chunk) {
+        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:chunk.centerP];
+        [chunk updateLightingWithNeighbors:neighborhood doItSynchronously:YES];
+        [[self getChunkGeometryAtPoint:chunk.centerP] updateWithVoxelData:neighborhood doItSynchronously:YES];
+    }];
     
     [lock unlock];
 }
@@ -362,16 +329,13 @@
 
 - (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos
 {
+    __block voxel_t block;
     GSChunkVoxelData *chunk = [self getChunkVoxelsAtPoint:pos];
-    [chunk retain];
-    [chunk->lockVoxelData lockForReading];
-    
-    GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
-    
-    voxel_t block = [chunk getVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
-    
-    [chunk->lockVoxelData unlockForReading];
-    [chunk release];
+
+    [chunk readerAccessToVoxelDataUsingBlock:^{
+        GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+        block = [chunk getVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+    }];
     
     return block;
 }
@@ -388,14 +352,13 @@
     
     geometry = [cacheGeometryData objectForKey:chunkID];
     if(!geometry) {
-        GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
-        [self getNeighborsForChunkAtPoint:p outNeighbors:chunks];
+        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
         
         // Now that neighboring chunks are actually available, spin off a task to asynchronously update lighting in the chunk.
-        [chunks[CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:chunks doItSynchronously:NO];
+        [[neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:neighborhood doItSynchronously:NO];
         
         geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
-                                                    voxelData:chunks
+                                                    voxelData:neighborhood
                                                chunkTaskQueue:chunkTaskQueue
                                                     glContext:glContext] autorelease];
         
@@ -406,17 +369,17 @@
 }
 
 
-- (void)getNeighborsForChunkAtPoint:(GSVector3)p outNeighbors:(GSChunkVoxelData **)neighbors;
+- (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p
 {
-    neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(+CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(+CHUNK_SIZE_X, 0, 0))];
-    neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(+CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(-CHUNK_SIZE_X, 0, 0))];
-    neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(-CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(0, 0, -CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(0, 0, +CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_CENTER] = [self getChunkVoxelsAtPoint:p];
+    GSNeighborhood *neighborhood = [[[GSNeighborhood alloc] init] autorelease];
+    
+    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        GSVector3 a = GSVector3_Add(p, [GSNeighborhood getOffsetForNeighborIndex:i]);
+        [neighborhood setNeighborAtIndex:i neighbor:[self getChunkVoxelsAtPoint:a]];
+    }
+    
+    return neighborhood;
 }
 
 

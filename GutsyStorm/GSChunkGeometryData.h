@@ -13,6 +13,7 @@
 
 
 @class GSChunkVoxelData;
+@class GSNeighborhood;
 
 
 @interface GSChunkGeometryData : GSChunkData
@@ -47,11 +48,11 @@
 
 
 - (id)initWithMinP:(GSVector3)_minP
-         voxelData:(GSChunkVoxelData **)voxels
+         voxelData:(GSNeighborhood *)neighborhood
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
          glContext:(NSOpenGLContext *)_glContext;
 
-- (void)updateWithVoxelData:(GSChunkVoxelData **)voxels doItSynchronously:(BOOL)sync;
+- (void)updateWithVoxelData:(GSNeighborhood *)neighborhood doItSynchronously:(BOOL)sync;
 
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 

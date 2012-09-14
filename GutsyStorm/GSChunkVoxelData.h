@@ -10,111 +10,8 @@
 #import "GSChunkData.h"
 #import "GSIntegerVector3.h"
 #import "GSReaderWriterLock.h"
-
-
-#define CHUNK_NEIGHBOR_POS_X_NEG_Z  (0)
-#define CHUNK_NEIGHBOR_POS_X_ZER_Z  (1)
-#define CHUNK_NEIGHBOR_POS_X_POS_Z  (2)
-#define CHUNK_NEIGHBOR_NEG_X_NEG_Z  (3)
-#define CHUNK_NEIGHBOR_NEG_X_ZER_Z  (4)
-#define CHUNK_NEIGHBOR_NEG_X_POS_Z  (5)
-#define CHUNK_NEIGHBOR_ZER_X_NEG_Z  (6)
-#define CHUNK_NEIGHBOR_ZER_X_POS_Z  (7)
-#define CHUNK_NEIGHBOR_CENTER       (8)
-#define CHUNK_NUM_NEIGHBORS         (9)
-
-#define CHUNK_LIGHTING_MAX (7)
-#define CHUNK_MAX_AO_COUNT (4)
-
-
-#define VOXEL_EMPTY   (1) // a flag on the first LSB
-#define VOXEL_OUTSIDE (2) // a flag on the second LSB
-
-typedef uint8_t voxel_t;
-
-
-static inline void markVoxelAsEmpty(BOOL empty, voxel_t * voxel)
-{
-    const voxel_t originalVoxel = *voxel;
-    const voxel_t emptyVoxel = originalVoxel | VOXEL_EMPTY;
-    const voxel_t nonEmptyVoxel = originalVoxel & ~VOXEL_EMPTY;
-    *voxel = empty ? emptyVoxel : nonEmptyVoxel;
-}
-
-
-static inline void markVoxelAsOutside(BOOL outside, voxel_t * voxel)
-{
-    const voxel_t originalVoxel = *voxel;
-    const voxel_t outsideVoxel = originalVoxel | VOXEL_OUTSIDE;
-    const voxel_t nonOutsideVoxel = originalVoxel & ~VOXEL_OUTSIDE;
-    *voxel = outside ? outsideVoxel : nonOutsideVoxel;
-}
-
-
-static inline BOOL isVoxelEmpty(voxel_t voxel)
-{
-    return voxel & VOXEL_EMPTY;
-}
-
-
-static inline BOOL isVoxelOutside(voxel_t voxel)
-{
-    return voxel & VOXEL_OUTSIDE;
-}
-
-
-static inline unsigned avgSunlight(unsigned a, unsigned b, unsigned c, unsigned d)
-{
-    return (a+b+c+d) >> 2;
-}
-
-
-typedef uint16_t block_lighting_vertex_t;
-
-
-// Pack four block lighting values into a single unsigned integer value.
-static inline block_lighting_vertex_t packBlockLightingValuesForVertex(unsigned v0, unsigned v1, unsigned v2, unsigned v3)
-{
-    block_lighting_vertex_t packed1;
-    
-    const unsigned m = 15;
-    
-    packed1 =  (v0 & m)
-            | ((v1 <<  4) & (m <<  4))
-            | ((v2 <<  8) & (m <<  8))
-            | ((v3 << 12) & (m << 12));
-    
-    return packed1;
-}
-
-
-// Extact four block lighting values from a single unsigned integer value.
-static inline void unpackBlockLightingValuesForVertex(block_lighting_vertex_t packed, unsigned * outValues)
-{
-    assert(outValues);
-    
-    const unsigned m = 15;
-    
-    outValues[0] = (packed & m);
-    outValues[1] = (packed & (m <<  4)) >>  4;
-    outValues[2] = (packed & (m <<  8)) >>  8;
-    outValues[3] = (packed & (m << 12)) >> 12;
-}
-
-
-typedef struct
-{
-    /* Each face has four vertices, and we need a brightness factor for
-     * all 24 of these vertices.
-     */
-    
-    block_lighting_vertex_t top;
-    block_lighting_vertex_t bottom;
-    block_lighting_vertex_t left;
-    block_lighting_vertex_t right;
-    block_lighting_vertex_t front;
-    block_lighting_vertex_t back;
-} block_lighting_t;
+#import "Voxel.h"
+#import "GSNeighborhood.h"
 
 
 @interface GSChunkVoxelData : GSChunkData
@@ -124,7 +21,6 @@ typedef struct
     dispatch_group_t groupForSaving;
     dispatch_queue_t chunkTaskQueue;
     
- @public
     GSReaderWriterLock *lockVoxelData;
     voxel_t *voxelData;
     
@@ -141,26 +37,50 @@ typedef struct
     groupForSaving:(dispatch_group_t)groupForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue;
 
-- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)neighbors doItSynchronously:(BOOL)sync;
+- (void)updateLightingWithNeighbors:(GSNeighborhood *)neighbors doItSynchronously:(BOOL)sync;
 
 - (void)markAsDirtyAndSpinOffSavingTask;
+
+
+
+/* Obtains a reader lock on the voxel data and allows the caller to access it in the specified block. */
+- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
+
+/* Obtains a writer lock on the voxel data and allows the caller to access it in the specified block. */
+- (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
+
+/* Returns the lock used to protext the voxel data buffer.
+ * You probably don't want this.
+ * Use the block-based methods instead, or use methods in GSNeighborhood when dealing with multiple chunks.
+ */
+- (GSReaderWriterLock *)getVoxelDataLock;
+
+
+
+/* Obtains a reader lock on the voxel data and allows the caller to access it in the specified block. */
+- (void)readerAccessToSunlightDataUsingBlock:(void (^)(void))block;
+
+/* Obtains a writer lock on the voxel data and allows the caller to access it in the specified block. */
+- (void)writerAccessToSunlightDataUsingBlock:(void (^)(void))block;
+
+/* Returns the lock used to protext the sunlight data buffer.
+ * You probably don't want this.
+ * Use the block-based methods instead.
+ */
+- (GSReaderWriterLock *)getSunlightDataLock;
+
+
 
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
+// Assumes the caller is already holding "lockSunlight".
+- (uint8_t)getSunlightAtPoint:(GSIntegerVector3)chunkLocalP;
+
 // Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
-- (void)getSunlightAtPoint:(GSIntegerVector3)p
-                 neighbors:(GSChunkVoxelData **)voxels
-               outLighting:(block_lighting_t *)lighting;
+- (void)calculateSunlightAtPoint:(GSIntegerVector3)p
+                       neighbors:(GSNeighborhood *)neighbors
+                     outLighting:(block_lighting_t *)lighting;
 
 @end
-
-
-// Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
-BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
-
-
-void freeNeighbors(GSChunkVoxelData **chunks);
-
-GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **chunks);

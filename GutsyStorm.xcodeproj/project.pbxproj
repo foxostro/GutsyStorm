@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1338A2DA15B792C800663E28 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1338A2D915B792C800663E28 /* CoreVideo.framework */; };
+		13C8BE191602854300403815 /* GSNeighborhood.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE171602854300403815 /* GSNeighborhood.m */; };
 		4A1B69901516B889008934F6 /* GSQuaternion.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A1B698F1516B889008934F6 /* GSQuaternion.c */; };
 		4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */; };
 		4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */; };
@@ -48,6 +49,9 @@
 
 /* Begin PBXFileReference section */
 		1338A2D915B792C800663E28 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = ../../../../System/Library/Frameworks/CoreVideo.framework; sourceTree = "<group>"; };
+		13C8BE161602854300403815 /* GSNeighborhood.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSNeighborhood.h; sourceTree = "<group>"; };
+		13C8BE171602854300403815 /* GSNeighborhood.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSNeighborhood.m; sourceTree = "<group>"; };
+		13C8BE181602854300403815 /* Voxel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Voxel.h; sourceTree = "<group>"; };
 		4A1B698D1516B882008934F6 /* GSQuaternion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSQuaternion.h; sourceTree = "<group>"; };
 		4A1B698F1516B889008934F6 /* GSQuaternion.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSQuaternion.c; sourceTree = "<group>"; };
 		4A1F6E51153F6F6100D194AE /* GSIntegerVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSIntegerVector3.h; sourceTree = "<group>"; };
@@ -137,6 +141,9 @@
 		4A2310C8153E1BE000A4EBE6 /* Terrain */ = {
 			isa = PBXGroup;
 			children = (
+				13C8BE161602854300403815 /* GSNeighborhood.h */,
+				13C8BE171602854300403815 /* GSNeighborhood.m */,
+				13C8BE181602854300403815 /* Voxel.h */,
 				AC5B2802151E2C1D0045B6E4 /* GSChunkStore.h */,
 				AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */,
 				4A2310C5153E112900A4EBE6 /* GSChunkData.h */,
@@ -310,7 +317,7 @@
 		4A2CCFE91513C3FC006C6551 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0430;
+				LastUpgradeCheck = 0440;
 				ORGANIZATIONNAME = "Andrew Fox";
 			};
 			buildConfigurationList = 4A2CCFEC1513C3FC006C6551 /* Build configuration list for PBXProject "GutsyStorm" */;
@@ -379,6 +386,7 @@
 				4A2310C7153E112900A4EBE6 /* GSChunkData.m in Sources */,
 				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
 				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,
+				13C8BE191602854300403815 /* GSNeighborhood.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -434,7 +442,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx10.7;
+				SDKROOT = "";
 			};
 			name = Debug;
 		};
@@ -453,13 +461,14 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
-				SDKROOT = macosx10.7;
+				SDKROOT = "";
 			};
 			name = Release;
 		};
 		4A2CD0111513C3FD006C6551 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "GutsyStorm/GutsyStorm-Prefix.pch";
 				INFOPLIST_FILE = "GutsyStorm/GutsyStorm-Info.plist";
@@ -472,6 +481,7 @@
 		4A2CD0121513C3FD006C6551 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "GutsyStorm/GutsyStorm-Prefix.pch";
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "NDEBUG=1";

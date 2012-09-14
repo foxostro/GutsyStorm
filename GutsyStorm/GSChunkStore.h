@@ -48,8 +48,6 @@ typedef id chunk_id_t;
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;
 
-+ (NSLock *)lockWhileLockingMultipleChunksVoxelData;
-+ (NSLock *)lockWhileLockingMultipleChunksSunlight;
 
 - (id)initWithSeed:(unsigned)_seed
             camera:(GSCamera *)_camera

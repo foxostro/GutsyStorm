@@ -54,18 +54,19 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 - (BOOL)tryToGenerateVBOs;
 - (void)destroyVBOs;
 - (void)destroyGeometry;
-- (void)generateGeometryWithVoxelData:(GSChunkVoxelData **)voxels;
+- (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)chunks;
+- (void)generateGeometryWithVoxelData:(GSNeighborhood *)voxels;
 - (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
                                         vertsBuffer:(GLfloat **)_vertsBuffer
                                         normsBuffer:(GLfloat **)_normsBuffer
                                     texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                         colorBuffer:(GLfloat **)_colorBuffer
                                         indexBuffer:(GLuint **)_indexBuffer
-                                          voxelData:(GSChunkVoxelData **)chunks
+                                          voxelData:(GSNeighborhood *)chunks
                                   onlyDoingCounting:(BOOL)onlyDoingCounting;
 - (void)fillIndexBufferForGenerating:(GLsizei)n;
 - (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
-                                        neighbors:(GSChunkVoxelData **)chunks
+                                        neighbors:(GSNeighborhood *)chunks
                               outAmbientOcclusion:(block_lighting_t*)ao;
 
 @end
@@ -75,7 +76,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 
 
 - (id)initWithMinP:(GSVector3)_minP
-         voxelData:(GSChunkVoxelData **)_chunks
+         voxelData:(GSNeighborhood *)voxelData
     chunkTaskQueue:(dispatch_queue_t)_chunkTaskQueue
          glContext:(NSOpenGLContext *)_glContext
 {
@@ -123,31 +124,17 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
         
         visible = NO;
         
-        [self updateWithVoxelData:_chunks doItSynchronously:NO];
+        [self updateWithVoxelData:voxelData doItSynchronously:NO];
     }
     
     return self;
 }
 
 
-- (void)updateWithVoxelData:(GSChunkVoxelData **)_chunks doItSynchronously:(BOOL)sync
+- (void)updateWithVoxelData:(GSNeighborhood *)neighborhood doItSynchronously:(BOOL)sync
 {
-    assert(_chunks);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
-    
-    GSChunkVoxelData **chunks = copyNeighbors(_chunks);
-    
     void (^b)(void) = ^{
-        [self generateGeometryWithVoxelData:chunks];
-        freeNeighbors(chunks);
+        [self generateGeometryWithVoxelData:neighborhood];
     };
     
     if(sync) {
@@ -215,43 +202,14 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 
 @implementation GSChunkGeometryData (Private)
 
-// Generates verts, norms, and texCoords buffers from voxel data.
-- (void)generateGeometryWithVoxelData:(GSChunkVoxelData **)chunks
+/* Assumes caller is already holding the following locks:
+ * "lockGeometry"
+ * "lockVoxelData" for all chunks in the neighborhood (for reading).
+ * "lockSunlight" for all chunks in the neighborhood (for reading).
+ */
+- (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)chunks
 {
     GSVector3 pos;
-
-    assert(chunks);
-    assert(chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_CENTER]);
-    
-    [lockGeometry lock];
-    
-    [self destroyGeometry];
-    
-    // Atomically, grab all the voxel data we need to generate geometry for this chunk.
-    // We do this atomically to prevent deadlock.
-    [[GSChunkStore lockWhileLockingMultipleChunksVoxelData] lock];
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i]->lockVoxelData lockForReading];
-    }
-    [[GSChunkStore lockWhileLockingMultipleChunksVoxelData] unlock];
-    
-    // Atomically, grab all the sunlight data we need to generate geometry for this chunk.
-    // We do this atomically to prevent deadlock.
-    [[GSChunkStore lockWhileLockingMultipleChunksSunlight] lock];
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i]->lockSunlight lockForReading];
-    }
-    [[GSChunkStore lockWhileLockingMultipleChunksSunlight] unlock];
     
     // Iterate over all voxels in the chunk and count the number of vertices that would be generated.
     numChunkVerts = 0;
@@ -306,16 +264,21 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
             }
         }
     }
+}
+
+
+// Generates verts, norms, and texCoords buffers from voxel data.
+- (void)generateGeometryWithVoxelData:(GSNeighborhood *)neighborhood
+{
+    [lockGeometry lock];
     
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i]->lockSunlight unlockForReading];
-    }
+    [self destroyGeometry];
     
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i]->lockVoxelData unlockForReading];
-    }
+    [neighborhood readerAccessToVoxelDataUsingBlock:^{
+        [neighborhood readerAccessToSunlightDataUsingBlock:^{
+            [self fillGeometryBuffersUsingVoxelData:neighborhood];
+        }];
+    }];
     
     [self fillIndexBufferForGenerating:numChunkVerts];
     
@@ -374,7 +337,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
 
 
 - (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
-                                        neighbors:(GSChunkVoxelData **)chunks
+                                        neighbors:(GSNeighborhood *)chunks
                               outAmbientOcclusion:(block_lighting_t*)ao
 {
     /* Front is in the -Z direction and back is the +Z direction.
@@ -391,7 +354,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
         {
             for(ssize_t z = -1; z <= 1; ++z)
             {
-                OCCLUSION(x, y, z) = isEmptyAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), chunks);
+                OCCLUSION(x, y, z) = [chunks isEmptyAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z)];
             }
         }
     }
@@ -509,20 +472,9 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
                                     texCoordsBuffer:(GLfloat **)_texCoordsBuffer
                                         colorBuffer:(GLfloat **)_colorBuffer
                                         indexBuffer:(GLuint **)_indexBuffer
-                                          voxelData:(GSChunkVoxelData **)chunks
+                                          voxelData:(GSNeighborhood *)chunks
                                   onlyDoingCounting:(BOOL)onlyDoingCounting
 {
-    assert(chunks);
-    assert(chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
-    assert(chunks[CHUNK_NEIGHBOR_CENTER]);
-    
     if(!onlyDoingCounting && !(_vertsBuffer && _normsBuffer && _texCoordsBuffer && _colorBuffer && _indexBuffer)) {
         [NSException raise:NSInvalidArgumentException format:@"If countOnly is NO then pointers to buffers must be provided."];
     }
@@ -545,9 +497,9 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     
     GSIntegerVector3 chunkLocalPos = {x-minX, y-minY, z-minZ};
     
-    GSChunkVoxelData *voxels = chunks[CHUNK_NEIGHBOR_CENTER];
+    GSChunkVoxelData *centerVoxels = [chunks getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     
-    voxel_t *thisVoxel = [voxels getPointerToVoxelAtPoint:chunkLocalPos];
+    voxel_t *thisVoxel = [centerVoxels getPointerToVoxelAtPoint:chunkLocalPos];
     
     if(isVoxelEmpty(*thisVoxel)) {
         return count;
@@ -563,15 +515,15 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     }
     
     block_lighting_t sunlight;
-    [chunks[CHUNK_NEIGHBOR_CENTER] getSunlightAtPoint:chunkLocalPos
-                                            neighbors:chunks
-                                          outLighting:&sunlight];
+    [centerVoxels calculateSunlightAtPoint:chunkLocalPos
+                           neighbors:chunks
+                         outLighting:&sunlight];
     
     unsigned unpackedSunlight[4];
     unsigned unpackedAO[4];
     
     // Top Face
-    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ), chunks)) {
+    if([chunks isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY+1, z-minZ)]) {
         count += 4;
         
         if(!onlyDoingCounting) {
@@ -619,7 +571,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     }
     
     // Bottom Face
-    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY-1, z-minZ), chunks)) {
+    if([chunks isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY-1, z-minZ)]) {
         count += 4;
         
         if(!onlyDoingCounting) {
@@ -665,7 +617,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     }
     
     // Back Face (+Z)
-    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY, z-minZ+1), chunks)) {
+    if([chunks isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ+1)]) {
         count += 4;
         
         if(!onlyDoingCounting) {
@@ -711,7 +663,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     }
     
     // Front Face (-Z)
-    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX, y-minY, z-minZ-1), chunks)) {
+    if([chunks isEmptyAtPoint:GSIntegerVector3_Make(x-minX, y-minY, z-minZ-1)]) {
         count += 4;
         
         if(!onlyDoingCounting) {
@@ -757,7 +709,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     }
     
     // Right Face
-    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX+1, y-minY, z-minZ), chunks)) {
+    if([chunks isEmptyAtPoint:GSIntegerVector3_Make(x-minX+1, y-minY, z-minZ)]) {
         count += 4;
         
         if(!onlyDoingCounting) {
@@ -803,7 +755,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     }
     
     // Left Face
-    if(isEmptyAtPoint(GSIntegerVector3_Make(x-minX-1, y-minY, z-minZ), chunks)) {
+    if([chunks isEmptyAtPoint:GSIntegerVector3_Make(x-minX-1, y-minY, z-minZ)]) {
         count += 4;
         
         if(!onlyDoingCounting) {

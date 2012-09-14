@@ -11,16 +11,8 @@
 #import "GSNoise.h"
 
 
-#define SQR(a) ((a)*(a))
-#define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
-
-
-static int getBlockSunlightAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
 static float groundGradient(float terrainHeight, GSVector3 p);
 static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
-
-// Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
-static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, GSChunkVoxelData **neighbors);
 
 
 @interface GSChunkVoxelData (Private)
@@ -147,16 +139,26 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
 }
 
 
-- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)_chunks doItSynchronously:(BOOL)sync
+- (uint8_t)getSunlightAtPoint:(GSIntegerVector3)p
 {
-    GSChunkVoxelData **chunks = copyNeighbors(_chunks);
+    assert(sunlight);
+    assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
+    assert(p.y >= 0 && p.y < CHUNK_SIZE_Y);
+    assert(p.z >= 0 && p.z < CHUNK_SIZE_Z);
     
+    size_t idx = INDEX(p.x, p.y, p.z);
+    assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
+    
+    return sunlight[idx];
+}
+
+
+- (void)updateLightingWithNeighbors:(GSNeighborhood *)neighbors doItSynchronously:(BOOL)sync
+{
     void (^b)(void) = ^{
         [lockSunlight lockForWriting];
         [self generateSunlight];
         [lockSunlight unlockForWriting];
-        
-        freeNeighbors(chunks);
     };
     
     if(sync) {
@@ -168,9 +170,9 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
 
 
 // Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
-- (void)getSunlightAtPoint:(GSIntegerVector3)p
-                 neighbors:(GSChunkVoxelData **)voxels
-               outLighting:(block_lighting_t *)lighting
+- (void)calculateSunlightAtPoint:(GSIntegerVector3)p
+                       neighbors:(GSNeighborhood *)neighbors
+                     outLighting:(block_lighting_t *)lighting
 {
     /* Front is in the -Z direction and back is the +Z direction.
      * This is a totally arbitrary convention.
@@ -202,9 +204,7 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
         {
             for(ssize_t z = -1; z <= 1; ++z)
             {
-                int lightLevel = getBlockSunlightAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), voxels);
-                assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
-                SUNLIGHT(x, y, z) = lightLevel;
+                SUNLIGHT(x, y, z) = [neighbors getBlockSunlightAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z)];
             }
         }
     }
@@ -332,6 +332,50 @@ static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, 
         [self saveVoxelDataToFile];
         [lockVoxelData unlockForWriting];
     });
+}
+
+
+- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
+{
+    [lockVoxelData lockForReading];
+    block();
+    [lockVoxelData unlockForReading];
+}
+
+
+- (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
+{
+    [lockVoxelData lockForWriting];
+    block();
+    [lockVoxelData unlockForWriting];
+}
+
+
+- (GSReaderWriterLock *)getVoxelDataLock
+{
+    return lockVoxelData;
+}
+
+
+- (void)readerAccessToSunlightDataUsingBlock:(void (^)(void))block
+{
+    [lockSunlight lockForReading];
+    block();
+    [lockSunlight unlockForReading];
+}
+
+
+- (void)writerAccessToSunlightDataUsingBlock:(void (^)(void))block
+{
+    [lockSunlight lockForWriting];
+    block();
+    [lockSunlight unlockForWriting];
+}
+
+
+- (GSReaderWriterLock *)getSunlightDataLock
+{
+    return lockSunlight;
 }
 
 @end
@@ -645,132 +689,4 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
     
     return groundLayer || floatingMountain;
-}
-
-
-/* Given a position relative to this voxel, and a list of neighboring chunks, return the chunk that contains the specified position.
- * also returns the position in the local coordinate system of that chunk.
- * The position must be contained in this chunk or any of the specified neighbors.
- */
-static GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 *chunkLocalP, GSChunkVoxelData **neighbors)
-{
-    if(chunkLocalP->x >= CHUNK_SIZE_X) {
-        chunkLocalP->x -= CHUNK_SIZE_X;
-        
-        if(chunkLocalP->z < 0) {
-            chunkLocalP->z += CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z];
-        } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
-            chunkLocalP->z -= CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z];
-        } else {
-            return neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z];
-        }
-    } else if(chunkLocalP->x < 0) {
-        chunkLocalP->x += CHUNK_SIZE_X;
-        
-        if(chunkLocalP->z < 0) {
-            chunkLocalP->z += CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z];
-        } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
-            chunkLocalP->z -= CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z];
-        } else {
-            return neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z];
-        }
-    } else {
-        if(chunkLocalP->z < 0) {
-            chunkLocalP->z += CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z];
-        } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
-            chunkLocalP->z -= CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z];
-        } else {
-            return neighbors[CHUNK_NEIGHBOR_CENTER];
-        }
-    }
-}
-
-
-/* Assumes the caller is already holding "lockSunlight" on all neighbors.
- * Returns the block's sunlight value.
- */
-int getBlockSunlightAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
-{
-    // Assumes each chunk spans the entire vertical extent of the world.
-    
-    if(p.y < 0) {
-        return 0; // Space below the world is always dark.
-    }
-    
-    if(p.y >= CHUNK_SIZE_Y) {
-        return CHUNK_LIGHTING_MAX; // Space above the world is always bright.
-    }
-    
-    GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(&p, neighbors);
-    
-    return chunk->sunlight[INDEX(p.x, p.y, p.z)];
-}
-
-
-/* Assumes the caller is already holding "lockVoxelData" on all neighbors.
- * Returns YES if the specified block is empty.
- */
-BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
-{
-    // Assumes each chunk spans the entire vertical extent of the world.
-    
-    if(p.y < 0) {
-        return NO; // Space below the world is always full.
-    }
-    
-    if(p.y >= CHUNK_SIZE_Y) {
-        return YES; // Space above the world is always empty.
-    }
-    
-    GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(&p, neighbors);
-    
-    voxel_t voxel = chunk->voxelData[INDEX(p.x, p.y, p.z)];
-    
-    return isVoxelEmpty(voxel);
-}
-
-
-void freeNeighbors(GSChunkVoxelData **chunks)
-{
-    // No longer need references to the neighboring chunks.
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i] release];
-    }
-    free(chunks);
-}
-
-
-GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks)
-{
-    assert(_chunks);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
-    
-    // chunks array is freed by th asynchronous task to fetch/load the lighting data
-    GSChunkVoxelData **chunks = calloc(CHUNK_NUM_NEIGHBORS, sizeof(GSChunkVoxelData *));
-    if(!chunks) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for temporary chunks array."];
-    }
-    
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        chunks[i] = _chunks[i];
-        [chunks[i] retain];
-    }
-    
-    return chunks;
 }
