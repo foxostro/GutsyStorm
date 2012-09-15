@@ -426,7 +426,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
-    dispatch_apply(CHUNK_SIZE_X, chunkTaskQueue, ^(size_t x) {
+    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+    {
         for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
         {
             // Get the y value of the highest non-empty voxel in the chunk.
@@ -450,7 +451,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                 markVoxelAsOutside(outside, voxel);
             }
         }
-   });
+    }
 }
 
 
@@ -467,7 +468,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
     GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:(seed+1)];
     
-    dispatch_apply(CHUNK_SIZE_X, chunkTaskQueue, ^(size_t x) {
+    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+    {
         for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
         {
             for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
@@ -481,7 +483,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                 // whether the block is outside or not is calculated later
             }
        }
-    });
+    }
     
     [noiseSource0 release];
     [noiseSource1 release];
@@ -555,6 +557,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
  */
 - (void)generateSunlight
 {
+    GSIntegerVector3 p;
+    
     if(!sunlight) {
         sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
         if(!sunlight) {
@@ -570,11 +574,8 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     
 
     // Reset all empty, outside blocks to full sunlight.
-    dispatch_apply(CHUNK_SIZE_X, chunkTaskQueue, ^(size_t x) {
-        GSIntegerVector3 p = {0};
-        
-        p.x = x;
-        
+    for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+    {
         for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
         {
             for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
@@ -589,18 +590,15 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                 }
             }
        }
-    });
+    }
     
     // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
     // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
     // Set the blocks we find to the next lower light level.
     for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
     {
-        dispatch_apply(CHUNK_SIZE_X, chunkTaskQueue, ^(size_t x) {
-            GSIntegerVector3 p = {0};
-            
-            p.x = x;
-            
+        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+        {
             for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
             {
                 for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
@@ -613,7 +611,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
                     }
                 }
             }
-        });
+        }
     }
     
     [lockVoxelData unlockForReading];

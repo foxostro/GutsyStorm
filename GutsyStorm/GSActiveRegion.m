@@ -47,9 +47,7 @@
 {
     for(NSUInteger i = 0; i < maxActiveChunks; ++i)
     {
-        GSChunkGeometryData *chunk = activeChunks[i];
-        assert(chunk);
-        block(chunk);
+        block(activeChunks[i]);
     }
 }
 
