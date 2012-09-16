@@ -9,9 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSVector3.h"
 
-#define CHUNK_SIZE_X (16)
-#define CHUNK_SIZE_Y (128)
-#define CHUNK_SIZE_Z (16)
+
 #define READY (1)
 
 

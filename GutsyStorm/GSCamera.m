@@ -10,7 +10,7 @@
 #import <OpenGL/gl.h>
 #import <OpenGL/glu.h>
 #import "GSCamera.h"
-#import "GSChunkData.h"
+#import "Voxel.h"
 
 @implementation GSCamera
 

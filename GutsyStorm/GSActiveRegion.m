@@ -7,6 +7,7 @@
 //
 
 #import "GSActiveRegion.h"
+#import "Voxel.h"
 
 @implementation GSActiveRegion
 

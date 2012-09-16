@@ -14,6 +14,9 @@
 #import "GSNeighborhood.h"
 
 
+typedef BOOL (^terrain_generator_t)(GSVector3);
+
+
 @interface GSChunkVoxelData : GSChunkData
 {
     NSURL *folder;
@@ -30,12 +33,11 @@
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
 
-- (id)initWithSeed:(unsigned)seed
-              minP:(GSVector3)minP
-     terrainHeight:(float)terrainHeight
+- (id)initWithMinP:(GSVector3)minP
             folder:(NSURL *)folder
     groupForSaving:(dispatch_group_t)groupForSaving
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue;
+    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+         generator:(terrain_generator_t)callback;
 
 - (void)updateLightingWithNeighbors:(GSNeighborhood *)neighbors doItSynchronously:(BOOL)sync;
 

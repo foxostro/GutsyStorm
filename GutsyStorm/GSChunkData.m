@@ -7,6 +7,7 @@
 //
 
 #import "GSChunkData.h"
+#import "Voxel.h"
 
 @implementation GSChunkData
 
