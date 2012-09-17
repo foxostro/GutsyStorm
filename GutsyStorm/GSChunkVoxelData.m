@@ -452,7 +452,7 @@
  *
  * Assumes the caller already holds "lockVoxelData" for writing.
  */
-- (void)generateVoxelDataWithCallback:(terrain_generator_t)callback
+- (void)generateVoxelDataWithCallback:(terrain_generator_t)generator
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
@@ -462,11 +462,8 @@
         {
             for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
             {
-                GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
-                voxel_t *voxel = [self getPointerToVoxelAtPoint:GSIntegerVector3_Make(x, y, z)];
-                BOOL empty = !callback(p);
-                
-                markVoxelAsEmpty(empty, voxel);
+                generator(GSVector3_Add(GSVector3_Make(x, y, z), minP),
+                          [self getPointerToVoxelAtPoint:GSIntegerVector3_Make(x, y, z)]);
                 
                 // whether the block is outside or not is calculated later
             }

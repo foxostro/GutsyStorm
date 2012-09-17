@@ -16,7 +16,7 @@
 #import "GSNoise.h"
 
 static float groundGradient(float terrainHeight, GSVector3 p);
-static BOOL isGround(unsigned seed, float terrainHeight, GSVector3 p);
+static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p, voxel_t *outVoxel);
 
 
 @interface GSChunkStore (Private)
@@ -385,8 +385,8 @@ static BOOL isGround(unsigned seed, float terrainHeight, GSVector3 p);
                                                  folder:folder
                                          groupForSaving:groupForSaving
                                          chunkTaskQueue:chunkTaskQueue
-                                              generator:^BOOL(GSVector3 p) {
-                                                  return isGround(seed, terrainHeight, p);
+                                              generator:^(GSVector3 p, voxel_t *voxel) {
+                                                  generateTerrainVoxel(seed, terrainHeight, p, voxel);
                                               }];
         [voxels autorelease];
         [cacheVoxelData setObject:voxels forKey:chunkID];
@@ -627,20 +627,22 @@ static float groundGradient(float terrainHeight, GSVector3 p)
 }
 
 
-// Returns YES if the point is ground, NO otherwise.
-static BOOL isGround(unsigned seed, float terrainHeight, GSVector3 p)
+// Generates a voxel for the specified point in space. Returns that voxel in `outVoxel'.
+static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p, voxel_t *outVoxel)
 {
     static dispatch_once_t onceToken;
     static GSNoise *noiseSource0;
     static GSNoise *noiseSource1;
     
+    BOOL groundLayer = NO;
+    BOOL floatingMountain = NO;
+    
+    assert(outVoxel);
+    
     dispatch_once(&onceToken, ^{
         noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
         noiseSource1 = [[GSNoise alloc] initWithSeed:seed+1];
     });
-    
-    BOOL groundLayer = NO;
-    BOOL floatingMountain = NO;
     
     // Normal rolling hills
     {
@@ -676,7 +678,8 @@ static BOOL isGround(unsigned seed, float terrainHeight, GSVector3 p)
             float azimuthalAngle = acosf(toMountainCenter.z / distance);
             float polarAngle = atan2f(toMountainCenter.y, toMountainCenter.x);
             
-            float t = turbScale * [noiseSource0 getNoiseAtPointWithFourOctaves:GSVector3_Make(azimuthalAngle * freqScale, polarAngle * freqScale, 0.0)];
+            float t = turbScale * [noiseSource0 getNoiseAtPointWithFourOctaves:GSVector3_Make(azimuthalAngle * freqScale,
+                                                                                              polarAngle * freqScale, 0.0)];
             
             // Flatten the top.
             if(p.y > mountainCenter.y) {
@@ -687,5 +690,5 @@ static BOOL isGround(unsigned seed, float terrainHeight, GSVector3 p)
         }
     }
     
-    return groundLayer || floatingMountain;
+    *outVoxel = (groundLayer || floatingMountain) ? ~VOXEL_EMPTY : VOXEL_EMPTY;
 }

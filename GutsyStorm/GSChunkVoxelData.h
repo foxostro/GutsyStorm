@@ -14,7 +14,7 @@
 #import "GSNeighborhood.h"
 
 
-typedef BOOL (^terrain_generator_t)(GSVector3);
+typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 
 
 @interface GSChunkVoxelData : GSChunkData
