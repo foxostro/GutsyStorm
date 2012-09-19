@@ -57,7 +57,7 @@ static inline BOOL isVoxelOutside(voxel_t voxel)
 }
 
 
-static inline unsigned avgSunlight(unsigned a, unsigned b, unsigned c, unsigned d)
+static inline unsigned averageLightValue(unsigned a, unsigned b, unsigned c, unsigned d)
 {
     return (a+b+c+d) >> 2;
 }

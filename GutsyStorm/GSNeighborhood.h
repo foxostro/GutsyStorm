@@ -35,7 +35,7 @@ typedef enum
 }
 
 + (NSLock *)_sharedVoxelDataLock;
-+ (NSLock *)_sharedSunlightLock;
++ (NSLock *)_sharedSkylightLock;
 + (GSVector3)getOffsetForNeighborIndex:(neighbor_index_t)idx;
 
 - (GSChunkVoxelData *)getNeighborAtIndex:(neighbor_index_t)idx;
@@ -57,7 +57,7 @@ typedef enum
 /* Returns the sunlight value at the specified block.
  * Assumes the caller is already holding "lockSunlight" on all neighbors.
  */
-- (uint8_t)getBlockSunlightAtPoint:(GSIntegerVector3)p;
+- (uint8_t)getBlockSkylightAtPoint:(GSIntegerVector3)p;
 
 /* Executes the specified block while holding the voxel data locks (for reading) on all chunks in the neighborhood. */
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
@@ -66,9 +66,9 @@ typedef enum
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
 /* Executes the specified block while holding the sunlight data locks (for reading) on all chunks in the neighborhood. */
-- (void)readerAccessToSunlightDataUsingBlock:(void (^)(void))block;
+- (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block;
 
 /* Executes the specified block while holding the sunlight data locks (for writing) on all chunks in the neighborhood. */
-- (void)writerAccessToSunlightDataUsingBlock:(void (^)(void))block;
+- (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block;
 
 @end

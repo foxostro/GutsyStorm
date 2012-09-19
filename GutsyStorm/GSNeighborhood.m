@@ -28,7 +28,7 @@
 }
 
 
-+ (NSLock *)_sharedSunlightLock
++ (NSLock *)_sharedSkylightLock
 {
     static dispatch_once_t onceToken;
     static NSLock *a = nil;
@@ -168,38 +168,38 @@
 }
 
 
-- (void)readerAccessToSunlightDataUsingBlock:(void (^)(void))block
+- (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block
 {
-    NSLock *globalLock = [GSNeighborhood _sharedSunlightLock];
+    NSLock *globalLock = [GSNeighborhood _sharedSkylightLock];
     
     [globalLock lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getSunlightDataLock] lockForReading];
+        [[neighbor getSkylightDataLock] lockForReading];
     }];
     [globalLock unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getSunlightDataLock] unlockForReading];
+        [[neighbor getSkylightDataLock] unlockForReading];
     }];
 }
 
 
-- (void)writerAccessToSunlightDataUsingBlock:(void (^)(void))block
+- (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block
 {
-    NSLock *globalLock = [GSNeighborhood _sharedSunlightLock];
+    NSLock *globalLock = [GSNeighborhood _sharedSkylightLock];
     
     [globalLock lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getSunlightDataLock] lockForWriting];
+        [[neighbor getSkylightDataLock] lockForWriting];
     }];
     [globalLock unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getSunlightDataLock] unlockForWriting];
+        [[neighbor getSkylightDataLock] unlockForWriting];
     }];
 }
 
@@ -260,7 +260,7 @@
 }
 
 
-- (uint8_t)getBlockSunlightAtPoint:(GSIntegerVector3)p
+- (uint8_t)getBlockSkylightAtPoint:(GSIntegerVector3)p
 {
     // Assumes each chunk spans the entire vertical extent of the world.
     
@@ -274,7 +274,7 @@
     
     GSChunkVoxelData *chunk = [self getNeighborVoxelAtPoint:&p];
     
-    uint8_t lightLevel = [chunk getSunlightAtPoint:p];
+    uint8_t lightLevel = [chunk getSkylightAtPoint:p];
 
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
     

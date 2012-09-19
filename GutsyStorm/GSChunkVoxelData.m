@@ -19,10 +19,8 @@
 - (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)recalcOutsideVoxelsNoLock;
 - (void)saveVoxelDataToFile;
-- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel;
-- (void)clearSunlightBuffer;
-- (void)computeHardLocalSunlight;
-- (void)generateSunlightWithNeighbors:(GSNeighborhood *)neighbors;
+- (void)clearSkylightBuffer;
+- (void)fillSkylightBuffer;
 
 @end
 
@@ -55,11 +53,11 @@
         lockVoxelData = [[GSReaderWriterLock alloc] init];
         [lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         
-        lockSunlight = [[GSReaderWriterLock alloc] init];
-        [lockSunlight lockForWriting]; // This is locked initially and unlocked at the end of the first update.
+        lockSkylight = [[GSReaderWriterLock alloc] init];
+        [lockSkylight lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         
         voxelData = NULL;
-        sunlight = NULL;
+        skylight = NULL;
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -81,10 +79,10 @@
             
             [lockVoxelData unlockForWriting];
             
-            // And now generate sunlight for this chunk.
-            [self clearSunlightBuffer];
-            [self computeHardLocalSunlight];
-            [lockSunlight unlockForWriting];
+            // And now generate direct skylight for this chunk, which does not depend on neighboring chunks.
+            [self clearSkylightBuffer];
+            [self fillSkylightBuffer];
+            [lockSkylight unlockForWriting];
         });
     }
     
@@ -103,11 +101,11 @@
     [lockVoxelData unlockForWriting];
     [lockVoxelData release];
     
-    [lockSunlight lockForWriting];
-    free(sunlight);
-    sunlight = NULL;
-    [lockSunlight unlockForWriting];
-    [lockSunlight release];
+    [lockSkylight lockForWriting];
+    free(skylight);
+    skylight = NULL;
+    [lockSkylight unlockForWriting];
+    [lockSkylight release];
     
     [super dealloc];
 }
@@ -135,13 +133,13 @@
 }
 
 
-- (uint8_t)getSunlightAtPoint:(GSIntegerVector3)p
+- (uint8_t)getSkylightAtPoint:(GSIntegerVector3)p
 {
-    return *[self getPointerToSunlightAtPoint:p];
+    return *[self getPointerToSkylightAtPoint:p];
 }
 
 
-- (uint8_t *)getPointerToSunlightAtPoint:(GSIntegerVector3)p
+- (uint8_t *)getPointerToSkylightAtPoint:(GSIntegerVector3)p
 {
     assert(sunlight);
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
@@ -151,16 +149,17 @@
     size_t idx = INDEX(p.x, p.y, p.z);
     assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
     
-    return &sunlight[idx];
+    return &skylight[idx];
 }
 
 
 - (void)updateLightingWithNeighbors:(GSNeighborhood *)n doItSynchronously:(BOOL)sync
 {
+#if 0
     void (^b)(void) = ^{
         [n readerAccessToVoxelDataUsingBlock:^{
-            [n writerAccessToSunlightDataUsingBlock:^{
-                [self generateSunlightWithNeighbors:n];
+            [n writerAccessToSkylightDataUsingBlock:^{
+                assert(!"stub");
             }];
         }];
     };
@@ -170,11 +169,12 @@
     } else {
         dispatch_async(chunkTaskQueue, b);
     }
+#endif
 }
 
 
 // Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
-- (void)interpolateSunlightAtPoint:(GSIntegerVector3)p
+- (void)interpolateSkylightAtPoint:(GSIntegerVector3)p
                        neighbors:(GSNeighborhood *)neighbors
                      outLighting:(block_lighting_t *)lighting
 {
@@ -208,109 +208,109 @@
         {
             for(ssize_t z = -1; z <= 1; ++z)
             {
-                SUNLIGHT(x, y, z) = [neighbors getBlockSunlightAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z)];
+                SUNLIGHT(x, y, z) = [neighbors getBlockSkylightAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z)];
             }
         }
     }
     
-    lighting->top = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, 1,  0),
+    lighting->top = packBlockLightingValuesForVertex(averageLightValue(SUNLIGHT( 0, 1,  0),
                                                                  SUNLIGHT( 0, 1, -1),
                                                                  SUNLIGHT(-1, 1,  0),
                                                                  SUNLIGHT(-1, 1, -1)),
-                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                     averageLightValue(SUNLIGHT( 0, 1,  0),
                                                                  SUNLIGHT( 0, 1, +1),
                                                                  SUNLIGHT(-1, 1,  0),
                                                                  SUNLIGHT(-1, 1, +1)),
-                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                     averageLightValue(SUNLIGHT( 0, 1,  0),
                                                                  SUNLIGHT( 0, 1, +1),
                                                                  SUNLIGHT(+1, 1,  0),
                                                                  SUNLIGHT(+1, 1, +1)),
-                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
+                                                     averageLightValue(SUNLIGHT( 0, 1,  0),
                                                                  SUNLIGHT( 0, 1, -1),
                                                                  SUNLIGHT(+1, 1,  0),
                                                                  SUNLIGHT(+1, 1, -1)));
     
-    lighting->bottom = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1,  0),
+    lighting->bottom = packBlockLightingValuesForVertex(averageLightValue(SUNLIGHT( 0, -1,  0),
                                                                     SUNLIGHT( 0, -1, -1),
                                                                     SUNLIGHT(-1, -1,  0),
                                                                     SUNLIGHT(-1, -1, -1)),
-                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                        averageLightValue(SUNLIGHT( 0, -1,  0),
                                                                     SUNLIGHT( 0, -1, -1),
                                                                     SUNLIGHT(+1, -1,  0),
                                                                     SUNLIGHT(+1, -1, -1)),
-                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                        averageLightValue(SUNLIGHT( 0, -1,  0),
                                                                     SUNLIGHT( 0, -1, +1),
                                                                     SUNLIGHT(+1, -1,  0),
                                                                     SUNLIGHT(+1, -1, +1)),
-                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
+                                                        averageLightValue(SUNLIGHT( 0, -1,  0),
                                                                     SUNLIGHT( 0, -1, +1),
                                                                     SUNLIGHT(-1, -1,  0),
                                                                     SUNLIGHT(-1, -1, +1)));
     
-    lighting->back = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1, 1),
+    lighting->back = packBlockLightingValuesForVertex(averageLightValue(SUNLIGHT( 0, -1, 1),
                                                                   SUNLIGHT( 0,  0, 1),
                                                                   SUNLIGHT(-1, -1, 1),
                                                                   SUNLIGHT(-1,  0, 1)),
-                                                      avgSunlight(SUNLIGHT( 0, -1, 1),
+                                                      averageLightValue(SUNLIGHT( 0, -1, 1),
                                                                   SUNLIGHT( 0,  0, 1),
                                                                   SUNLIGHT(+1, -1, 1),
                                                                   SUNLIGHT(+1,  0, 1)),
-                                                      avgSunlight(SUNLIGHT( 0, +1, 1),
+                                                      averageLightValue(SUNLIGHT( 0, +1, 1),
                                                                   SUNLIGHT( 0,  0, 1),
                                                                   SUNLIGHT(+1, +1, 1),
                                                                   SUNLIGHT(+1,  0, 1)),
-                                                      avgSunlight(SUNLIGHT( 0, +1, 1),
+                                                      averageLightValue(SUNLIGHT( 0, +1, 1),
                                                                   SUNLIGHT( 0,  0, 1),
                                                                   SUNLIGHT(-1, +1, 1),
                                                                   SUNLIGHT(-1,  0, 1)));
     
-    lighting->front = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1, -1),
+    lighting->front = packBlockLightingValuesForVertex(averageLightValue(SUNLIGHT( 0, -1, -1),
                                                                    SUNLIGHT( 0,  0, -1),
                                                                    SUNLIGHT(-1, -1, -1),
                                                                    SUNLIGHT(-1,  0, -1)),
-                                                       avgSunlight(SUNLIGHT( 0, +1, -1),
+                                                       averageLightValue(SUNLIGHT( 0, +1, -1),
                                                                    SUNLIGHT( 0,  0, -1),
                                                                    SUNLIGHT(-1, +1, -1),
                                                                    SUNLIGHT(-1,  0, -1)),
-                                                       avgSunlight(SUNLIGHT( 0, +1, -1),
+                                                       averageLightValue(SUNLIGHT( 0, +1, -1),
                                                                    SUNLIGHT( 0,  0, -1),
                                                                    SUNLIGHT(+1, +1, -1),
                                                                    SUNLIGHT(+1,  0, -1)),
-                                                       avgSunlight(SUNLIGHT( 0, -1, -1),
+                                                       averageLightValue(SUNLIGHT( 0, -1, -1),
                                                                    SUNLIGHT( 0,  0, -1),
                                                                    SUNLIGHT(+1, -1, -1),
                                                                    SUNLIGHT(+1,  0, -1)));
     
-    lighting->right = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT(+1,  0,  0),
+    lighting->right = packBlockLightingValuesForVertex(averageLightValue(SUNLIGHT(+1,  0,  0),
                                                                    SUNLIGHT(+1,  0, -1),
                                                                    SUNLIGHT(+1, -1,  0),
                                                                    SUNLIGHT(+1, -1, -1)),
-                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                       averageLightValue(SUNLIGHT(+1,  0,  0),
                                                                    SUNLIGHT(+1,  0, -1),
                                                                    SUNLIGHT(+1, +1,  0),
                                                                    SUNLIGHT(+1, +1, -1)),
-                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                       averageLightValue(SUNLIGHT(+1,  0,  0),
                                                                    SUNLIGHT(+1,  0, +1),
                                                                    SUNLIGHT(+1, +1,  0),
                                                                    SUNLIGHT(+1, +1, +1)),
-                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
+                                                       averageLightValue(SUNLIGHT(+1,  0,  0),
                                                                    SUNLIGHT(+1,  0, +1),
                                                                    SUNLIGHT(+1, -1,  0),
                                                                    SUNLIGHT(+1, -1, +1)));
     
-    lighting->left = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT(-1,  0,  0),
+    lighting->left = packBlockLightingValuesForVertex(averageLightValue(SUNLIGHT(-1,  0,  0),
                                                                   SUNLIGHT(-1,  0, -1),
                                                                   SUNLIGHT(-1, -1,  0),
                                                                   SUNLIGHT(-1, -1, -1)),
-                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                      averageLightValue(SUNLIGHT(-1,  0,  0),
                                                                   SUNLIGHT(-1,  0, +1),
                                                                   SUNLIGHT(-1, -1,  0),
                                                                   SUNLIGHT(-1, -1, +1)),
-                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                      averageLightValue(SUNLIGHT(-1,  0,  0),
                                                                   SUNLIGHT(-1,  0, +1),
                                                                   SUNLIGHT(-1, +1,  0),
                                                                   SUNLIGHT(-1, +1, +1)),
-                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
+                                                      averageLightValue(SUNLIGHT(-1,  0,  0),
                                                                   SUNLIGHT(-1,  0, -1),
                                                                   SUNLIGHT(-1, +1,  0),
                                                                   SUNLIGHT(-1, +1, -1)));
@@ -361,25 +361,25 @@
 }
 
 
-- (void)readerAccessToSunlightDataUsingBlock:(void (^)(void))block
+- (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block
 {
-    [lockSunlight lockForReading];
+    [lockSkylight lockForReading];
     block();
-    [lockSunlight unlockForReading];
+    [lockSkylight unlockForReading];
 }
 
 
-- (void)writerAccessToSunlightDataUsingBlock:(void (^)(void))block
+- (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block
 {
-    [lockSunlight lockForWriting];
+    [lockSkylight lockForWriting];
     block();
-    [lockSunlight unlockForWriting];
+    [lockSkylight unlockForWriting];
 }
 
 
-- (GSReaderWriterLock *)getSunlightDataLock
+- (GSReaderWriterLock *)getSkylightDataLock
 {
-    return lockSunlight;
+    return lockSkylight;
 }
 
 @end
@@ -510,58 +510,22 @@
 }
 
 
-/* Assumes the caller is already holding "lockVoxelData".
- * Returns YES if any of the empty, adjacent blocks are lit to the specified light level.
- * NOTE: This totally ignores the neighboring chunks.
- */
-- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel
-{
-    if(p.y+1 >= CHUNK_SIZE_Y) {
-        return YES;
-    } else if(isVoxelEmpty(voxelData[INDEX(p.x, p.y+1, p.z)]) && sunlight[INDEX(p.x, p.y+1, p.z)] == lightLevel) {
-        return YES;
-    }
-    
-    if(p.y-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y-1, p.z)]) && sunlight[INDEX(p.x, p.y-1, p.z)] == lightLevel) {
-        return YES;
-    }
-    
-    if(p.x-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x-1, p.y, p.z)]) && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
-        return YES;
-    }
-    
-    if(p.x+1 < CHUNK_SIZE_X && isVoxelEmpty(voxelData[INDEX(p.x+1, p.y, p.z)]) && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
-        return YES;
-    }
-    
-    if(p.z-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z-1)]) && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
-        return YES;
-    }
-    
-    if(p.z+1 < CHUNK_SIZE_Z && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z+1)]) && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
-        return YES;
-    }
-    
-    return NO;
-}
-
-
 // Assumes the caller has already holding "lockSunlight" for writing.
-- (void)clearSunlightBuffer
+- (void)clearSkylightBuffer
 {
-    if(!sunlight) {
-        sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
-        if(!sunlight) {
+    if(!skylight) {
+        skylight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
+        if(!skylight) {
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
         }
     } else {
-        bzero(sunlight, sizeof(int8_t) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
+        bzero(skylight, sizeof(int8_t) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
     }
 }
 
 
 // Assumes the caller has already holding "lockSunlight" for writing and "lockVoxelData" for reading.
-- (void)computeHardLocalSunlight
+- (void)fillSkylightBuffer
 {
     GSIntegerVector3 p;
     for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
@@ -576,96 +540,11 @@
                 // This is "hard" lighting with exactly two lighting levels.
                 // Solid blocks always have zero sunlight. They pick up light from surrounding air.
                 if(isVoxelEmpty(voxelData[idx]) && isVoxelOutside(voxelData[idx])) {
-                    sunlight[idx] = CHUNK_LIGHTING_MAX;
+                    skylight[idx] = CHUNK_LIGHTING_MAX;
                 }
             }
         }
     }
-}
-
-
-/* Generates sunlight values for all blocks in the chunk.
- * Assumes the caller has already holding "lockSunlight" for writing, and "lockVoxelData" for reading,
- * for all chunks in the neighborhood.
- */
-- (void)floodFillSunlightAtPoint:(GSIntegerVector3)p
-                       neighbors:(GSNeighborhood *)neighbors
-                       intensity:(int)intensity
-{
-    if(intensity < 0) {
-        return;
-    }
-    
-    if(p.y < 0 || p.y >= CHUNK_SIZE_Y) {
-        return;
-    }
-    
-    GSIntegerVector3 ap = p;
-    GSChunkVoxelData *voxels = [neighbors getNeighborVoxelAtPoint:&ap]; // `ap' is adjusted to be relative to `voxels' local space
-    uint8_t *value = [voxels getPointerToSunlightAtPoint:ap];
-    
-    if(!isVoxelEmpty([voxels getVoxelAtPoint:ap])) {
-        *value = 0; // solid voxels always have zero sunlight
-        return;
-    }
-    
-    if(*value > intensity) {
-        return;
-    }
-    
-    *value = intensity;
-    
-    // recursive flood-fill
-    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x+1, p.y, p.z) neighbors:neighbors intensity:intensity-1];
-    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x-1, p.y, p.z) neighbors:neighbors intensity:intensity-1];
-    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x, p.y+1, p.z) neighbors:neighbors intensity:intensity-1];
-    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x, p.y-1, p.z) neighbors:neighbors intensity:intensity-1];
-    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x, p.y, p.z+1) neighbors:neighbors intensity:intensity-1];
-    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x, p.y, p.z-1) neighbors:neighbors intensity:intensity-1];
-}
-
-
-/* Generates sunlight values for all blocks in the chunk.
- * Assumes the caller has already holding "lockSunlight" for writing, and "lockVoxelData" for reading,
- * for all chunks in the neighborhood.
- */
-- (void)generateSunlightWithNeighbors:(GSNeighborhood *)neighbors
-{
-    GSIntegerVector3 p;
-    
-    NSMutableArray *floodFillLights = [[NSMutableArray alloc] init];
-    
-    /* Find empty blocks that are not outside, but are adjacent to outside blocks.
-     * These will be used as the starting points for a lighting flood-fill operation.
-     */
-    for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-    {
-        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-        {
-            for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-            {
-                size_t idx = INDEX(p.x, p.y, p.z);
-                assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
-                
-                if(!isVoxelOutside(voxelData[idx]) && [self isAdjacentToSunlightAtPoint:p lightLevel:CHUNK_LIGHTING_MAX]) {
-                    [floodFillLights addObject:[GSBoxedVector boxedVectorWithIntegerVector:p]];
-                }
-            }
-        }
-    }
-    
-    /* For each light, perform a flood-fill to propagate sunlight throughout the chunk and perhaps to neighboring chunks.
-     * The order that sunlight is calculated for neighboring chunks does not affect the final sunlight value. Races are not a
-     * problem.
-     */
-    for(GSBoxedVector *b in floodFillLights)
-    {
-        [self floodFillSunlightAtPoint:[b integerVectorValue]
-                             neighbors:neighbors
-                             intensity:CHUNK_LIGHTING_MAX-1];
-    }
-    
-    [floodFillLights release];
 }
 
 @end
