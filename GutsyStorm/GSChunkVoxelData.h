@@ -28,11 +28,13 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     GSReaderWriterLock *lockVoxelData;
     voxel_t *voxelData; // the voxels that make up the chunk
     
-    GSLightingBuffer *directSunlight; // direct lighting from the sky
+    GSLightingBuffer *directSunlight; // direct lighting from the sun
+    GSLightingBuffer *indirectSunlight; // indirect lighting from the sun
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;
 @property (readonly, nonatomic) GSLightingBuffer *directSunlight;
+@property (readonly, nonatomic) GSLightingBuffer *indirectSunlight;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
 
@@ -42,7 +44,7 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
          generator:(terrain_generator_t)callback;
 
-// Recalculates lighting values (indirect sunlight, direct skylight, torchlight) for the chunk.
+// Recalculates lighting values (indirect sunlight, direct sunlight, torchlight) for the chunk.
 - (void)updateLightingWithNeighbors:(GSNeighborhood *)neighbors doItSynchronously:(BOOL)sync;
 
 - (void)markAsDirtyAndSpinOffSavingTask;

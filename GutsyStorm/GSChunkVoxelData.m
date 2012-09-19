@@ -19,7 +19,7 @@
 - (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)recalcOutsideVoxelsNoLock;
 - (void)saveVoxelDataToFile;
-- (void)fillSkylightBuffer;
+- (void)fillDirectSunlightBuffer;
 
 @end
 
@@ -28,6 +28,7 @@
 
 @synthesize voxelData;
 @synthesize directSunlight;
+@synthesize indirectSunlight;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
@@ -57,7 +58,10 @@
         voxelData = NULL;
         
         directSunlight = [[GSLightingBuffer alloc] init];
-        [directSunlight.lockLightingBuffer lockForWriting]; // this is locked initially and unlocked at the end of the first update
+        [directSunlight.lockLightingBuffer lockForWriting]; // locked initially and unlocked at the end of the first update
+        
+        indirectSunlight = [[GSLightingBuffer alloc] init];
+        [indirectSunlight.lockLightingBuffer lockForWriting]; // locked initially and unlocked at the end of the first update
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -79,9 +83,12 @@
             
             [lockVoxelData unlockForWriting];
             
-            // And now generate direct skylight for this chunk, which does not depend on neighboring chunks.
-            [self fillSkylightBuffer];
+            // And now generate direct sunlight for this chunk, which does not depend on neighboring chunks.
+            [self fillDirectSunlightBuffer];
             [directSunlight.lockLightingBuffer unlockForWriting];
+            
+            // for now, leave the indirect sunlight unset (all zeroes)
+            [indirectSunlight.lockLightingBuffer unlockForWriting];
         });
     }
     
@@ -101,6 +108,7 @@
     [lockVoxelData release];
     
     [directSunlight release];
+    [indirectSunlight release];
     
     [super dealloc];
 }
@@ -128,30 +136,9 @@
 }
 
 
-- (uint8_t)getSkylightAtPoint:(GSIntegerVector3)p
-{
-    return [directSunlight lightAtPoint:p];
-}
-
-
-- (uint8_t *)getPointerToSkylightAtPoint:(GSIntegerVector3)p
-{
-    return [directSunlight pointerToLightAtPoint:p];
-}
-
-
 - (void)updateLightingWithNeighbors:(GSNeighborhood *)n doItSynchronously:(BOOL)sync
 {
     // stub
-}
-
-
-// Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
-- (void)interpolateSkylightAtPoint:(GSIntegerVector3)p
-                       neighbors:(GSNeighborhood *)neighbors
-                     outLighting:(block_lighting_t *)lighting
-{
-    return [directSunlight interpolateLightAtPoint:p neighbors:neighbors outLighting:lighting];
 }
 
 
@@ -194,24 +181,6 @@
 - (GSReaderWriterLock *)getVoxelDataLock
 {
     return lockVoxelData;
-}
-
-
-- (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block
-{
-    [directSunlight readerAccessToBufferUsingBlock:block];
-}
-
-
-- (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block
-{
-    [directSunlight writerAccessToBufferUsingBlock:block];
-}
-
-
-- (GSReaderWriterLock *)getSkylightDataLock
-{
-    return directSunlight.lockLightingBuffer;
 }
 
 @end
@@ -342,8 +311,8 @@
 }
 
 
-// Assumes the caller has already holding the lock on "skylight" for writing and "lockVoxelData" for reading.
-- (void)fillSkylightBuffer
+// Assumes the caller has already holding the lock on "directSunlight" for writing and "lockVoxelData" for reading.
+- (void)fillDirectSunlightBuffer
 {
     GSIntegerVector3 p;
     for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
@@ -359,6 +328,8 @@
                 // Solid blocks always have zero sunlight. They pick up light from surrounding air.
                 if(isVoxelEmpty(voxelData[idx]) && isVoxelOutside(voxelData[idx])) {
                     directSunlight.lightingBuffer[idx] = CHUNK_LIGHTING_MAX;
+                } else {
+                    directSunlight.lightingBuffer[idx] = 0;
                 }
             }
         }
