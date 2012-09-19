@@ -27,6 +27,18 @@
 typedef uint8_t voxel_t;
 
 
+typedef enum
+{
+    FACE_TOP=0,
+    FACE_BOTTOM,
+    FACE_BACK,
+    FACE_FRONT,
+    FACE_RIGHT,
+    FACE_LEFT,
+    FACE_NUM_FACES
+} face_t;
+
+
 static inline void markVoxelAsEmpty(BOOL empty, voxel_t * voxel)
 {
     const voxel_t originalVoxel = *voxel;
@@ -102,12 +114,7 @@ typedef struct
      * all 24 of these vertices.
      */
     
-    block_lighting_vertex_t top;
-    block_lighting_vertex_t bottom;
-    block_lighting_vertex_t left;
-    block_lighting_vertex_t right;
-    block_lighting_vertex_t front;
-    block_lighting_vertex_t back;
+    block_lighting_vertex_t face[FACE_NUM_FACES];
 } block_lighting_t;
 
 

@@ -21,4 +21,11 @@ static inline GSIntegerVector3 GSIntegerVector3_Make(ssize_t x, ssize_t y, ssize
     return p;
 }
 
+
+static inline GSIntegerVector3 GSIntegerVector3_Add(GSIntegerVector3 a, GSIntegerVector3 b)
+{
+    GSIntegerVector3 p = {a.x+b.x, a.y+b.y, a.z+b.z};
+    return p;
+}
+
 #endif
