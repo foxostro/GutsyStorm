@@ -11,15 +11,15 @@
 
 @implementation GSLightingBuffer
 
-@synthesize lockSkylight;
-@synthesize skylight;
+@synthesize lockLightingBuffer;
+@synthesize lightingBuffer;
 
 - (id)init
 {
     self = [super init];
     if (self) {
-        skylight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
-        if(!skylight) {
+        lightingBuffer = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
+        if(!lightingBuffer) {
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
         }
     }
@@ -29,18 +29,18 @@
 
 - (void)dealloc
 {
-    free(skylight);
-    [lockSkylight release];
+    free(lightingBuffer);
+    [lockLightingBuffer release];
     [super dealloc];
 }
 
-- (uint8_t)getSkylightAtPoint:(GSIntegerVector3)p
+- (uint8_t)lightAtPoint:(GSIntegerVector3)p
 {
-    return *[self getPointerToSkylightAtPoint:p];
+    return *[self pointerToLightAtPoint:p];
 }
 
 
-- (uint8_t *)getPointerToSkylightAtPoint:(GSIntegerVector3)p
+- (uint8_t *)pointerToLightAtPoint:(GSIntegerVector3)p
 {
     assert(SAMPLE);
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
@@ -50,11 +50,11 @@
     size_t idx = INDEX(p.x, p.y, p.z);
     assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
     
-    return &skylight[idx];
+    return &lightingBuffer[idx];
 }
 
 // Assumes the caller is already holding "lockSAMPLE" on all neighbors and "lockVoxelData" on the center neighbor, at least.
-- (void)interpolateSkylightAtPoint:(GSIntegerVector3)p
+- (void)interpolateLightAtPoint:(GSIntegerVector3)p
                          neighbors:(GSNeighborhood *)neighbors
                        outLighting:(block_lighting_t *)lighting
 {
@@ -201,19 +201,19 @@
 #undef SAMPLE
 }
 
-- (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block
+- (void)readerAccessToBufferUsingBlock:(void (^)(void))block
 {
-    [lockSkylight lockForReading];
+    [lockLightingBuffer lockForReading];
     block();
-    [lockSkylight unlockForReading];
+    [lockLightingBuffer unlockForReading];
 }
 
 
-- (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block
+- (void)writerAccessToBufferUsingBlock:(void (^)(void))block
 {
-    [lockSkylight lockForWriting];
+    [lockLightingBuffer lockForWriting];
     block();
-    [lockSkylight unlockForWriting];
+    [lockLightingBuffer unlockForWriting];
 }
 
 @end

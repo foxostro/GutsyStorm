@@ -57,7 +57,7 @@
         voxelData = NULL;
         
         skylight = [[GSLightingBuffer alloc] init];
-        [skylight.lockSkylight lockForWriting]; // this is locked initially and unlocked at the end of the first update
+        [skylight.lockLightingBuffer lockForWriting]; // this is locked initially and unlocked at the end of the first update
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -81,7 +81,7 @@
             
             // And now generate direct skylight for this chunk, which does not depend on neighboring chunks.
             [self fillSkylightBuffer];
-            [skylight.lockSkylight unlockForWriting];
+            [skylight.lockLightingBuffer unlockForWriting];
         });
     }
     
@@ -130,13 +130,13 @@
 
 - (uint8_t)getSkylightAtPoint:(GSIntegerVector3)p
 {
-    return [skylight getSkylightAtPoint:p];
+    return [skylight lightAtPoint:p];
 }
 
 
 - (uint8_t *)getPointerToSkylightAtPoint:(GSIntegerVector3)p
 {
-    return [skylight getPointerToSkylightAtPoint:p];
+    return [skylight pointerToLightAtPoint:p];
 }
 
 
@@ -151,7 +151,7 @@
                        neighbors:(GSNeighborhood *)neighbors
                      outLighting:(block_lighting_t *)lighting
 {
-    return [skylight interpolateSkylightAtPoint:p neighbors:neighbors outLighting:lighting];
+    return [skylight interpolateLightAtPoint:p neighbors:neighbors outLighting:lighting];
 }
 
 
@@ -199,19 +199,19 @@
 
 - (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block
 {
-    [skylight readerAccessToSkylightDataUsingBlock:block];
+    [skylight readerAccessToBufferUsingBlock:block];
 }
 
 
 - (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block
 {
-    [skylight writerAccessToSkylightDataUsingBlock:block];
+    [skylight writerAccessToBufferUsingBlock:block];
 }
 
 
 - (GSReaderWriterLock *)getSkylightDataLock
 {
-    return skylight.lockSkylight;
+    return skylight.lockLightingBuffer;
 }
 
 @end
@@ -358,7 +358,7 @@
                 // This is "hard" lighting with exactly two lighting levels.
                 // Solid blocks always have zero sunlight. They pick up light from surrounding air.
                 if(isVoxelEmpty(voxelData[idx]) && isVoxelOutside(voxelData[idx])) {
-                    skylight.skylight[idx] = CHUNK_LIGHTING_MAX;
+                    skylight.lightingBuffer[idx] = CHUNK_LIGHTING_MAX;
                 }
             }
         }

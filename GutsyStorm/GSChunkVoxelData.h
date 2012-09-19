@@ -28,7 +28,7 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     GSReaderWriterLock *lockVoxelData;
     voxel_t *voxelData; // the voxels that make up the chunk
     
-    GSLightingBuffer *skylight;
+    GSLightingBuffer *skylight; // direct lighting from the sky
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;
