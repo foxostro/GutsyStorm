@@ -88,6 +88,7 @@
             [directSunlight.lockLightingBuffer unlockForWriting];
             
             // for now, leave the indirect sunlight unset (all zeroes)
+            // TODO: generate indirect sunlight using a flood-fill algorithm seeding from several propagation points
             [indirectSunlight.lockLightingBuffer unlockForWriting];
         });
     }

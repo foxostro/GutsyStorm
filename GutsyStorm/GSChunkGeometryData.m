@@ -608,6 +608,12 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                                              outLighting:&directSunlight
                                                   getter:@selector(directSunlight)];
     
+    block_lighting_t indirectSunlight;
+    [centerVoxels.indirectSunlight interpolateLightAtPoint:chunkLocalPos
+                                                 neighbors:chunks
+                                               outLighting:&indirectSunlight
+                                                    getter:@selector(indirectSunlight)];
+    
     // TODO: add torch lighting to the world.
     block_lighting_t torchLight;
     bzero(&torchLight, sizeof(torchLight));
@@ -619,6 +625,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
             
             if(!onlyDoingCounting) {
                 unsigned unpackedDirectSunlight[4];
+                unsigned unpackedIndirectSunlight[4];
                 unsigned unpackedTorchlight[4];
                 unsigned unpackedAO[4];
                 
@@ -627,6 +634,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                 }
                 
                 unpackBlockLightingValuesForVertex(directSunlight.face[i], unpackedDirectSunlight);
+                unpackBlockLightingValuesForVertex(indirectSunlight.face[i], unpackedIndirectSunlight);
                 unpackBlockLightingValuesForVertex(torchLight.face[i], unpackedTorchlight);
                 unpackBlockLightingValuesForVertex(ambientOcclusion.face[i], unpackedAO);
                 
@@ -637,7 +645,9 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                     addVertex(x+vertex[j][i].x, y+vertex[j][i].y, z+vertex[j][i].z,
                               normals[i].x, normals[i].y, normals[i].z,
                               texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz,
-                              blockLight(unpackedDirectSunlight[j], unpackedTorchlight[j], unpackedAO[j]),
+                              blockLight(MAX(unpackedIndirectSunlight[j], unpackedDirectSunlight[j]),
+                                         unpackedTorchlight[j],
+                                         unpackedAO[j]),
                               _vertsBuffer,
                               _normsBuffer,
                               _texCoordsBuffer,
