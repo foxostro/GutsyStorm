@@ -8,6 +8,7 @@
 
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"
+#import "GSBoxedVector.h"
 
 
 @interface GSChunkVoxelData (Private)
@@ -19,7 +20,9 @@
 - (void)recalcOutsideVoxelsNoLock;
 - (void)saveVoxelDataToFile;
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel;
-- (void)generateSunlight;
+- (void)clearSunlightBuffer;
+- (void)computeHardLocalSunlight;
+- (void)generateSunlightWithNeighbors:(GSNeighborhood *)neighbors;
 
 @end
 
@@ -59,7 +62,6 @@
         sunlight = NULL;
         
         // Fire off asynchronous task to generate voxel data.
-        // When this finishes, the condition in lockVoxelData will be set to CONDITION_VOXEL_DATA_READY.
         dispatch_async(chunkTaskQueue, ^{
             NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
                                 relativeToURL:folder];
@@ -75,10 +77,13 @@
                 [self saveVoxelDataToFile];
             }
             
+            [self recalcOutsideVoxelsNoLock];
+            
             [lockVoxelData unlockForWriting];
             
             // And now generate sunlight for this chunk.
-            [self generateSunlight];
+            [self clearSunlightBuffer];
+            [self computeHardLocalSunlight];
             [lockSunlight unlockForWriting];
         });
     }
@@ -132,6 +137,12 @@
 
 - (uint8_t)getSunlightAtPoint:(GSIntegerVector3)p
 {
+    return *[self getPointerToSunlightAtPoint:p];
+}
+
+
+- (uint8_t *)getPointerToSunlightAtPoint:(GSIntegerVector3)p
+{
     assert(sunlight);
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
     assert(p.y >= 0 && p.y < CHUNK_SIZE_Y);
@@ -140,16 +151,18 @@
     size_t idx = INDEX(p.x, p.y, p.z);
     assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
     
-    return sunlight[idx];
+    return &sunlight[idx];
 }
 
 
-- (void)updateLightingWithNeighbors:(GSNeighborhood *)neighbors doItSynchronously:(BOOL)sync
+- (void)updateLightingWithNeighbors:(GSNeighborhood *)n doItSynchronously:(BOOL)sync
 {
     void (^b)(void) = ^{
-        [lockSunlight lockForWriting];
-        [self generateSunlight];
-        [lockSunlight unlockForWriting];
+        [n readerAccessToVoxelDataUsingBlock:^{
+            [n writerAccessToSunlightDataUsingBlock:^{
+                [self generateSunlightWithNeighbors:n];
+            }];
+        }];
     };
     
     if(sync) {
@@ -161,7 +174,7 @@
 
 
 // Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
-- (void)calculateSunlightAtPoint:(GSIntegerVector3)p
+- (void)interpolateSunlightAtPoint:(GSIntegerVector3)p
                        neighbors:(GSNeighborhood *)neighbors
                      outLighting:(block_lighting_t *)lighting
 {
@@ -533,14 +546,9 @@
 }
 
 
-/* Generates sunlight values for all blocks in the chunk.
- * Assumes the caller has already holding "lockSunlight" for writing.
- * NOTE: This totally ignores the neighboring chunks.
- */
-- (void)generateSunlight
+// Assumes the caller has already holding "lockSunlight" for writing.
+- (void)clearSunlightBuffer
 {
-    GSIntegerVector3 p;
-    
     if(!sunlight) {
         sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
         if(!sunlight) {
@@ -549,13 +557,13 @@
     } else {
         bzero(sunlight, sizeof(int8_t) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
     }
-    
-    [lockVoxelData lockForReading];
-    
-    [self recalcOutsideVoxelsNoLock];
-    
+}
 
-    // Reset all empty, outside blocks to full sunlight.
+
+// Assumes the caller has already holding "lockSunlight" for writing and "lockVoxelData" for reading.
+- (void)computeHardLocalSunlight
+{
+    GSIntegerVector3 p;
     for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
     {
         for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
@@ -571,32 +579,93 @@
                     sunlight[idx] = CHUNK_LIGHTING_MAX;
                 }
             }
-       }
+        }
+    }
+}
+
+
+/* Generates sunlight values for all blocks in the chunk.
+ * Assumes the caller has already holding "lockSunlight" for writing, and "lockVoxelData" for reading,
+ * for all chunks in the neighborhood.
+ */
+- (void)floodFillSunlightAtPoint:(GSIntegerVector3)p
+                       neighbors:(GSNeighborhood *)neighbors
+                       intensity:(int)intensity
+{
+    if(intensity < 0) {
+        return;
     }
     
-    // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
-    // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
-    // Set the blocks we find to the next lower light level.
-    for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
+    if(p.y < 0 || p.y >= CHUNK_SIZE_Y) {
+        return;
+    }
+    
+    GSIntegerVector3 ap = p;
+    GSChunkVoxelData *voxels = [neighbors getNeighborVoxelAtPoint:&ap]; // `ap' is adjusted to be relative to `voxels' local space
+    uint8_t *value = [voxels getPointerToSunlightAtPoint:ap];
+    
+    if(!isVoxelEmpty([voxels getVoxelAtPoint:ap])) {
+        *value = 0; // solid voxels always have zero sunlight
+        return;
+    }
+    
+    if(*value > intensity) {
+        return;
+    }
+    
+    *value = intensity;
+    
+    // recursive flood-fill
+    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x+1, p.y, p.z) neighbors:neighbors intensity:intensity-1];
+    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x-1, p.y, p.z) neighbors:neighbors intensity:intensity-1];
+    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x, p.y+1, p.z) neighbors:neighbors intensity:intensity-1];
+    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x, p.y-1, p.z) neighbors:neighbors intensity:intensity-1];
+    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x, p.y, p.z+1) neighbors:neighbors intensity:intensity-1];
+    [self floodFillSunlightAtPoint:GSIntegerVector3_Make(p.x, p.y, p.z-1) neighbors:neighbors intensity:intensity-1];
+}
+
+
+/* Generates sunlight values for all blocks in the chunk.
+ * Assumes the caller has already holding "lockSunlight" for writing, and "lockVoxelData" for reading,
+ * for all chunks in the neighborhood.
+ */
+- (void)generateSunlightWithNeighbors:(GSNeighborhood *)neighbors
+{
+    GSIntegerVector3 p;
+    
+    NSMutableArray *floodFillLights = [[NSMutableArray alloc] init];
+    
+    /* Find empty blocks that are not outside, but are adjacent to outside blocks.
+     * These will be used as the starting points for a lighting flood-fill operation.
+     */
+    for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
     {
-        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
         {
-            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+            for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
             {
-                for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-                {
-                    size_t idx = INDEX(p.x, p.y, p.z);
-                    assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
-                    
-                    if((sunlight[idx] < lightLevel) && [self isAdjacentToSunlightAtPoint:p lightLevel:lightLevel]) {
-                        sunlight[idx] = MAX(sunlight[idx], lightLevel - 1);
-                    }
+                size_t idx = INDEX(p.x, p.y, p.z);
+                assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
+                
+                if(!isVoxelOutside(voxelData[idx]) && [self isAdjacentToSunlightAtPoint:p lightLevel:CHUNK_LIGHTING_MAX]) {
+                    [floodFillLights addObject:[GSBoxedVector boxedVectorWithIntegerVector:p]];
                 }
             }
         }
     }
     
-    [lockVoxelData unlockForReading];
+    /* For each light, perform a flood-fill to propagate sunlight throughout the chunk and perhaps to neighboring chunks.
+     * The order that sunlight is calculated for neighboring chunks does not affect the final sunlight value. Races are not a
+     * problem.
+     */
+    for(GSBoxedVector *b in floodFillLights)
+    {
+        [self floodFillSunlightAtPoint:[b integerVectorValue]
+                             neighbors:neighbors
+                             intensity:CHUNK_LIGHTING_MAX-1];
+    }
+    
+    [floodFillLights release];
 }
 
 @end

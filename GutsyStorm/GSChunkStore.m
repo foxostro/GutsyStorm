@@ -21,6 +21,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 @interface GSChunkStore (Private)
 
+- (void)updateLightingForChunkAtPoint:(GSVector3)p;
 - (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos;
 + (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
@@ -85,6 +86,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         [glContext retain];
         
         lock = [[NSLock alloc] init];
+        
+        timeBetweenPeriodicLightingUpdates = 0;
+        timeUntilNextPeriodicLightingUpdate = 0.5;
         
         /* VBO generation must be performed on the main thread.
          * To preserve responsiveness, limit the number of VBOs we create per frame.
@@ -193,6 +197,19 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     [lock lock];
     numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame; // reset
     [self recalculateActiveChunksWithCameraModifiedFlags:flags];
+    
+    // Choose a random chunk in the active region and update its lighting.
+    timeUntilNextPeriodicLightingUpdate -= dt;
+    if(timeUntilNextPeriodicLightingUpdate < 0.0)
+    {
+        timeUntilNextPeriodicLightingUpdate = timeUntilNextPeriodicLightingUpdate;
+        
+        dispatch_async(chunkTaskQueue, ^{
+            GSVector3 p = [activeRegion randomPointInActiveRegionWithCameraPos:camera.cameraEye];
+            [self updateLightingForChunkAtPoint:p];
+        });
+    }
+    
     [lock unlock];
 }
 
@@ -315,6 +332,17 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 @implementation GSChunkStore (Private)
 
+- (void)updateLightingForChunkAtPoint:(GSVector3)p
+{
+    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
+    GSChunkVoxelData *voxels = [neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+    [voxels updateLightingWithNeighbors:neighborhood doItSynchronously:YES];
+    
+    GSChunkGeometryData *geometry = [self getChunkGeometryAtPoint:p];
+    [geometry updateWithVoxelData:neighborhood doItSynchronously:YES];
+}
+
+
 - (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos
 {
     __block voxel_t block;
@@ -419,8 +447,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     GSVector3 center = [camera cameraEye];
     
     return [unsortedPoints sortedArrayUsingComparator: ^(id a, id b) {
-        GSVector3 centerA = [(GSBoxedVector *)a getVector];
-        GSVector3 centerB = [(GSBoxedVector *)b getVector];
+        GSVector3 centerA = [(GSBoxedVector *)a vectorValue];
+        GSVector3 centerB = [(GSBoxedVector *)b vectorValue];
         float distA = GSVector3_Length(GSVector3_Sub(centerA, center));
         float distB = GSVector3_Length(GSVector3_Sub(centerB, center));
         return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
@@ -560,7 +588,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         NSUInteger i = 0;
         for(GSBoxedVector *b in sortedChunks)
         {
-            [activeRegion setActiveChunk:[self getChunkGeometryAtPoint:[b getVector]] atIndex:i];
+            [activeRegion setActiveChunk:[self getChunkGeometryAtPoint:[b vectorValue]] atIndex:i];
             i++;
         }
         assert(i == activeRegion.maxActiveChunks);

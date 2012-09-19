@@ -39,6 +39,7 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
          generator:(terrain_generator_t)callback;
 
+// Recalculates lighting values (sunlight, torchlight) for the chunk.
 - (void)updateLightingWithNeighbors:(GSNeighborhood *)neighbors doItSynchronously:(BOOL)sync;
 
 - (void)markAsDirtyAndSpinOffSavingTask;
@@ -77,11 +78,20 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
-// Assumes the caller is already holding "lockSunlight".
+/* Returns the sunlight value for the specified point that was calculated earlier.
+ * Assumes the caller is already holding "lockSunlight".
+ */
 - (uint8_t)getSunlightAtPoint:(GSIntegerVector3)chunkLocalP;
 
-// Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
-- (void)calculateSunlightAtPoint:(GSIntegerVector3)p
+/* Returns a pointer to the sunlight value for the specified point that was calculated earlier.
+ * Assumes the caller is already holding "lockSunlight".
+ */
+- (uint8_t *)getPointerToSunlightAtPoint:(GSIntegerVector3)chunkLocalP;
+
+/* Gets a smooth sunlight lighting value by interpolating block sunlight values around the specified point.
+ * Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
+ */
+- (void)interpolateSunlightAtPoint:(GSIntegerVector3)p
                        neighbors:(GSNeighborhood *)neighbors
                      outLighting:(block_lighting_t *)lighting;
 

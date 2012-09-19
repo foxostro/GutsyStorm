@@ -515,9 +515,9 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     }
     
     block_lighting_t sunlight;
-    [centerVoxels calculateSunlightAtPoint:chunkLocalPos
-                           neighbors:chunks
-                         outLighting:&sunlight];
+    [centerVoxels interpolateSunlightAtPoint:chunkLocalPos
+                                   neighbors:chunks
+                                 outLighting:&sunlight];
     
     unsigned unpackedSunlight[4];
     unsigned unpackedAO[4];

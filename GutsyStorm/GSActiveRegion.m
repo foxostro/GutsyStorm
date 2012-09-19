@@ -72,4 +72,14 @@
     activeChunks[idx] = chunk;
 }
 
+- (GSVector3)randomPointInActiveRegionWithCameraPos:(GSVector3)cameraEye
+{
+    GSVector3 randVec = activeRegionExtent;
+    randVec.x *= 2.0 * ((float)rand()/RAND_MAX) - 1.0;
+    randVec.z *= 2.0 * ((float)rand()/RAND_MAX) - 1.0;
+    randVec.y = 0;
+    GSVector3 p = GSVector3_Add(cameraEye, randVec);
+    return p;
+}
+
 @end
