@@ -518,11 +518,11 @@
 {
     if(p.y+1 >= CHUNK_SIZE_Y) {
         return YES;
-    } else if(isVoxelEmpty(voxelData[INDEX(p.x, p.y+1, p.z)]) && sunlight[INDEX(p.x, p.y+1, p.z)]) {
+    } else if(isVoxelEmpty(voxelData[INDEX(p.x, p.y+1, p.z)]) && sunlight[INDEX(p.x, p.y+1, p.z)] == lightLevel) {
         return YES;
     }
     
-    if(p.y-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y-1, p.z)]) && sunlight[INDEX(p.x, p.y-1, p.z)]) {
+    if(p.y-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y-1, p.z)]) && sunlight[INDEX(p.x, p.y-1, p.z)] == lightLevel) {
         return YES;
     }
     
