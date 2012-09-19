@@ -27,7 +27,7 @@
 @implementation GSChunkVoxelData
 
 @synthesize voxelData;
-@synthesize skylight;
+@synthesize directSunlight;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
@@ -56,8 +56,8 @@
         [lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         voxelData = NULL;
         
-        skylight = [[GSLightingBuffer alloc] init];
-        [skylight.lockLightingBuffer lockForWriting]; // this is locked initially and unlocked at the end of the first update
+        directSunlight = [[GSLightingBuffer alloc] init];
+        [directSunlight.lockLightingBuffer lockForWriting]; // this is locked initially and unlocked at the end of the first update
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -81,7 +81,7 @@
             
             // And now generate direct skylight for this chunk, which does not depend on neighboring chunks.
             [self fillSkylightBuffer];
-            [skylight.lockLightingBuffer unlockForWriting];
+            [directSunlight.lockLightingBuffer unlockForWriting];
         });
     }
     
@@ -100,7 +100,7 @@
     [lockVoxelData unlockForWriting];
     [lockVoxelData release];
     
-    [skylight release];
+    [directSunlight release];
     
     [super dealloc];
 }
@@ -130,13 +130,13 @@
 
 - (uint8_t)getSkylightAtPoint:(GSIntegerVector3)p
 {
-    return [skylight lightAtPoint:p];
+    return [directSunlight lightAtPoint:p];
 }
 
 
 - (uint8_t *)getPointerToSkylightAtPoint:(GSIntegerVector3)p
 {
-    return [skylight pointerToLightAtPoint:p];
+    return [directSunlight pointerToLightAtPoint:p];
 }
 
 
@@ -151,7 +151,7 @@
                        neighbors:(GSNeighborhood *)neighbors
                      outLighting:(block_lighting_t *)lighting
 {
-    return [skylight interpolateLightAtPoint:p neighbors:neighbors outLighting:lighting];
+    return [directSunlight interpolateLightAtPoint:p neighbors:neighbors outLighting:lighting];
 }
 
 
@@ -199,19 +199,19 @@
 
 - (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block
 {
-    [skylight readerAccessToBufferUsingBlock:block];
+    [directSunlight readerAccessToBufferUsingBlock:block];
 }
 
 
 - (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block
 {
-    [skylight writerAccessToBufferUsingBlock:block];
+    [directSunlight writerAccessToBufferUsingBlock:block];
 }
 
 
 - (GSReaderWriterLock *)getSkylightDataLock
 {
-    return skylight.lockLightingBuffer;
+    return directSunlight.lockLightingBuffer;
 }
 
 @end
@@ -358,7 +358,7 @@
                 // This is "hard" lighting with exactly two lighting levels.
                 // Solid blocks always have zero sunlight. They pick up light from surrounding air.
                 if(isVoxelEmpty(voxelData[idx]) && isVoxelOutside(voxelData[idx])) {
-                    skylight.lightingBuffer[idx] = CHUNK_LIGHTING_MAX;
+                    directSunlight.lightingBuffer[idx] = CHUNK_LIGHTING_MAX;
                 }
             }
         }

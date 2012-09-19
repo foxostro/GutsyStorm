@@ -275,7 +275,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     [self destroyGeometry];
     
     [neighborhood readerAccessToVoxelDataUsingBlock:^{
-        [neighborhood readerAccessToSkylightDataUsingBlock:^{
+        [neighborhood readerAccessToLightingBuffer:@selector(directSunlight) usingBlock:^{
             [self fillGeometryBuffersUsingVoxelData:neighborhood];
         }];
     }];
@@ -515,7 +515,7 @@ static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
     }
     
     block_lighting_t sunlight;
-    [centerVoxels.skylight interpolateLightAtPoint:chunkLocalPos
+    [centerVoxels.directSunlight interpolateLightAtPoint:chunkLocalPos
                                             neighbors:chunks
                                           outLighting:&sunlight];
     

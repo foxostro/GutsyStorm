@@ -54,10 +54,10 @@ typedef enum
  */
 - (BOOL)isEmptyAtPoint:(GSIntegerVector3)p;
 
-/* Returns the sunlight value at the specified block.
- * Assumes the caller is already holding "lockSunlight" on all neighbors.
+/* Returns the lighting value at the specified block position for the specified lighting buffer.
+ * Assumes the caller is already holding the lock on this buffer on all neighbors.
  */
-- (uint8_t)getBlockSkylightAtPoint:(GSIntegerVector3)p;
+- (uint8_t)lightAtPoint:(GSIntegerVector3)p buffer:(SEL)buffer;
 
 /* Executes the specified block while holding the voxel data locks (for reading) on all chunks in the neighborhood. */
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
@@ -65,10 +65,14 @@ typedef enum
 /* Executes the specified block while holding the voxel data locks (for writing) on all chunks in the neighborhood. */
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
-/* Executes the specified block while holding the sunlight data locks (for reading) on all chunks in the neighborhood. */
-- (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block;
+/* Executes the specified block while holding the locks (for reading) on the specified lighting buffer,
+ * for all chunks in the neighborhood.
+ */
+- (void)readerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block;
 
-/* Executes the specified block while holding the sunlight data locks (for writing) on all chunks in the neighborhood. */
-- (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block;
+/* Executes the specified block while holding the sunlight data locks (for writing) on the specified lighting vbuffer,
+ * for all chunks in the neighborhood.
+ */
+- (void)writerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block;
 
 @end

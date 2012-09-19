@@ -168,38 +168,38 @@
 }
 
 
-- (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block
+- (void)readerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block
 {
     NSLock *globalLock = [GSNeighborhood _sharedSkylightLock];
     
     [globalLock lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor.skylight lockLightingBuffer] lockForReading];
+        [[[neighbor performSelector:buffer] lockLightingBuffer] lockForReading];
     }];
     [globalLock unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor.skylight lockLightingBuffer] unlockForReading];
+        [[[neighbor performSelector:buffer] lockLightingBuffer] unlockForReading];
     }];
 }
 
 
-- (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block
+- (void)writerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block
 {
     NSLock *globalLock = [GSNeighborhood _sharedSkylightLock];
     
     [globalLock lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor.skylight lockLightingBuffer] lockForWriting];
+        [[[neighbor performSelector:buffer] lockLightingBuffer] lockForWriting];
     }];
     [globalLock unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor.skylight lockLightingBuffer] unlockForWriting];
+        [[[neighbor performSelector:buffer] lockLightingBuffer] unlockForWriting];
     }];
 }
 
@@ -260,7 +260,7 @@
 }
 
 
-- (uint8_t)getBlockSkylightAtPoint:(GSIntegerVector3)p
+- (uint8_t)lightAtPoint:(GSIntegerVector3)p buffer:(SEL)buffer
 {
     // Assumes each chunk spans the entire vertical extent of the world.
     
@@ -274,7 +274,7 @@
     
     GSChunkVoxelData *chunk = [self getNeighborVoxelAtPoint:&p];
     
-    uint8_t lightLevel = [chunk.skylight lightAtPoint:p];
+    uint8_t lightLevel = [[chunk performSelector:buffer] lightAtPoint:p];
 
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
     

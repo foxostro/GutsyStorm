@@ -91,7 +91,8 @@
         {
             for(ssize_t z = -1; z <= 1; ++z)
             {
-                SAMPLE(x, y, z) = [neighbors getBlockSkylightAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z)];
+                SAMPLE(x, y, z) = [neighbors lightAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z)
+                                                   buffer:@selector(directSunlight)];
             }
         }
     }
