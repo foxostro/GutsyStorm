@@ -174,14 +174,14 @@
     
     [globalLock lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getSkylightDataLock] lockForReading];
+        [[neighbor.skylight lockSkylight] lockForReading];
     }];
     [globalLock unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getSkylightDataLock] unlockForReading];
+        [[neighbor.skylight lockSkylight] unlockForReading];
     }];
 }
 
@@ -192,14 +192,14 @@
     
     [globalLock lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getSkylightDataLock] lockForWriting];
+        [[neighbor.skylight lockSkylight] lockForWriting];
     }];
     [globalLock unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getSkylightDataLock] unlockForWriting];
+        [[neighbor.skylight lockSkylight] unlockForWriting];
     }];
 }
 
@@ -274,7 +274,7 @@
     
     GSChunkVoxelData *chunk = [self getNeighborVoxelAtPoint:&p];
     
-    uint8_t lightLevel = [chunk getSkylightAtPoint:p];
+    uint8_t lightLevel = [chunk.skylight getSkylightAtPoint:p];
 
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
     

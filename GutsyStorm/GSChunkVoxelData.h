@@ -12,6 +12,7 @@
 #import "GSReaderWriterLock.h"
 #import "Voxel.h"
 #import "GSNeighborhood.h"
+#import "GSLightingBuffer.h"
 
 
 typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
@@ -27,9 +28,11 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     GSReaderWriterLock *lockVoxelData;
     voxel_t *voxelData; // the voxels that make up the chunk
     
-    GSReaderWriterLock *lockSkylight;
-    uint8_t *skylight; // direct lighting from the sky
+    GSLightingBuffer *skylight;
 }
+
+@property (readonly, nonatomic) voxel_t *voxelData;
+@property (readonly, nonatomic) GSLightingBuffer *skylight;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
 
@@ -44,8 +47,6 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 
 - (void)markAsDirtyAndSpinOffSavingTask;
 
-
-
 /* Obtains a reader lock on the voxel data and allows the caller to access it in the specified block. */
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
@@ -58,41 +59,8 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
  */
 - (GSReaderWriterLock *)getVoxelDataLock;
 
-
-
-/* Obtains a reader lock on the skylight data and allows the caller to access it in the specified block. */
-- (void)readerAccessToSkylightDataUsingBlock:(void (^)(void))block;
-
-/* Obtains a writer lock on the skylight data and allows the caller to access it in the specified block. */
-- (void)writerAccessToSkylightDataUsingBlock:(void (^)(void))block;
-
-/* Returns the lock used to protext the skylight data buffer.
- * You probably don't want this.
- * Use the block-based methods instead.
- */
-- (GSReaderWriterLock *)getSkylightDataLock;
-
-
-
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
-
-/* Returns the skylight value for the specified point that was calculated earlier.
- * Assumes the caller is already holding "lockSkylight".
- */
-- (uint8_t)getSkylightAtPoint:(GSIntegerVector3)chunkLocalP;
-
-/* Returns a pointer to the skylight value for the specified point that was calculated earlier.
- * Assumes the caller is already holding "lockSkylight".
- */
-- (uint8_t *)getPointerToSkylightAtPoint:(GSIntegerVector3)chunkLocalP;
-
-/* Gets a smooth skylight lighting value by interpolating block skylight values around the specified point.
- * Assumes the caller is already holding "lockSkylight" on all neighbors and "lockVoxelData" on self, at least.
- */
-- (void)interpolateSkylightAtPoint:(GSIntegerVector3)p
-                         neighbors:(GSNeighborhood *)neighbors
-                       outLighting:(block_lighting_t *)lighting;
 
 @end

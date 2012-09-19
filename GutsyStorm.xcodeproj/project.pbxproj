@@ -42,6 +42,7 @@
 		AC9CCD701519A90E0081964D /* GSShader.m in Sources */ = {isa = PBXBuildFile; fileRef = AC9CCD6F1519A90E0081964D /* GSShader.m */; };
 		AC9CCD741519B8AA0081964D /* shader.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD721519B8AA0081964D /* shader.frag.txt */; };
 		AC9CCD751519B8AA0081964D /* shader.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD731519B8AA0081964D /* shader.vert.txt */; };
+		ACA913FE1609949800D14625 /* GSLightingBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = ACA913FD1609949800D14625 /* GSLightingBuffer.m */; };
 		ACCCD977152A9DE400757B3F /* GSVector2.c in Sources */ = {isa = PBXBuildFile; fileRef = ACCCD976152A9DE400757B3F /* GSVector2.c */; };
 		ACE99D70151FE922006055F6 /* snoise3.c in Sources */ = {isa = PBXBuildFile; fileRef = ACE99D6F151FE922006055F6 /* snoise3.c */; };
 		ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */; };
@@ -118,6 +119,8 @@
 		AC9CCD6F1519A90E0081964D /* GSShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSShader.m; sourceTree = "<group>"; };
 		AC9CCD721519B8AA0081964D /* shader.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.frag.txt; sourceTree = "<group>"; };
 		AC9CCD731519B8AA0081964D /* shader.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.vert.txt; sourceTree = "<group>"; };
+		ACA913FC1609949700D14625 /* GSLightingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSLightingBuffer.h; sourceTree = "<group>"; };
+		ACA913FD1609949800D14625 /* GSLightingBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSLightingBuffer.m; sourceTree = "<group>"; };
 		ACCCD974152A9DD700757B3F /* GSVector2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVector2.h; sourceTree = "<group>"; };
 		ACCCD976152A9DE400757B3F /* GSVector2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSVector2.c; sourceTree = "<group>"; };
 		ACE99D6F151FE922006055F6 /* snoise3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = snoise3.c; sourceTree = "<group>"; };
@@ -149,6 +152,8 @@
 				13C8BE171602854300403815 /* GSNeighborhood.m */,
 				4A2310C5153E112900A4EBE6 /* GSChunkData.h */,
 				4A2310C6153E112900A4EBE6 /* GSChunkData.m */,
+				ACA913FC1609949700D14625 /* GSLightingBuffer.h */,
+				ACA913FD1609949800D14625 /* GSLightingBuffer.m */,
 				4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */,
 				4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */,
 				4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */,
@@ -393,6 +398,7 @@
 				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,
 				13C8BE191602854300403815 /* GSNeighborhood.m in Sources */,
 				13C8BE1D16038DC000403815 /* GSActiveRegion.m in Sources */,
+				ACA913FE1609949800D14625 /* GSLightingBuffer.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
