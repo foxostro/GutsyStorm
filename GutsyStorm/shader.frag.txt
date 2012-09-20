@@ -22,6 +22,5 @@ void main(void)
     vec4 ambientOcclusion = vec4(vec3(gl_Color.r), 1.0);
     vec4 sunlight = vec4(vec3(gl_Color.g), 1.0);
     
-    gl_FragColor = fog(texcolor * (vec4(vec3(sunlight * ambientOcclusion), 1.0) + gl_LightSource[0].ambient),
-                       fogColor, gl_FragCoord.z / gl_FragCoord.w, fogDensity);
+    gl_FragColor = fog(texcolor * (vec4(vec3(sunlight * ambientOcclusion), 1.0) + gl_LightSource[0].ambient), fogColor, gl_FragCoord.z / gl_FragCoord.w, fogDensity);
 }

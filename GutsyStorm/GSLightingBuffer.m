@@ -9,6 +9,8 @@
 #import "GSLightingBuffer.h"
 #import "GSChunkVoxelData.h"
 
+#define BUFFER_SIZE_IN_BYTES (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(uint8_t))
+
 @implementation GSLightingBuffer
 
 @synthesize lockLightingBuffer;
@@ -18,12 +20,15 @@
 {
     self = [super init];
     if (self) {
-        lightingBuffer = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(uint8_t));
+        lightingBuffer = malloc(BUFFER_SIZE_IN_BYTES);
+        
         if(!lightingBuffer) {
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
         }
+        
+        [self clear];
     }
-    
+
     return self;
 }
 
@@ -209,6 +214,11 @@
     [lockLightingBuffer lockForWriting];
     block();
     [lockLightingBuffer unlockForWriting];
+}
+
+- (void)clear
+{
+    bzero(lightingBuffer, BUFFER_SIZE_IN_BYTES);
 }
 
 @end

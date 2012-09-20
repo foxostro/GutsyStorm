@@ -21,7 +21,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 @interface GSChunkStore (Private)
 
-- (void)updateLightingForChunkAtPoint:(GSVector3)p;
 - (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos;
 + (NSURL *)newWorldSaveFolderURLWithSeed:(unsigned)seed;
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
@@ -34,6 +33,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
 - (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p;
+- (void)floodFillIndirectSunlightForNeighborhood:(GSNeighborhood *)neighborhood;
 
 - (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p;
 - (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p;
@@ -86,9 +86,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         [glContext retain];
         
         lock = [[NSLock alloc] init];
-        
-        timeBetweenPeriodicLightingUpdates = 0;
-        timeUntilNextPeriodicLightingUpdate = 0.5;
         
         /* VBO generation must be performed on the main thread.
          * To preserve responsiveness, limit the number of VBOs we create per frame.
@@ -198,50 +195,54 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame; // reset
     [self recalculateActiveChunksWithCameraModifiedFlags:flags];
     
-    // Choose a random chunk in the active region and update its lighting.
-    timeUntilNextPeriodicLightingUpdate -= dt;
-    if(timeUntilNextPeriodicLightingUpdate < 0.0)
-    {
-        timeUntilNextPeriodicLightingUpdate = timeUntilNextPeriodicLightingUpdate;
-        
-        dispatch_async(chunkTaskQueue, ^{
-            GSVector3 p = [activeRegion randomPointInActiveRegionWithCameraPos:camera.cameraEye];
-            [self updateLightingForChunkAtPoint:p];
-        });
-    }
-    
     [lock unlock];
 }
 
 
 - (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)newBlock
 {
-    GSChunkVoxelData *chunk;
-    
     [lock lock];
+
+    // Modify the voxel itself.
+    {
+        GSChunkVoxelData *chunk = [self getChunkVoxelsAtPoint:pos];
+        
+        [chunk writerAccessToVoxelDataUsingBlock:^{
+            GSVector3 chunkLocalP;
+            voxel_t *block;
+            
+            chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+            
+            block = [chunk getPointerToVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+            assert(block);
+            
+            *block = newBlock;
+            
+            [chunk voxelDataWasModified];
+        }];
+    }
     
-    chunk = [self getChunkVoxelsAtPoint:pos];
+    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
     
-    [chunk writerAccessToVoxelDataUsingBlock:^{
-        GSVector3 chunkLocalP;
-        voxel_t *block;
-        
-        chunkLocalP = GSVector3_Sub(pos, chunk.minP);
-        
-        block = [chunk getPointerToVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
-        assert(block);
-        
-        *block = newBlock;
+    /* Rebuild indirect sunlight for the affected chunks.
+     * In order to correctly handle the case where indirect sunlight is removed (say, by sealing a hole) indirect sunlight must be
+     * regenerated from scratch for all chunks in the neighborhood. There's no need to attempt to propagate the effect out further
+     * than that because the light radius is always less than the width of a single chunk.
+     */
+    [neighborhood forEachNeighbor:^(GSChunkVoxelData *chunk) {
+        [chunk.indirectSunlight clear];
+    }];
+    [neighborhood forEachNeighbor:^(GSChunkVoxelData *chunk) {
+        GSNeighborhood *neighboringNeighborhood = [self neighborhoodAtPoint:chunk.centerP];
+        [self floodFillIndirectSunlightForNeighborhood:neighboringNeighborhood];
     }];
     
-    [chunk markAsDirtyAndSpinOffSavingTask]; // save the changes asynchronously
-    
-    // Now update geometry for this chunk and its neighbors.
-    // Do it all synchronously too, so changes will appear "immediately."
-    [[self neighborhoodAtPoint:pos] forEachNeighbor:^(GSChunkVoxelData *chunk) {
-        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:chunk.centerP];
-        [chunk updateLightingWithNeighbors:neighborhood doItSynchronously:YES];
-        [[self getChunkGeometryAtPoint:chunk.centerP] updateWithVoxelData:neighborhood doItSynchronously:YES];
+    /* Now update geometry for this chunk and its neighbors.
+     * Do it all synchronously too, so changes will appear "immediately."
+     */
+    [neighborhood forEachNeighbor:^(GSChunkVoxelData *chunk) {
+        GSNeighborhood *neighboringNeighborhood = [self neighborhoodAtPoint:chunk.centerP];
+        [[self getChunkGeometryAtPoint:chunk.centerP] updateWithVoxelData:neighboringNeighborhood doItSynchronously:YES];
     }];
     
     [lock unlock];
@@ -332,17 +333,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 @implementation GSChunkStore (Private)
 
-- (void)updateLightingForChunkAtPoint:(GSVector3)p
-{
-    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
-    GSChunkVoxelData *voxels = [neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-    [voxels updateLightingWithNeighbors:neighborhood doItSynchronously:YES];
-    
-    GSChunkGeometryData *geometry = [self getChunkGeometryAtPoint:p];
-    [geometry updateWithVoxelData:neighborhood doItSynchronously:YES];
-}
-
-
 - (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos
 {
     __block voxel_t block;
@@ -370,8 +360,10 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     if(!geometry) {
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
         
-        // Now that neighboring chunks are actually available, spin off a task to asynchronously update lighting in the chunk.
-        [[neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:neighborhood doItSynchronously:NO];
+        // Now that neighboring chunks are actually available we can update indirectly lighting in the chunk.
+        dispatch_async(chunkTaskQueue, ^{
+            [self floodFillIndirectSunlightForNeighborhood:neighborhood];
+        });
         
         geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
                                                     voxelData:neighborhood
@@ -396,6 +388,17 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     }
     
     return neighborhood;
+}
+
+
+- (void)floodFillIndirectSunlightForNeighborhood:(GSNeighborhood *)neighborhood
+{
+    [neighborhood findSunlightPropagationPointsWithHandler:^(GSVector3 propagationPoint) {
+        GSChunkVoxelData *chunkForPropagationPoint = [self getChunkVoxelsAtPoint:propagationPoint];
+        [chunkForPropagationPoint floodFillIndirectSunlightAtPoint:propagationPoint
+                                                         neighbors:neighborhood
+                                                         intensity:CHUNK_LIGHTING_MAX-1];
+    }];
 }
 
 

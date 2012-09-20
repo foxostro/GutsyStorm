@@ -35,8 +35,6 @@ typedef id chunk_id_t;
     GSShader *terrainShader;
     GSActiveRegion *activeRegion;
     NSOpenGLContext *glContext;
-    float timeBetweenPeriodicLightingUpdates;
-    float timeUntilNextPeriodicLightingUpdate;
     
     NSLock *lock;
     

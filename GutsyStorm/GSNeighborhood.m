@@ -14,28 +14,14 @@
 
 @implementation GSNeighborhood
 
-+ (NSLock *)_sharedVoxelDataLock
++ (NSLock *)globalLock
 {
     static dispatch_once_t onceToken;
     static NSLock *a = nil;
     
     dispatch_once(&onceToken, ^{
         a = [[NSLock alloc] init];
-        [a setName:@"GSNeighborhood._sharedVoxelDataLock"];
-    });
-    
-    return a;
-}
-
-
-+ (NSLock *)_sharedSkylightLock
-{
-    static dispatch_once_t onceToken;
-    static NSLock *a = nil;
-    
-    dispatch_once(&onceToken, ^{
-        a = [[NSLock alloc] init];
-        [a setName:@"GSNeighborhood._sharedSunlightLock"];
+        [a setName:@"GSNeighborhood.globalLock"];
     });
     
     return a;
@@ -132,51 +118,53 @@
 }
 
 
-- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
+- (void)accessToChunkWithLock:(SEL)getter usingBlock:(void (^)(void))block lock:(SEL)lock unlock:(SEL)unlock
 {
-    NSLock *globalLock = [GSNeighborhood _sharedVoxelDataLock];
-    
-    [globalLock lock];
+    [[GSNeighborhood globalLock] lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getVoxelDataLock] lockForReading];
+        [[neighbor performSelector:getter] performSelector:lock];
     }];
-    [globalLock unlock];
+    [[GSNeighborhood globalLock] unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getVoxelDataLock] unlockForReading];
+        [[neighbor performSelector:getter] performSelector:unlock];
     }];
+}
+
+
+- (void)readerAccessToChunkWithLock:(SEL)getter usingBlock:(void (^)(void))block
+{
+    [self accessToChunkWithLock:getter usingBlock:block lock:@selector(lockForReading) unlock:@selector(unlockForReading)];
+}
+
+
+- (void)writerAccessToChunkWithLock:(SEL)getter usingBlock:(void (^)(void))block
+{
+    [self accessToChunkWithLock:getter usingBlock:block lock:@selector(lockForWriting) unlock:@selector(unlockForWriting)];
+}
+
+
+- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
+{
+    [self readerAccessToChunkWithLock:@selector(lockVoxelData) usingBlock:block];
 }
 
 
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    NSLock *globalLock = [GSNeighborhood _sharedVoxelDataLock];
-    
-    [globalLock lock];
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getVoxelDataLock] lockForWriting];
-    }];
-    [globalLock unlock];
-    
-    block();
-    
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor getVoxelDataLock] unlockForWriting];
-    }];
+    [self writerAccessToChunkWithLock:@selector(lockVoxelData) usingBlock:block];
 }
 
 
 - (void)readerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block
 {
-    NSLock *globalLock = [GSNeighborhood _sharedSkylightLock];
-    
-    [globalLock lock];
+    [[GSNeighborhood globalLock] lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
         [[[neighbor performSelector:buffer] lockLightingBuffer] lockForReading];
     }];
-    [globalLock unlock];
+    [[GSNeighborhood globalLock] unlock];
     
     block();
     
@@ -188,13 +176,11 @@
 
 - (void)writerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block
 {
-    NSLock *globalLock = [GSNeighborhood _sharedSkylightLock];
-    
-    [globalLock lock];
+    [[GSNeighborhood globalLock] lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
         [[[neighbor performSelector:buffer] lockLightingBuffer] lockForWriting];
     }];
-    [globalLock unlock];
+    [[GSNeighborhood globalLock] unlock];
     
     block();
     
@@ -244,6 +230,20 @@
 }
 
 
+- (uint8_t *)pointerToIndirectSunlightAtPoint:(GSVector3)worldSpacePos
+{
+    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        uint8_t *p = [neighbors[i] pointerToIndirectSunlightAtPoint:worldSpacePos];
+        if(p) {
+            return p;
+        }
+    }
+    
+    return NULL;
+}
+
+
 - (BOOL)isEmptyAtPoint:(GSIntegerVector3)p
 {
     // Assumes each chunk spans the entire vertical extent of the world.
@@ -257,6 +257,51 @@
     }
     
     return isVoxelEmpty([[self getNeighborVoxelAtPoint:&p] getVoxelAtPoint:p]);
+}
+
+
+- (BOOL)canPropagateIndirectSunlightFromPoint:(GSVector3)worldSpacePos
+{
+    assert(worldSpacePos.y >= 0 && worldSpacePos.y < CHUNK_SIZE_Y);
+    
+    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        voxel_t *voxel = [neighbors[i] pointerToVoxelAtPointInWorldSpace:worldSpacePos];
+        if(voxel) {
+            return isVoxelEmpty(*voxel);
+        }
+    }
+    
+    assert(!"point is not contained by the neighborhood");
+    return NO;
+}
+
+
+- (void)findSunlightPropagationPointsWithHandler:(void (^)(GSVector3))handler
+{
+    // TODO: This needs to find as many sunlight propagation points as possible throughout the entire neighborhood, not just in
+    // the center chunk. The points at the edge of the neighborhood can be ignored safely. The effect of not implementing this
+    // change is that terrain edits which remove indirect sunlight (e.g. sealing a hole) will not update correctly.
+    
+    [self readerAccessToVoxelDataUsingBlock:^{
+        GSIntegerVector3 p;
+        
+        GSChunkVoxelData *center = [self getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+        
+        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+        {
+            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+            {
+                for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
+                {
+                    if([center isSunlightPropagationPointAtPoint:p  neighborhood:self]) {
+                        GSVector3 worldSpacePoint = GSVector3_Add(center.minP, GSVector3_Make(p.x, p.y, p.z));
+                        handler(worldSpacePoint);
+                    }
+                }
+            }
+        }
+    }];
 }
 
 

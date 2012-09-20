@@ -46,4 +46,9 @@
                     outLighting:(block_lighting_t *)lighting
                          getter:(SEL)getter;
 
+/* Clear the lighting buffer to all zeroes.
+ * Assumes the caller is already holding the buffer's lock for writing.
+ */
+- (void)clear;
+
 @end

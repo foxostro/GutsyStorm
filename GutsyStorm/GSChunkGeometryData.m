@@ -38,7 +38,7 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
 {
     // Pack ambient occlusion into the Red channel, sunlight into the Green channel, and torch light into the Blue channel.
     return GSVector3_Make(ambientOcclusion / (float)CHUNK_MAX_AO_COUNT,
-                          (sunlight / (float)CHUNK_LIGHTING_MAX) * 0.7f + 0.3f,
+                          (sunlight / (float)CHUNK_LIGHTING_MAX) * 0.9f + 0.1f,
                           torchLight / (float)CHUNK_LIGHTING_MAX);
 }
 
@@ -370,7 +370,9 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     
     [neighborhood readerAccessToVoxelDataUsingBlock:^{
         [neighborhood readerAccessToLightingBuffer:@selector(directSunlight) usingBlock:^{
-            [self fillGeometryBuffersUsingVoxelData:neighborhood];
+            [neighborhood readerAccessToLightingBuffer:@selector(indirectSunlight) usingBlock:^{
+                [self fillGeometryBuffersUsingVoxelData:neighborhood];
+            }];
         }];
     }];
     

@@ -16,8 +16,8 @@
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
 - (void)loadVoxelDataFromFile:(NSURL *)url;
-- (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)recalcOutsideVoxelsNoLock;
+- (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)saveVoxelDataToFile;
 - (void)fillDirectSunlightBuffer;
 
@@ -29,6 +29,7 @@
 @synthesize voxelData;
 @synthesize directSunlight;
 @synthesize indirectSunlight;
+@synthesize lockVoxelData;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
@@ -80,16 +81,12 @@
             }
             
             [self recalcOutsideVoxelsNoLock];
+            [lockVoxelData unlockForWriting]; // We don't need to call -voxelDataWasModified in the special case of initialization.
             
-            [lockVoxelData unlockForWriting];
-            
-            // And now generate direct sunlight for this chunk, which does not depend on neighboring chunks.
+            // Generate direct sunlight for this chunk, which does not depend on neighboring chunks.
             [self fillDirectSunlightBuffer];
             [directSunlight.lockLightingBuffer unlockForWriting];
             
-            // for now, leave the indirect sunlight unset (all zeroes)
-            // TODO: generate indirect sunlight using a flood-fill algorithm seeding from several propagation points
-            [indirectSunlight.lockLightingBuffer unlockForWriting];
         });
     }
     
@@ -137,28 +134,24 @@
 }
 
 
-- (void)updateLightingWithNeighbors:(GSNeighborhood *)n doItSynchronously:(BOOL)sync
+- (void)voxelDataWasModified
 {
-    // stub
-}
-
-
-- (void)markAsDirtyAndSpinOffSavingTask
-{
-    // Mark as dirty
-    [lockVoxelData lockForWriting];
-    dirty = YES;
-    [lockVoxelData unlockForWriting];
+    [self recalcOutsideVoxelsNoLock];
     
-    /* Spin off a task to save the chunk. (Marks as clean when complete.)
+    // Rebuild direct sunlight data.
+    [directSunlight.lockLightingBuffer lockForWriting];
+    [self fillDirectSunlightBuffer];
+    [directSunlight.lockLightingBuffer unlockForWriting];
+    
+    /* Spin off a task to save the chunk.
      * This is latency sensitive, so submit to the global queue. Do not use `chunkTaskQueue' as that would cause the block to be
      * added to the end of a long queue of basically serialized background tasks.
      */
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     dispatch_group_async(groupForSaving, queue, ^{
-        [lockVoxelData lockForWriting];
+        [lockVoxelData lockForReading];
         [self saveVoxelDataToFile];
-        [lockVoxelData unlockForWriting];
+        [lockVoxelData unlockForReading];
     });
 }
 
@@ -174,14 +167,103 @@
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
     [lockVoxelData lockForWriting];
-    block();
+    block(); // rely on caller to call -voxelDataWasModified
     [lockVoxelData unlockForWriting];
 }
 
-
-- (GSReaderWriterLock *)getVoxelDataLock
+- (uint8_t *)pointerToIndirectSunlightAtPoint:(GSVector3)worldSpacePos
 {
-    return lockVoxelData;
+    GSIntegerVector3 p = GSIntegerVector3_Make(worldSpacePos.x-minP.x, worldSpacePos.y-minP.y, worldSpacePos.z-minP.z);
+    
+    if(p.x < 0 || p.x >= CHUNK_SIZE_X || p.y < 0 || p.y >= CHUNK_SIZE_Y || p.z < 0 || p.z >= CHUNK_SIZE_Z) {
+        return NULL; // The point is not within the bounds of this chunk.
+    }
+    
+    return &indirectSunlight.lightingBuffer[INDEX(p.x, p.y, p.z)];
+}
+
+
+- (uint8_t *)pointerToVoxelAtPointInWorldSpace:(GSVector3)worldSpacePos
+{
+    GSIntegerVector3 p = GSIntegerVector3_Make(worldSpacePos.x-minP.x, worldSpacePos.y-minP.y, worldSpacePos.z-minP.z);
+    
+    if(p.x < 0 || p.x >= CHUNK_SIZE_X || p.y < 0 || p.y >= CHUNK_SIZE_Y || p.z < 0 || p.z >= CHUNK_SIZE_Z) {
+        return NULL; // The point is not within the bounds of this chunk.
+    }
+    
+    return &voxelData[INDEX(p.x, p.y, p.z)];
+}
+
+
+- (void)floodFillIndirectSunlightAtPoint:(GSVector3)p
+                               neighbors:(GSNeighborhood *)neighbors
+                               intensity:(int)intensity
+{
+    if(intensity < 0) {
+        return;
+    }
+    
+    if(![neighbors canPropagateIndirectSunlightFromPoint:p]) {
+        return; // Indirect sunlight cannot propagate from this point, so bail out. (e.g. point is not empty.)
+    }
+    
+    uint8_t *value = [neighbors pointerToIndirectSunlightAtPoint:p];
+    
+    if(!value) {
+        return; // The point is out of the bounds of the neighborhood and indirect sunlight could not be retrieved.
+    }
+    
+    if(*value >= intensity) {
+        return;
+    }
+    
+    *value = intensity;
+    
+    // recursive flood-fill
+    [self floodFillIndirectSunlightAtPoint:GSVector3_Make(p.x+1, p.y, p.z) neighbors:neighbors intensity:intensity-1];
+    [self floodFillIndirectSunlightAtPoint:GSVector3_Make(p.x-1, p.y, p.z) neighbors:neighbors intensity:intensity-1];
+    [self floodFillIndirectSunlightAtPoint:GSVector3_Make(p.x, p.y+1, p.z) neighbors:neighbors intensity:intensity-1];
+    [self floodFillIndirectSunlightAtPoint:GSVector3_Make(p.x, p.y-1, p.z) neighbors:neighbors intensity:intensity-1];
+    [self floodFillIndirectSunlightAtPoint:GSVector3_Make(p.x, p.y, p.z+1) neighbors:neighbors intensity:intensity-1];
+    [self floodFillIndirectSunlightAtPoint:GSVector3_Make(p.x, p.y, p.z-1) neighbors:neighbors intensity:intensity-1];
+}
+
+
+- (BOOL)isSunlightPropagationPointAtPoint:(GSIntegerVector3)p neighborhood:(GSNeighborhood *)neighborhood
+{
+    static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
+        { 0, 1,  0},
+        { 0,-1,  0},
+        { 1, 0,  0},
+        {-1, 0,  0},
+        { 0, 0,  1},
+        { 0, 0, -1}
+    };
+    
+    voxel_t voxel = [self getVoxelAtPoint:p];
+    
+    if(!isVoxelEmpty(voxel) || isVoxelOutside(voxel)) {
+        return NO;
+    }
+    
+    for(face_t i=0; i<FACE_NUM_FACES; ++i)
+    {
+        GSIntegerVector3 q = GSIntegerVector3_Add(p, offsets[i]);
+        
+        if(q.y < 0 || q.y >= CHUNK_SIZE_Y) {
+            continue; // offset point is out of bounds, so skip it
+        }
+        
+        // We may need to examine neighboring chunks to determine whether the point is adjacent to direct sunlight.
+        GSChunkVoxelData *chunk = [neighborhood getNeighborVoxelAtPoint:&q];
+        voxel_t neighbor = [chunk getVoxelAtPoint:q];
+        
+        if(isVoxelEmpty(neighbor) && isVoxelOutside(neighbor)) {
+            return YES;
+        }
+    }
+    
+    return NO;
 }
 
 @end
@@ -189,21 +271,15 @@
 
 @implementation GSChunkVoxelData (Private)
 
-// Assumes the caller is already holding "lockVoxelData" for writing. ("writing" so we can protect `dirty')
+// Assumes the caller is already holding "lockVoxelData" for reading.
 - (void)saveVoxelDataToFile
 {
-    if(!dirty) {
-        return;
-    }
-    
     const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
     
     NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
                         relativeToURL:folder];
     
     [[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
-    
-    dirty = YES;
 }
 
 
@@ -285,8 +361,6 @@
        }
     }
     
-    dirty = YES;
-    
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
 }
@@ -307,8 +381,6 @@
     }
     [data getBytes:voxelData length:len];
     [data release];
-    
-    dirty = NO;
 }
 
 
