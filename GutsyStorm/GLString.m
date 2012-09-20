@@ -127,26 +127,30 @@
 // designated initializer
 - (id) initWithAttributedString:(NSAttributedString *)attributedString withTextColor:(NSColor *)text withBoxColor:(NSColor *)box withBorderColor:(NSColor *)border
 {
-    [super init];
-    cgl_ctx = NULL;
-    texName = 0;
-    texSize.width = 0.0f;
-    texSize.height = 0.0f;
-    [attributedString retain];
-    string = attributedString;
-    [text retain];
-    [box retain];
-    [border retain];
-    textColor = text;
-    boxColor = box;
-    borderColor = border;
-    staticFrame = NO;
-    antialias = YES;
-    marginSize.width = 4.0f; // standard margins
-    marginSize.height = 2.0f;
-    cRadius = 4.0f;
-    requiresUpdate = YES;
-    // all other variables 0 or NULL
+    self = [super init];
+    if (self) {
+        // Initialization code here.
+        cgl_ctx = NULL;
+        texName = 0;
+        texSize.width = 0.0f;
+        texSize.height = 0.0f;
+        [attributedString retain];
+        string = attributedString;
+        [text retain];
+        [box retain];
+        [border retain];
+        textColor = text;
+        boxColor = box;
+        borderColor = border;
+        staticFrame = NO;
+        antialias = YES;
+        marginSize.width = 4.0f; // standard margins
+        marginSize.height = 2.0f;
+        cRadius = 4.0f;
+        requiresUpdate = YES;
+        // all other variables 0 or NULL
+    }
+    
     return self;
 }
 

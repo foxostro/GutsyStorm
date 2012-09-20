@@ -50,7 +50,7 @@
 - (void)resetMouseInputSettings;
 - (void)timerFired:(id)sender;
 - (unsigned)handleUserInput:(float)dt;
-- (NSString *)loadShaderSourceFileWithPath:(NSString *)path;
+- (NSString *)newShaderSourceStringFromFileAt:(NSString *)path;
 - (void)buildTerrainShader;
 - (void)buildFontsAndStrings;
 - (void)placeBlockUnderCrosshairs;

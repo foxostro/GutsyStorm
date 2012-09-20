@@ -18,7 +18,7 @@
 {
     self = [super init];
     if (self) {
-        lightingBuffer = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
+        lightingBuffer = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(uint8_t));
         if(!lightingBuffer) {
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
         }
@@ -42,15 +42,11 @@
 
 - (uint8_t *)pointerToLightAtPoint:(GSIntegerVector3)p
 {
-    assert(SAMPLE);
+    assert(lightingBuffer);
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
     assert(p.y >= 0 && p.y < CHUNK_SIZE_Y);
     assert(p.z >= 0 && p.z < CHUNK_SIZE_Z);
-    
-    size_t idx = INDEX(p.x, p.y, p.z);
-    assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
-    
-    return &lightingBuffer[idx];
+    return &lightingBuffer[INDEX(p.x, p.y, p.z)];
 }
 
 // Assumes the caller is already holding "lockSAMPLE" on all neighbors and "lockVoxelData" on the center neighbor, at least.

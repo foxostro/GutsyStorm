@@ -23,7 +23,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 - (void)updateLightingForChunkAtPoint:(GSVector3)p;
 - (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos;
-+ (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
++ (NSURL *)newWorldSaveFolderURLWithSeed:(unsigned)seed;
 - (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
 - (GSVector3)computeChunkCenterForPoint:(GSVector3)p;
 - (chunk_id_t)getChunkIDWithMinP:(GSVector3)minP;
@@ -71,7 +71,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         // Initialization code here.
         seed = _seed;
         terrainHeight = 40.0;
-        folder = [GSChunkStore createWorldSaveFolderWithSeed:seed];
+        folder = [GSChunkStore newWorldSaveFolderURLWithSeed:seed];
         groupForSaving = dispatch_group_create();
         
         camera = _camera;
@@ -456,7 +456,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-+ (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed
++ (NSURL *)newWorldSaveFolderURLWithSeed:(unsigned)seed
 {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
     NSString *folder = ([paths count] > 0) ? [paths objectAtIndex:0] : NSTemporaryDirectory();

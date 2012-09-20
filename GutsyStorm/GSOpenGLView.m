@@ -34,7 +34,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
 }
 
 
-- (NSString *)loadShaderSourceFileWithPath:(NSString *)path
+- (NSString *)newShaderSourceStringFromFileAt:(NSString *)path
 {
     NSError *error;
     NSString *str = [[NSString alloc] initWithContentsOfFile:path
@@ -58,9 +58,9 @@ BOOL checkForOpenGLExtension(NSString *extension);
     NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.vert" ofType:@"txt"];
     NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.frag" ofType:@"txt"];
     
-    NSString *vertSrc = [self loadShaderSourceFileWithPath:vertFn];
-    NSString *fragSrc = [self loadShaderSourceFileWithPath:fragFn];
-        
+    NSString *vertSrc = [self newShaderSourceStringFromFileAt:vertFn];
+    NSString *fragSrc = [self newShaderSourceStringFromFileAt:fragFn];
+    
     terrainShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
     
     [fragSrc release];
@@ -80,7 +80,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     stringAttribs = [[NSMutableDictionary dictionary] retain];
     [stringAttribs setObject:font forKey:NSFontAttributeName];
     [stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
-    [font release];
     
     fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
                                       withAttributes:stringAttribs
@@ -266,7 +265,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     NSRect bounds = [self bounds];
     CGPoint viewCenter;
     viewCenter.x = bounds.origin.x + bounds.size.width / 2;
-    viewCenter.x = bounds.origin.y + bounds.size.height / 2;
+    viewCenter.y = bounds.origin.y + bounds.size.height / 2;
     CGWarpMouseCursorPosition(viewCenter);
 }
 

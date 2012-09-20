@@ -795,6 +795,8 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 // Allocate a buffer for use in geometry generation.
 static GLfloat * allocateGeometryBuffer(size_t numVerts)
 {
+    assert(numVerts > 0);
+    
     GLfloat *buffer = malloc(sizeof(GLfloat) * 3 * numVerts);
     if(!buffer) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating chunk buffer."];
