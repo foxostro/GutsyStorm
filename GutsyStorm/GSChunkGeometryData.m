@@ -218,24 +218,19 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         
         visible = NO;
         
-        [self updateWithVoxelData:voxelData doItSynchronously:NO];
+        dispatch_async(chunkTaskQueue, ^{
+            [self updateWithVoxelData:voxelData];
+        });
     }
     
     return self;
 }
 
 
-- (void)updateWithVoxelData:(GSNeighborhood *)neighborhood doItSynchronously:(BOOL)sync
+- (void)updateWithVoxelData:(GSNeighborhood *)neighborhood
 {
-    void (^b)(void) = ^{
-        [self generateGeometryWithVoxelData:neighborhood];
-    };
-    
-    if(sync) {
-        b();
-    } else {
-        dispatch_async(chunkTaskQueue, b);
-    }
+    [self generateGeometryWithVoxelData:neighborhood];
+    NSLog(@"%@ finished updating geometry.", self);
 }
 
 

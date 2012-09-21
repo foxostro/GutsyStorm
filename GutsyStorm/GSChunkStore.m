@@ -33,9 +33,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
 - (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p;
-
 - (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p;
 - (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p;
+- (void)rebuildIndirectSunlightAndGeometryAround:(GSVector3)pos;
 
 @end
 
@@ -221,21 +221,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         }];
     }
     
-    /* In order to correctly handle the case where indirect sunlight is removed (say, by sealing a hole) indirect sunlight must be
-     * regenerated from scratch for all chunks in the neighborhood. There's no need to attempt to propagate the effect out further
-     * than that because the light radius is always less than the width of a single chunk.
-     */
-    [[self neighborhoodAtPoint:pos] forEachNeighbor:^(GSChunkVoxelData *chunk) {
-        [chunk rebuildIndirectSunlightWithNeighborhood:[self neighborhoodAtPoint:chunk.centerP]];
-    }];
-    
-    /* Now update geometry for this chunk and its neighbors.
-     * Do it all synchronously too, so changes will appear "immediately."
-     */
-    [[self neighborhoodAtPoint:pos] forEachNeighbor:^(GSChunkVoxelData *chunk) {
-        GSNeighborhood *neighboringNeighborhood = [self neighborhoodAtPoint:chunk.centerP];
-        [[self getChunkGeometryAtPoint:chunk.centerP] updateWithVoxelData:neighboringNeighborhood doItSynchronously:YES];
-    }];
+    [self rebuildIndirectSunlightAndGeometryAround:pos];
     
     [lock unlock];
 }
@@ -351,12 +337,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     geometry = [cacheGeometryData objectForKey:chunkID];
     if(!geometry) {
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
-        
-        // Now that neighboring chunks are actually available we update indirectly lighting in the chunk.
-        dispatch_async(chunkTaskQueue, ^{
-            [[neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER] rebuildIndirectSunlightWithNeighborhood:neighborhood];
-        });
-        
+
+        // This will initially have no indirect sunlight applied to it. We generate that later and update geometry when its ready.
         geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
                                                     voxelData:neighborhood
                                                chunkTaskQueue:chunkTaskQueue
@@ -623,6 +605,49 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
         [self computeChunkVisibility];
     }
+}
+
+
+- (void)rebuildGeometryAround:(GSVector3)pos
+{
+    dispatch_async(chunkTaskQueue, ^{
+        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
+        
+        [neighborhood forEachNeighbor:^(GSChunkVoxelData *voxels) {
+            GSChunkGeometryData *geometry = [self getChunkGeometryAtPoint:voxels.centerP];
+            [geometry updateWithVoxelData:[self neighborhoodAtPoint:voxels.centerP]];
+        }];
+    });
+}
+
+
+- (void)rebuildIndirectSunlightAndGeometryAround:(GSVector3)pos
+{
+    /* In order to correctly handle the case where indirect sunlight is removed (say, by sealing a hole) indirect sunlight must be
+     * regenerated from scratch for all chunks in the neighborhood. There's no need to attempt to propagate the effect out further
+     * than that because the light radius is always less than the width of a single chunk.
+     */
+
+    dispatch_async(chunkTaskQueue, ^{
+        NSMutableSet *dirtyMeshes = [[NSMutableSet alloc] init];
+        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
+        
+        [neighborhood forEachNeighbor:^(GSChunkVoxelData *voxels) {
+            [voxels rebuildIndirectSunlightWithNeighborhood:[self neighborhoodAtPoint:voxels.centerP]
+                                          completionHandler:^{
+                                              [dirtyMeshes addObject:[GSBoxedVector boxedVectorWithVector:voxels.centerP]];
+                                          }];
+        }];
+        
+        // Rebuild geometry where indirect sunlight was updated.
+        for(GSBoxedVector *b in dirtyMeshes)
+        {
+            [self rebuildGeometryAround:[b vectorValue]];
+        }
+        
+        [dirtyMeshes release];
+    });
+   
 }
 
 @end

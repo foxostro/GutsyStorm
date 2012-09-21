@@ -62,8 +62,6 @@
         [directSunlight.lockLightingBuffer lockForWriting]; // locked initially and unlocked at the end of the first update
         
         indirectSunlight = [[GSLightingBuffer alloc] init];
-        [indirectSunlight.lockLightingBuffer lockForWriting]; // locked initially and unlocked at the end of the first update
-        hasHadFirstIndirectLightingUpdate = NO;
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -220,6 +218,7 @@
 
 
 - (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
+                              completionHandler:(void (^)(void))completionHandler
 {
     GSIntegerVector3 p;
     const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
@@ -308,14 +307,11 @@
         }
     }
     
-    /* The lock is taken in the constructor so that no clients can read this at all until after the first update. If this is not
-     * the first update then it is necessary to grab the lock here.
-     */
-    if(YES == hasHadFirstIndirectLightingUpdate) {
-        [indirectSunlight.lockLightingBuffer lockForWriting];
-    }
+    free(combinedVoxelData);
+    combinedVoxelData = NULL;
     
     // Copy the central portion of the large lighting buffer to indirectSunlight.
+    [indirectSunlight.lockLightingBuffer lockForWriting];
     for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
     {
         for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
@@ -326,14 +322,14 @@
             }
         }
     }
-    
-    hasHadFirstIndirectLightingUpdate = YES;
+    [indirectSunlight.lockLightingBuffer unlockForWriting];
     CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     NSLog(@"Finished rebuilding indirect sunlight. It took %.3fs", timeEnd - timeStart);
-    [indirectSunlight.lockLightingBuffer unlockForWriting];
     
-    free(combinedVoxelData);
     free(combinedIndirectSunlightData);
+    combinedIndirectSunlightData = NULL;
+    
+    completionHandler();
 }
 
 @end

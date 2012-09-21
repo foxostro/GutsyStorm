@@ -29,7 +29,6 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     
     GSLightingBuffer *directSunlight; // direct lighting from the sun
     GSLightingBuffer *indirectSunlight; // indirect lighting from the sun
-    BOOL hasHadFirstIndirectLightingUpdate;
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;
@@ -58,7 +57,7 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
-// Rebuilds indirect sunlight for this chunk.
-- (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood;
+// Rebuilds indirect sunlight for this chunk and then call the completion handler.
+- (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler;
 
 @end

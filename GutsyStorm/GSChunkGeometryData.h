@@ -52,7 +52,7 @@
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
          glContext:(NSOpenGLContext *)_glContext;
 
-- (void)updateWithVoxelData:(GSNeighborhood *)neighborhood doItSynchronously:(BOOL)sync;
+- (void)updateWithVoxelData:(GSNeighborhood *)neighborhood;
 
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 
