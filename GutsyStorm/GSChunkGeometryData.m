@@ -149,7 +149,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 - (void)destroyVBOs;
 - (void)destroyGeometry;
 - (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)chunks;
-- (void)generateGeometryWithVoxelData:(GSNeighborhood *)voxels;
 - (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
                                         vertsBuffer:(GLfloat **)_vertsBuffer
                                         normsBuffer:(GLfloat **)_normsBuffer
@@ -229,8 +228,26 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 
 - (void)updateWithVoxelData:(GSNeighborhood *)neighborhood
 {
-    [self generateGeometryWithVoxelData:neighborhood];
-    NSLog(@"%@ finished updating geometry.", self);
+    [lockGeometry lock];
+    
+    [self destroyGeometry];
+    
+    [neighborhood readerAccessToVoxelDataUsingBlock:^{
+        [neighborhood readerAccessToDirectSunlightUsingBlock:^{
+            [neighborhood readerAccessToIndirectSunlightUsingBlock:^{
+                [self fillGeometryBuffersUsingVoxelData:neighborhood];
+            }];
+        }];
+    }];
+    
+    [self fillIndexBufferForGenerating:numChunkVerts];
+    
+    // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
+    // Updating a boolean should be atomic on x86_64 and i386;
+    needsVBORegeneration = YES;
+    
+    [lockGeometry unlockWithCondition:READY];
+    //NSLog(@"%@ finished updating geometry.", self);
 }
 
 
@@ -353,31 +370,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
             }
         }
     }
-}
-
-
-// Generates verts, norms, and texCoords buffers from voxel data.
-- (void)generateGeometryWithVoxelData:(GSNeighborhood *)neighborhood
-{
-    [lockGeometry lock];
-    
-    [self destroyGeometry];
-    
-    [neighborhood readerAccessToVoxelDataUsingBlock:^{
-        [neighborhood readerAccessToDirectSunlightUsingBlock:^{
-            [neighborhood readerAccessToIndirectSunlightUsingBlock:^{
-                [self fillGeometryBuffersUsingVoxelData:neighborhood];
-            }];
-        }];
-    }];
-    
-    [self fillIndexBufferForGenerating:numChunkVerts];
-    
-    // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
-    // Updating a boolean should be atomic on x86_64 and i386;
-    needsVBORegeneration = YES;
-    
-    [lockGeometry unlockWithCondition:READY];
 }
 
 

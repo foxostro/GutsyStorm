@@ -40,6 +40,9 @@ typedef id chunk_id_t;
     
     int numVBOGenerationsAllowedPerFrame;
     int numVBOGenerationsRemaining;
+    
+    float timeUntilIndirectSunlightUpdate;
+    float timeBetweenlIndirectSunlightUpdates;
 }
 
 - (id)initWithSeed:(unsigned)_seed

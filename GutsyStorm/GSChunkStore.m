@@ -94,6 +94,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         numVBOGenerationsAllowedPerFrame = (int)n;
         numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
         
+        timeBetweenlIndirectSunlightUpdates = 0.5;
+        timeUntilIndirectSunlightUpdate = timeBetweenlIndirectSunlightUpdates;
+        
         /* Why are we specfying the background-priority global dispatch queue here?
          *
          * Answer:
@@ -193,6 +196,36 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     [lock lock];
     numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame; // reset
     [self recalculateActiveChunksWithCameraModifiedFlags:flags];
+    
+#if 1
+    // Periodically rebuild chunks' out-of-date indirect sunlight and all associated geometry.
+    timeUntilIndirectSunlightUpdate -= dt;
+    if(timeUntilIndirectSunlightUpdate <= 0) {
+        timeUntilIndirectSunlightUpdate = timeBetweenlIndirectSunlightUpdates;
+        
+        dispatch_async(chunkTaskQueue, ^{
+            [lock lock];
+            NSMutableArray *points = [[NSMutableArray alloc] init];
+            
+            // Get the list of out-of-date chunks.
+            [self enumeratePointsInActiveRegionUsingBlock:^(GSVector3 p) {
+                GSChunkVoxelData *voxels = [self getChunkVoxelsAtPoint:p];
+                if(voxels.indirectSunlightIsOutOfDate) {
+                    [points addObject:[GSBoxedVector boxedVectorWithVector:voxels.centerP]];
+                }
+            }];
+            
+            // Rebuild one chunk, chosen randomly from the list.
+            if([points count] > 0) {
+                NSUInteger n = rand() % [points count];
+                [self rebuildIndirectSunlightAndGeometryAround:[[points objectAtIndex:n] vectorValue]];
+            }
+            
+            [points release];
+            [lock unlock];
+        });
+    }
+#endif
     
     [lock unlock];
 }
@@ -608,19 +641,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (void)rebuildGeometryAround:(GSVector3)pos
-{
-    dispatch_async(chunkTaskQueue, ^{
-        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
-        
-        [neighborhood forEachNeighbor:^(GSChunkVoxelData *voxels) {
-            GSChunkGeometryData *geometry = [self getChunkGeometryAtPoint:voxels.centerP];
-            [geometry updateWithVoxelData:[self neighborhoodAtPoint:voxels.centerP]];
-        }];
-    });
-}
-
-
 - (void)rebuildIndirectSunlightAndGeometryAround:(GSVector3)pos
 {
     /* In order to correctly handle the case where indirect sunlight is removed (say, by sealing a hole) indirect sunlight must be
@@ -629,11 +649,16 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
      */
 
     dispatch_async(chunkTaskQueue, ^{
+        [lock lock];
+        NSLog(@"-rebuildIndirectSunlightAndGeometryAround:");
         NSMutableSet *dirtyMeshes = [[NSMutableSet alloc] init];
+        
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
         
         [neighborhood forEachNeighbor:^(GSChunkVoxelData *voxels) {
-            [voxels rebuildIndirectSunlightWithNeighborhood:[self neighborhoodAtPoint:voxels.centerP]
+            GSNeighborhood *innerNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
+            
+            [voxels rebuildIndirectSunlightWithNeighborhood:innerNeighborhood
                                           completionHandler:^{
                                               [dirtyMeshes addObject:[GSBoxedVector boxedVectorWithVector:voxels.centerP]];
                                           }];
@@ -642,10 +667,21 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         // Rebuild geometry where indirect sunlight was updated.
         for(GSBoxedVector *b in dirtyMeshes)
         {
-            [self rebuildGeometryAround:[b vectorValue]];
+            GSVector3 p = [b vectorValue];
+            
+            dispatch_async(chunkTaskQueue, ^{
+                GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
+                
+                [neighborhood forEachNeighbor:^(GSChunkVoxelData *voxels) {
+                    GSNeighborhood *voxelsNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
+                    GSChunkGeometryData *geometry = [self getChunkGeometryAtPoint:voxels.centerP];
+                    [geometry updateWithVoxelData:voxelsNeighborhood];
+                }];
+            });
         }
         
         [dirtyMeshes release];
+        [lock unlock];
     });
    
 }

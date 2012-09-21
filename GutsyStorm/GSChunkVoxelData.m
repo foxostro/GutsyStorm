@@ -30,6 +30,7 @@
 @synthesize directSunlight;
 @synthesize indirectSunlight;
 @synthesize lockVoxelData;
+@synthesize indirectSunlightIsOutOfDate;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
@@ -62,6 +63,7 @@
         [directSunlight.lockLightingBuffer lockForWriting]; // locked initially and unlocked at the end of the first update
         
         indirectSunlight = [[GSLightingBuffer alloc] init];
+        indirectSunlightIsOutOfDate = YES;
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -328,6 +330,8 @@
     
     free(combinedIndirectSunlightData);
     combinedIndirectSunlightData = NULL;
+    
+    indirectSunlightIsOutOfDate = NO;
     
     completionHandler();
 }

@@ -29,12 +29,15 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     
     GSLightingBuffer *directSunlight; // direct lighting from the sun
     GSLightingBuffer *indirectSunlight; // indirect lighting from the sun
+    
+    BOOL indirectSunlightIsOutOfDate; // indicates that indirect sunlight is out of date for this chunk.
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;
 @property (readonly, nonatomic) GSLightingBuffer *directSunlight;
 @property (readonly, nonatomic) GSLightingBuffer *indirectSunlight;
 @property (readonly, nonatomic) GSReaderWriterLock *lockVoxelData;
+@property (assign, atomic) BOOL indirectSunlightIsOutOfDate;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
 
