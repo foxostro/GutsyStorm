@@ -42,7 +42,6 @@ typedef id chunk_id_t;
     int numVBOGenerationsRemaining;
 }
 
-
 - (id)initWithSeed:(unsigned)_seed
             camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader

@@ -201,9 +201,9 @@
         [neighbor.directSunlight.lockLightingBuffer lockForWriting];
     }];
     [[GSNeighborhood _sharedDirectSunlightLock] unlock];
-    
+
     block();
-    
+
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
         [neighbor.directSunlight.lockLightingBuffer unlockForWriting];
     }];
@@ -282,20 +282,6 @@
 }
 
 
-- (uint8_t *)pointerToIndirectSunlightAtPoint:(GSVector3)worldSpacePos
-{
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        uint8_t *p = [neighbors[i] pointerToIndirectSunlightAtPoint:worldSpacePos];
-        if(p) {
-            return p;
-        }
-    }
-    
-    return NULL;
-}
-
-
 - (BOOL)isEmptyAtPoint:(GSIntegerVector3)p
 {
     // Assumes each chunk spans the entire vertical extent of the world.
@@ -309,51 +295,6 @@
     }
     
     return isVoxelEmpty([[self getNeighborVoxelAtPoint:&p] getVoxelAtPoint:p]);
-}
-
-
-- (BOOL)canPropagateIndirectSunlightFromPoint:(GSVector3)worldSpacePos
-{
-    assert(worldSpacePos.y >= 0 && worldSpacePos.y < CHUNK_SIZE_Y);
-    
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        voxel_t *voxel = [neighbors[i] pointerToVoxelAtPointInWorldSpace:worldSpacePos];
-        if(voxel) {
-            return isVoxelEmpty(*voxel);
-        }
-    }
-    
-    assert(!"point is not contained by the neighborhood");
-    return NO;
-}
-
-
-- (void)findSunlightPropagationPointsWithHandler:(void (^)(GSVector3))handler
-{
-    // TODO: This needs to find as many sunlight propagation points as possible throughout the entire neighborhood, not just in
-    // the center chunk. The points at the edge of the neighborhood can be ignored safely. The effect of not implementing this
-    // change is that terrain edits which remove indirect sunlight (e.g. sealing a hole) will not update correctly.
-    
-    [self readerAccessToVoxelDataUsingBlock:^{
-        GSIntegerVector3 p;
-        
-        GSChunkVoxelData *center = [self getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-        
-        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-        {
-            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-            {
-                for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-                {
-                    if([center isSunlightPropagationPointAtPoint:p  neighborhood:self]) {
-                        GSVector3 worldSpacePoint = GSVector3_Add(center.minP, GSVector3_Make(p.x, p.y, p.z));
-                        handler(worldSpacePoint);
-                    }
-                }
-            }
-        }
-    }];
 }
 
 

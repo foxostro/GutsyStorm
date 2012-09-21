@@ -608,17 +608,13 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     [centerVoxels.directSunlight interpolateLightAtPoint:chunkLocalPos
                                                neighbors:chunks
                                              outLighting:&directSunlight
-                                                  getter:^GSLightingBuffer *(GSChunkVoxelData *c) {
-                                                      return c.directSunlight;
-                                                  }];
+                                                  getter:^GSLightingBuffer* (GSChunkVoxelData *c) { return c.directSunlight; }];
     
     block_lighting_t indirectSunlight;
     [centerVoxels.indirectSunlight interpolateLightAtPoint:chunkLocalPos
                                                  neighbors:chunks
                                                outLighting:&indirectSunlight
-                                                    getter:^GSLightingBuffer *(GSChunkVoxelData *c) {
-                                                        return c.indirectSunlight;
-                                                    }];
+                                                    getter:^GSLightingBuffer* (GSChunkVoxelData *c) { return c.indirectSunlight; }];
     
     // TODO: add torch lighting to the world.
     block_lighting_t torchLight;

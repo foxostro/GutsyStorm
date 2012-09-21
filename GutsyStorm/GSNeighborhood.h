@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSVector3.h"
 #import "GSIntegerVector3.h"
+#import "GSReaderWriterLock.h"
 
 
 @class GSChunkVoxelData;
@@ -50,26 +51,11 @@ typedef enum
  */
 - (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP;
 
-/* Given a position in world-space, return a pointer to the indirect sunlight value for that point.
- * The position must be within the neighborhood, else this method returns NULL.
- * Assumes the caller is holding the lock on indirectSunlight for reading on all chunks in the neighborhood.
- */
-- (uint8_t *)pointerToIndirectSunlightAtPoint:(GSVector3)worldSpacePos;
-
 /* Returns YES if the specified block in the neighborhood is empty. Positions are specified in chunk-local space relative to the
  * center chunk of the neighborhood. Coordinates which exceed the bounds of the center chunk refer to its neighbors.
  * Assumes the caller is already holding "lockVoxelData" on all chunks in the neighborhood.
  */
 - (BOOL)isEmptyAtPoint:(GSIntegerVector3)p;
-
-/* Returns YES if the specified block in the neighborhood can propagate indirect sunlight. The point is specified in world-space
- * coordinates and must be contained by the neighborhood.
- * Assumes the caller is already holding "lockVoxelData" on all chunks in the neighborhood.
- */
-- (BOOL)canPropagateIndirectSunlightFromPoint:(GSVector3)worldSpacePos;
-
-// Searches the neighborhood for sunlight propagation points and calls the handler block for each one.
-- (void)findSunlightPropagationPointsWithHandler:(void (^)(GSVector3 p))handler;
 
 /* Returns the lighting value at the specified block position for the specified lighting buffer.
  * Assumes the caller is already holding the lock on this buffer on all neighbors.

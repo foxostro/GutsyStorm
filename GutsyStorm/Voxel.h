@@ -15,14 +15,19 @@
 #define CHUNK_SIZE_Z (16)
 
 
-#define CHUNK_LIGHTING_MAX (15)
+#define CHUNK_LIGHTING_MAX (7)
 #define CHUNK_MAX_AO_COUNT (4)
 
 #define VOXEL_EMPTY   (1) // a flag on the first LSB
 #define VOXEL_OUTSIDE (2) // a flag on the second LSB
 
 #define SQR(a) ((a)*(a))
+
+// Used for indexing into chunk-sized buffers
 #define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
+
+// Used for indexing into neighborhood-sized buffers.
+#define INDEX2(x,y,z) ((((ssize_t)(x)+CHUNK_SIZE_X)*CHUNK_SIZE_Y*(3*CHUNK_SIZE_Z)) + ((ssize_t)(y)*(3*CHUNK_SIZE_Z)) + ((ssize_t)(z)+CHUNK_SIZE_Z))
 
 typedef uint8_t voxel_t;
 

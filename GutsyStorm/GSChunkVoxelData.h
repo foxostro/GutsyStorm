@@ -29,6 +29,7 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     
     GSLightingBuffer *directSunlight; // direct lighting from the sun
     GSLightingBuffer *indirectSunlight; // indirect lighting from the sun
+    BOOL hasHadFirstIndirectLightingUpdate;
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;
@@ -57,29 +58,7 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
-/* Given a point in world-space, return a pointer to the indirect sunlight value at that point.
- * Assumes the caller is already holding the lock on indirectSunlight for reading.
- * If the point is not within the bounds of this chunk then this method returns NULL.
- */
-- (uint8_t *)pointerToIndirectSunlightAtPoint:(GSVector3)worldSpacePos;
-
-/* Given a point in world-space, return a pointer to the voxel at that point.
- * Assumes the caller is already holding "lockVoxelData" for reading.
- * If the point is not within the bounds of this chunk then this method returns NULL.
- */
-- (uint8_t *)pointerToVoxelAtPointInWorldSpace:(GSVector3)worldSpacePos;
-
-/* Writes indirect sunlight values for the specified sunlight propagation point (in world-space). May modify neigboring chunks too.
- * If indirect sunlight is removed then this can generate incorrect values as it can only ever brighten an area.
- * Assumes the caller has already holding the lock on indirectSunlight for writing for all chunks in the neighborhood.
- */
-- (void)floodFillIndirectSunlightAtPoint:(GSVector3)worldSpacePos
-                               neighbors:(GSNeighborhood *)neighbors
-                               intensity:(int)intensity;
-
-/* Assumes the caller is already holding "lockVoxelData" on all chunks in the neighborhood.
- * Returns YES if the point is a point where indirect sunlight should propagate with a flood-fill.
- */
-- (BOOL)isSunlightPropagationPointAtPoint:(GSIntegerVector3)p neighborhood:(GSNeighborhood *)neighborhood;
+// Rebuilds indirect sunlight for this chunk.
+- (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood;
 
 @end

@@ -26,6 +26,8 @@
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
         }
         
+        lockLightingBuffer = [[GSReaderWriterLock alloc] init];
+        
         [self clear];
     }
 

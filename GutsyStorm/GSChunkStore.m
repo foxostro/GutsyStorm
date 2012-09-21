@@ -33,7 +33,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 - (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
 - (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
 - (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p;
-- (void)floodFillIndirectSunlightForNeighborhood:(GSNeighborhood *)neighborhood;
 
 - (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p;
 - (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p;
@@ -222,25 +221,18 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         }];
     }
     
-    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
-    
-    /* Rebuild indirect sunlight for the affected chunks.
-     * In order to correctly handle the case where indirect sunlight is removed (say, by sealing a hole) indirect sunlight must be
+    /* In order to correctly handle the case where indirect sunlight is removed (say, by sealing a hole) indirect sunlight must be
      * regenerated from scratch for all chunks in the neighborhood. There's no need to attempt to propagate the effect out further
      * than that because the light radius is always less than the width of a single chunk.
      */
-    [neighborhood forEachNeighbor:^(GSChunkVoxelData *chunk) {
-        [chunk.indirectSunlight clear];
-    }];
-    [neighborhood forEachNeighbor:^(GSChunkVoxelData *chunk) {
-        GSNeighborhood *neighboringNeighborhood = [self neighborhoodAtPoint:chunk.centerP];
-        [self floodFillIndirectSunlightForNeighborhood:neighboringNeighborhood];
+    [[self neighborhoodAtPoint:pos] forEachNeighbor:^(GSChunkVoxelData *chunk) {
+        [chunk rebuildIndirectSunlightWithNeighborhood:[self neighborhoodAtPoint:chunk.centerP]];
     }];
     
     /* Now update geometry for this chunk and its neighbors.
      * Do it all synchronously too, so changes will appear "immediately."
      */
-    [neighborhood forEachNeighbor:^(GSChunkVoxelData *chunk) {
+    [[self neighborhoodAtPoint:pos] forEachNeighbor:^(GSChunkVoxelData *chunk) {
         GSNeighborhood *neighboringNeighborhood = [self neighborhoodAtPoint:chunk.centerP];
         [[self getChunkGeometryAtPoint:chunk.centerP] updateWithVoxelData:neighboringNeighborhood doItSynchronously:YES];
     }];
@@ -360,9 +352,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     if(!geometry) {
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
         
-        // Now that neighboring chunks are actually available we can update indirectly lighting in the chunk.
+        // Now that neighboring chunks are actually available we update indirectly lighting in the chunk.
         dispatch_async(chunkTaskQueue, ^{
-            [self floodFillIndirectSunlightForNeighborhood:neighborhood];
+            [[neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER] rebuildIndirectSunlightWithNeighborhood:neighborhood];
         });
         
         geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
@@ -388,17 +380,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     }
     
     return neighborhood;
-}
-
-
-- (void)floodFillIndirectSunlightForNeighborhood:(GSNeighborhood *)neighborhood
-{
-    [neighborhood findSunlightPropagationPointsWithHandler:^(GSVector3 propagationPoint) {
-        GSChunkVoxelData *chunkForPropagationPoint = [self getChunkVoxelsAtPoint:propagationPoint];
-        [chunkForPropagationPoint floodFillIndirectSunlightAtPoint:propagationPoint
-                                                         neighbors:neighborhood
-                                                         intensity:CHUNK_LIGHTING_MAX-1];
-    }];
 }
 
 
@@ -621,6 +602,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 {
     // If the camera moved then recalculate the set of active chunks.
     if(flags & CAMERA_MOVED) {
+#if 1
+        [self computeActiveChunks:YES];
+#else
         // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
         chunk_id_t newCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
         
@@ -632,6 +616,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
             oldCenterChunkID = newCenterChunkID;
             [oldCenterChunkID retain];
         }
+#endif
     }
     
     // If the camera moved or turned then recalculate chunk visibility.

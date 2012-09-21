@@ -11,6 +11,8 @@
 #import "GSNeighborhood.h"
 #import "Voxel.h"
 
+@class GSChunkVoxelData;
+
 // A chunk-sized buffer of lighting values. For example, the lighting contribution, per block, of direct sunlight.
 @interface GSLightingBuffer : NSObject
 {
