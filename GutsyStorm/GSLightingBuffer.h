@@ -44,7 +44,7 @@
 - (void)interpolateLightAtPoint:(GSIntegerVector3)p
                       neighbors:(GSNeighborhood *)neighbors
                     outLighting:(block_lighting_t *)lighting
-                         getter:(SEL)getter;
+                         getter:(GSLightingBuffer* (^)(GSChunkVoxelData *c))getter;
 
 /* Clear the lighting buffer to all zeroes.
  * Assumes the caller is already holding the buffer's lock for writing.

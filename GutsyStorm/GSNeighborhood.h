@@ -12,6 +12,7 @@
 
 
 @class GSChunkVoxelData;
+@class GSLightingBuffer;
 
 
 typedef enum
@@ -34,7 +35,9 @@ typedef enum
     GSChunkVoxelData *neighbors[CHUNK_NUM_NEIGHBORS];
 }
 
-+ (NSLock *)globalLock;
++ (NSLock *)_sharedVoxelDataLock;
++ (NSLock *)_sharedDirectSunlightLock;
++ (NSLock *)_sharedIndirectSunlightLock;
 + (GSVector3)getOffsetForNeighborIndex:(neighbor_index_t)idx;
 
 - (GSChunkVoxelData *)getNeighborAtIndex:(neighbor_index_t)idx;
@@ -71,31 +74,15 @@ typedef enum
 /* Returns the lighting value at the specified block position for the specified lighting buffer.
  * Assumes the caller is already holding the lock on this buffer on all neighbors.
  */
-- (uint8_t)lightAtPoint:(GSIntegerVector3)p buffer:(SEL)buffer;
+- (uint8_t)lightAtPoint:(GSIntegerVector3)p getter:(GSLightingBuffer* (^)(GSChunkVoxelData *c))getter;
 
-/* Executes the specified block while holding the specified lock (for reading) on for all chunks in the neighborhood. */
-- (void)accessToChunkWithLock:(SEL)getter usingBlock:(void (^)(void))block lock:(SEL)lock unlock:(SEL)unlock;
-
-/* Executes the specified block while holding the specified lock (for reading) on for all chunks in the neighborhood. */
-- (void)readerAccessToChunkWithLock:(SEL)getter usingBlock:(void (^)(void))block;
-
-/* Executes the specified block while holding the specified lock (for writing) on for all chunks in the neighborhood. */
-- (void)writerAccessToChunkWithLock:(SEL)getter usingBlock:(void (^)(void))block;
-
-/* Executes the specified block while holding the voxel data locks (for reading) on all chunks in the neighborhood. */
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
-
-/* Executes the specified block while holding the voxel data locks (for writing) on all chunks in the neighborhood. */
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
-/* Executes the specified block while holding the locks (for reading) on the specified lighting buffer,
- * for all chunks in the neighborhood.
- */
-- (void)readerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block;
+- (void)readerAccessToDirectSunlightUsingBlock:(void (^)(void))block;
+- (void)writerAccessToDirectSunlightUsingBlock:(void (^)(void))block;
 
-/* xecutes the specified block while holding the locks (for writing) on the specified lighting buffer,
- * for all chunks in the neighborhood.
- */
-- (void)writerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block;
+- (void)readerAccessToIndirectSunlightUsingBlock:(void (^)(void))block;
+- (void)writerAccessToIndirectSunlightUsingBlock:(void (^)(void))block;
 
 @end

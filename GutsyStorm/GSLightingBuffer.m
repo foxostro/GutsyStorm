@@ -58,7 +58,7 @@
 - (void)interpolateLightAtPoint:(GSIntegerVector3)p
                          neighbors:(GSNeighborhood *)neighbors
                        outLighting:(block_lighting_t *)lighting
-                         getter:(SEL)getter
+                         getter:(GSLightingBuffer* (^)(GSChunkVoxelData *c))getter
 {
     /* Front is in the -Z direction and back is the +Z direction.
      * This is a totally arbitrary convention.
@@ -91,7 +91,7 @@
         {
             for(ssize_t z = -1; z <= 1; ++z)
             {
-                SAMPLE(x, y, z) = [neighbors lightAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z) buffer:getter];
+                SAMPLE(x, y, z) = [neighbors lightAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z) getter:getter];
             }
         }
     }

@@ -14,14 +14,42 @@
 
 @implementation GSNeighborhood
 
-+ (NSLock *)globalLock
++ (NSLock *)_sharedVoxelDataLock
 {
     static dispatch_once_t onceToken;
     static NSLock *a = nil;
     
     dispatch_once(&onceToken, ^{
         a = [[NSLock alloc] init];
-        [a setName:@"GSNeighborhood.globalLock"];
+        [a setName:@"GSNeighborhood._sharedVoxelDataLock"];
+    });
+    
+    return a;
+}
+
+
++ (NSLock *)_sharedDirectSunlightLock
+{
+    static dispatch_once_t onceToken;
+    static NSLock *a = nil;
+    
+    dispatch_once(&onceToken, ^{
+        a = [[NSLock alloc] init];
+        [a setName:@"GSNeighborhood._sharedDirectSunlightLock"];
+    });
+    
+    return a;
+}
+
+
++ (NSLock *)_sharedIndirectSunlightLock
+{
+    static dispatch_once_t onceToken;
+    static NSLock *a = nil;
+    
+    dispatch_once(&onceToken, ^{
+        a = [[NSLock alloc] init];
+        [a setName:@"GSNeighborhood._sharedIndirectSunlightLock"];
     });
     
     return a;
@@ -118,74 +146,98 @@
 }
 
 
-- (void)accessToChunkWithLock:(SEL)getter usingBlock:(void (^)(void))block lock:(SEL)lock unlock:(SEL)unlock
+- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    [[GSNeighborhood globalLock] lock];
+    [[GSNeighborhood _sharedVoxelDataLock] lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor performSelector:getter] performSelector:lock];
+        [neighbor.lockVoxelData lockForReading];
     }];
-    [[GSNeighborhood globalLock] unlock];
+    [[GSNeighborhood _sharedVoxelDataLock] unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[neighbor performSelector:getter] performSelector:unlock];
+        [neighbor.lockVoxelData unlockForReading];
     }];
-}
-
-
-- (void)readerAccessToChunkWithLock:(SEL)getter usingBlock:(void (^)(void))block
-{
-    [self accessToChunkWithLock:getter usingBlock:block lock:@selector(lockForReading) unlock:@selector(unlockForReading)];
-}
-
-
-- (void)writerAccessToChunkWithLock:(SEL)getter usingBlock:(void (^)(void))block
-{
-    [self accessToChunkWithLock:getter usingBlock:block lock:@selector(lockForWriting) unlock:@selector(unlockForWriting)];
-}
-
-
-- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
-{
-    [self readerAccessToChunkWithLock:@selector(lockVoxelData) usingBlock:block];
 }
 
 
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    [self writerAccessToChunkWithLock:@selector(lockVoxelData) usingBlock:block];
-}
-
-
-- (void)readerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block
-{
-    [[GSNeighborhood globalLock] lock];
+    [[GSNeighborhood _sharedVoxelDataLock] lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[[neighbor performSelector:buffer] lockLightingBuffer] lockForReading];
+        [neighbor.lockVoxelData lockForWriting];
     }];
-    [[GSNeighborhood globalLock] unlock];
+    [[GSNeighborhood _sharedVoxelDataLock] unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[[neighbor performSelector:buffer] lockLightingBuffer] unlockForReading];
+        [neighbor.lockVoxelData unlockForWriting];
     }];
 }
 
 
-- (void)writerAccessToLightingBuffer:(SEL)buffer usingBlock:(void (^)(void))block
+- (void)readerAccessToDirectSunlightUsingBlock:(void (^)(void))block
 {
-    [[GSNeighborhood globalLock] lock];
+    [[GSNeighborhood _sharedDirectSunlightLock] lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[[neighbor performSelector:buffer] lockLightingBuffer] lockForWriting];
+        [neighbor.directSunlight.lockLightingBuffer lockForReading];
     }];
-    [[GSNeighborhood globalLock] unlock];
+    [[GSNeighborhood _sharedDirectSunlightLock] unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [[[neighbor performSelector:buffer] lockLightingBuffer] unlockForWriting];
+        [neighbor.directSunlight.lockLightingBuffer unlockForReading];
+    }];
+}
+
+
+- (void)writerAccessToDirectSunlightUsingBlock:(void (^)(void))block
+{
+    [[GSNeighborhood _sharedDirectSunlightLock] lock];
+    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+        [neighbor.directSunlight.lockLightingBuffer lockForWriting];
+    }];
+    [[GSNeighborhood _sharedDirectSunlightLock] unlock];
+    
+    block();
+    
+    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+        [neighbor.directSunlight.lockLightingBuffer unlockForWriting];
+    }];
+}
+
+
+- (void)readerAccessToIndirectSunlightUsingBlock:(void (^)(void))block
+{
+    [[GSNeighborhood _sharedIndirectSunlightLock] lock];
+    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+        [neighbor.indirectSunlight.lockLightingBuffer lockForReading];
+    }];
+    [[GSNeighborhood _sharedIndirectSunlightLock] unlock];
+    
+    block();
+    
+    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+        [neighbor.indirectSunlight.lockLightingBuffer unlockForReading];
+    }];
+}
+
+
+- (void)writerAccessToIndirectSunlightUsingBlock:(void (^)(void))block
+{
+    [[GSNeighborhood _sharedIndirectSunlightLock] lock];
+    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+        [neighbor.indirectSunlight.lockLightingBuffer lockForWriting];
+    }];
+    [[GSNeighborhood _sharedIndirectSunlightLock] unlock];
+    
+    block();
+    
+    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+        [neighbor.indirectSunlight.lockLightingBuffer unlockForWriting];
     }];
 }
 
@@ -305,7 +357,7 @@
 }
 
 
-- (uint8_t)lightAtPoint:(GSIntegerVector3)p buffer:(SEL)buffer
+- (uint8_t)lightAtPoint:(GSIntegerVector3)p getter:(GSLightingBuffer* (^)(GSChunkVoxelData *c))getter
 {
     // Assumes each chunk spans the entire vertical extent of the world.
     
@@ -318,8 +370,9 @@
     }
     
     GSChunkVoxelData *chunk = [self getNeighborVoxelAtPoint:&p];
+    GSLightingBuffer *lightingBuffer = getter(chunk);
     
-    uint8_t lightLevel = [[chunk performSelector:buffer] lightAtPoint:p];
+    uint8_t lightLevel = [lightingBuffer lightAtPoint:p];
 
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
     
