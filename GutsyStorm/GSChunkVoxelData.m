@@ -235,24 +235,16 @@
 }
 
 
-- (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
-                              completionHandler:(void (^)(void))completionHandler
+/* Copy the voxel data for the neighborhood into a new buffer and return the buffer. If the method would block when taking the
+ * locks on the neighborhood then instead return NULL. The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y
+ * elements in size and may be indexed using the INDEX2 macro.
+ */
+- (voxel_t *)newLocalNeighborhoodBufferWithNeighborhood:(GSNeighborhood *)neighborhood
 {
-    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
-    
-    assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
-    
-    // avoid duplicating work that is already in-flight
-    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &indirectSunlightRebuildIsInFlight)) {
-        NSLog(@"rebuild of indirect sunlight was already in flight for this chunk. Bailing out.");
-        return;
-    }
-    
-    // Copy the entire neighborhood's voxel data into the large buffer.
-    // Do it opportunistically in the sense that we bail out if we are unable to immediately take all the locks.
     __block voxel_t *combinedVoxelData = NULL;
-    BOOL gotIt = [neighborhood tryReaderAccessToVoxelDataUsingBlock:^{
+    
+    [neighborhood tryReaderAccessToVoxelDataUsingBlock:^{
         // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
         combinedVoxelData = malloc(size*sizeof(voxel_t));
         if(!combinedVoxelData) {
@@ -274,13 +266,18 @@
         }
     }];
     
-    if(!gotIt) {
-        NSLog(@"Cannot rebuild indirect sunlight due to contention. Bailing out.");
-        indirectSunlightRebuildIsInFlight = 0; // reset
-        return; // Bail out, we failed to make a copy of the voxel data to our local buffer because a writer held a lock.
-    }
-    
-    GSIntegerVector3 p;
+    return combinedVoxelData;
+}
+
+
+/* Generate and return indirect sunlight data for this chunk from the specified voxel data buffer. The voxel data buffer must be 
+ * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local neighborhood.
+ * The returned indirect sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the indirect
+ * sunlight values for the region of the buffer corresponding to this chunk should be considered to be totally correct.
+ */
+- (voxel_t *)newCombinedIndirectSunlightBufferWithVoxelData:(voxel_t *)combinedVoxelData
+{
+    static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     
     // Allocate a buffer large enough to hold the entire neighborhood's indirect sunlight values.
     voxel_t *combinedIndirectSunlightData = calloc(size, sizeof(uint8_t));
@@ -289,6 +286,7 @@
     }
     
     // Identify points out of which indirect sunlight should propagate and do a flood-fill from each one.
+    GSIntegerVector3 p;
     for(p.x = -CHUNK_LIGHTING_MAX; p.x < (CHUNK_SIZE_X+CHUNK_LIGHTING_MAX); ++p.x)
     {
         for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
@@ -337,11 +335,18 @@
         }
     }
     
-    free(combinedVoxelData);
-    combinedVoxelData = NULL;
-    
-    // Copy the central portion of the large lighting buffer to indirectSunlight.
+    return combinedIndirectSunlightData;
+}
+
+
+/* Copy the region of specified buffer into this chunk's indirect sunlight buffer. The provided data buffer must be
+ * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and capable of being indexed using the INDEX2 macro.
+ */
+- (void)copyToIndirectSunlightBufferFromLargerBuffer:(voxel_t *)combinedIndirectSunlightData
+{
     [indirectSunlight.lockLightingBuffer lockForWriting];
+
+    GSIntegerVector3 p;
     for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
     {
         for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
@@ -352,7 +357,38 @@
             }
         }
     }
+
     [indirectSunlight.lockLightingBuffer unlockForWriting];
+}
+
+
+- (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
+                              completionHandler:(void (^)(void))completionHandler
+{
+    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+    
+    assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
+    
+    // avoid duplicating work that is already in-flight
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &indirectSunlightRebuildIsInFlight)) {
+        NSLog(@"A rebuild of indirect sunlight was already in flight for this chunk. Bailing out.");
+        return;
+    }
+    
+    // Copy the entire neighborhood's voxel data into the large buffer.
+    voxel_t *combinedVoxelData = [self newLocalNeighborhoodBufferWithNeighborhood:neighborhood];
+    if(!combinedVoxelData) {
+        NSLog(@"Cannot rebuild indirect sunlight due to lock contention. Bailing out.");
+        indirectSunlightRebuildIsInFlight = 0; // reset
+        return; // Bail out, we failed to make a copy of the voxel data to our local buffer because a writer held a lock.
+    }
+    
+    voxel_t *combinedIndirectSunlightData = [self newCombinedIndirectSunlightBufferWithVoxelData:combinedVoxelData];
+    
+    free(combinedVoxelData);
+    combinedVoxelData = NULL;
+    
+    [self copyToIndirectSunlightBufferFromLargerBuffer:combinedIndirectSunlightData];
     
     free(combinedIndirectSunlightData);
     combinedIndirectSunlightData = NULL;
