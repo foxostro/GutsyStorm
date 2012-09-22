@@ -215,7 +215,13 @@
     
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
-        [self floodFillIndirectSunlightAtPoint:GSIntegerVector3_Add(p, offsets[i])
+        GSIntegerVector3 neighborPos = GSIntegerVector3_Add(p, offsets[i]);
+        
+        if(isVoxelOutside(combinedVoxelData[INDEX2(neighborPos.x, neighborPos.y, neighborPos.z)])) {
+            continue; // The neigbor is outside and so a flood-fill to here would be useless, so skip it.
+        }
+        
+        [self floodFillIndirectSunlightAtPoint:neighborPos
                              combinedVoxelData:combinedVoxelData
                   combinedIndirectSunlightData:combinedIndirectSunlightData
                                      intensity:intensity-1];
@@ -289,8 +295,8 @@
                     continue; // skip, as non-empty blocks can never propagate indirect sunlight
                 }
                 
-                if(isVoxelOutside(voxel)) {
-                    continue; // skip, as outside blocks can never be the starting points for indirect sunlight propagation
+                if(!isVoxelOutside(voxel)) {
+                    continue; // skip, as inside blocks can never be the starting points for indirect sunlight propagation
                 }
                 
                 // Check neighboring voxels in the six cardinal directions
@@ -312,14 +318,12 @@
                        q.y >= 0 && q.y < CHUNK_SIZE_Y) {
                         voxel_t neighborVoxel = combinedVoxelData[INDEX2(q.x, q.y, q.z)];
                         
-                        if(isVoxelEmpty(neighborVoxel) && isVoxelOutside(neighborVoxel)) {
-                            // This voxel receives sunlight from a neighboring voxel and we need to flood-fill.
+                        if(isVoxelEmpty(neighborVoxel) && !isVoxelOutside(neighborVoxel)) {
+                            // This voxel is exposed to direct sunlight and is adjacent to a voxel that is not. Flood-fill here.
                             [self floodFillIndirectSunlightAtPoint:p
                                                  combinedVoxelData:combinedVoxelData
                                       combinedIndirectSunlightData:combinedIndirectSunlightData
-                                                         intensity:CHUNK_LIGHTING_MAX-1];
-                            
-                            break; // No point in continuing the loop. Bail out.
+                                                         intensity:CHUNK_LIGHTING_MAX];
                         }
                     }
                 }
