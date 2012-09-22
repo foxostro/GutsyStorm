@@ -235,7 +235,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
             
             // Rebuild one chunk, chosen randomly from the list.
             if([points count] > 0) {
-                NSLog(@"rebuilding indirect sunlight a chunk");
+                NSLog(@"Rebuilding indirect sunlight for a chunk.");
                 NSUInteger n = rand() % [points count];
                 [self rebuildIndirectSunlightAndGeometryAround:[[points objectAtIndex:n] vectorValue]];
             }

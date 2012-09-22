@@ -62,6 +62,7 @@ typedef enum
  */
 - (uint8_t)lightAtPoint:(GSIntegerVector3)p getter:(GSLightingBuffer* (^)(GSChunkVoxelData *c))getter;
 
+- (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block;
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 

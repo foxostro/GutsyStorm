@@ -16,6 +16,7 @@
     unsigned readcount;
 }
 
+- (BOOL)tryLockForReading;
 - (void)lockForReading;
 - (void)unlockForReading;
 - (void)lockForWriting;

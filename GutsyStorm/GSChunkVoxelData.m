@@ -140,6 +140,9 @@
 {
     [self recalcOutsideVoxelsNoLock];
     
+    // Update indirect sunlight data later...
+    indirectSunlightIsOutOfDate = YES;
+    
     // Rebuild direct sunlight data.
     [directSunlight.lockLightingBuffer lockForWriting];
     [self fillDirectSunlightBuffer];
@@ -223,32 +226,27 @@
 - (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
                               completionHandler:(void (^)(void))completionHandler
 {
-    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &indirectSunlightRebuildIsInFlight)) {
-        return; // avoid duplicating work that is already in-flight
-    }
-    assert(indirectSunlightRebuildIsInFlight);
-    
-    GSIntegerVector3 p;
-    const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
+    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+    static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     
     assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
     
-    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-    
-    // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
-    voxel_t *combinedVoxelData = malloc(size*sizeof(voxel_t));
-    if(!combinedVoxelData) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
-    }
-    
-    // Allocate a buffer large enough to hold the entire neighborhood's indirect sunlight values.
-    uint8_t *combinedIndirectSunlightData = calloc(size, sizeof(uint8_t));
-    if(!combinedIndirectSunlightData) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedIndirectSunlightData."];
+    // avoid duplicating work that is already in-flight
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &indirectSunlightRebuildIsInFlight)) {
+        NSLog(@"rebuild of indirect sunlight was already in flight for this chunk. Bailing out.");
+        return;
     }
     
     // Copy the entire neighborhood's voxel data into the large buffer.
-    [neighborhood readerAccessToVoxelDataUsingBlock:^{
+    // Do it opportunistically in the sense that we bail out if we are unable to immediately take all the locks.
+    __block voxel_t *combinedVoxelData = NULL;
+    BOOL gotIt = [neighborhood tryReaderAccessToVoxelDataUsingBlock:^{
+        // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
+        combinedVoxelData = malloc(size*sizeof(voxel_t));
+        if(!combinedVoxelData) {
+            [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
+        }
+        
         GSIntegerVector3 p;
         for(p.x = -CHUNK_SIZE_X; p.x < 2*CHUNK_SIZE_X; ++p.x)
         {
@@ -263,6 +261,20 @@
             }
         }
     }];
+    
+    if(!gotIt) {
+        NSLog(@"Cannot rebuild indirect sunlight due to contention. Bailing out.");
+        indirectSunlightRebuildIsInFlight = 0; // reset
+        return; // Bail out, we failed to make a copy of the voxel data to our local buffer because a writer held a lock.
+    }
+    
+    GSIntegerVector3 p;
+    
+    // Allocate a buffer large enough to hold the entire neighborhood's indirect sunlight values.
+    voxel_t *combinedIndirectSunlightData = calloc(size, sizeof(uint8_t));
+    if(!combinedIndirectSunlightData) {
+        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedIndirectSunlightData."];
+    }
     
     // Identify points out of which indirect sunlight should propagate and do a flood-fill from each one.
     for(p.x = -CHUNK_LIGHTING_MAX; p.x < (CHUNK_SIZE_X+CHUNK_LIGHTING_MAX); ++p.x)
