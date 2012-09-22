@@ -168,18 +168,10 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 @implementation GSChunkGeometryData
 
 
-- (id)initWithMinP:(GSVector3)_minP
-         voxelData:(GSNeighborhood *)voxelData
-    chunkTaskQueue:(dispatch_queue_t)_chunkTaskQueue
-         glContext:(NSOpenGLContext *)_glContext
+- (id)initWithMinP:(GSVector3)_minP glContext:(NSOpenGLContext *)_glContext
 {
     self = [super initWithMinP:_minP];
     if (self) {
-        // Initialization code here.
-        
-        chunkTaskQueue = _chunkTaskQueue; // dispatch queue used for chunk background work
-        dispatch_retain(_chunkTaskQueue);
-        
         glContext = _glContext;
         [glContext retain];
         
@@ -216,10 +208,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         corners[7] = GSVector3_Add(minP, GSVector3_Make(0,            CHUNK_SIZE_Y, 0));
         
         visible = NO;
-        
-        dispatch_async(chunkTaskQueue, ^{
-            [self updateWithVoxelData:voxelData];
-        });
     }
     
     return self;
@@ -294,7 +282,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     [self destroyGeometry];
     [lockGeometry release];
     [glContext release];
-    dispatch_release(chunkTaskQueue);
     [super dealloc];
 }
 

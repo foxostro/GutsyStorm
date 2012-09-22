@@ -39,7 +39,6 @@
     GLuint *indexBufferForGenerating; // Index buffer which is filled by the geometry generation routine.
     
     NSOpenGLContext *glContext;
-    dispatch_queue_t chunkTaskQueue;
     
  @public
     GSVector3 corners[8];
@@ -47,10 +46,7 @@
 }
 
 
-- (id)initWithMinP:(GSVector3)_minP
-         voxelData:(GSNeighborhood *)neighborhood
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-         glContext:(NSOpenGLContext *)_glContext;
+- (id)initWithMinP:(GSVector3)_minP glContext:(NSOpenGLContext *)_glContext;
 
 - (void)updateWithVoxelData:(GSNeighborhood *)neighborhood;
 

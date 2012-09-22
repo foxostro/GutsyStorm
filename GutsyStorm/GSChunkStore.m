@@ -352,15 +352,16 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     if(!geometry) {
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
         
-        // Build indirect sunlight now.
-        GSChunkVoxelData *center = [neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-        [center rebuildIndirectSunlightWithNeighborhood:neighborhood];
+        geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP glContext:glContext] autorelease];
+        
+        // Generate indirect sunlight and then generate the actual triangle mesh for the chunk.
+        dispatch_async(chunkTaskQueue, ^{
+            GSChunkVoxelData *center = [neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+            [center rebuildIndirectSunlightWithNeighborhood:neighborhood];
+            [geometry updateWithVoxelData:neighborhood];
+        });
 
-        // This will initially have no indirect sunlight applied to it. We generate that later and update geometry when its ready.
-        geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP
-                                                    voxelData:neighborhood
-                                               chunkTaskQueue:chunkTaskQueue
-                                                    glContext:glContext] autorelease];
+        
         
         [cacheGeometryData setObject:geometry forKey:chunkID];
     }
