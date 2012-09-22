@@ -38,7 +38,7 @@ static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsig
 {
     // Pack ambient occlusion into the Red channel, sunlight into the Green channel, and torch light into the Blue channel.
     return GSVector3_Make(ambientOcclusion / (float)CHUNK_MAX_AO_COUNT,
-                          (sunlight / (float)CHUNK_LIGHTING_MAX) * 0.9f + 0.1f,
+                          (sunlight / (float)CHUNK_LIGHTING_MAX) * 0.8f + 0.2f,
                           torchLight / (float)CHUNK_LIGHTING_MAX);
 }
 

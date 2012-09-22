@@ -11,6 +11,9 @@
 #import "GSBoxedVector.h"
 
 
+#define SUNLIGHT(x, y, z) MAX(directSunlight.lightingBuffer[INDEX(x, y, z)], indirectSunlight.lightingBuffer[INDEX(x, y, z)])
+
+
 @interface GSChunkVoxelData (Private)
 
 - (void)destroyVoxelData;
@@ -20,6 +23,7 @@
 - (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)saveVoxelDataToFile;
 - (void)fillDirectSunlightBuffer;
+- (void)fillIndirectSunlightBufferWithFastApproximation;
 
 @end
 
@@ -46,6 +50,8 @@
 {
     self = [super initWithMinP:_minP];
     if (self) {
+        assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
+        
         groupForSaving = _groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         dispatch_retain(groupForSaving);
         
@@ -89,6 +95,8 @@
             [self fillDirectSunlightBuffer];
             [directSunlight.lockLightingBuffer unlockForWriting];
             
+            // Fast approximation of indirect sunlight for this chunk which does not depend on neighboring chunks.
+            [self fillIndirectSunlightBufferWithFastApproximation];
         });
     }
     
@@ -367,8 +375,6 @@
 {
     CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
-    assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
-    
     // avoid duplicating work that is already in-flight
     if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &indirectSunlightRebuildIsInFlight)) {
         NSLog(@"A rebuild of indirect sunlight was already in flight for this chunk. Bailing out.");
@@ -543,6 +549,83 @@
             }
         }
     }
+}
+
+
+/* Assumes the caller is already holding "lockVoxelData" and locks on the indirect and direct sunlight lighting buffers.
+ * Returns YES if any of the empty, adjacent blocks are lit to the specified light level.
+ * NOTE: This totally ignores the neighboring chunks.
+ */
+- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel
+{    
+    if(p.y+1 >= CHUNK_SIZE_Y) {
+        return YES;
+    } else if(isVoxelEmpty(voxelData[INDEX(p.x, p.y+1, p.z)]) && SUNLIGHT(p.x, p.y+1, p.z) == lightLevel) {
+        return YES;
+    }
+    
+    if(p.y-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y-1, p.z)]) && SUNLIGHT(p.x, p.y-1, p.z) == lightLevel) {
+        return YES;
+    }
+    
+    if(p.x-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x-1, p.y, p.z)]) && SUNLIGHT(p.x-1, p.y, p.z) == lightLevel) {
+        return YES;
+    }
+    
+    if(p.x+1 < CHUNK_SIZE_X && isVoxelEmpty(voxelData[INDEX(p.x+1, p.y, p.z)]) && SUNLIGHT(p.x+1, p.y, p.z) == lightLevel) {
+        return YES;
+    }
+    
+    if(p.z-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z-1)]) && SUNLIGHT(p.x, p.y, p.z-1) == lightLevel) {
+        return YES;
+    }
+    
+    if(p.z+1 < CHUNK_SIZE_Z && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z+1)]) && SUNLIGHT(p.x, p.y, p.z+1) == lightLevel) {
+        return YES;
+    }
+    
+    return NO;
+}
+
+
+/* Generate indirect sunlight from only the voxel data in this chunk using a fast and kinda inaccurate algorithm.
+ * Another pass later will replace this data with accurate indirect sunlight.
+ * Assumes that direct sunlight has already been generated and that inside/outside voxel information is up-to-date.
+ */
+- (void)fillIndirectSunlightBufferWithFastApproximation
+{
+    GSIntegerVector3 p;
+    
+    [indirectSunlight.lockLightingBuffer lockForWriting];
+    [directSunlight.lockLightingBuffer lockForReading];
+    [lockVoxelData lockForReading];
+    
+    // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
+    // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
+    // Set the blocks we find to the next lower light level.
+    for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
+    {
+        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+        {
+            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+            {
+                for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
+                {
+                    if([self isAdjacentToSunlightAtPoint:p lightLevel:lightLevel]) {
+                        indirectSunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = MAX(SUNLIGHT(p.x, p.y, p.z), lightLevel - 1);
+                    }
+                }
+            }
+        }
+    }
+    
+    [lockVoxelData unlockForReading];
+    [directSunlight.lockLightingBuffer unlockForReading];
+    
+    indirectSunlightIsOutOfDate = YES;
+    indirectSunlightRebuildIsInFlight = 0;
+    
+    [indirectSunlight.lockLightingBuffer unlockForWriting];
 }
 
 @end
