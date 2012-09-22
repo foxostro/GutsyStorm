@@ -690,11 +690,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
                 GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
                 
                 [neighborhood forEachNeighbor:^(GSChunkVoxelData *voxels) {
-                    [lock lock];
                     GSNeighborhood *voxelsNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
                     GSChunkGeometryData *geometry = [self getChunkGeometryAtPoint:voxels.centerP];
-                    [lock unlock];
-                    
                     [geometry updateWithVoxelData:voxelsNeighborhood];
                 }];
             });
