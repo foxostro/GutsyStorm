@@ -221,10 +221,8 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     [self destroyGeometry];
     
     [neighborhood readerAccessToVoxelDataUsingBlock:^{
-        [neighborhood readerAccessToDirectSunlightUsingBlock:^{
-            [neighborhood readerAccessToIndirectSunlightUsingBlock:^{
-                [self fillGeometryBuffersUsingVoxelData:neighborhood];
-            }];
+        [neighborhood readerAccessToIndirectSunlightUsingBlock:^{
+            [self fillGeometryBuffersUsingVoxelData:neighborhood];
         }];
     }];
     
@@ -573,12 +571,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                                     outAmbientOcclusion:&ambientOcclusion];
     }
     
-    block_lighting_t directSunlight;
-    [centerVoxels.directSunlight interpolateLightAtPoint:chunkLocalPos
-                                               neighbors:chunks
-                                             outLighting:&directSunlight
-                                                  getter:^GSLightingBuffer* (GSChunkVoxelData *c) { return c.directSunlight; }];
-    
     block_lighting_t indirectSunlight;
     [centerVoxels.indirectSunlight interpolateLightAtPoint:chunkLocalPos
                                                  neighbors:chunks
@@ -595,7 +587,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
             count += 4;
             
             if(!onlyDoingCounting) {
-                unsigned unpackedDirectSunlight[4];
                 unsigned unpackedIndirectSunlight[4];
                 unsigned unpackedTorchlight[4];
                 unsigned unpackedAO[4];
@@ -604,7 +595,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                     page = side;
                 }
                 
-                unpackBlockLightingValuesForVertex(directSunlight.face[i], unpackedDirectSunlight);
                 unpackBlockLightingValuesForVertex(indirectSunlight.face[i], unpackedIndirectSunlight);
                 unpackBlockLightingValuesForVertex(torchLight.face[i], unpackedTorchlight);
                 unpackBlockLightingValuesForVertex(ambientOcclusion.face[i], unpackedAO);

@@ -28,20 +28,6 @@
 }
 
 
-+ (NSLock *)_sharedDirectSunlightLock
-{
-    static dispatch_once_t onceToken;
-    static NSLock *a = nil;
-    
-    dispatch_once(&onceToken, ^{
-        a = [[NSLock alloc] init];
-        [a setName:@"GSNeighborhood._sharedDirectSunlightLock"];
-    });
-    
-    return a;
-}
-
-
 + (NSLock *)_sharedIndirectSunlightLock
 {
     static dispatch_once_t onceToken;
@@ -214,38 +200,6 @@
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
         [neighbor.lockVoxelData unlockForWriting];
-    }];
-}
-
-
-- (void)readerAccessToDirectSunlightUsingBlock:(void (^)(void))block
-{
-    [[GSNeighborhood _sharedDirectSunlightLock] lock];
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [neighbor.directSunlight.lockLightingBuffer lockForReading];
-    }];
-    [[GSNeighborhood _sharedDirectSunlightLock] unlock];
-    
-    block();
-    
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [neighbor.directSunlight.lockLightingBuffer unlockForReading];
-    }];
-}
-
-
-- (void)writerAccessToDirectSunlightUsingBlock:(void (^)(void))block
-{
-    [[GSNeighborhood _sharedDirectSunlightLock] lock];
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [neighbor.directSunlight.lockLightingBuffer lockForWriting];
-    }];
-    [[GSNeighborhood _sharedDirectSunlightLock] unlock];
-
-    block();
-
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [neighbor.directSunlight.lockLightingBuffer unlockForWriting];
     }];
 }
 

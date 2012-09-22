@@ -31,7 +31,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 - (void)recalcOutsideVoxelsNoLock;
 - (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)saveVoxelDataToFile;
-- (void)fillDirectSunlightBuffer;
 
 @end
 
@@ -39,7 +38,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 @implementation GSChunkVoxelData
 
 @synthesize voxelData;
-@synthesize directSunlight;
 @synthesize indirectSunlight;
 @synthesize lockVoxelData;
 @synthesize indirectSunlightIsOutOfDate;
@@ -73,9 +71,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         [lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         voxelData = NULL;
         
-        directSunlight = [[GSLightingBuffer alloc] init];
-        [directSunlight.lockLightingBuffer lockForWriting]; // locked initially and unlocked at the end of the first update
-        
         indirectSunlight = [[GSLightingBuffer alloc] init];
         indirectSunlightIsOutOfDate = YES;
         indirectSunlightRebuildIsInFlight = 0;
@@ -98,10 +93,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             
             [self recalcOutsideVoxelsNoLock];
             [lockVoxelData unlockForWriting]; // We don't need to call -voxelDataWasModified in the special case of initialization.
-            
-            // Generate direct sunlight for this chunk, which does not depend on neighboring chunks.
-            [self fillDirectSunlightBuffer];
-            [directSunlight.lockLightingBuffer unlockForWriting];
         });
     }
     
@@ -118,7 +109,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     [self destroyVoxelData];
     [lockVoxelData release];
     
-    [directSunlight release];
     [indirectSunlight release];
     
     [super dealloc];
@@ -153,11 +143,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     
     // Update indirect sunlight data later...
     indirectSunlightIsOutOfDate = YES;
-    
-    // Rebuild direct sunlight data.
-    [directSunlight.lockLightingBuffer lockForWriting];
-    [self fillDirectSunlightBuffer];
-    [directSunlight.lockLightingBuffer unlockForWriting];
     
     /* Spin off a task to save the chunk.
      * This is latency sensitive, so submit to the global queue. Do not use `chunkTaskQueue' as that would cause the block to be
@@ -537,32 +522,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     }
     [data getBytes:voxelData length:len];
     [data release];
-}
-
-
-// Assumes the caller has already holding the lock on "directSunlight" for writing and "lockVoxelData" for reading.
-- (void)fillDirectSunlightBuffer
-{
-    GSIntegerVector3 p;
-    for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-    {
-        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-        {
-            for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-            {
-                size_t idx = INDEX(p.x, p.y, p.z);
-                assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
-                
-                // This is "hard" lighting with exactly two lighting levels.
-                // Solid blocks always have zero sunlight. They pick up light from surrounding air.
-                if(isVoxelEmpty(voxelData[idx]) && isVoxelOutside(voxelData[idx])) {
-                    directSunlight.lightingBuffer[idx] = CHUNK_LIGHTING_MAX;
-                } else {
-                    directSunlight.lightingBuffer[idx] = 0;
-                }
-            }
-        }
-    }
 }
 
 @end

@@ -27,7 +27,6 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     GSReaderWriterLock *lockVoxelData;
     voxel_t *voxelData; // the voxels that make up the chunk
     
-    GSLightingBuffer *directSunlight; // direct lighting from the sun
     GSLightingBuffer *indirectSunlight; // indirect lighting from the sun
     
     BOOL indirectSunlightIsOutOfDate; // indicates that indirect sunlight is out of date for this chunk.
@@ -35,7 +34,6 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;
-@property (readonly, nonatomic) GSLightingBuffer *directSunlight;
 @property (readonly, nonatomic) GSLightingBuffer *indirectSunlight;
 @property (readonly, nonatomic) GSReaderWriterLock *lockVoxelData;
 @property (assign, atomic) BOOL indirectSunlightIsOutOfDate;
