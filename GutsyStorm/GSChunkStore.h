@@ -21,7 +21,10 @@ typedef id chunk_id_t;
 
 @interface GSChunkStore : NSObject
 {
+    NSLock *lockVoxelData;
     NSCache *cacheVoxelData;
+    
+    NSLock *lockGeometryData;
     NSCache *cacheGeometryData;
     
     dispatch_group_t groupForSaving;
@@ -39,7 +42,6 @@ typedef id chunk_id_t;
     NSLock *lock;
     
     int numVBOGenerationsAllowedPerFrame;
-    int numVBOGenerationsRemaining;
     
     float timeUntilIndirectSunlightUpdate;
     float timeBetweenlIndirectSunlightUpdates;

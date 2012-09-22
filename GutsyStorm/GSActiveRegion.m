@@ -29,6 +29,8 @@
                         * (2*activeRegionExtent.z/CHUNK_SIZE_Z);
         
         activeChunks = calloc(maxActiveChunks, sizeof(GSChunkGeometryData *));
+        
+        lock = [[NSLock alloc] init];
     }
     
     return self;
@@ -39,6 +41,7 @@
 {
     [self removeAllActiveChunks];
     free(activeChunks);
+    [lock release];
     
     [super dealloc];
 }
@@ -46,20 +49,24 @@
 
 - (void)forEachChunkDoBlock:(void (^)(GSChunkGeometryData *))block
 {
+    [lock lock];
     for(NSUInteger i = 0; i < maxActiveChunks; ++i)
     {
         block(activeChunks[i]);
     }
+    [lock unlock];
 }
 
 
 - (void)removeAllActiveChunks
 {
+    [lock lock];
     for(NSUInteger i = 0; i < maxActiveChunks; ++i)
     {
         [activeChunks[i] release];
         activeChunks[i] = nil;
     }
+    [lock unlock];
 }
 
 
@@ -69,7 +76,9 @@
     assert(idx < maxActiveChunks);
     
     [chunk retain];
+    [lock lock];
     activeChunks[idx] = chunk;
+    [lock unlock];
 }
 
 - (GSVector3)randomPointInActiveRegionWithCameraPos:(GSVector3)cameraEye

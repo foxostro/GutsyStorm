@@ -92,9 +92,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         NSInteger n = [[NSUserDefaults standardUserDefaults] integerForKey:@"NumVBOGenerationsAllowedPerFrame"];
         assert(n > 0 && n < INT_MAX);
         numVBOGenerationsAllowedPerFrame = (int)n;
-        numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
         
-        timeBetweenlIndirectSunlightUpdates = 0.5;
+        timeBetweenlIndirectSunlightUpdates = 2;
         timeUntilIndirectSunlightUpdate = timeBetweenlIndirectSunlightUpdates;
         
         /* Why are we specfying the background-priority global dispatch queue here?
@@ -117,9 +116,11 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:GSVector3_Make(w, CHUNK_SIZE_Y, w)];
         
+        lockGeometryData = [[NSLock alloc] init];
         cacheGeometryData = [[NSCache alloc] init];
         [cacheGeometryData setCountLimit:INT_MAX];
         
+        lockVoxelData = [[NSLock alloc] init];
         cacheVoxelData = [[NSCache alloc] init];
         [cacheVoxelData setCountLimit:INT_MAX];
         
@@ -147,7 +148,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     [self waitForSaveToFinish];
     dispatch_release(groupForSaving);
     
+    [lockVoxelData release];
     [cacheVoxelData release];
+    [lockGeometryData release];
     [cacheGeometryData release];
     [camera release];
     [folder release];
@@ -162,9 +165,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 
 - (void)drawChunks
-{
-    [lock lock];
-    
+{   
     [terrainShader bind];
     
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -174,6 +175,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     
     glTranslatef(0.5, 0.5, 0.5);
     
+    __block int numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
     [activeRegion forEachChunkDoBlock:^(GSChunkGeometryData *chunk) {
         if(chunk && chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
             numVBOGenerationsRemaining--;
@@ -186,15 +188,11 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     glDisableClientState(GL_VERTEX_ARRAY);
     
     [terrainShader unbind];
-    
-    [lock unlock];
 }
 
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    [lock lock];
-    numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame; // reset
     [self recalculateActiveChunksWithCameraModifiedFlags:flags];
     
 #if 1
@@ -204,7 +202,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         timeUntilIndirectSunlightUpdate = timeBetweenlIndirectSunlightUpdates;
         
         dispatch_async(chunkTaskQueue, ^{
-            [lock lock];
             NSMutableArray *points = [[NSMutableArray alloc] init];
             
             // Get the list of out-of-date chunks.
@@ -222,12 +219,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
             }
             
             [points release];
-            [lock unlock];
         });
     }
 #endif
-    
-    [lock unlock];
 }
 
 
@@ -360,6 +354,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 - (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p
 {
+    [lockGeometryData lock];
+    
     GSChunkGeometryData *geometry = nil;
     GSVector3 minP = [self computeChunkMinPForPoint:p];
     chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
@@ -379,6 +375,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         
         [cacheGeometryData setObject:geometry forKey:chunkID];
     }
+    
+    [lockGeometryData unlock];
     
     return geometry;
 }
@@ -400,6 +398,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 - (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p
 {
+    [lockVoxelData lock];
+    
     GSVector3 minP = [self computeChunkMinPForPoint:p];
     chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
     
@@ -418,6 +418,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         [voxels autorelease];
         [cacheVoxelData setObject:voxels forKey:chunkID];
     }
+    
+    [lockVoxelData unlock];
     
     return voxels;
 }
@@ -617,9 +619,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 {
     // If the camera moved then recalculate the set of active chunks.
     if(flags & CAMERA_MOVED) {
-#if 1
-        [self computeActiveChunks:YES];
-#else
         // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
         chunk_id_t newCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
         
@@ -631,7 +630,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
             oldCenterChunkID = newCenterChunkID;
             [oldCenterChunkID retain];
         }
-#endif
     }
     
     // If the camera moved or turned then recalculate chunk visibility.
@@ -649,7 +647,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
      */
 
     dispatch_async(chunkTaskQueue, ^{
-        [lock lock];
         NSLog(@"-rebuildIndirectSunlightAndGeometryAround:");
         NSMutableSet *dirtyMeshes = [[NSMutableSet alloc] init];
         
@@ -673,15 +670,17 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
                 GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
                 
                 [neighborhood forEachNeighbor:^(GSChunkVoxelData *voxels) {
+                    [lock lock];
                     GSNeighborhood *voxelsNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
                     GSChunkGeometryData *geometry = [self getChunkGeometryAtPoint:voxels.centerP];
+                    [lock unlock];
+                    
                     [geometry updateWithVoxelData:voxelsNeighborhood];
                 }];
             });
         }
         
         [dirtyMeshes release];
-        [lock unlock];
     });
    
 }

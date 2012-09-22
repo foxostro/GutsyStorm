@@ -291,15 +291,10 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 - (void)dealloc
 {
     [self destroyVBOs];
-    
-    [lockGeometry lock];
     [self destroyGeometry];
-    [lockGeometry unlockWithCondition:!READY];
     [lockGeometry release];
-    
     [glContext release];
     dispatch_release(chunkTaskQueue);
-    
     [super dealloc];
 }
 

@@ -14,6 +14,7 @@
     GSVector3 activeRegionExtent; // The active region is specified relative to the camera position.
     NSUInteger maxActiveChunks;
     GSChunkGeometryData **activeChunks;
+    NSLock *lock;
 }
 
 @property (readonly, nonatomic) GSVector3 activeRegionExtent;
