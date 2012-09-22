@@ -32,7 +32,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 - (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)saveVoxelDataToFile;
 - (void)fillDirectSunlightBuffer;
-- (void)fillIndirectSunlightBufferWithFastApproximation;
 
 @end
 
@@ -103,9 +102,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             // Generate direct sunlight for this chunk, which does not depend on neighboring chunks.
             [self fillDirectSunlightBuffer];
             [directSunlight.lockLightingBuffer unlockForWriting];
-            
-            // Fast approximation of indirect sunlight for this chunk which does not depend on neighboring chunks.
-            [self fillIndirectSunlightBufferWithFastApproximation];
         });
     }
     
@@ -567,94 +563,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             }
         }
     }
-}
-
-
-/* Assumes the caller is already holding "lockVoxelData" and locks on the indirect and direct sunlight lighting buffers.
- * Returns YES if any of the empty, adjacent blocks are lit to the specified light level.
- * NOTE: This totally ignores the neighboring chunks.
- */
-- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel
-{
-    for(face_t i=0; i<FACE_NUM_FACES; ++i)
-    {
-        GSIntegerVector3 a = GSIntegerVector3_Add(p, offsets[i]);
-        
-        if(a.x < 0 || a.x >= CHUNK_SIZE_X ||
-           a.z < 0 || a.z >= CHUNK_SIZE_Z ||
-           a.y < 0 || a.y >= CHUNK_SIZE_Y) {
-            continue; // The point is out of bounds, so bail out.
-        }
-        
-        if(isVoxelEmpty(voxelData[INDEX(a.x, a.y, a.z)]) && SUNLIGHT(a.x, a.y, a.z) == lightLevel) {
-            return YES;
-        }
-    }
-    
-    return NO;
-}
-
-
-/* Generate indirect sunlight from only the voxel data in this chunk using a fast and kinda inaccurate algorithm.
- * Another pass later will replace this data with accurate indirect sunlight.
- * Assumes that direct sunlight has already been generated and that inside/outside voxel information is up-to-date.
- */
-- (void)fillIndirectSunlightBufferWithFastApproximation
-{
-    GSIntegerVector3 p;
-    
-    [indirectSunlight.lockLightingBuffer lockForWriting];
-    [directSunlight.lockLightingBuffer lockForReading];
-    [lockVoxelData lockForReading];
-    
-    for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-    {
-        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-        {
-            for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-            {
-                voxel_t voxel = voxelData[INDEX(p.x, p.y, p.z)];
-                if(isVoxelEmpty(voxel) && isVoxelOutside(voxel)) {
-                    indirectSunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = CHUNK_LIGHTING_MAX;
-                } else {
-                    indirectSunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = 0;
-                }
-            }
-        }
-    }
-    
-    // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
-    // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
-    // Set the blocks we find to the next lower light level.
-    for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
-    {
-        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-        {
-            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-            {
-                for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-                {
-                    voxel_t voxel = voxelData[INDEX(p.x, p.y, p.z)];
-                
-                    if(!isVoxelEmpty(voxel) || isVoxelOutside(voxel)) {
-                        continue;
-                    }
-                    
-                    if([self isAdjacentToSunlightAtPoint:p lightLevel:lightLevel]) {
-                        indirectSunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = MAX(SUNLIGHT(p.x, p.y, p.z), lightLevel - 1);
-                    }
-                }
-            }
-        }
-    }
-    
-    [lockVoxelData unlockForReading];
-    [directSunlight.lockLightingBuffer unlockForReading];
-    
-    indirectSunlightIsOutOfDate = YES;
-    indirectSunlightRebuildIsInFlight = 0;
-    
-    [indirectSunlight.lockLightingBuffer unlockForWriting];
 }
 
 @end
