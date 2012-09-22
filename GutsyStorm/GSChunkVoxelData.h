@@ -31,6 +31,7 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     GSLightingBuffer *indirectSunlight; // indirect lighting from the sun
     
     BOOL indirectSunlightIsOutOfDate; // indicates that indirect sunlight is out of date for this chunk.
+    int indirectSunlightRebuildIsInFlight;
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;

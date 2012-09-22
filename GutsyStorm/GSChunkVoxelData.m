@@ -64,6 +64,7 @@
         
         indirectSunlight = [[GSLightingBuffer alloc] init];
         indirectSunlightIsOutOfDate = YES;
+        indirectSunlightRebuildIsInFlight = 0;
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -222,6 +223,11 @@
 - (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
                               completionHandler:(void (^)(void))completionHandler
 {
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &indirectSunlightRebuildIsInFlight)) {
+        return; // avoid duplicating work that is already in-flight
+    }
+    assert(indirectSunlightRebuildIsInFlight);
+    
     GSIntegerVector3 p;
     const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     
@@ -332,6 +338,7 @@
     combinedIndirectSunlightData = NULL;
     
     indirectSunlightIsOutOfDate = NO;
+    indirectSunlightRebuildIsInFlight = 0; // reset
     
     completionHandler();
 }
