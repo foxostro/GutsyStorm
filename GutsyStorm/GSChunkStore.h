@@ -21,30 +21,27 @@ typedef id chunk_id_t;
 
 @interface GSChunkStore : NSObject
 {
-    NSLock *lockVoxelData;
-    NSCache *cacheVoxelData;
+    NSLock *lockVoxelDataCache;
+    NSMutableDictionary *cacheVoxelData;
     
-    NSLock *lockGeometryData;
-    NSCache *cacheGeometryData;
+    NSLock *lockGeometryDataCache;
+    NSMutableDictionary *cacheGeometryData;
     
     dispatch_group_t groupForSaving;
     dispatch_queue_t chunkTaskQueue;
     
+    NSLock *lock;
+    int numVBOGenerationsAllowedPerFrame;
     float terrainHeight;
     unsigned seed;
     GSCamera *camera;
     chunk_id_t oldCenterChunkID;
     NSURL *folder;
     GSShader *terrainShader;
-    GSActiveRegion *activeRegion;
     NSOpenGLContext *glContext;
-    
-    NSLock *lock;
-    
-    int numVBOGenerationsAllowedPerFrame;
-    
-    float timeUntilIndirectSunlightUpdate;
-    float timeBetweenlIndirectSunlightUpdates;
+
+    GSActiveRegion *activeRegion;
+    GSVector3 activeRegionExtent; // The active region is specified relative to the camera position.
 }
 
 - (id)initWithSeed:(unsigned)_seed

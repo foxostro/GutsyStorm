@@ -629,7 +629,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                     addVertex(x+vertex[j][i].x, y+vertex[j][i].y, z+vertex[j][i].z,
                               normals[i].x, normals[i].y, normals[i].z,
                               texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz,
-                              blockLight(MAX(unpackedIndirectSunlight[j], unpackedDirectSunlight[j]),
+                              blockLight(unpackedIndirectSunlight[j],
                                          unpackedTorchlight[j],
                                          unpackedAO[j]),
                               _vertsBuffer,

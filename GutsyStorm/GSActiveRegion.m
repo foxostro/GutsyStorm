@@ -11,7 +11,6 @@
 
 @implementation GSActiveRegion
 
-@synthesize activeRegionExtent;
 @synthesize maxActiveChunks;
 
 - (id)initWithActiveRegionExtent:(GSVector3)_activeRegionExtent
@@ -52,7 +51,9 @@
     [lock lock];
     for(NSUInteger i = 0; i < maxActiveChunks; ++i)
     {
-        block(activeChunks[i]);
+        GSChunkGeometryData *chunk = activeChunks[i];
+        assert(chunk);
+        block(chunk);
     }
     [lock unlock];
 }

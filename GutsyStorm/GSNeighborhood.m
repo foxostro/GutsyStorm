@@ -150,7 +150,11 @@
 {
     NSMutableArray *locksTaken = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
     
-    [[GSNeighborhood _sharedVoxelDataLock] lock];
+    if(![[GSNeighborhood _sharedVoxelDataLock] tryLock]) {
+        [locksTaken release];
+        return NO;
+    }
+    
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         if([neighbors[i].lockVoxelData tryLockForReading]) {

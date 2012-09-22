@@ -121,6 +121,12 @@ static NSUInteger sdbm(const size_t len, const char * str)
     return [NSString stringWithFormat:@"%f_%f_%f", vector.x, vector.y, vector.z];
 }
 
+- (id)copyWithZone:(NSZone *)zone
+{
+    [self retain];
+    return self;
+}
+
 @end
 
 

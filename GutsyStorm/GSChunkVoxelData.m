@@ -13,6 +13,15 @@
 
 #define SUNLIGHT(x, y, z) MAX(directSunlight.lightingBuffer[INDEX(x, y, z)], indirectSunlight.lightingBuffer[INDEX(x, y, z)])
 
+static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
+    { 1, 0, 0},
+    {-1, 0, 0},
+    { 0, 1, 0},
+    { 0,-1, 0},
+    { 0, 0, 1},
+    { 0, 0,-1},
+};
+
 
 @interface GSChunkVoxelData (Private)
 
@@ -110,9 +119,7 @@
     dispatch_release(chunkTaskQueue);
     [folder release];
     
-    [lockVoxelData lockForWriting];
     [self destroyVoxelData];
-    [lockVoxelData unlockForWriting];
     [lockVoxelData release];
     
     [directSunlight release];
@@ -212,15 +219,6 @@
     
     *value = MAX(intensity, *value); // this flood-fill can only ever brighten a voxel
     
-    static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
-        { 1, 0, 0},
-        {-1, 0, 0},
-        { 0, 1, 0},
-        { 0,-1, 0},
-        { 0, 0, 1},
-        { 0, 0,-1},
-    };
-    
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
         GSIntegerVector3 a = GSIntegerVector3_Add(p, offsets[i]);
@@ -252,7 +250,7 @@
     static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     __block voxel_t *combinedVoxelData = NULL;
     
-    [neighborhood tryReaderAccessToVoxelDataUsingBlock:^{
+    [neighborhood readerAccessToVoxelDataUsingBlock:^{
         // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
         combinedVoxelData = malloc(size*sizeof(voxel_t));
         if(!combinedVoxelData) {
@@ -278,6 +276,34 @@
 }
 
 
+- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p
+                         lightLevel:(int)lightLevel
+                  combinedVoxelData:(voxel_t *)combinedVoxelData
+       combinedIndirectSunlightData:(voxel_t *)combinedIndirectSunlightData
+{
+    for(face_t i=0; i<FACE_NUM_FACES; ++i)
+    {
+        GSIntegerVector3 a = GSIntegerVector3_Add(p, offsets[i]);
+        
+        if(a.x < -CHUNK_SIZE_X || a.x >= (2*CHUNK_SIZE_X) ||
+           a.z < -CHUNK_SIZE_Z || a.z >= (2*CHUNK_SIZE_Z) ||
+           a.y < 0 || a.y >= CHUNK_SIZE_Y) {
+            continue; // The point is out of bounds, so bail out.
+        }
+        
+        if(!isVoxelEmpty(combinedVoxelData[INDEX2(a.x, a.y, a.z)])) {
+            continue;
+        }
+        
+        if(combinedIndirectSunlightData[INDEX2(a.x, a.y, a.z)] == lightLevel) {
+            return YES;
+        }
+    }
+    
+    return NO;
+}
+
+
 /* Generate and return indirect sunlight data for this chunk from the specified voxel data buffer. The voxel data buffer must be 
  * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local neighborhood.
  * The returned indirect sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the indirect
@@ -286,6 +312,7 @@
 - (voxel_t *)newCombinedIndirectSunlightBufferWithVoxelData:(voxel_t *)combinedVoxelData
 {
     static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
+    GSIntegerVector3 p;
     
     // Allocate a buffer large enough to hold the entire neighborhood's indirect sunlight values.
     voxel_t *combinedIndirectSunlightData = calloc(size, sizeof(uint8_t));
@@ -293,56 +320,48 @@
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedIndirectSunlightData."];
     }
     
-    // Identify points out of which indirect sunlight should propagate and do a flood-fill from each one.
-    GSIntegerVector3 p;
-    for(p.x = -CHUNK_LIGHTING_MAX; p.x < (CHUNK_SIZE_X+CHUNK_LIGHTING_MAX); ++p.x)
+    for(p.x = -CHUNK_SIZE_X; p.x < (2*CHUNK_SIZE_X); ++p.x)
     {
         for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
         {
-            for(p.z = -CHUNK_LIGHTING_MAX; p.z < (CHUNK_SIZE_Z+CHUNK_LIGHTING_MAX); ++p.z)
+            for(p.z = -CHUNK_SIZE_Z; p.z < (2*CHUNK_SIZE_Z); ++p.z)
             {
                 voxel_t voxel = combinedVoxelData[INDEX2(p.x, p.y, p.z)];
-                
-                if(!isVoxelEmpty(voxel)) {
-                    continue; // skip, as non-empty blocks can never propagate indirect sunlight
+                if(isVoxelEmpty(voxel) && isVoxelOutside(voxel)) {
+                    combinedIndirectSunlightData[INDEX2(p.x, p.y, p.z)] = CHUNK_LIGHTING_MAX;
                 }
-                
-                if(!isVoxelOutside(voxel)) {
-                    continue; // skip, as inside blocks can never be the starting points for indirect sunlight propagation
-                }
-                
-                // Check neighboring voxels in the six cardinal directions
-                static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
-                    { 1, 0, 0},
-                    {-1, 0, 0},
-                    { 0, 1, 0},
-                    { 0,-1, 0},
-                    { 0, 0, 1},
-                    { 0, 0,-1},
-                };
-                
-                for(face_t i=0; i<FACE_NUM_FACES; ++i)
+            }
+        }
+    }
+
+    // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
+    // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
+    // Set the blocks we find to the next lower light level.
+    for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
+    {
+        for(p.x = -CHUNK_SIZE_X; p.x < (2*CHUNK_SIZE_X); ++p.x)
+        {
+            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+            {
+                for(p.z = -CHUNK_SIZE_Z; p.z < (2*CHUNK_SIZE_Z); ++p.z)
                 {
-                    GSIntegerVector3 q = GSIntegerVector3_Add(p, offsets[i]);
+                    if(!isVoxelEmpty(combinedVoxelData[INDEX2(p.x, p.y, p.z)]) ||
+                       isVoxelOutside(combinedVoxelData[INDEX2(p.x, p.y, p.z)])) {
+                        continue;
+                    }
                     
-                    if(q.x >= -CHUNK_SIZE_X && q.x < (2*CHUNK_SIZE_X) &&
-                       q.z >= -CHUNK_SIZE_Z && q.z < (2*CHUNK_SIZE_Z) &&
-                       q.y >= 0 && q.y < CHUNK_SIZE_Y) {
-                        voxel_t neighborVoxel = combinedVoxelData[INDEX2(q.x, q.y, q.z)];
-                        
-                        if(isVoxelEmpty(neighborVoxel) && !isVoxelOutside(neighborVoxel)) {
-                            // This voxel is exposed to direct sunlight and is adjacent to a voxel that is not. Flood-fill here.
-                            [self floodFillIndirectSunlightAtPoint:p
-                                                 combinedVoxelData:combinedVoxelData
-                                      combinedIndirectSunlightData:combinedIndirectSunlightData
-                                                         intensity:CHUNK_LIGHTING_MAX];
-                        }
+                    if([self isAdjacentToSunlightAtPoint:p
+                                              lightLevel:lightLevel
+                                       combinedVoxelData:combinedVoxelData
+                            combinedIndirectSunlightData:combinedIndirectSunlightData]) {
+                        uint8_t *val = &combinedIndirectSunlightData[INDEX2(p.x, p.y, p.z)];
+                        *val = MAX(*val, lightLevel - 1);
                     }
                 }
             }
         }
     }
-    
+
     return combinedIndirectSunlightData;
 }
 
@@ -371,15 +390,16 @@
 
 
 - (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
-                              completionHandler:(void (^)(void))completionHandler
 {
-    CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
+#if 0
     // avoid duplicating work that is already in-flight
     if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &indirectSunlightRebuildIsInFlight)) {
         NSLog(@"A rebuild of indirect sunlight was already in flight for this chunk. Bailing out.");
         return;
     }
+#endif
     
     // Copy the entire neighborhood's voxel data into the large buffer.
     voxel_t *combinedVoxelData = [self newLocalNeighborhoodBufferWithNeighborhood:neighborhood];
@@ -402,10 +422,8 @@
     indirectSunlightIsOutOfDate = NO;
     indirectSunlightRebuildIsInFlight = 0; // reset
     
-    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    NSLog(@"Finished rebuilding indirect sunlight. It took %.2fs", timeEnd - timeStart);
-    
-    completionHandler();
+    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    //NSLog(@"Finished rebuilding indirect sunlight. It took %.2fs", timeEnd - timeStart);
 }
 
 @end
@@ -557,31 +575,20 @@
  * NOTE: This totally ignores the neighboring chunks.
  */
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel
-{    
-    if(p.y+1 >= CHUNK_SIZE_Y) {
-        return YES;
-    } else if(isVoxelEmpty(voxelData[INDEX(p.x, p.y+1, p.z)]) && SUNLIGHT(p.x, p.y+1, p.z) == lightLevel) {
-        return YES;
-    }
-    
-    if(p.y-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y-1, p.z)]) && SUNLIGHT(p.x, p.y-1, p.z) == lightLevel) {
-        return YES;
-    }
-    
-    if(p.x-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x-1, p.y, p.z)]) && SUNLIGHT(p.x-1, p.y, p.z) == lightLevel) {
-        return YES;
-    }
-    
-    if(p.x+1 < CHUNK_SIZE_X && isVoxelEmpty(voxelData[INDEX(p.x+1, p.y, p.z)]) && SUNLIGHT(p.x+1, p.y, p.z) == lightLevel) {
-        return YES;
-    }
-    
-    if(p.z-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z-1)]) && SUNLIGHT(p.x, p.y, p.z-1) == lightLevel) {
-        return YES;
-    }
-    
-    if(p.z+1 < CHUNK_SIZE_Z && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z+1)]) && SUNLIGHT(p.x, p.y, p.z+1) == lightLevel) {
-        return YES;
+{
+    for(face_t i=0; i<FACE_NUM_FACES; ++i)
+    {
+        GSIntegerVector3 a = GSIntegerVector3_Add(p, offsets[i]);
+        
+        if(a.x < 0 || a.x >= CHUNK_SIZE_X ||
+           a.z < 0 || a.z >= CHUNK_SIZE_Z ||
+           a.y < 0 || a.y >= CHUNK_SIZE_Y) {
+            continue; // The point is out of bounds, so bail out.
+        }
+        
+        if(isVoxelEmpty(voxelData[INDEX(a.x, a.y, a.z)]) && SUNLIGHT(a.x, a.y, a.z) == lightLevel) {
+            return YES;
+        }
     }
     
     return NO;
@@ -600,6 +607,22 @@
     [directSunlight.lockLightingBuffer lockForReading];
     [lockVoxelData lockForReading];
     
+    for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
+    {
+        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+        {
+            for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
+            {
+                voxel_t voxel = voxelData[INDEX(p.x, p.y, p.z)];
+                if(isVoxelEmpty(voxel) && isVoxelOutside(voxel)) {
+                    indirectSunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = CHUNK_LIGHTING_MAX;
+                } else {
+                    indirectSunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = 0;
+                }
+            }
+        }
+    }
+    
     // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
     // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
     // Set the blocks we find to the next lower light level.
@@ -611,6 +634,12 @@
             {
                 for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
                 {
+                    voxel_t voxel = voxelData[INDEX(p.x, p.y, p.z)];
+                
+                    if(!isVoxelEmpty(voxel) || isVoxelOutside(voxel)) {
+                        continue;
+                    }
+                    
                     if([self isAdjacentToSunlightAtPoint:p lightLevel:lightLevel]) {
                         indirectSunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = MAX(SUNLIGHT(p.x, p.y, p.z), lightLevel - 1);
                     }

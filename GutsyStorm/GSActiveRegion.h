@@ -17,7 +17,6 @@
     NSLock *lock;
 }
 
-@property (readonly, nonatomic) GSVector3 activeRegionExtent;
 @property (readonly, nonatomic) NSUInteger maxActiveChunks;
 
 - (id)initWithActiveRegionExtent:(GSVector3)activeRegionExtent;
