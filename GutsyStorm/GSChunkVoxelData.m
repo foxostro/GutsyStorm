@@ -331,14 +331,15 @@
         }
     }
     [indirectSunlight.lockLightingBuffer unlockForWriting];
-    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    NSLog(@"Finished rebuilding indirect sunlight. It took %.3fs", timeEnd - timeStart);
     
     free(combinedIndirectSunlightData);
     combinedIndirectSunlightData = NULL;
     
     indirectSunlightIsOutOfDate = NO;
     indirectSunlightRebuildIsInFlight = 0; // reset
+    
+    CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+    NSLog(@"Finished rebuilding indirect sunlight. It took %.3fs", timeEnd - timeStart);
     
     completionHandler();
 }

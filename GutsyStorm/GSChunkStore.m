@@ -191,29 +191,51 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
+- (NSMutableArray *)newListOfPointsWithOutOfDateIndirectSunlightAndFilterVisible:(BOOL)filter
+{
+    NSMutableArray *points = [[NSMutableArray alloc] init];
+    
+    // Get the list of out-of-date chunks that are currently visible.
+    [self enumeratePointsInActiveRegionUsingBlock:^(GSVector3 p) {
+        if(filter) {
+            GSChunkVoxelData *voxels = [self getChunkVoxelsAtPoint:p];
+            GSChunkGeometryData *geometry = [self getChunkGeometryAtPoint:p];
+            if(geometry->visible && voxels.indirectSunlightIsOutOfDate) {
+                [points addObject:[GSBoxedVector boxedVectorWithVector:voxels.centerP]];
+            }
+        } else {
+            GSChunkVoxelData *voxels = [self getChunkVoxelsAtPoint:p];
+            if(voxels.indirectSunlightIsOutOfDate) {
+                [points addObject:[GSBoxedVector boxedVectorWithVector:voxels.centerP]];
+            }
+        }
+    }];
+    
+    return points;
+}
+
+
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
     [self recalculateActiveChunksWithCameraModifiedFlags:flags];
     
-#if 1
     // Periodically rebuild chunks' out-of-date indirect sunlight and all associated geometry.
     timeUntilIndirectSunlightUpdate -= dt;
     if(timeUntilIndirectSunlightUpdate <= 0) {
         timeUntilIndirectSunlightUpdate = timeBetweenlIndirectSunlightUpdates;
         
         dispatch_async(chunkTaskQueue, ^{
-            NSMutableArray *points = [[NSMutableArray alloc] init];
-            
-            // Get the list of out-of-date chunks.
-            [self enumeratePointsInActiveRegionUsingBlock:^(GSVector3 p) {
-                GSChunkVoxelData *voxels = [self getChunkVoxelsAtPoint:p];
-                if(voxels.indirectSunlightIsOutOfDate) {
-                    [points addObject:[GSBoxedVector boxedVectorWithVector:voxels.centerP]];
-                }
-            }];
+            // We want to prioritize chunks that are visible.
+            NSArray *points = [self newListOfPointsWithOutOfDateIndirectSunlightAndFilterVisible:YES];
+            if([points count] == 0) {
+                // Fallback to updating non-visible chunks.
+                [points release];
+                points = [self newListOfPointsWithOutOfDateIndirectSunlightAndFilterVisible:NO];
+            }
             
             // Rebuild one chunk, chosen randomly from the list.
             if([points count] > 0) {
+                NSLog(@"rebuilding indirect sunlight a chunk");
                 NSUInteger n = rand() % [points count];
                 [self rebuildIndirectSunlightAndGeometryAround:[[points objectAtIndex:n] vectorValue]];
             }
@@ -221,7 +243,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
             [points release];
         });
     }
-#endif
 }
 
 
@@ -647,7 +668,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
      */
 
     dispatch_async(chunkTaskQueue, ^{
-        NSLog(@"-rebuildIndirectSunlightAndGeometryAround:");
         NSMutableSet *dirtyMeshes = [[NSMutableSet alloc] init];
         
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
