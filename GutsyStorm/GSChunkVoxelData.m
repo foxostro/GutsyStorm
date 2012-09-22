@@ -215,13 +215,19 @@
     
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
-        GSIntegerVector3 neighborPos = GSIntegerVector3_Add(p, offsets[i]);
+        GSIntegerVector3 a = GSIntegerVector3_Add(p, offsets[i]);
         
-        if(isVoxelOutside(combinedVoxelData[INDEX2(neighborPos.x, neighborPos.y, neighborPos.z)])) {
+        if(a.x < -CHUNK_SIZE_X || a.x >= (2*CHUNK_SIZE_X) ||
+           a.z < -CHUNK_SIZE_Z || a.z >= (2*CHUNK_SIZE_Z) ||
+           a.y < 0 || a.y >= CHUNK_SIZE_Y) {
+            continue; // The neighboring point is out of bounds, so skip it.
+        }
+        
+        if(isVoxelOutside(combinedVoxelData[INDEX2(a.x, a.y, a.z)])) {
             continue; // The neigbor is outside and so a flood-fill to here would be useless, so skip it.
         }
         
-        [self floodFillIndirectSunlightAtPoint:neighborPos
+        [self floodFillIndirectSunlightAtPoint:a
                              combinedVoxelData:combinedVoxelData
                   combinedIndirectSunlightData:combinedIndirectSunlightData
                                      intensity:intensity-1];
@@ -355,7 +361,7 @@
     indirectSunlightRebuildIsInFlight = 0; // reset
     
     CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    NSLog(@"Finished rebuilding indirect sunlight. It took %.3fs", timeEnd - timeStart);
+    NSLog(@"Finished rebuilding indirect sunlight. It took %.2fs", timeEnd - timeStart);
     
     completionHandler();
 }
