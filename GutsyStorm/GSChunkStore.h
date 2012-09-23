@@ -16,9 +16,6 @@
 #import "GSActiveRegion.h"
 
 
-typedef id chunk_id_t;
-
-
 @interface GSChunkStore : NSObject
 {
     NSLock *lockVoxelDataCache;
