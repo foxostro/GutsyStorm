@@ -171,11 +171,14 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     glTranslatef(0.5, 0.5, 0.5);
     
     __block NSUInteger numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
-    [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
+    GSActiveRegion *a = activeRegion;
+    [a retain];
+    [a enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
         if(chunk && chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
             numVBOGenerationsRemaining--;
         };
     }];
+    [a release];
     
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -469,11 +472,14 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
     GSFrustum *frustum = [camera frustum];
     
-    [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
+    GSActiveRegion *a = activeRegion;
+    [a retain];
+    [a enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
         if(geometry) {
             geometry->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry->corners]);
         }
     }];
+    [a release];
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished chunk visibility checks. It took %.3fs", timeEnd - timeStart);
