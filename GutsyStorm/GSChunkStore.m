@@ -332,13 +332,16 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         
         // Generate sunlight for the chunk using neighbors' data and then generate the actual triangle mesh for the chunk.
         dispatch_async(chunkTaskQueue, ^{
+            CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
+            
             GSChunkVoxelData *center = [neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
             [center rebuildSunlightWithNeighborhood:neighborhood];
             [geometry updateWithVoxelData:neighborhood];
+            
+            CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
+            NSLog(@"Finished building sunlight and geometry for new chunk. It took %.2fs", timeEnd - timeStart);
         });
 
-        
-        
         [cacheGeometryData setObject:geometry forKey:chunkID];
     }
     

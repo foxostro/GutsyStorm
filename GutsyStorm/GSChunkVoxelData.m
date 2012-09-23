@@ -171,18 +171,17 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
  * locks on the neighborhood then instead return NULL. The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y
  * elements in size and may be indexed using the INDEX2 macro.
  */
-- (voxel_t *)newLocalNeighborhoodBufferWithNeighborhood:(GSNeighborhood *)neighborhood
+- (voxel_t *)newCombinedVoxelDataBufferWithNeighborhood:(GSNeighborhood *)neighborhood
 {
     static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
-    __block voxel_t *combinedVoxelData = NULL;
+    
+    // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
+    voxel_t *combinedVoxelData = combinedVoxelData = malloc(size*sizeof(voxel_t));
+    if(!combinedVoxelData) {
+        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
+    }
     
     [neighborhood readerAccessToVoxelDataUsingBlock:^{
-        // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
-        combinedVoxelData = malloc(size*sizeof(voxel_t));
-        if(!combinedVoxelData) {
-            [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
-        }
-        
         GSIntegerVector3 p;
         for(p.x = -CHUNK_SIZE_X; p.x < 2*CHUNK_SIZE_X; ++p.x)
         {
@@ -320,12 +319,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
     // Copy the entire neighborhood's voxel data into the large buffer.
-    voxel_t *combinedVoxelData = [self newLocalNeighborhoodBufferWithNeighborhood:neighborhood];
-    if(!combinedVoxelData) {
-        // TODO: don't do it this way
-        NSLog(@"Cannot rebuild sunlight due to lock contention. Bailing out.");
-        return; // Bail out, we failed to make a copy of the voxel data to our local buffer because a writer held a lock.
-    }
+    voxel_t *combinedVoxelData = [self newCombinedVoxelDataBufferWithNeighborhood:neighborhood];
     
     uint8_t *combinedSunlightData = [self newCombinedSunlightBufferWithVoxelData:combinedVoxelData];
     
