@@ -162,7 +162,8 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
     [lockVoxelData lockForWriting];
-    block(); // rely on caller to call -voxelDataWasModified
+    block();
+    [self voxelDataWasModified];
     [lockVoxelData unlockForWriting];
 }
 

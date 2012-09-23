@@ -212,9 +212,9 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     [self destroyGeometry];
     
     [neighborhood readerAccessToVoxelDataUsingBlock:^{
-        [neighborhood readerAccessSunlightUsingBlock:^{
-            [self fillGeometryBuffersUsingVoxelData:neighborhood];
-        }];
+        [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER].sunlight.lockLightingBuffer lockForReading];
+        [self fillGeometryBuffersUsingVoxelData:neighborhood];
+        [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER].sunlight.lockLightingBuffer unlockForReading];
     }];
     
     [self fillIndexBufferForGenerating:numChunkVerts];
@@ -282,7 +282,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 /* Assumes caller is already holding the following locks:
  * "lockGeometry"
  * "lockVoxelData" for all chunks in the neighborhood (for reading).
- * "lockSunlight" for all chunks in the neighborhood (for reading).
+ * "sunlight.lockLightingBuffer" for the center chunk in the neighborhood (for reading).
  */
 - (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)chunks
 {
@@ -390,7 +390,11 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 }
 
 
-// Assumes the caller is already holding "lockGeometry", "lockSunlight" and locks on all neighboring chunks too.
+/* Assumes caller is already holding the following locks:
+ * "lockGeometry"
+ * "lockVoxelData" for all chunks in the neighborhood (for reading).
+ * "sunlight.lockLightingBuffer" for the center chunk in the neighborhood (for reading).
+ */
 - (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
                                         vertsBuffer:(GLfloat **)_vertsBuffer
                                         normsBuffer:(GLfloat **)_normsBuffer

@@ -207,8 +207,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         assert(block);
         
         *block = newBlock;
-        
-        [chunk voxelDataWasModified];
     }];
     
     [self rebuildSunlightAndGeometryAround:pos];
@@ -348,7 +346,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        GSVector3 a = GSVector3_Add(p, [GSNeighborhood getOffsetForNeighborIndex:i]);
+        GSVector3 a = GSVector3_Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
         [neighborhood setNeighborAtIndex:i neighbor:[self chunkVoxelsAtPoint:a]];
     }
     

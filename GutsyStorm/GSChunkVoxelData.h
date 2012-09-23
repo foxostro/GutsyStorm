@@ -32,6 +32,10 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 
 @property (readonly, nonatomic) voxel_t *voxelData;
 @property (readonly, nonatomic) GSLightingBuffer *sunlight;
+
+/* There are circumstances when it is necessary to use this lock directly, but in most cases the reader/writer accessor methods
+ * here and in GSNeighborhood should be preferred.
+ */
 @property (readonly, nonatomic) GSReaderWriterLock *lockVoxelData;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
@@ -48,7 +52,9 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 // Obtains a reader lock on the voxel data and allows the caller to access it in the specified block.
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
-// Obtains a writer lock on the voxel data and allows the caller to access it in the specified block.
+/* Obtains a writer lock on the voxel data and allows the caller to access it in the specified block. Calls -voxelDataWasModified
+ * after the block returns.
+ */
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
 // Assumes the caller is already holding "lockVoxelData".

@@ -37,8 +37,7 @@ typedef enum
 }
 
 + (NSLock *)_sharedVoxelDataLock;
-+ (NSLock *)_sharedSunlightLock;
-+ (GSVector3)getOffsetForNeighborIndex:(neighbor_index_t)idx;
++ (GSVector3)offsetForNeighborIndex:(neighbor_index_t)idx;
 
 - (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx;
 - (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor;
@@ -63,9 +62,5 @@ typedef enum
 
 - (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block;
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
-- (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
-
-- (void)readerAccessSunlightUsingBlock:(void (^)(void))block;
-- (void)writerAccessSunlightUsingBlock:(void (^)(void))block;
 
 @end

@@ -28,21 +28,7 @@
 }
 
 
-+ (NSLock *)_sharedSunlightLock
-{
-    static dispatch_once_t onceToken;
-    static NSLock *a = nil;
-    
-    dispatch_once(&onceToken, ^{
-        a = [[NSLock alloc] init];
-        [a setName:@"GSNeighborhood._sharedSunlightLock"];
-    });
-    
-    return a;
-}
-
-
-+ (GSVector3)getOffsetForNeighborIndex:(neighbor_index_t)idx
++ (GSVector3)offsetForNeighborIndex:(neighbor_index_t)idx
 {
     switch(idx)
     {
@@ -134,12 +120,11 @@
 
 - (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    NSMutableArray *locksTaken = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
-    
     if(![[GSNeighborhood _sharedVoxelDataLock] tryLock]) {
-        [locksTaken release];
         return NO;
     }
+    
+    NSMutableArray *locksTaken = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
     
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
@@ -159,8 +144,8 @@
             return NO;
         }
     }
-    [[GSNeighborhood _sharedVoxelDataLock] unlock];
     [locksTaken release];
+    [[GSNeighborhood _sharedVoxelDataLock] unlock];
     
     block();
     
@@ -184,54 +169,6 @@
     
     [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.lockVoxelData unlockForReading];
-    }];
-}
-
-
-- (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
-{
-    [[GSNeighborhood _sharedVoxelDataLock] lock];
-    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
-        [neighbor.lockVoxelData lockForWriting];
-    }];
-    [[GSNeighborhood _sharedVoxelDataLock] unlock];
-    
-    block();
-    
-    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
-        [neighbor.lockVoxelData unlockForWriting];
-    }];
-}
-
-
-- (void)readerAccessSunlightUsingBlock:(void (^)(void))block
-{
-    [[GSNeighborhood _sharedSunlightLock] lock];
-    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
-        [neighbor.sunlight.lockLightingBuffer lockForReading];
-    }];
-    [[GSNeighborhood _sharedSunlightLock] unlock];
-    
-    block();
-    
-    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
-        [neighbor.sunlight.lockLightingBuffer unlockForReading];
-    }];
-}
-
-
-- (void)writerAccessSunlightUsingBlock:(void (^)(void))block
-{
-    [[GSNeighborhood _sharedSunlightLock] lock];
-    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
-        [neighbor.sunlight.lockLightingBuffer lockForWriting];
-    }];
-    [[GSNeighborhood _sharedSunlightLock] unlock];
-    
-    block();
-    
-    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
-        [neighbor.sunlight.lockLightingBuffer unlockForWriting];
     }];
 }
 
