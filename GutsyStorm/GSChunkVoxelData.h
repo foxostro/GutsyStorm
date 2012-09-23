@@ -28,15 +28,11 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     voxel_t *voxelData; // the voxels that make up the chunk
     
     GSLightingBuffer *sunlight; // lighting contributions from sunlight
-    
-    BOOL sunlightIsOutOfDate; // indicates that sunlight is out of date for this chunk.
-    int sunlightRebuildIsInFlight;
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;
 @property (readonly, nonatomic) GSLightingBuffer *sunlight;
 @property (readonly, nonatomic) GSReaderWriterLock *lockVoxelData;
-@property (assign, atomic) BOOL sunlightIsOutOfDate;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
 

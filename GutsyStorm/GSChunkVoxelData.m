@@ -38,7 +38,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 @synthesize voxelData;
 @synthesize sunlight;
 @synthesize lockVoxelData;
-@synthesize sunlightIsOutOfDate;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
@@ -70,8 +69,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         voxelData = NULL;
         
         sunlight = [[GSLightingBuffer alloc] init];
-        sunlightIsOutOfDate = YES;
-        sunlightRebuildIsInFlight = 0;
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -139,8 +136,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 {
     [self recalcOutsideVoxelsNoLock];
     
-    // Update sunlight data later...
-    sunlightIsOutOfDate = YES;
+    // Caller must make sure to update sunlight later...
     
     /* Spin off a task to save the chunk.
      * This is latency sensitive, so submit to the global queue. Do not use `chunkTaskQueue' as that would cause the block to be
@@ -323,21 +319,11 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
-#if 0
-    // TODO: don't do it this way
-    // avoid duplicating work that is already in-flight
-    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &sunlightRebuildIsInFlight)) {
-        NSLog(@"A rebuild of sunlight was already in flight for this chunk. Bailing out.");
-        return;
-    }
-#endif
-    
     // Copy the entire neighborhood's voxel data into the large buffer.
     voxel_t *combinedVoxelData = [self newLocalNeighborhoodBufferWithNeighborhood:neighborhood];
     if(!combinedVoxelData) {
         // TODO: don't do it this way
         NSLog(@"Cannot rebuild sunlight due to lock contention. Bailing out.");
-        sunlightRebuildIsInFlight = 0; // reset
         return; // Bail out, we failed to make a copy of the voxel data to our local buffer because a writer held a lock.
     }
     
@@ -350,9 +336,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     
     free(combinedSunlightData);
     combinedSunlightData = NULL;
-    
-    sunlightIsOutOfDate = NO;
-    sunlightRebuildIsInFlight = 0; // reset
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished rebuilding sunlight. It took %.2fs", timeEnd - timeStart);
