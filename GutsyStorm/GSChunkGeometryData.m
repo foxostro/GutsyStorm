@@ -221,7 +221,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     [self destroyGeometry];
     
     [neighborhood readerAccessToVoxelDataUsingBlock:^{
-        [neighborhood readerAccessToIndirectSunlightUsingBlock:^{
+        [neighborhood readerAccessSunlightUsingBlock:^{
             [self fillGeometryBuffersUsingVoxelData:neighborhood];
         }];
     }];
@@ -571,11 +571,11 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                                     outAmbientOcclusion:&ambientOcclusion];
     }
     
-    block_lighting_t indirectSunlight;
-    [centerVoxels.indirectSunlight interpolateLightAtPoint:chunkLocalPos
+    block_lighting_t sunlight;
+    [centerVoxels.sunlight interpolateLightAtPoint:chunkLocalPos
                                                  neighbors:chunks
-                                               outLighting:&indirectSunlight
-                                                    getter:^GSLightingBuffer* (GSChunkVoxelData *c) { return c.indirectSunlight; }];
+                                               outLighting:&sunlight
+                                                    getter:^GSLightingBuffer* (GSChunkVoxelData *c) { return c.sunlight; }];
     
     // TODO: add torch lighting to the world.
     block_lighting_t torchLight;
@@ -587,7 +587,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
             count += 4;
             
             if(!onlyDoingCounting) {
-                unsigned unpackedIndirectSunlight[4];
+                unsigned unpackedSunlight[4];
                 unsigned unpackedTorchlight[4];
                 unsigned unpackedAO[4];
                 
@@ -595,7 +595,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                     page = side;
                 }
                 
-                unpackBlockLightingValuesForVertex(indirectSunlight.face[i], unpackedIndirectSunlight);
+                unpackBlockLightingValuesForVertex(sunlight.face[i], unpackedSunlight);
                 unpackBlockLightingValuesForVertex(torchLight.face[i], unpackedTorchlight);
                 unpackBlockLightingValuesForVertex(ambientOcclusion.face[i], unpackedAO);
                 
@@ -606,7 +606,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                     addVertex(x+vertex[j][i].x, y+vertex[j][i].y, z+vertex[j][i].z,
                               normals[i].x, normals[i].y, normals[i].z,
                               texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz,
-                              blockLight(unpackedIndirectSunlight[j],
+                              blockLight(unpackedSunlight[j],
                                          unpackedTorchlight[j],
                                          unpackedAO[j]),
                               _vertsBuffer,

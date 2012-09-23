@@ -11,8 +11,6 @@
 #import "GSBoxedVector.h"
 
 
-#define SUNLIGHT(x, y, z) MAX(directSunlight.lightingBuffer[INDEX(x, y, z)], indirectSunlight.lightingBuffer[INDEX(x, y, z)])
-
 static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     { 1, 0, 0},
     {-1, 0, 0},
@@ -38,9 +36,9 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 @implementation GSChunkVoxelData
 
 @synthesize voxelData;
-@synthesize indirectSunlight;
+@synthesize sunlight;
 @synthesize lockVoxelData;
-@synthesize indirectSunlightIsOutOfDate;
+@synthesize sunlightIsOutOfDate;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
@@ -71,9 +69,9 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         [lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         voxelData = NULL;
         
-        indirectSunlight = [[GSLightingBuffer alloc] init];
-        indirectSunlightIsOutOfDate = YES;
-        indirectSunlightRebuildIsInFlight = 0;
+        sunlight = [[GSLightingBuffer alloc] init];
+        sunlightIsOutOfDate = YES;
+        sunlightRebuildIsInFlight = 0;
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -109,7 +107,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     [self destroyVoxelData];
     [lockVoxelData release];
     
-    [indirectSunlight release];
+    [sunlight release];
     
     [super dealloc];
 }
@@ -141,8 +139,8 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 {
     [self recalcOutsideVoxelsNoLock];
     
-    // Update indirect sunlight data later...
-    indirectSunlightIsOutOfDate = YES;
+    // Update sunlight data later...
+    sunlightIsOutOfDate = YES;
     
     /* Spin off a task to save the chunk.
      * This is latency sensitive, so submit to the global queue. Do not use `chunkTaskQueue' as that would cause the block to be
@@ -170,55 +168,6 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     [lockVoxelData lockForWriting];
     block(); // rely on caller to call -voxelDataWasModified
     [lockVoxelData unlockForWriting];
-}
-
-
-/* Writes indirect sunlight values for the specified sunlight propagation point (in world-space). May modify neigboring chunks too.
- * If indirect sunlight is removed then this can generate incorrect values as it can only ever brighten an area.
- * Assumes the caller has already holding the lock on indirectSunlight for writing for all chunks in the neighborhood.
- */
-- (void)floodFillIndirectSunlightAtPoint:(GSIntegerVector3)p
-                       combinedVoxelData:(voxel_t *)combinedVoxelData
-                       combinedIndirectSunlightData:(voxel_t *)combinedIndirectSunlightData
-                               intensity:(int)intensity
-{
-    if(intensity <= 0) {
-        return; // Well, we're done, so bail out.
-    }
-    
-    if(p.x < -CHUNK_SIZE_X || p.x >= (2*CHUNK_SIZE_X) ||
-       p.z < -CHUNK_SIZE_Z || p.z >= (2*CHUNK_SIZE_Z) ||
-       p.y < 0 || p.y >= CHUNK_SIZE_Y) {
-        return; // The point is out of bounds, so bail out.
-    }
-    
-    if(!isVoxelEmpty(combinedVoxelData[INDEX2(p.x, p.y, p.z)])) {
-        return; // Indirect sunlight cannot propagate from this point, so bail out.
-    }
-    
-    uint8_t *value = &combinedIndirectSunlightData[INDEX2(p.x, p.y, p.z)];
-    
-    *value = MAX(intensity, *value); // this flood-fill can only ever brighten a voxel
-    
-    for(face_t i=0; i<FACE_NUM_FACES; ++i)
-    {
-        GSIntegerVector3 a = GSIntegerVector3_Add(p, offsets[i]);
-        
-        if(a.x < -CHUNK_SIZE_X || a.x >= (2*CHUNK_SIZE_X) ||
-           a.z < -CHUNK_SIZE_Z || a.z >= (2*CHUNK_SIZE_Z) ||
-           a.y < 0 || a.y >= CHUNK_SIZE_Y) {
-            continue; // The neighboring point is out of bounds, so skip it.
-        }
-        
-        if(isVoxelOutside(combinedVoxelData[INDEX2(a.x, a.y, a.z)])) {
-            continue; // The neigbor is outside and so a flood-fill to here would be useless, so skip it.
-        }
-        
-        [self floodFillIndirectSunlightAtPoint:a
-                             combinedVoxelData:combinedVoxelData
-                  combinedIndirectSunlightData:combinedIndirectSunlightData
-                                     intensity:intensity-1];
-    }
 }
 
 
@@ -260,7 +209,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p
                          lightLevel:(int)lightLevel
                   combinedVoxelData:(voxel_t *)combinedVoxelData
-       combinedIndirectSunlightData:(voxel_t *)combinedIndirectSunlightData
+       combinedSunlightData:(voxel_t *)combinedSunlightData
 {
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
@@ -276,7 +225,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             continue;
         }
         
-        if(combinedIndirectSunlightData[INDEX2(a.x, a.y, a.z)] == lightLevel) {
+        if(combinedSunlightData[INDEX2(a.x, a.y, a.z)] == lightLevel) {
             return YES;
         }
     }
@@ -285,20 +234,20 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 }
 
 
-/* Generate and return indirect sunlight data for this chunk from the specified voxel data buffer. The voxel data buffer must be 
+/* Generate and return  sunlight data for this chunk from the specified voxel data buffer. The voxel data buffer must be
  * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local neighborhood.
- * The returned indirect sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the indirect
- * sunlight values for the region of the buffer corresponding to this chunk should be considered to be totally correct.
+ * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight values for the
+ * region of the buffer corresponding to this chunk should be considered to be totally correct.
  */
-- (voxel_t *)newCombinedIndirectSunlightBufferWithVoxelData:(voxel_t *)combinedVoxelData
+- (voxel_t *)newCombinedSunlightBufferWithVoxelData:(voxel_t *)combinedVoxelData
 {
     static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     GSIntegerVector3 p;
     
-    // Allocate a buffer large enough to hold the entire neighborhood's indirect sunlight values.
-    voxel_t *combinedIndirectSunlightData = calloc(size, sizeof(uint8_t));
-    if(!combinedIndirectSunlightData) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedIndirectSunlightData."];
+    // Allocate a buffer large enough to hold the entire neighborhood's sunlight values.
+    uint8_t *combinedSunlightData = calloc(size, sizeof(uint8_t));
+    if(!combinedSunlightData) {
+        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedSunlightData."];
     }
     
     for(p.x = -CHUNK_SIZE_X; p.x < (2*CHUNK_SIZE_X); ++p.x)
@@ -309,7 +258,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             {
                 voxel_t voxel = combinedVoxelData[INDEX2(p.x, p.y, p.z)];
                 if(isVoxelEmpty(voxel) && isVoxelOutside(voxel)) {
-                    combinedIndirectSunlightData[INDEX2(p.x, p.y, p.z)] = CHUNK_LIGHTING_MAX;
+                    combinedSunlightData[INDEX2(p.x, p.y, p.z)] = CHUNK_LIGHTING_MAX;
                 }
             }
         }
@@ -334,8 +283,8 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
                     if([self isAdjacentToSunlightAtPoint:p
                                               lightLevel:lightLevel
                                        combinedVoxelData:combinedVoxelData
-                            combinedIndirectSunlightData:combinedIndirectSunlightData]) {
-                        uint8_t *val = &combinedIndirectSunlightData[INDEX2(p.x, p.y, p.z)];
+                            combinedSunlightData:combinedSunlightData]) {
+                        uint8_t *val = &combinedSunlightData[INDEX2(p.x, p.y, p.z)];
                         *val = MAX(*val, lightLevel - 1);
                     }
                 }
@@ -343,16 +292,16 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         }
     }
 
-    return combinedIndirectSunlightData;
+    return combinedSunlightData;
 }
 
 
-/* Copy the region of specified buffer into this chunk's indirect sunlight buffer. The provided data buffer must be
+/* Copy the region of specified buffer into this chunk's sunlight buffer. The provided data buffer must be
  * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and capable of being indexed using the INDEX2 macro.
  */
-- (void)copyToIndirectSunlightBufferFromLargerBuffer:(voxel_t *)combinedIndirectSunlightData
+- (void)copyToSunlightBufferFromLargerBuffer:(voxel_t *)combinedSunlightData
 {
-    [indirectSunlight.lockLightingBuffer lockForWriting];
+    [sunlight.lockLightingBuffer lockForWriting];
 
     GSIntegerVector3 p;
     for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
@@ -361,23 +310,24 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         {
             for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
             {
-                indirectSunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = combinedIndirectSunlightData[INDEX2(p.x, p.y, p.z)];
+                sunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = combinedSunlightData[INDEX2(p.x, p.y, p.z)];
             }
         }
     }
 
-    [indirectSunlight.lockLightingBuffer unlockForWriting];
+    [sunlight.lockLightingBuffer unlockForWriting];
 }
 
 
-- (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
+- (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
 #if 0
+    // TODO: don't do it this way
     // avoid duplicating work that is already in-flight
-    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &indirectSunlightRebuildIsInFlight)) {
-        NSLog(@"A rebuild of indirect sunlight was already in flight for this chunk. Bailing out.");
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &sunlightRebuildIsInFlight)) {
+        NSLog(@"A rebuild of sunlight was already in flight for this chunk. Bailing out.");
         return;
     }
 #endif
@@ -385,26 +335,27 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     // Copy the entire neighborhood's voxel data into the large buffer.
     voxel_t *combinedVoxelData = [self newLocalNeighborhoodBufferWithNeighborhood:neighborhood];
     if(!combinedVoxelData) {
-        NSLog(@"Cannot rebuild indirect sunlight due to lock contention. Bailing out.");
-        indirectSunlightRebuildIsInFlight = 0; // reset
+        // TODO: don't do it this way
+        NSLog(@"Cannot rebuild sunlight due to lock contention. Bailing out.");
+        sunlightRebuildIsInFlight = 0; // reset
         return; // Bail out, we failed to make a copy of the voxel data to our local buffer because a writer held a lock.
     }
     
-    voxel_t *combinedIndirectSunlightData = [self newCombinedIndirectSunlightBufferWithVoxelData:combinedVoxelData];
+    uint8_t *combinedSunlightData = [self newCombinedSunlightBufferWithVoxelData:combinedVoxelData];
     
     free(combinedVoxelData);
     combinedVoxelData = NULL;
     
-    [self copyToIndirectSunlightBufferFromLargerBuffer:combinedIndirectSunlightData];
+    [self copyToSunlightBufferFromLargerBuffer:combinedSunlightData];
     
-    free(combinedIndirectSunlightData);
-    combinedIndirectSunlightData = NULL;
+    free(combinedSunlightData);
+    combinedSunlightData = NULL;
     
-    indirectSunlightIsOutOfDate = NO;
-    indirectSunlightRebuildIsInFlight = 0; // reset
+    sunlightIsOutOfDate = NO;
+    sunlightRebuildIsInFlight = 0; // reset
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished rebuilding indirect sunlight. It took %.2fs", timeEnd - timeStart);
+    //NSLog(@"Finished rebuilding sunlight. It took %.2fs", timeEnd - timeStart);
 }
 
 @end

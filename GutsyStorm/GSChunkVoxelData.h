@@ -27,16 +27,16 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     GSReaderWriterLock *lockVoxelData;
     voxel_t *voxelData; // the voxels that make up the chunk
     
-    GSLightingBuffer *indirectSunlight; // indirect lighting from the sun
+    GSLightingBuffer *sunlight; // lighting contributions from sunlight
     
-    BOOL indirectSunlightIsOutOfDate; // indicates that indirect sunlight is out of date for this chunk.
-    int indirectSunlightRebuildIsInFlight;
+    BOOL sunlightIsOutOfDate; // indicates that sunlight is out of date for this chunk.
+    int sunlightRebuildIsInFlight;
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;
-@property (readonly, nonatomic) GSLightingBuffer *indirectSunlight;
+@property (readonly, nonatomic) GSLightingBuffer *sunlight;
 @property (readonly, nonatomic) GSReaderWriterLock *lockVoxelData;
-@property (assign, atomic) BOOL indirectSunlightIsOutOfDate;
+@property (assign, atomic) BOOL sunlightIsOutOfDate;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
 
@@ -59,7 +59,7 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 - (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
 
-// Rebuilds indirect sunlight for this chunk.
-- (void)rebuildIndirectSunlightWithNeighborhood:(GSNeighborhood *)neighborhood;
+// Rebuilds sunlight for this chunk.
+- (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood;
 
 @end

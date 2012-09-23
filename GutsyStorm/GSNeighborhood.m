@@ -28,14 +28,14 @@
 }
 
 
-+ (NSLock *)_sharedIndirectSunlightLock
++ (NSLock *)_sharedSunlightLock
 {
     static dispatch_once_t onceToken;
     static NSLock *a = nil;
     
     dispatch_once(&onceToken, ^{
         a = [[NSLock alloc] init];
-        [a setName:@"GSNeighborhood._sharedIndirectSunlightLock"];
+        [a setName:@"GSNeighborhood._sharedSunlightLock"];
     });
     
     return a;
@@ -204,34 +204,34 @@
 }
 
 
-- (void)readerAccessToIndirectSunlightUsingBlock:(void (^)(void))block
+- (void)readerAccessSunlightUsingBlock:(void (^)(void))block
 {
-    [[GSNeighborhood _sharedIndirectSunlightLock] lock];
+    [[GSNeighborhood _sharedSunlightLock] lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [neighbor.indirectSunlight.lockLightingBuffer lockForReading];
+        [neighbor.sunlight.lockLightingBuffer lockForReading];
     }];
-    [[GSNeighborhood _sharedIndirectSunlightLock] unlock];
+    [[GSNeighborhood _sharedSunlightLock] unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [neighbor.indirectSunlight.lockLightingBuffer unlockForReading];
+        [neighbor.sunlight.lockLightingBuffer unlockForReading];
     }];
 }
 
 
-- (void)writerAccessToIndirectSunlightUsingBlock:(void (^)(void))block
+- (void)writerAccessSunlightUsingBlock:(void (^)(void))block
 {
-    [[GSNeighborhood _sharedIndirectSunlightLock] lock];
+    [[GSNeighborhood _sharedSunlightLock] lock];
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [neighbor.indirectSunlight.lockLightingBuffer lockForWriting];
+        [neighbor.sunlight.lockLightingBuffer lockForWriting];
     }];
-    [[GSNeighborhood _sharedIndirectSunlightLock] unlock];
+    [[GSNeighborhood _sharedSunlightLock] unlock];
     
     block();
     
     [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
-        [neighbor.indirectSunlight.lockLightingBuffer unlockForWriting];
+        [neighbor.sunlight.lockLightingBuffer unlockForWriting];
     }];
 }
 
