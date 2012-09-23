@@ -428,10 +428,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     
     block_lighting_t sunlight;
     if(!onlyDoingCounting) {
-        [centerVoxels.sunlight interpolateLightAtPoint:chunkLocalPos
-                                             neighbors:chunks
-                                           outLighting:&sunlight
-                                                getter:^GSLightingBuffer* (GSChunkVoxelData *c) { return c.sunlight; }];
+        [centerVoxels.sunlight interpolateLightAtPoint:chunkLocalPos outLighting:&sunlight];
     }
     
     // TODO: add torch lighting to the world.

@@ -9,17 +9,29 @@
 #import "GSLightingBuffer.h"
 #import "GSChunkVoxelData.h"
 
-#define BUFFER_SIZE_IN_BYTES (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(uint8_t))
+#define BUFFER_SIZE_IN_BYTES (dimensions.x * dimensions.y * dimensions.z * sizeof(uint8_t))
+#define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*dimensions.y*dimensions.z) + ((p.y)*dimensions.z) + (p.z)))
 
 @implementation GSLightingBuffer
 
 @synthesize lockLightingBuffer;
 @synthesize lightingBuffer;
+@synthesize dimensions;
 
-- (id)init
+- (id)initWithDimensions:(GSIntegerVector3)_dimensions
 {
     self = [super init];
     if (self) {
+        assert(_dimensions.x >= CHUNK_SIZE_X);
+        assert(_dimensions.y >= CHUNK_SIZE_Y);
+        assert(_dimensions.z >= CHUNK_SIZE_Z);
+        
+        dimensions = _dimensions;
+        
+        offsetFromChunkLocalSpace = GSIntegerVector3_Make((dimensions.x - CHUNK_SIZE_X) / 2,
+                                                          (dimensions.y - CHUNK_SIZE_Y) / 2,
+                                                          (dimensions.z - CHUNK_SIZE_Z) / 2);
+        
         lightingBuffer = malloc(BUFFER_SIZE_IN_BYTES);
         
         if(!lightingBuffer) {
@@ -34,6 +46,11 @@
     return self;
 }
 
+- (id)init
+{
+    return [self initWithDimensions:GSIntegerVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z)];
+}
+
 - (void)dealloc
 {
     free(lightingBuffer);
@@ -41,47 +58,35 @@
     [super dealloc];
 }
 
-- (uint8_t)lightAtPoint:(GSIntegerVector3)p
-{
-    return *[self pointerToLightAtPoint:p];
-}
-
-
-- (uint8_t *)pointerToLightAtPoint:(GSIntegerVector3)p
+- (uint8_t)lightAtPoint:(GSIntegerVector3)chunkLocalPos
 {
     assert(lightingBuffer);
-    assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
-    assert(p.y >= 0 && p.y < CHUNK_SIZE_Y);
-    assert(p.z >= 0 && p.z < CHUNK_SIZE_Z);
-    return &lightingBuffer[INDEX(p.x, p.y, p.z)];
+    
+    GSIntegerVector3 p = GSIntegerVector3_Add(chunkLocalPos, offsetFromChunkLocalSpace);
+    
+    if(p.x >= 0 && p.x < dimensions.x && p.y >= 0 && p.y < dimensions.y && p.z >= 0 && p.z < dimensions.z) {
+        return lightingBuffer[INDEX_INTO_LIGHTING_BUFFER(p)];
+    } else {
+        return 0;
+    }
 }
 
-// Assumes the caller is already holding "lockSAMPLE" on all neighbors and "lockVoxelData" on the center neighbor, at least.
-- (void)interpolateLightAtPoint:(GSIntegerVector3)p
-                         neighbors:(GSNeighborhood *)neighbors
-                       outLighting:(block_lighting_t *)lighting
-                         getter:(GSLightingBuffer* (^)(GSChunkVoxelData *c))getter
+- (void)interpolateLightAtPoint:(GSIntegerVector3)chunkLocalPos outLighting:(block_lighting_t *)lighting
 {
     /* Front is in the -Z direction and back is the +Z direction.
      * This is a totally arbitrary convention.
      */
     
-    GSChunkVoxelData *center = [neighbors getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-    voxel_t *voxelData = center.voxelData;
+    assert(lightingBuffer);
+    assert(lighting);
+    assert(chunkLocalPos.x >= 0 && chunkLocalPos.x < CHUNK_SIZE_X);
+    assert(chunkLocalPos.y >= 0 && chunkLocalPos.y < CHUNK_SIZE_Y);
+    assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < CHUNK_SIZE_Z);
     
-    // If the block is empty then bail out early. The point p is always within the chunk.
-    if(isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z)])) {
-        block_lighting_vertex_t packed = packBlockLightingValuesForVertex(CHUNK_LIGHTING_MAX,
-                                                                          CHUNK_LIGHTING_MAX,
-                                                                          CHUNK_LIGHTING_MAX,
-                                                                          CHUNK_LIGHTING_MAX);
-        
-        for(size_t i=0; i<FACE_NUM_FACES; ++i)
-        {
-            lighting->face[i] = packed;
-        }
-        return;
-    }
+    // TODO: remove these constraints so the lighting buffer and the chunk may be different sizes.
+    assert(dimensions.x == CHUNK_SIZE_X);
+    assert(dimensions.y == CHUNK_SIZE_Y);
+    assert(dimensions.z == CHUNK_SIZE_Z);
     
 #define SAMPLE(x, y, z) (samples[(x+1)*3*3 + (y+1)*3 + (z+1)])
     
@@ -93,7 +98,7 @@
         {
             for(ssize_t z = -1; z <= 1; ++z)
             {
-                SAMPLE(x, y, z) = [neighbors lightAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z) getter:getter];
+                SAMPLE(x, y, z) = [self lightAtPoint:GSIntegerVector3_Add(chunkLocalPos, GSIntegerVector3_Make(x, y, z))];
             }
         }
     }

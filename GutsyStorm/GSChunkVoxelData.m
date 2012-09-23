@@ -68,7 +68,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         [lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         voxelData = NULL;
         
-        sunlight = [[GSLightingBuffer alloc] init];
+        sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z)];
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
