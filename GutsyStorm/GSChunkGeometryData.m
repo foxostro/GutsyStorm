@@ -34,18 +34,12 @@ static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
 static GLfloat * allocateGeometryBuffer(size_t numVerts);
 
 
-static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight, unsigned ambientOcclusion)
+static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight)
 {
-    // Pack ambient occlusion into the Red channel, sunlight into the Green channel, and torch light into the Blue channel.
-    return GSVector3_Make(ambientOcclusion / (float)CHUNK_MAX_AO_COUNT,
+    // Pack sunlight into the Green channel, and torch light into the Blue channel.
+    return GSVector3_Make(0,
                           (sunlight / (float)CHUNK_LIGHTING_MAX) * 0.8f + 0.2f,
                           torchLight / (float)CHUNK_LIGHTING_MAX);
-}
-
-
-static inline unsigned calcFinalOcclusion(BOOL a, BOOL b, BOOL c, BOOL d)
-{
-    return (a?1:0) + (b?1:0) + (c?1:0) + (d?1:0);
 }
 
 
@@ -158,9 +152,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                                           voxelData:(GSNeighborhood *)chunks
                                   onlyDoingCounting:(BOOL)onlyDoingCounting;
 - (void)fillIndexBufferForGenerating:(GLsizei)n;
-- (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
-                                        neighbors:(GSNeighborhood *)chunks
-                              outAmbientOcclusion:(block_lighting_t*)ao;
 
 @end
 
@@ -399,136 +390,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 }
 
 
-- (void)countNeighborsForAmbientOcclusionsAtPoint:(GSIntegerVector3)p
-                                        neighbors:(GSNeighborhood *)chunks
-                              outAmbientOcclusion:(block_lighting_t*)ao
-{
-    /* Front is in the -Z direction and back is the +Z direction.
-     * This is a totally arbitrary convention.
-     */
-    
-#define OCCLUSION(x, y, z) (occlusion[(x+1)*3*3 + (y+1)*3 + (z+1)])
-    
-    BOOL occlusion[3*3*3];
-    
-    for(ssize_t x = -1; x <= 1; ++x)
-    {
-        for(ssize_t y = -1; y <= 1; ++y)
-        {
-            for(ssize_t z = -1; z <= 1; ++z)
-            {
-                OCCLUSION(x, y, z) = [chunks isEmptyAtPoint:GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z)];
-            }
-        }
-    }
-    
-    ao->face[FACE_TOP] = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                                                             OCCLUSION( 0, 1, -1),
-                                                                             OCCLUSION(-1, 1,  0),
-                                                                             OCCLUSION(-1, 1, -1)),
-                                                          calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                                                             OCCLUSION( 0, 1, +1),
-                                                                             OCCLUSION(-1, 1,  0),
-                                                                             OCCLUSION(-1, 1, +1)),
-                                                          calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                                                             OCCLUSION( 0, 1, +1),
-                                                                             OCCLUSION(+1, 1,  0),
-                                                                             OCCLUSION(+1, 1, +1)),
-                                                          calcFinalOcclusion(OCCLUSION( 0, 1,  0),
-                                                                             OCCLUSION( 0, 1, -1),
-                                                                             OCCLUSION(+1, 1,  0),
-                                                                             OCCLUSION(+1, 1, -1)));
-    
-    ao->face[FACE_BOTTOM] = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                                                                OCCLUSION( 0, -1, -1),
-                                                                                OCCLUSION(-1, -1,  0),
-                                                                                OCCLUSION(-1, -1, -1)),
-                                                             calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                                                                OCCLUSION( 0, -1, -1),
-                                                                                OCCLUSION(+1, -1,  0),
-                                                                                OCCLUSION(+1, -1, -1)),
-                                                             calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                                                                OCCLUSION( 0, -1, +1),
-                                                                                OCCLUSION(+1, -1,  0),
-                                                                                OCCLUSION(+1, -1, +1)),
-                                                             calcFinalOcclusion(OCCLUSION( 0, -1,  0),
-                                                                                OCCLUSION( 0, -1, +1),
-                                                                                OCCLUSION(-1, -1,  0),
-                                                                                OCCLUSION(-1, -1, +1)));
-    
-    ao->face[FACE_BACK] = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, -1, 1),
-                                                                              OCCLUSION( 0,  0, 1),
-                                                                              OCCLUSION(-1, -1, 1),
-                                                                              OCCLUSION(-1,  0, 1)),
-                                                           calcFinalOcclusion(OCCLUSION( 0, -1, 1),
-                                                                              OCCLUSION( 0,  0, 1),
-                                                                              OCCLUSION(+1, -1, 1),
-                                                                              OCCLUSION(+1,  0, 1)),
-                                                           calcFinalOcclusion(OCCLUSION( 0, +1, 1),
-                                                                              OCCLUSION( 0,  0, 1),
-                                                                              OCCLUSION(+1, +1, 1),
-                                                                              OCCLUSION(+1,  0, 1)),
-                                                           calcFinalOcclusion(OCCLUSION( 0, +1, 1),
-                                                                              OCCLUSION( 0,  0, 1),
-                                                                              OCCLUSION(-1, +1, 1),
-                                                                              OCCLUSION(-1,  0, 1)));
-    
-    ao->face[FACE_FRONT] = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION( 0, -1, -1),
-                                                                               OCCLUSION( 0,  0, -1),
-                                                                               OCCLUSION(-1, -1, -1),
-                                                                               OCCLUSION(-1,  0, -1)),
-                                                            calcFinalOcclusion(OCCLUSION( 0, +1, -1),
-                                                                               OCCLUSION( 0,  0, -1),
-                                                                               OCCLUSION(-1, +1, -1),
-                                                                               OCCLUSION(-1,  0, -1)),
-                                                            calcFinalOcclusion(OCCLUSION( 0, +1, -1),
-                                                                               OCCLUSION( 0,  0, -1),
-                                                                               OCCLUSION(+1, +1, -1),
-                                                                               OCCLUSION(+1,  0, -1)),
-                                                            calcFinalOcclusion(OCCLUSION( 0, -1, -1),
-                                                                               OCCLUSION( 0,  0, -1),
-                                                                               OCCLUSION(+1, -1, -1),
-                                                                               OCCLUSION(+1,  0, -1)));
-    
-    ao->face[FACE_RIGHT] = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                                                               OCCLUSION(+1,  0, -1),
-                                                                               OCCLUSION(+1, -1,  0),
-                                                                               OCCLUSION(+1, -1, -1)),
-                                                            calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                                                               OCCLUSION(+1,  0, -1),
-                                                                               OCCLUSION(+1, +1,  0),
-                                                                               OCCLUSION(+1, +1, -1)),
-                                                            calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                                                               OCCLUSION(+1,  0, +1),
-                                                                               OCCLUSION(+1, +1,  0),
-                                                                               OCCLUSION(+1, +1, +1)),
-                                                            calcFinalOcclusion(OCCLUSION(+1,  0,  0),
-                                                                               OCCLUSION(+1,  0, +1),
-                                                                               OCCLUSION(+1, -1,  0),
-                                                                               OCCLUSION(+1, -1, +1)));
-    
-    ao->face[FACE_LEFT] = packBlockLightingValuesForVertex(calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                                                              OCCLUSION(-1,  0, -1),
-                                                                              OCCLUSION(-1, -1,  0),
-                                                                              OCCLUSION(-1, -1, -1)),
-                                                           calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                                                              OCCLUSION(-1,  0, +1),
-                                                                              OCCLUSION(-1, -1,  0),
-                                                                              OCCLUSION(-1, -1, +1)),
-                                                           calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                                                              OCCLUSION(-1,  0, +1),
-                                                                              OCCLUSION(-1, +1,  0),
-                                                                              OCCLUSION(-1, +1, +1)),
-                                                           calcFinalOcclusion(OCCLUSION(-1,  0,  0),
-                                                                              OCCLUSION(-1,  0, -1),
-                                                                              OCCLUSION(-1, +1,  0),
-                                                                              OCCLUSION(-1, +1, -1)));
-}
-
-
-/* Assumes the caller is already holding "lockGeometry", "lockSunlight", "lockAmbientOcclusion",
- * and locks on all neighboring chunks too.
- */
+// Assumes the caller is already holding "lockGeometry", "lockSunlight" and locks on all neighboring chunks too.
 - (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
                                         vertsBuffer:(GLfloat **)_vertsBuffer
                                         normsBuffer:(GLfloat **)_normsBuffer
@@ -564,18 +426,13 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         return count;
     }
     
-    block_lighting_t ambientOcclusion;
-    if(!onlyDoingCounting) {
-        [self countNeighborsForAmbientOcclusionsAtPoint:chunkLocalPos
-                                              neighbors:chunks
-                                    outAmbientOcclusion:&ambientOcclusion];
-    }
-    
     block_lighting_t sunlight;
-    [centerVoxels.sunlight interpolateLightAtPoint:chunkLocalPos
-                                                 neighbors:chunks
-                                               outLighting:&sunlight
-                                                    getter:^GSLightingBuffer* (GSChunkVoxelData *c) { return c.sunlight; }];
+    if(!onlyDoingCounting) {
+        [centerVoxels.sunlight interpolateLightAtPoint:chunkLocalPos
+                                             neighbors:chunks
+                                           outLighting:&sunlight
+                                                getter:^GSLightingBuffer* (GSChunkVoxelData *c) { return c.sunlight; }];
+    }
     
     // TODO: add torch lighting to the world.
     block_lighting_t torchLight;
@@ -589,7 +446,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
             if(!onlyDoingCounting) {
                 unsigned unpackedSunlight[4];
                 unsigned unpackedTorchlight[4];
-                unsigned unpackedAO[4];
                 
                 if(i == FACE_TOP) {
                     page = side;
@@ -597,7 +453,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                 
                 unpackBlockLightingValuesForVertex(sunlight.face[i], unpackedSunlight);
                 unpackBlockLightingValuesForVertex(torchLight.face[i], unpackedTorchlight);
-                unpackBlockLightingValuesForVertex(ambientOcclusion.face[i], unpackedAO);
                 
                 for(size_t j=0; j<4; ++j)
                 {
@@ -606,9 +461,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                     addVertex(x+vertex[j][i].x, y+vertex[j][i].y, z+vertex[j][i].z,
                               normals[i].x, normals[i].y, normals[i].z,
                               texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz,
-                              blockLight(unpackedSunlight[j],
-                                         unpackedTorchlight[j],
-                                         unpackedAO[j]),
+                              blockLight(unpackedSunlight[j], unpackedTorchlight[j]),
                               _vertsBuffer,
                               _normsBuffer,
                               _texCoordsBuffer,

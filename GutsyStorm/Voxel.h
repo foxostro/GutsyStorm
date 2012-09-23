@@ -14,9 +14,7 @@
 #define CHUNK_SIZE_Y (128)
 #define CHUNK_SIZE_Z (8)
 
-
 #define CHUNK_LIGHTING_MAX (7)
-#define CHUNK_MAX_AO_COUNT (4)
 
 #define VOXEL_EMPTY   (1) // a flag on the first LSB
 #define VOXEL_OUTSIDE (2) // a flag on the second LSB
