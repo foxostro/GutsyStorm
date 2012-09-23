@@ -585,15 +585,10 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     dispatch_async(chunkTaskQueue, ^{
         NSMutableSet *dirtyMeshes = [[NSMutableSet alloc] init];
         
-        [lock lock];
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
-        [lock unlock];
         
         [neighborhood enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
-            [lock lock];
             GSNeighborhood *innerNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
-            [lock unlock];
-            
             [voxels rebuildSunlightWithNeighborhood:innerNeighborhood];
             [dirtyMeshes addObject:[GSBoxedVector boxedVectorWithVector:voxels.centerP]];
         }];
@@ -604,16 +599,11 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
             GSVector3 p = [b vectorValue];
             
             dispatch_async(chunkTaskQueue, ^{
-                [lock lock];
                 GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
-                [lock unlock];
                 
                 [neighborhood enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
-                    [lock lock];
                     GSNeighborhood *voxelsNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
                     GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:voxels.centerP];
-                    [lock unlock];
-                    
                     [geometry updateWithVoxelData:voxelsNeighborhood];
                 }];
             });
