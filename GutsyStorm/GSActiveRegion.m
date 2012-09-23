@@ -31,6 +31,10 @@
         
         activeChunks = calloc(maxActiveChunks, sizeof(GSChunkGeometryData *));
         
+        if(!activeChunks) {
+            [NSException raise:@"Out of Memory" format:@"Out of memory allocating activeChunk."];
+        }
+        
         lock = [[NSLock alloc] init];
     }
     
@@ -62,9 +66,33 @@
 
 - (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block
 {
+    const size_t len = maxActiveChunks * sizeof(GSChunkGeometryData *);
+    
+    // Copy active region blocks so we don't have to hold the lock while running the block over and over again.
+    GSChunkGeometryData **temp = malloc(len);
+    if(!temp) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp buffer."];
+    }
+    
     [lock lock];
-    [self _enumerateActiveChunkWithBlock:block];
+    memcpy(temp, activeChunks, len);
+    for(NSUInteger i = 0; i < maxActiveChunks; ++i)
+    {
+        if(temp[i]) {
+            [temp[i] retain];
+        }
+    }
     [lock unlock];
+    
+    for(NSUInteger i = 0; i < maxActiveChunks; ++i)
+    {
+        if(temp[i]) {
+            block(temp[i]);
+            [temp[i] release];
+        }
+    }
+    
+    free(temp);
 }
 
 
