@@ -372,7 +372,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
     float distBefore = 0, distAfter = 0;
-    BOOL foundABlock = [chunkStore getPositionOfBlockAlongRay:ray
+    BOOL foundABlock = [chunkStore positionOfBlockAlongRay:ray
                                                       maxDist:maxPlaceDistance
                                             outDistanceBefore:&distBefore
                                              outDistanceAfter:&distAfter];
@@ -480,7 +480,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 
     glDepthRange(edgeOffset, 1.0); // Use glDepthRange so the block cursor is properly offset from the block itself.
-    [chunkStore drawChunks];
+    [chunkStore drawActiveChunks];
     
     if(cursorIsActive) {
         glDepthRange(0.0, 1.0 - edgeOffset);

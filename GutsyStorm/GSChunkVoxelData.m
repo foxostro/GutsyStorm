@@ -111,14 +111,14 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 
 
 // Assumes the caller is already holding "lockVoxelData".
-- (voxel_t)getVoxelAtPoint:(GSIntegerVector3)p
+- (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)p
 {
-    return *[self getPointerToVoxelAtPoint:p];
+    return *[self pointerToVoxelAtLocalPosition:p];
 }
 
 
 // Assumes the caller is already holding "lockVoxelData".
-- (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)p
+- (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)p
 {
     assert(voxelData);
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
@@ -190,7 +190,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
                 for(p.z = -CHUNK_SIZE_Z; p.z < 2*CHUNK_SIZE_Z; ++p.z)
                 {
                     GSIntegerVector3 ap = p;
-                    GSChunkVoxelData *chunk = [neighborhood getNeighborVoxelAtPoint:&ap];
+                    GSChunkVoxelData *chunk = [neighborhood neighborVoxelAtPoint:&ap];
                     combinedVoxelData[INDEX2(p.x, p.y, p.z)] = chunk.voxelData[INDEX(ap.x, ap.y, ap.z)];
                 }
             }
@@ -349,7 +349,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
             {
                 GSIntegerVector3 p = {x, heightOfHighestVoxel, z};
-                voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
+                voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
                 
                 if(!isVoxelEmpty(*voxel)) {
                     break;
@@ -359,7 +359,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
             {
                 GSIntegerVector3 p = {x, y, z};
-                voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
+                voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
                 BOOL outside = y >= heightOfHighestVoxel;
                 
                 markVoxelAsOutside(outside, voxel);
@@ -386,7 +386,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
             {
                 generator(GSVector3_Add(GSVector3_Make(x, y, z), minP),
-                          [self getPointerToVoxelAtPoint:GSIntegerVector3_Make(x, y, z)]);
+                          [self pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(x, y, z)]);
                 
                 // whether the block is outside or not is calculated later
             }

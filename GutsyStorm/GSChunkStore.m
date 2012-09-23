@@ -21,20 +21,19 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 @interface GSChunkStore (Private)
 
-- (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos;
 + (NSURL *)newWorldSaveFolderURLWithSeed:(unsigned)seed;
-- (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
-- (GSVector3)computeChunkCenterForPoint:(GSVector3)p;
-- (chunk_id_t)getChunkIDWithMinP:(GSVector3)minP;
+- (GSVector3)minCornerForChunkAtPoint:(GSVector3)p;
+- (GSVector3)centerPointOfChunkAtPoint:(GSVector3)p;
+- (chunk_id_t)chunkIDWithChunkMinCorner:(GSVector3)minP;
 - (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
-- (void)computeChunkVisibility;
+- (void)updateChunkVisibilityForActiveRegion;
 - (GSActiveRegion *)newActiveRegionWithExtent:(GSVector3)extent sorting:(BOOL)sorted;
-- (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
-- (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
-- (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
+- (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
+- (NSArray *)newPointsListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedPoints;
+- (NSArray *)newChunksListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedChunks;
 - (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p;
-- (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p;
-- (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p;
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p;
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p;
 - (void)rebuildSunlightAndGeometryAround:(GSVector3)pos;
 
 @end
@@ -75,7 +74,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         
         camera = _camera;
         [camera retain];
-        oldCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
+        oldCenterChunkID = [self chunkIDWithChunkMinCorner:[self minCornerForChunkAtPoint:[camera cameraEye]]];
         [oldCenterChunkID retain];
         
         terrainShader = _terrainShader;
@@ -122,7 +121,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         activeRegionExtent = GSVector3_Make(w, CHUNK_SIZE_Y, w);
         activeRegion = [self newActiveRegionWithExtent:activeRegionExtent sorting:YES];
-        [self computeChunkVisibility];
+        [self updateChunkVisibilityForActiveRegion];
     }
     
     return self;
@@ -160,7 +159,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (void)drawChunks
+- (void)drawActiveChunks
 {
     [terrainShader bind];
     
@@ -172,7 +171,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     glTranslatef(0.5, 0.5, 0.5);
     
     __block NSUInteger numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
-    [activeRegion forEachChunkDoBlock:^(GSChunkGeometryData *chunk) {
+    [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
         if(chunk && chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
             numVBOGenerationsRemaining--;
         };
@@ -189,7 +188,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    [self recalculateActiveChunksWithCameraModifiedFlags:flags];
+    [self updateActiveChunksWithCameraModifiedFlags:flags];
 }
 
 
@@ -197,14 +196,14 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 {
     [lock lock];
 
-    GSChunkVoxelData *chunk = [self getChunkVoxelsAtPoint:pos];
+    GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
     [chunk writerAccessToVoxelDataUsingBlock:^{
         GSVector3 chunkLocalP;
         voxel_t *block;
         
         chunkLocalP = GSVector3_Sub(pos, chunk.minP);
         
-        block = [chunk getPointerToVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+        block = [chunk pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
         assert(block);
         
         *block = newBlock;
@@ -218,14 +217,17 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (voxel_t)getVoxelAtPoint:(GSVector3)pos
+- (voxel_t)voxelAtPoint:(GSVector3)pos
 {
-    voxel_t voxel;
-    [lock lock];
-    voxel = [self getVoxelAtPointNoLock:pos];
-    [lock unlock];
+    __block voxel_t block;
+    GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
     
-    return voxel;
+    [chunk readerAccessToVoxelDataUsingBlock:^{
+        GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+        block = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+    }];
+    
+    return block;
 }
 
 
@@ -235,10 +237,10 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
  * Will not look farther than maxDist.
  * Returns YES if an intersection could be found, false otherwise.
  */
-- (BOOL)getPositionOfBlockAlongRay:(GSRay)ray
-                           maxDist:(float)maxDist
-                  outDistanceBefore:(float *)outDistanceBefore
-                  outDistanceAfter:(float *)outDistanceAfter
+- (BOOL)positionOfBlockAlongRay:(GSRay)ray
+                        maxDist:(float)maxDist
+              outDistanceBefore:(float *)outDistanceBefore
+               outDistanceAfter:(float *)outDistanceAfter
 {
     [lock lock];
     
@@ -269,7 +271,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
                 return NO;
             }
             
-            voxel_t block = [self getVoxelAtPointNoLock:pos];
+            voxel_t block = [self voxelAtPoint:pos];
             
             if(!isVoxelEmpty(block)) {
                 foundAnything = YES;
@@ -302,27 +304,13 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 @implementation GSChunkStore (Private)
 
-- (voxel_t)getVoxelAtPointNoLock:(GSVector3)pos
-{
-    __block voxel_t block;
-    GSChunkVoxelData *chunk = [self getChunkVoxelsAtPoint:pos];
-
-    [chunk readerAccessToVoxelDataUsingBlock:^{
-        GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
-        block = [chunk getVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
-    }];
-    
-    return block;
-}
-
-
-- (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p
 {
     [lockGeometryDataCache lock];
     
     GSChunkGeometryData *geometry = nil;
-    GSVector3 minP = [self computeChunkMinPForPoint:p];
-    chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
+    GSVector3 minP = [self minCornerForChunkAtPoint:p];
+    chunk_id_t chunkID = [self chunkIDWithChunkMinCorner:minP];
     
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
@@ -337,7 +325,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         dispatch_async(chunkTaskQueue, ^{
             //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
             
-            GSChunkVoxelData *center = [neighborhood getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+            GSChunkVoxelData *center = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
             [center rebuildSunlightWithNeighborhood:neighborhood];
             [geometry updateWithVoxelData:neighborhood];
             
@@ -361,19 +349,19 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         GSVector3 a = GSVector3_Add(p, [GSNeighborhood getOffsetForNeighborIndex:i]);
-        [neighborhood setNeighborAtIndex:i neighbor:[self getChunkVoxelsAtPoint:a]];
+        [neighborhood setNeighborAtIndex:i neighbor:[self chunkVoxelsAtPoint:a]];
     }
     
     return neighborhood;
 }
 
 
-- (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p
 {
     [lockVoxelDataCache lock];
     
-    GSVector3 minP = [self computeChunkMinPForPoint:p];
-    chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
+    GSVector3 minP = [self minCornerForChunkAtPoint:p];
+    chunk_id_t chunkID = [self chunkIDWithChunkMinCorner:minP];
     
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
@@ -397,7 +385,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks
+- (NSArray *)newChunksListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedChunks
 {    
     GSVector3 cameraEye = [camera cameraEye];
     
@@ -415,7 +403,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints
+- (NSArray *)newPointsListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedPoints
 {
     GSVector3 center = [camera cameraEye];
     
@@ -455,7 +443,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     return url;
 }
 
-- (GSVector3)computeChunkMinPForPoint:(GSVector3)p
+- (GSVector3)minCornerForChunkAtPoint:(GSVector3)p
 {
     return GSVector3_Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
                           floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
@@ -463,7 +451,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (GSVector3)computeChunkCenterForPoint:(GSVector3)p
+- (GSVector3)centerPointOfChunkAtPoint:(GSVector3)p
 {
     return GSVector3_Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,
                           floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
@@ -471,19 +459,19 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (chunk_id_t)getChunkIDWithMinP:(GSVector3)minP
+- (chunk_id_t)chunkIDWithChunkMinCorner:(GSVector3)minP
 {
     return [[[GSBoxedVector alloc] initWithVector:minP] autorelease];
 }
 
 
-- (void)computeChunkVisibility
+- (void)updateChunkVisibilityForActiveRegion
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 
     GSFrustum *frustum = [camera frustum];
     
-    [activeRegion forEachChunkDoBlock:^(GSChunkGeometryData *geometry) {
+    [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
         if(geometry) {
             geometry->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry->corners]);
         }
@@ -516,7 +504,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
                 
                 GSVector3 p1 = GSVector3_Make(center.x + x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, center.z + z*CHUNK_SIZE_Z);
                 
-                GSVector3 p2 = [self computeChunkCenterForPoint:p1];
+                GSVector3 p2 = [self centerPointOfChunkAtPoint:p1];
                 
                 myBlock(p2);
             }
@@ -538,13 +526,13 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         }];
         
         // Sort by distance from the camera. Near chunks are first.
-        NSArray *sortedChunks = [self sortPointsByDistFromCamera:unsortedChunks]; // is autorelease
+        NSArray *sortedChunks = [self newPointsListSortedByDistFromCameraWithUnsortedList:unsortedChunks]; // is autorelease
         
         // Fill the activeChunks array.
         NSUInteger i = 0;
         for(GSBoxedVector *b in sortedChunks)
         {
-            [newActiveRegion setActiveChunk:[self getChunkGeometryAtPoint:[b vectorValue]] atIndex:i];
+            [newActiveRegion setActiveChunk:[self chunkGeometryAtPoint:[b vectorValue]] atIndex:i];
             i++;
         }
         assert(i == newActiveRegion.maxActiveChunks);
@@ -553,7 +541,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     } else {
         __block NSUInteger i = 0;
         [self enumeratePointsInActiveRegionUsingBlock:^(GSVector3 p) {
-            [newActiveRegion setActiveChunk:[self getChunkGeometryAtPoint:p] atIndex:i];
+            [newActiveRegion setActiveChunk:[self chunkGeometryAtPoint:p] atIndex:i];
             i++;
         }];
         assert(i == newActiveRegion.maxActiveChunks);
@@ -563,12 +551,12 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags
+- (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags
 {
     // If the camera moved then recalculate the set of active chunks.
     if(flags & CAMERA_MOVED) {
         // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
-        chunk_id_t newCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
+        chunk_id_t newCenterChunkID = [self chunkIDWithChunkMinCorner:[self minCornerForChunkAtPoint:[camera cameraEye]]];
         
         if(![oldCenterChunkID isEqual:newCenterChunkID]) {
             GSActiveRegion *oldActiveRegion = activeRegion;
@@ -584,7 +572,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     
     // If the camera moved or turned then recalculate chunk visibility.
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        [self computeChunkVisibility];
+        [self updateChunkVisibilityForActiveRegion];
     }
 }
 
@@ -603,7 +591,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
         [lock unlock];
         
-        [neighborhood forEachNeighbor:^(GSChunkVoxelData *voxels) {
+        [neighborhood enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
             [lock lock];
             GSNeighborhood *innerNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
             [lock unlock];
@@ -622,10 +610,10 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
                 GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
                 [lock unlock];
                 
-                [neighborhood forEachNeighbor:^(GSChunkVoxelData *voxels) {
+                [neighborhood enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
                     [lock lock];
                     GSNeighborhood *voxelsNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
-                    GSChunkGeometryData *geometry = [self getChunkGeometryAtPoint:voxels.centerP];
+                    GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:voxels.centerP];
                     [lock unlock];
                     
                     [geometry updateWithVoxelData:voxelsNeighborhood];
@@ -676,11 +664,11 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     // Normal rolling hills
     {
         const float freqScale = 0.025;
-        float n = [noiseSource0 getNoiseAtPointWithFourOctaves:GSVector3_Scale(p, freqScale)];
+        float n = [noiseSource0 noiseAtPointWithFourOctaves:GSVector3_Scale(p, freqScale)];
         float turbScaleX = 2.0;
         float turbScaleY = terrainHeight / 2.0;
         float yFreq = turbScaleX * ((n+1) / 2.0);
-        float t = turbScaleY * [noiseSource1 getNoiseAtPoint:GSVector3_Make(p.x*freqScale, p.y*yFreq*freqScale, p.z*freqScale)];
+        float t = turbScaleY * [noiseSource1 noiseAtPoint:GSVector3_Make(p.x*freqScale, p.y*yFreq*freqScale, p.z*freqScale)];
         groundLayer = groundGradient(terrainHeight, GSVector3_Make(p.x, p.y + t, p.z)) <= 0;
     }
     
@@ -707,7 +695,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
             float azimuthalAngle = acosf(toMountainCenter.z / distance);
             float polarAngle = atan2f(toMountainCenter.y, toMountainCenter.x);
             
-            float t = turbScale * [noiseSource0 getNoiseAtPointWithFourOctaves:GSVector3_Make(azimuthalAngle * freqScale,
+            float t = turbScale * [noiseSource0 noiseAtPointWithFourOctaves:GSVector3_Make(azimuthalAngle * freqScale,
                                                                                               polarAngle * freqScale, 0.0)];
             
             // Flatten the top.

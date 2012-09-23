@@ -19,8 +19,6 @@
 #define VOXEL_EMPTY   (1) // a flag on the first LSB
 #define VOXEL_OUTSIDE (2) // a flag on the second LSB
 
-#define SQR(a) ((a)*(a))
-
 // Used for indexing into chunk-sized buffers
 #define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
 

@@ -52,17 +52,17 @@ typedef id chunk_id_t;
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.
  */
-- (void)drawChunks;
+- (void)drawActiveChunks;
 
 - (void)updateWithDeltaTime:(float)dt
         cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
-- (BOOL)getPositionOfBlockAlongRay:(GSRay)ray
+- (BOOL)positionOfBlockAlongRay:(GSRay)ray
                            maxDist:(float)maxDist
                  outDistanceBefore:(float *)outDistanceBefore
                   outDistanceAfter:(float *)outDistanceAfter;
 
-- (voxel_t)getVoxelAtPoint:(GSVector3)pos;
+- (voxel_t)voxelAtPoint:(GSVector3)pos;
 
 - (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)block;
 

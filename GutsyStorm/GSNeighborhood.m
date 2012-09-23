@@ -107,7 +107,7 @@
 }
 
 
-- (GSChunkVoxelData *)getNeighborAtIndex:(neighbor_index_t)idx
+- (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx
 {
     NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
     return neighbors[idx];
@@ -123,7 +123,7 @@
 }
 
 
-- (void)forEachNeighbor:(void (^)(GSChunkVoxelData*))block
+- (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block
 {
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
@@ -164,7 +164,7 @@
     
     block();
     
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.lockVoxelData unlockForReading];
     }];
     
@@ -175,14 +175,14 @@
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
     [[GSNeighborhood _sharedVoxelDataLock] lock];
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.lockVoxelData lockForReading];
     }];
     [[GSNeighborhood _sharedVoxelDataLock] unlock];
     
     block();
     
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.lockVoxelData unlockForReading];
     }];
 }
@@ -191,14 +191,14 @@
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
     [[GSNeighborhood _sharedVoxelDataLock] lock];
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.lockVoxelData lockForWriting];
     }];
     [[GSNeighborhood _sharedVoxelDataLock] unlock];
     
     block();
     
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.lockVoxelData unlockForWriting];
     }];
 }
@@ -207,14 +207,14 @@
 - (void)readerAccessSunlightUsingBlock:(void (^)(void))block
 {
     [[GSNeighborhood _sharedSunlightLock] lock];
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.sunlight.lockLightingBuffer lockForReading];
     }];
     [[GSNeighborhood _sharedSunlightLock] unlock];
     
     block();
     
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.sunlight.lockLightingBuffer unlockForReading];
     }];
 }
@@ -223,60 +223,60 @@
 - (void)writerAccessSunlightUsingBlock:(void (^)(void))block
 {
     [[GSNeighborhood _sharedSunlightLock] lock];
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.sunlight.lockLightingBuffer lockForWriting];
     }];
     [[GSNeighborhood _sharedSunlightLock] unlock];
     
     block();
     
-    [self forEachNeighbor:^(GSChunkVoxelData *neighbor) {
+    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.sunlight.lockLightingBuffer unlockForWriting];
     }];
 }
 
 
-- (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP
+- (GSChunkVoxelData *)neighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP
 {
     if(chunkLocalP->x >= CHUNK_SIZE_X) {
         chunkLocalP->x -= CHUNK_SIZE_X;
         
         if(chunkLocalP->z < 0) {
             chunkLocalP->z += CHUNK_SIZE_Z;
-            return [self getNeighborAtIndex:CHUNK_NEIGHBOR_POS_X_NEG_Z];
+            return [self neighborAtIndex:CHUNK_NEIGHBOR_POS_X_NEG_Z];
         } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
             chunkLocalP->z -= CHUNK_SIZE_Z;
-            return [self getNeighborAtIndex:CHUNK_NEIGHBOR_POS_X_POS_Z];
+            return [self neighborAtIndex:CHUNK_NEIGHBOR_POS_X_POS_Z];
         } else {
-            return [self getNeighborAtIndex:CHUNK_NEIGHBOR_POS_X_ZER_Z];
+            return [self neighborAtIndex:CHUNK_NEIGHBOR_POS_X_ZER_Z];
         }
     } else if(chunkLocalP->x < 0) {
         chunkLocalP->x += CHUNK_SIZE_X;
         
         if(chunkLocalP->z < 0) {
             chunkLocalP->z += CHUNK_SIZE_Z;
-            return [self getNeighborAtIndex:CHUNK_NEIGHBOR_NEG_X_NEG_Z];
+            return [self neighborAtIndex:CHUNK_NEIGHBOR_NEG_X_NEG_Z];
         } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
             chunkLocalP->z -= CHUNK_SIZE_Z;
-            return [self getNeighborAtIndex:CHUNK_NEIGHBOR_NEG_X_POS_Z];
+            return [self neighborAtIndex:CHUNK_NEIGHBOR_NEG_X_POS_Z];
         } else {
-            return [self getNeighborAtIndex:CHUNK_NEIGHBOR_NEG_X_ZER_Z];
+            return [self neighborAtIndex:CHUNK_NEIGHBOR_NEG_X_ZER_Z];
         }
     } else {
         if(chunkLocalP->z < 0) {
             chunkLocalP->z += CHUNK_SIZE_Z;
-            return [self getNeighborAtIndex:CHUNK_NEIGHBOR_ZER_X_NEG_Z];
+            return [self neighborAtIndex:CHUNK_NEIGHBOR_ZER_X_NEG_Z];
         } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
             chunkLocalP->z -= CHUNK_SIZE_Z;
-            return [self getNeighborAtIndex:CHUNK_NEIGHBOR_ZER_X_POS_Z];
+            return [self neighborAtIndex:CHUNK_NEIGHBOR_ZER_X_POS_Z];
         } else {
-            return [self getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+            return [self neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
         }
     }
 }
 
 
-- (BOOL)isEmptyAtPoint:(GSIntegerVector3)p
+- (BOOL)emptyAtPoint:(GSIntegerVector3)p
 {
     // Assumes each chunk spans the entire vertical extent of the world.
     
@@ -288,7 +288,7 @@
         return YES; // Space above the world is always empty.
     }
     
-    return isVoxelEmpty([[self getNeighborVoxelAtPoint:&p] getVoxelAtPoint:p]);
+    return isVoxelEmpty([[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p]);
 }
 
 
@@ -304,7 +304,7 @@
         return CHUNK_LIGHTING_MAX; // Space above the world is always bright.
     }
     
-    GSChunkVoxelData *chunk = [self getNeighborVoxelAtPoint:&p];
+    GSChunkVoxelData *chunk = [self neighborVoxelAtPoint:&p];
     GSLightingBuffer *lightingBuffer = getter(chunk);
     
     uint8_t lightLevel = [lightingBuffer lightAtPoint:p];

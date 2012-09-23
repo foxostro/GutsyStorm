@@ -40,21 +40,21 @@ typedef enum
 + (NSLock *)_sharedSunlightLock;
 + (GSVector3)getOffsetForNeighborIndex:(neighbor_index_t)idx;
 
-- (GSChunkVoxelData *)getNeighborAtIndex:(neighbor_index_t)idx;
+- (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx;
 - (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor;
-- (void)forEachNeighbor:(void (^)(GSChunkVoxelData*))block;
+- (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block;
 
 /* Given a position relative to this voxel, return the chunk that contains the specified position.
  * Also returns the position in the local coordinate system of that chunk.
  * The position must be within the neighborhood.
  */
-- (GSChunkVoxelData *)getNeighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP;
+- (GSChunkVoxelData *)neighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP;
 
 /* Returns YES if the specified block in the neighborhood is empty. Positions are specified in chunk-local space relative to the
  * center chunk of the neighborhood. Coordinates which exceed the bounds of the center chunk refer to its neighbors.
  * Assumes the caller is already holding "lockVoxelData" on all chunks in the neighborhood.
  */
-- (BOOL)isEmptyAtPoint:(GSIntegerVector3)p;
+- (BOOL)emptyAtPoint:(GSIntegerVector3)p;
 
 /* Returns the lighting value at the specified block position for the specified lighting buffer.
  * Assumes the caller is already holding the lock on this buffer on all neighbors.

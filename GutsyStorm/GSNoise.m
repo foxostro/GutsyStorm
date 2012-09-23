@@ -31,13 +31,13 @@
 }
 
 
-- (float)getNoiseAtPoint:(GSVector3)p
+- (float)noiseAtPoint:(GSVector3)p
 {
     return FeepingCreature_noise3(p, context);
 }
 
 
-- (float)getNoiseAtPoint:(GSVector3)p numOctaves:(unsigned)numOctaves
+- (float)noiseAtPoint:(GSVector3)p numOctaves:(unsigned)numOctaves
 {
     const float persistence = 0.5;
     float noise = 0.0;
@@ -53,7 +53,7 @@
 }
 
 
-- (float)getNoiseAtPointWithFourOctaves:(GSVector3)p
+- (float)noiseAtPointWithFourOctaves:(GSVector3)p
 {
     float noise;
     

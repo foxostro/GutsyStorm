@@ -418,9 +418,9 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     
     GSIntegerVector3 chunkLocalPos = {x-minX, y-minY, z-minZ};
     
-    GSChunkVoxelData *centerVoxels = [chunks getNeighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+    GSChunkVoxelData *centerVoxels = [chunks neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     
-    voxel_t *thisVoxel = [centerVoxels getPointerToVoxelAtPoint:chunkLocalPos];
+    voxel_t *thisVoxel = [centerVoxels pointerToVoxelAtLocalPosition:chunkLocalPos];
     
     if(isVoxelEmpty(*thisVoxel)) {
         return count;
@@ -437,7 +437,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
-        if([chunks isEmptyAtPoint:GSIntegerVector3_Add(chunkLocalPos, test[i])]) {
+        if([chunks emptyAtPoint:GSIntegerVector3_Add(chunkLocalPos, test[i])]) {
             count += 4;
             
             if(!onlyDoingCounting) {

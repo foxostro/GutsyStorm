@@ -20,9 +20,8 @@
 @property (readonly, nonatomic) NSUInteger maxActiveChunks;
 
 - (id)initWithActiveRegionExtent:(GSVector3)activeRegionExtent;
-- (void)forEachChunkDoBlock:(void (^)(GSChunkGeometryData *))block;
+- (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block;
 - (void)removeAllActiveChunks;
 - (void)setActiveChunk:(GSChunkGeometryData *)chunk atIndex:(NSUInteger)idx;
-- (GSVector3)randomPointInActiveRegionWithCameraPos:(GSVector3)cameraEye;
 
 @end

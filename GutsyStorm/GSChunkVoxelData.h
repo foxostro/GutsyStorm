@@ -45,15 +45,15 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 // Must call after modifying voxel data and while still holding the lock on "lockVoxelData".
 - (void)voxelDataWasModified;
 
-/* Obtains a reader lock on the voxel data and allows the caller to access it in the specified block. */
+// Obtains a reader lock on the voxel data and allows the caller to access it in the specified block.
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
-/* Obtains a writer lock on the voxel data and allows the caller to access it in the specified block. */
+// Obtains a writer lock on the voxel data and allows the caller to access it in the specified block.
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
 // Assumes the caller is already holding "lockVoxelData".
-- (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
-- (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
+- (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
+- (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
 
 // Rebuilds sunlight for this chunk.
 - (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood;
