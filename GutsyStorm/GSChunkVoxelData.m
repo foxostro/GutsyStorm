@@ -288,7 +288,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 }
 
 
-- (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
+- (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler
 {
     // Copy the entire neighborhood's voxel data into one large buffer.
     voxel_t *combinedVoxelData = [self newCombinedVoxelDataBufferWithNeighborhood:neighborhood];
@@ -297,6 +297,8 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     
     free(combinedVoxelData);
     combinedVoxelData = NULL;
+    
+    completionHandler();
 }
 
 @end

@@ -61,7 +61,7 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 - (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
 
-// Rebuilds sunlight for this chunk.
-- (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood;
+// Rebuilds sunlight for this chunk and then calls the completion handler block.
+- (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler;
 
 @end
