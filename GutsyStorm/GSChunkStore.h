@@ -22,16 +22,16 @@ typedef id chunk_id_t;
 @interface GSChunkStore : NSObject
 {
     NSLock *lockVoxelDataCache;
-    NSMutableDictionary *cacheVoxelData;
+    NSCache *cacheVoxelData;
     
     NSLock *lockGeometryDataCache;
-    NSMutableDictionary *cacheGeometryData;
+    NSCache *cacheGeometryData;
     
     dispatch_group_t groupForSaving;
     dispatch_queue_t chunkTaskQueue;
     
     NSLock *lock;
-    int numVBOGenerationsAllowedPerFrame;
+    NSUInteger numVBOGenerationsAllowedPerFrame;
     float terrainHeight;
     unsigned seed;
     GSCamera *camera;

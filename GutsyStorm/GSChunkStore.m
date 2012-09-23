@@ -110,12 +110,12 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
         
         lockGeometryDataCache = [[NSLock alloc] init];
-        cacheGeometryData = [[NSMutableDictionary alloc] init];
-        //[cacheGeometryData setCountLimit:INT_MAX];
+        cacheGeometryData = [[NSCache alloc] init];
+        [cacheGeometryData setCountLimit:INT_MAX];
         
         lockVoxelDataCache = [[NSLock alloc] init];
-        cacheVoxelData = [[NSMutableDictionary alloc] init];
-        //[cacheVoxelData setCountLimit:INT_MAX];
+        cacheVoxelData = [[NSCache alloc] init];
+        [cacheVoxelData setCountLimit:INT_MAX];
         
         // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
@@ -171,8 +171,11 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     
     glTranslatef(0.5, 0.5, 0.5);
     
+    __block NSUInteger numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
     [activeRegion forEachChunkDoBlock:^(GSChunkGeometryData *chunk) {
-        [chunk drawGeneratingVBOsIfNecessary:YES];
+        if(chunk && chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
+            numVBOGenerationsRemaining--;
+        };
     }];
     
     glDisableClientState(GL_COLOR_ARRAY);
