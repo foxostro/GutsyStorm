@@ -424,9 +424,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     
     GSChunkVoxelData *centerVoxels = [chunks neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     
-    voxel_t *thisVoxel = [centerVoxels pointerToVoxelAtLocalPosition:chunkLocalPos];
-    
-    if(isVoxelEmpty(*thisVoxel)) {
+    if(isVoxelEmpty([centerVoxels voxelAtLocalPosition:chunkLocalPos])) {
         return count;
     }
     
@@ -437,7 +435,9 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     
     // TODO: add torch lighting to the world.
     block_lighting_t torchLight;
-    bzero(&torchLight, sizeof(torchLight));
+    if(!onlyDoingCounting) {
+        bzero(&torchLight, sizeof(torchLight));
+    }
     
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
