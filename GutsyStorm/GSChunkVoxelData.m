@@ -68,7 +68,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         [lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         voxelData = NULL;
         
-        sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z)];
+        sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(3*CHUNK_SIZE_X,CHUNK_SIZE_Y,3*CHUNK_SIZE_Z)];
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -292,24 +292,12 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 
 
 /* Copy the region of specified buffer into this chunk's sunlight buffer. The provided data buffer must be
- * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and capable of being indexed using the INDEX2 macro.
+ * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size.
  */
 - (void)copyToSunlightBufferFromLargerBuffer:(voxel_t *)combinedSunlightData
 {
     [sunlight.lockLightingBuffer lockForWriting];
-
-    GSIntegerVector3 p;
-    for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-    {
-        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-        {
-            for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-            {
-                sunlight.lightingBuffer[INDEX(p.x, p.y, p.z)] = combinedSunlightData[INDEX2(p.x, p.y, p.z)];
-            }
-        }
-    }
-
+    memcpy(sunlight.lightingBuffer, combinedSunlightData, (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y*sizeof(uint8_t));
     [sunlight.lockLightingBuffer unlockForWriting];
 }
 

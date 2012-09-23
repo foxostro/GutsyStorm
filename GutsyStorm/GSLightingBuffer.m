@@ -83,11 +83,6 @@
     assert(chunkLocalPos.y >= 0 && chunkLocalPos.y < CHUNK_SIZE_Y);
     assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < CHUNK_SIZE_Z);
     
-    // TODO: remove these constraints so the lighting buffer and the chunk may be different sizes.
-    assert(dimensions.x == CHUNK_SIZE_X);
-    assert(dimensions.y == CHUNK_SIZE_Y);
-    assert(dimensions.z == CHUNK_SIZE_Z);
-    
 #define SAMPLE(x, y, z) (samples[(x+1)*3*3 + (y+1)*3 + (z+1)])
     
     unsigned samples[3*3*3];
