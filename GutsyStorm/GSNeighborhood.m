@@ -120,10 +120,6 @@
 
 - (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    if(![[GSNeighborhood _sharedVoxelDataLock] tryLock]) {
-        return NO;
-    }
-    
     NSMutableArray *locksTaken = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
     
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
@@ -132,8 +128,6 @@
             [locksTaken addObject:neighbors[i].lockVoxelData];
         } else {
             // It was not possible to lock all neighbors, so unwind and bail out.
-            [[GSNeighborhood _sharedVoxelDataLock] unlock];
-            
             for(GSReaderWriterLock *lock in locksTaken)
             {
                 [lock unlockForReading];
@@ -145,7 +139,6 @@
         }
     }
     [locksTaken release];
-    [[GSNeighborhood _sharedVoxelDataLock] unlock];
     
     block();
     
