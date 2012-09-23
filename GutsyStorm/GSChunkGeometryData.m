@@ -213,38 +213,45 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     __block BOOL success = NO;
     
     if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &updateInFlight)) {
+        NSLog(@"Can't update geometry: already in-flight.");
         return NO; // an update is already in flight, so bail out now
     }
     
-    [neighborhood tryReaderAccessToVoxelDataUsingBlock:^{
-        if([lockGeometry tryLock]) {
-            GSChunkVoxelData *center = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-        
-            if([center.sunlight.lockLightingBuffer tryLockForReading]) {
-                [self destroyGeometry];
-                [self fillGeometryBuffersUsingVoxelData:neighborhood];
-                [center.sunlight.lockLightingBuffer unlockForReading];
-                
-                [self fillIndexBufferForGenerating:numChunkVerts];
-                
-                // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
-                // Updating a boolean should be atomic on x86_64 and i386;
-                needsVBORegeneration = YES;
-                
-                dirty = NO;
-                updateInFlight = 0;
-                success = YES;
-                
-                [lockGeometry unlockWithCondition:READY];
-            }
+    void (^b)(void) = ^{
+        if(![lockGeometry tryLock]) {
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+            NSLog(@"Can't update geometry: lockGeometry is already taken.");
+            return;
         }
-    }];
+        
+        GSChunkVoxelData *center = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+        
+        if([center.sunlight.lockLightingBuffer tryLockForReading]) {
+            [self destroyGeometry];
+            [self fillGeometryBuffersUsingVoxelData:neighborhood];
+            [center.sunlight.lockLightingBuffer unlockForReading];
+            
+            [self fillIndexBufferForGenerating:numChunkVerts];
+            
+            // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
+            // Updating a boolean should be atomic on x86_64 and i386;
+            needsVBORegeneration = YES;
+            
+            dirty = NO;
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+            success = YES;
+        } else {
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+            NSLog(@"Can't update geometry: sunlight buffer is busy.");
+        }
+        
+        [lockGeometry unlockWithCondition:READY];
+    };
     
-#ifndef NDEBUG
-    if(!success) {
-        NSLog(@"Can't update geometry because a necessary resource is busy.");
+    if(![neighborhood tryReaderAccessToVoxelDataUsingBlock:b]) {
+        OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+        NSLog(@"Can't update geometry: voxel data buffers are busy.");
     }
-#endif
     
     return success;
 }
