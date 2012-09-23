@@ -38,6 +38,7 @@
     GLsizei numIndicesForGenerating;
     GLuint *indexBufferForGenerating; // Index buffer which is filled by the geometry generation routine.
     BOOL dirty;
+    int updateInFlight;
     
     NSOpenGLContext *glContext;
     

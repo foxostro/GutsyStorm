@@ -29,8 +29,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 - (void)updateChunkVisibilityForActiveRegion;
 - (GSActiveRegion *)newActiveRegionWithExtent:(GSVector3)extent sorting:(BOOL)sorted;
 - (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
-- (NSArray *)newPointsListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedPoints;
-- (NSArray *)newChunksListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedChunks;
+- (NSArray *)pointsListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedPoints;
+- (NSArray *)chunksListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedChunks;
 - (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p;
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p;
@@ -190,6 +190,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 - (void)tryToUpdateDirtyGeometry
 {
     dispatch_async(chunkTaskQueue, ^{
+        [activeRegion retain];
         void (^b)(GSChunkGeometryData *) = ^(GSChunkGeometryData *geometry) {
             dispatch_async(chunkTaskQueue, ^{
                 if(geometry.dirty) {
@@ -199,6 +200,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         };
         
         [activeRegion enumerateActiveChunkWithBlock:b];
+        [activeRegion release];
     });
 }
 
@@ -397,7 +399,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (NSArray *)newChunksListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedChunks
+- (NSArray *)chunksListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedChunks
 {    
     GSVector3 cameraEye = [camera cameraEye];
     
@@ -415,7 +417,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (NSArray *)newPointsListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedPoints
+- (NSArray *)pointsListSortedByDistFromCameraWithUnsortedList:(NSMutableArray *)unsortedPoints
 {
     GSVector3 center = [camera cameraEye];
     
@@ -538,7 +540,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         }];
         
         // Sort by distance from the camera. Near chunks are first.
-        NSArray *sortedChunks = [self newPointsListSortedByDistFromCameraWithUnsortedList:unsortedChunks]; // is autorelease
+        NSArray *sortedChunks = [self pointsListSortedByDistFromCameraWithUnsortedList:unsortedChunks];
         
         // Fill the activeChunks array.
         NSUInteger i = 0;
