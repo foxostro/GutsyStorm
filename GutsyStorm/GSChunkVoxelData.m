@@ -249,9 +249,8 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             for(p.z = -CHUNK_SIZE_Z; p.z < (2*CHUNK_SIZE_Z); ++p.z)
             {
                 voxel_t voxel = combinedVoxelData[INDEX2(p.x, p.y, p.z)];
-                if(isVoxelEmpty(voxel) && isVoxelOutside(voxel)) {
-                    combinedSunlightData[INDEX2(p.x, p.y, p.z)] = CHUNK_LIGHTING_MAX;
-                }
+                BOOL directlyLit = isVoxelEmpty(voxel) && isVoxelOutside(voxel);
+                combinedSunlightData[INDEX2(p.x, p.y, p.z)] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
             }
         }
     }
