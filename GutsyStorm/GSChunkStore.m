@@ -117,7 +117,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         [activeRegion updateWithSorting:YES camera:camera chunkProducer:^GSChunkGeometryData *(GSVector3 p) {
             return [self chunkGeometryAtPoint:p];
         }];
-        [self updateChunkVisibilityForActiveRegion];
+        needsChunkVisibilityUpdate = 1;
         
     }
     
@@ -167,6 +167,11 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     
     glTranslatef(0.5, 0.5, 0.5);
     
+    // Update chunk visibility flags now. We've been told it's necessary.
+    if(OSAtomicCompareAndSwapIntBarrier(1, 0, &needsChunkVisibilityUpdate)) {
+        [self updateChunkVisibilityForActiveRegion];
+    }
+
     __block NSUInteger numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
     [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
         assert(chunk);
@@ -461,7 +466,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     
     // If the camera moved or turned then recalculate chunk visibility.
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        [self updateChunkVisibilityForActiveRegion];
+        OSAtomicCompareAndSwapIntBarrier(0, 1, &needsChunkVisibilityUpdate);
     }
 }
 

@@ -39,6 +39,7 @@
 
     GSActiveRegion *activeRegion;
     GSVector3 activeRegionExtent; // The active region is specified relative to the camera position.
+    int needsChunkVisibilityUpdate;
 }
 
 - (id)initWithSeed:(unsigned)_seed
