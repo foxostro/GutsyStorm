@@ -597,14 +597,10 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
      */
 
     dispatch_async(chunkTaskQueue, ^{
-        [lock lock];
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
-        [lock unlock];
         
         [neighborhood enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
-            [lock lock];
             GSNeighborhood *innerNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
-            [lock unlock];
             
             [voxels rebuildSunlightWithNeighborhood:innerNeighborhood completionHandler:^{
                 GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:voxels.centerP];
