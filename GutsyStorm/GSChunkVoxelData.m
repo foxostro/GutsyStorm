@@ -234,16 +234,13 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
  * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight values for the
  * region of the buffer corresponding to this chunk should be considered to be totally correct.
  */
-- (voxel_t *)newCombinedSunlightBufferWithVoxelData:(voxel_t *)combinedVoxelData
+- (void)fillSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
 {
-    static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     GSIntegerVector3 p;
+
+    [sunlight.lockLightingBuffer lockForWriting];
     
-    // Allocate a buffer large enough to hold the entire neighborhood's sunlight values.
-    uint8_t *combinedSunlightData = calloc(size, sizeof(uint8_t));
-    if(!combinedSunlightData) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedSunlightData."];
-    }
+    uint8_t *combinedSunlightData = sunlight.lightingBuffer;
     
     for(p.x = -CHUNK_SIZE_X; p.x < (2*CHUNK_SIZE_X); ++p.x)
     {
@@ -286,41 +283,20 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             }
         }
     }
-
-    return combinedSunlightData;
-}
-
-
-/* Copy the region of specified buffer into this chunk's sunlight buffer. The provided data buffer must be
- * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size.
- */
-- (void)copyToSunlightBufferFromLargerBuffer:(voxel_t *)combinedSunlightData
-{
-    [sunlight.lockLightingBuffer lockForWriting];
-    memcpy(sunlight.lightingBuffer, combinedSunlightData, (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y*sizeof(uint8_t));
+    
     [sunlight.lockLightingBuffer unlockForWriting];
 }
 
 
 - (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
 {
-    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-    
-    // Copy the entire neighborhood's voxel data into the large buffer.
+    // Copy the entire neighborhood's voxel data into one large buffer.
     voxel_t *combinedVoxelData = [self newCombinedVoxelDataBufferWithNeighborhood:neighborhood];
     
-    uint8_t *combinedSunlightData = [self newCombinedSunlightBufferWithVoxelData:combinedVoxelData];
+    [self fillSunlightBufferUsingCombinedVoxelData:combinedVoxelData];
     
     free(combinedVoxelData);
     combinedVoxelData = NULL;
-    
-    [self copyToSunlightBufferFromLargerBuffer:combinedSunlightData];
-    
-    free(combinedSunlightData);
-    combinedSunlightData = NULL;
-    
-    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished rebuilding sunlight. It took %.2fs", timeEnd - timeStart);
 }
 
 @end
