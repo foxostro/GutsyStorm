@@ -11,8 +11,9 @@
 
 @interface GSGrid : NSObject
 {
-    NSLock *lockMap;
-    NSMutableDictionary *mapPosToObject;
+    NSLock *lockAllBuckets;
+    NSUInteger numBuckets;
+    NSMutableArray **buckets;
 }
 
 // Returns the object corresponding to the given point on the grid. The given factory can create that object, if necessary.
