@@ -25,10 +25,11 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
-- (void)loadVoxelDataFromFile:(NSURL *)url;
+- (void)loadVoxelDataFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler;
 - (void)recalcOutsideVoxelsNoLock;
 - (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)saveVoxelDataToFile;
+- (void)loadOrGenerateVoxelData:(terrain_generator_t)callback completionHandler:(void (^)(void))completionHandler;
 
 @end
 
@@ -73,24 +74,14 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         dirtySunlight = YES;
         updateForSunlightInFlight = 0;
         
-        // Fire off asynchronous task to generate voxel data.
+        // Fire off asynchronous task to load or generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
-            NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
-                                relativeToURL:folder];
-            
             [self allocateVoxelData];
-            
-            if([url checkResourceIsReachableAndReturnError:NULL]) {
-                // Load chunk from disk.
-                [self loadVoxelDataFromFile:url];
-            } else {
-                // Generate chunk from scratch.
-                [self generateVoxelDataWithCallback:callback];
-                [self saveVoxelDataToFile];
-            }
-            
-            [self recalcOutsideVoxelsNoLock];
-            [lockVoxelData unlockForWriting]; // We don't need to call -voxelDataWasModified in the special case of initialization.
+            [self loadOrGenerateVoxelData:callback completionHandler:^{
+                [self recalcOutsideVoxelsNoLock];
+                [lockVoxelData unlockForWriting];
+                // We don't need to call -voxelDataWasModified in the special case of initialization.
+            }];
         });
     }
     
@@ -425,21 +416,57 @@ cleanup1:
 }
 
 
-/* Returns YES if the chunk data is reachable on the filesystem and loading was successful.
- * Assumes the caller already holds "lockVoxelData" for writing.
- */
-- (void)loadVoxelDataFromFile:(NSURL *)url
+// Attempt to load chunk data from file asynchronously. Call the completioHandler when finished.
+- (void)loadVoxelDataFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler
 {
-    const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
+    const size_t chunkSizeOnDisk = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
     
-    // Read the contents of the file into "voxelData".
-    NSData *data = [[NSData alloc] initWithContentsOfURL:url];
-    if([data length] != len) {
-        [NSException raise:@"Runtime Error"
-                    format:@"Unexpected length of data for chunk. Got %zu bytes. Expected %zu bytes.", (size_t)[data length], len];
+    const char *fileName = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];
+    int fd = open(fileName, O_RDONLY);
+    
+    if(fd == -1) {
+        NSLog(@"Failed to open the file for reading: %s", fileName);
+        abort(); // TODO: handle file i/o errors here
     }
-    [data getBytes:voxelData length:len];
-    [data release];
+    
+    NSMutableData *dataReadSoFar = [[NSMutableData alloc] initWithCapacity:chunkSizeOnDisk];
+    
+    dispatch_read(fd, chunkSizeOnDisk, chunkTaskQueue, ^(dispatch_data_t data, int error) {
+        if(error) {
+            NSLog(@"File I/O error: %d", error);
+            abort(); // TODO: handle file i/o errors here
+        }
+        
+        const void *buffer = NULL;
+        size_t size = 0;
+        dispatch_data_t newData = dispatch_data_create_map(data, &buffer, &size);
+        [dataReadSoFar appendBytes:buffer length:size];
+        dispatch_release(newData);
+        
+        assert([dataReadSoFar length] <= length);
+        
+        if([dataReadSoFar length] == chunkSizeOnDisk) {
+            // okay, we're done reading data from the file
+            close(fd);
+            [dataReadSoFar getBytes:voxelData length:chunkSizeOnDisk];
+            completionHandler();
+        }
+    });
+}
+
+
+- (void)loadOrGenerateVoxelData:(terrain_generator_t)callback completionHandler:(void (^)(void))completionHandler
+{
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
+                        relativeToURL:folder];
+    if([url checkResourceIsReachableAndReturnError:NULL]) {
+        [self loadVoxelDataFromFile:url completionHandler:completionHandler];
+    } else {
+        // Generate chunk from scratch.
+        [self generateVoxelDataWithCallback:callback];
+        [self saveVoxelDataToFile];
+        completionHandler();
+    }
 }
 
 @end
