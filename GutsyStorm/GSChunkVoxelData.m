@@ -297,13 +297,17 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         return NO; // an update is already in flight, so bail out now
     }
     
-    [sunlight.lockLightingBuffer lockForWriting]; // TODO: tryLockForWriting
+    if(![sunlight.lockLightingBuffer tryLockForWriting]) {
+        DebugLog(@"Can't update sunlight: sunlight buffer is busy."); // This failure really shouldn't happen much...
+        success = NO;
+        goto cleanup1;
+    }
     
     // Try to copy the entire neighborhood's voxel data into one large buffer.
     if(![neighborhood tryReaderAccessToVoxelDataUsingBlock:^{ buf = [self newVoxelBufferWithNeighborhood:neighborhood]; }]) {
         DebugLog(@"Can't update sunlight: voxel data buffers are busy.");
         success = NO;
-        goto cleanup;
+        goto cleanup2;
     }
     
     // Actually generate sunlight data.
@@ -313,8 +317,9 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     success = YES;
     completionHandler(); // Only call the completion handler if the update was successful.
     
-cleanup:
+cleanup2:
     [sunlight.lockLightingBuffer unlockForWriting];
+cleanup1:
     OSAtomicCompareAndSwapIntBarrier(1, 0, &updateForSunlightInFlight); // reset
     free(buf);
     return success;

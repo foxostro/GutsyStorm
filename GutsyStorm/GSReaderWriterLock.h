@@ -19,6 +19,8 @@
 - (BOOL)tryLockForReading;
 - (void)lockForReading;
 - (void)unlockForReading;
+
+- (BOOL)tryLockForWriting;
 - (void)lockForWriting;
 - (void)unlockForWriting;
 

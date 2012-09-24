@@ -227,7 +227,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         
         if(anyNeighborHasDirtySunlight) {
             OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
-            DebugLog(@"Can't update geometry: some neighbors need a sulight update.");
+            DebugLog(@"Can't update geometry: a neighbor has dirty sunlight data.");
             return;
         }
         

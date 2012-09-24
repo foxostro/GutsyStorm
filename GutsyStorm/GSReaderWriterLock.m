@@ -84,6 +84,12 @@
 }
 
 
+- (BOOL)tryLockForWriting
+{
+    return 0 == dispatch_semaphore_wait(writing, DISPATCH_TIME_NOW);
+}
+
+
 - (void)lockForWriting
 {
     dispatch_semaphore_wait(writing, DISPATCH_TIME_FOREVER);
