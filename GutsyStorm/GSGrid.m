@@ -60,13 +60,18 @@
 {
     self = [super init];
     if (self) {
-        lockAllBuckets = [[NSLock alloc] init];
-        numBuckets = 1024;
-        buckets = malloc(numBuckets * sizeof(NSMutableArray *));
+        numBuckets = 8192; // TODO: this value is chosen arbitrarily. Choose hash table size more intelligently.
         
+        buckets = malloc(numBuckets * sizeof(NSMutableArray *));
         for(NSUInteger i=0; i<numBuckets; ++i)
         {
             buckets[i] = [[NSMutableArray alloc] init];
+        }
+        
+        locks = malloc(numBuckets * sizeof(NSMutableArray *));
+        for(NSUInteger i=0; i<numBuckets; ++i)
+        {
+            locks[i] = [[NSLock alloc] init];
         }
     }
     
@@ -80,50 +85,43 @@
         [buckets[i] release];
     }
     
-    [lockAllBuckets release];
-    free(buckets);
-    [super dealloc];
-}
-
-- (id)_objectForKey:(chunk_id_t)aKey
-{
-    NSMutableArray *bucket = buckets[[aKey hash] % numBuckets];
-    for(GSGridItem *item in bucket)
+    for(NSUInteger i=0; i<numBuckets; ++i)
     {
-        if([item.aKey isEqual:aKey])
-        {
-            return item.anObject;
-        }
+        [locks[i] release];
     }
     
-    return nil;
-}
-
-- (void)_setObject:(id)anObject forKey:(id)aKey
-{
-    assert(![self _objectForKey:aKey]);
-    GSGridItem *item = [[[GSGridItem alloc] initWithKey:aKey object:anObject] autorelease];
-    NSMutableArray *bucket = buckets[[aKey hash] % numBuckets];
-    [bucket addObject:item];
+    free(buckets);
+    free(locks);
+    [super dealloc];
 }
 
 - (id)objectAtPoint:(GSVector3)p objectFactory:(id (^)(GSVector3 minP))factory
 {
-    id anObject;
+    id anObject = nil;
     
     GSVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
     chunk_id_t aKey = [GSChunkData chunkIDWithChunkMinCorner:minP];
+    NSUInteger idx = [aKey hash] % numBuckets;
+    NSLock *lock = locks[idx];
+    NSMutableArray *bucket = buckets[idx];
     
-    [lockAllBuckets lock];
+    [lock lock];
     
-    anObject = [self _objectForKey:aKey];
+    for(GSGridItem *item in bucket)
+    {
+        if([item.aKey isEqual:aKey])
+        {
+            anObject = item.anObject;
+        }
+    }
+    
     if(!anObject) {
         anObject = factory(minP);
         assert(anObject);
-        [self _setObject:anObject forKey:aKey];
+        [bucket addObject:[[[GSGridItem alloc] initWithKey:aKey object:anObject] autorelease]];
     }
     
-    [lockAllBuckets unlock];
+    [lock unlock];
     
     return anObject;
 }
