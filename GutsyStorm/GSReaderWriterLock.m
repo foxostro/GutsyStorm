@@ -32,11 +32,13 @@
 }
 
 
-- (BOOL)tryLockForReading;
+- (BOOL)tryLockForReading
 {
     BOOL success = YES;
     
-    dispatch_semaphore_wait(mutex, DISPATCH_TIME_FOREVER);
+    if(0 != dispatch_semaphore_wait(mutex, DISPATCH_TIME_NOW)) {
+        return NO;
+    }
 
     readcount++;
     
