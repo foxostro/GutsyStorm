@@ -419,22 +419,26 @@ cleanup1:
 // Attempt to load chunk data from file asynchronously. Call the completioHandler when finished.
 - (void)loadVoxelDataFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler
 {
+#if 0
     const size_t chunkSizeOnDisk = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
     
-    const char *fileName = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];
-    int fd = open(fileName, O_RDONLY);
+    const char *fileName = [[url path] cStringUsingEncoding:NSUTF8StringEncoding];
     
-    if(fd == -1) {
-        NSLog(@"Failed to open the file for reading: %s", fileName);
-        abort(); // TODO: handle file i/o errors here
+    // TODO: fix the bug which keeps causing fopen to fail with EINVAL. Wtf?
+    FILE *fp = fopen(fileName, "r");
+    
+    if(!fp) {
+        NSLog(@"Failed to open the file for reading: \"%s\"", fileName);
+        perror("Cannot open file\n");
+        return;
     }
     
     NSMutableData *dataReadSoFar = [[NSMutableData alloc] initWithCapacity:chunkSizeOnDisk];
     
-    dispatch_read(fd, chunkSizeOnDisk, chunkTaskQueue, ^(dispatch_data_t data, int error) {
+    dispatch_read(fileno(fp), chunkSizeOnDisk, chunkTaskQueue, ^(dispatch_data_t data, int error) {
         if(error) {
             NSLog(@"File I/O error: %d", error);
-            abort(); // TODO: handle file i/o errors here
+            return;
         }
         
         const void *buffer = NULL;
@@ -443,15 +447,29 @@ cleanup1:
         [dataReadSoFar appendBytes:buffer length:size];
         dispatch_release(newData);
         
-        assert([dataReadSoFar length] <= length);
+        assert([dataReadSoFar length] <= chunkSizeOnDisk);
         
         if([dataReadSoFar length] == chunkSizeOnDisk) {
             // okay, we're done reading data from the file
-            close(fd);
+            fclose(fp);
             [dataReadSoFar getBytes:voxelData length:chunkSizeOnDisk];
+            [dataReadSoFar release];
             completionHandler();
         }
     });
+#else
+    const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
+    
+    // Read the contents of the file into "voxelData".
+    NSData *data = [[NSData alloc] initWithContentsOfURL:url];
+    if([data length] != len) {
+        [NSException raise:@"Runtime Error"
+                    format:@"Unexpected length of data for chunk. Got %zu bytes. Expected %zu bytes.", (size_t)[data length], len];
+    }
+    [data getBytes:voxelData length:len];
+    [data release];
+    completionHandler();
+#endif
 }
 
 
