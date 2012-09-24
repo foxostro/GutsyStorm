@@ -38,6 +38,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 @synthesize voxelData;
 @synthesize sunlight;
 @synthesize lockVoxelData;
+@synthesize dirtySunlight;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
@@ -69,6 +70,8 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         voxelData = NULL;
         
         sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(3*CHUNK_SIZE_X,CHUNK_SIZE_Y,3*CHUNK_SIZE_Z)];
+        dirtySunlight = YES;
+        updateForSunlightInFlight = 0;
         
         // Fire off asynchronous task to generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
@@ -137,6 +140,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     [self recalcOutsideVoxelsNoLock];
     
     // Caller must make sure to update sunlight later...
+    dirtySunlight = YES;
     
     /* Spin off a task to save the chunk.
      * This is latency sensitive, so submit to the global queue. Do not use `chunkTaskQueue' as that would cause the block to be
@@ -171,8 +175,9 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
 /* Copy the voxel data for the neighborhood into a new buffer and return the buffer. If the method would block when taking the
  * locks on the neighborhood then instead return NULL. The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y
  * elements in size and may be indexed using the INDEX2 macro.
+ * Assumes the caller has already locked the voxelData for chunks in the neighborhood (for reading).
  */
-- (voxel_t *)newCombinedVoxelDataBufferWithNeighborhood:(GSNeighborhood *)neighborhood
+- (voxel_t *)newVoxelBufferWithNeighborhood:(GSNeighborhood *)neighborhood
 {
     static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     
@@ -182,22 +187,19 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
     
-    [neighborhood readerAccessToVoxelDataUsingBlock:^{
-        GSIntegerVector3 p;
-        for(p.x = -CHUNK_SIZE_X; p.x < 2*CHUNK_SIZE_X; ++p.x)
+    GSIntegerVector3 p;
+    for(p.x = -CHUNK_SIZE_X; p.x < 2*CHUNK_SIZE_X; ++p.x)
+    {
+        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
         {
-            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+            for(p.z = -CHUNK_SIZE_Z; p.z < 2*CHUNK_SIZE_Z; ++p.z)
             {
-                for(p.z = -CHUNK_SIZE_Z; p.z < 2*CHUNK_SIZE_Z; ++p.z)
-                {
-                    GSIntegerVector3 ap = p;
-                    GSChunkVoxelData *chunk = [neighborhood neighborVoxelAtPoint:&ap];
-                    combinedVoxelData[INDEX2(p.x, p.y, p.z)] = chunk.voxelData[INDEX(ap.x, ap.y, ap.z)];
-                }
+                GSIntegerVector3 ap = p;
+                GSChunkVoxelData *chunk = [neighborhood neighborVoxelAtPoint:&ap];
+                combinedVoxelData[INDEX2(p.x, p.y, p.z)] = chunk.voxelData[INDEX(ap.x, ap.y, ap.z)];
             }
         }
-    }];
-    
+    }
     return combinedVoxelData;
 }
 
@@ -234,12 +236,11 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
  * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local neighborhood.
  * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight values for the
  * region of the buffer corresponding to this chunk should be considered to be totally correct.
+ * Assumes the caller has already locked the sunlight buffer for reading (sunlight.lockLightingBuffer).
  */
 - (void)fillSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
 {
     GSIntegerVector3 p;
-
-    [sunlight.lockLightingBuffer lockForWriting];
     
     uint8_t *combinedSunlightData = sunlight.lightingBuffer;
     
@@ -283,22 +284,40 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             }
         }
     }
-    
-    [sunlight.lockLightingBuffer unlockForWriting];
 }
 
 
-- (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler
+- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler
 {
-    // Copy the entire neighborhood's voxel data into one large buffer.
-    voxel_t *combinedVoxelData = [self newCombinedVoxelDataBufferWithNeighborhood:neighborhood];
+    BOOL success = NO;
+    __block voxel_t *buf = NULL;
     
-    [self fillSunlightBufferUsingCombinedVoxelData:combinedVoxelData];
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &updateForSunlightInFlight)) {
+        DebugLog(@"Can't update sunlight: already in-flight.");
+        return NO; // an update is already in flight, so bail out now
+    }
     
-    free(combinedVoxelData);
-    combinedVoxelData = NULL;
+    [sunlight.lockLightingBuffer lockForWriting]; // TODO: tryLockForWriting
     
-    completionHandler();
+    // Try to copy the entire neighborhood's voxel data into one large buffer.
+    if(![neighborhood tryReaderAccessToVoxelDataUsingBlock:^{ buf = [self newVoxelBufferWithNeighborhood:neighborhood]; }]) {
+        DebugLog(@"Can't update sunlight: voxel data buffers are busy.");
+        success = NO;
+        goto cleanup;
+    }
+    
+    // Actually generate sunlight data.
+    [self fillSunlightBufferUsingCombinedVoxelData:buf];
+    
+    dirtySunlight = NO;
+    success = YES;
+    completionHandler(); // Only call the completion handler if the update was successful.
+    
+cleanup:
+    [sunlight.lockLightingBuffer unlockForWriting];
+    OSAtomicCompareAndSwapIntBarrier(1, 0, &updateForSunlightInFlight); // reset
+    free(buf);
+    return success;
 }
 
 @end

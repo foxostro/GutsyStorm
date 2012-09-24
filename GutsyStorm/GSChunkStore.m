@@ -27,7 +27,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 - (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p;
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p;
-- (void)rebuildSunlightAndGeometryAround:(GSVector3)pos;
 
 @end
 
@@ -189,7 +188,30 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-// Try to update dirty pieces of geometry asynchronously. Skip any that would block due to lock contention.
+// Try to update asynchronously dirty chunk sunlight. Skip any that would block due to lock contention.
+- (void)tryToUpdateDirtySunlight
+{
+    dispatch_async(chunkTaskQueue, ^{
+        void (^b)(GSVector3) = ^(GSVector3 p) {
+            GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:p];
+            dispatch_async(chunkTaskQueue, ^{
+                if(voxels.dirtySunlight) {
+                    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:voxels.centerP];
+                    [voxels tryToRebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
+                        GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:p];
+                        geometry.dirty = YES;
+                        [geometry tryToUpdateWithVoxelData:neighborhood]; // make an effort to update geometry immediately
+                    }];
+                }
+            });
+        };
+        
+        [activeRegion enumeratePointsInActiveRegionNearCamera:camera usingBlock:b];
+    });
+}
+
+
+// Try to asynchronously update dirty chunk geometry. Skip any that would block due to lock contention.
 - (void)tryToUpdateDirtyGeometry
 {
     dispatch_async(chunkTaskQueue, ^{
@@ -208,6 +230,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
+    [self tryToUpdateDirtySunlight];
     [self tryToUpdateDirtyGeometry];    
     [self updateActiveChunksWithCameraModifiedFlags:flags];
 }
@@ -215,8 +238,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 - (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)newBlock
 {
-    [lock lock];
-
     GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
     [chunk writerAccessToVoxelDataUsingBlock:^{
         GSVector3 chunkLocalP;
@@ -230,9 +251,13 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         *block = newBlock;
     }];
     
-    [self rebuildSunlightAndGeometryAround:pos];
-    
-    [lock unlock];
+    /* Invalidate sunlight data and geometry for the modified chunk and surrounding chunks.
+     * Chunks' sunlight and geometry will be updated on the next update tick.
+     */
+    [[self neighborhoodAtPoint:pos] enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
+        voxels.dirtySunlight = YES;
+        [self chunkGeometryAtPoint:voxels.centerP].dirty = YES;
+    }];
 }
 
 
@@ -336,19 +361,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     
     geometry = [cacheGeometryData objectForKey:chunkID];
     if(!geometry) {
-        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
-        
+        // Chunk geometry will be generated later and is only marked "dirty" for now.
         geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP glContext:glContext] autorelease];
-        
-        // Generate sunlight for the chunk using neighbors' data and then try to generate the actual triangle mesh for the chunk.
-        dispatch_async(chunkTaskQueue, ^{
-            GSChunkVoxelData *center = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-            [center rebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
-                geometry.dirty = YES;
-                [geometry tryToUpdateWithVoxelData:neighborhood];
-            }];
-        });
-
         [cacheGeometryData setObject:geometry forKey:chunkID];
     }
     
@@ -468,29 +482,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
         OSAtomicCompareAndSwapIntBarrier(0, 1, &needsChunkVisibilityUpdate);
     }
-}
-
-
-- (void)rebuildSunlightAndGeometryAround:(GSVector3)pos
-{
-    /* In order to correctly handle the case where sunlight is removed (say, by sealing a hole) sunlight must be regenerated from
-     * scratch for all chunks in the neighborhood. There's no need to attempt to propagate the effect out further than that because
-     * the light radius is always less than the width of a single chunk.
-     */
-
-    dispatch_async(chunkTaskQueue, ^{
-        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
-        
-        [neighborhood enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
-            GSNeighborhood *innerNeighborhood = [self neighborhoodAtPoint:voxels.centerP];
-            
-            [voxels rebuildSunlightWithNeighborhood:innerNeighborhood completionHandler:^{
-                GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:voxels.centerP];
-                geometry.dirty = YES;
-                [geometry tryToUpdateWithVoxelData:innerNeighborhood];
-            }];
-        }];
-    });
 }
 
 @end

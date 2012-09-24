@@ -213,14 +213,27 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     __block BOOL success = NO;
     
     if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &updateInFlight)) {
-        NSLog(@"Can't update geometry: already in-flight.");
+        DebugLog(@"Can't update geometry: already in-flight.");
         return NO; // an update is already in flight, so bail out now
     }
     
     void (^b)(void) = ^{
+        __block BOOL anyNeighborHasDirtySunlight = NO;
+        [neighborhood enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
+            if(voxels.dirtySunlight) {
+                anyNeighborHasDirtySunlight = YES;
+            }
+        }];
+        
+        if(anyNeighborHasDirtySunlight) {
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+            DebugLog(@"Can't update geometry: some neighbors need a sulight update.");
+            return;
+        }
+        
         if(![lockGeometry tryLock]) {
             OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
-            NSLog(@"Can't update geometry: lockGeometry is already taken.");
+            DebugLog(@"Can't update geometry: lockGeometry is already taken.");
             return;
         }
         
@@ -239,18 +252,18 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
             
             dirty = NO;
             OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+            [lockGeometry unlockWithCondition:READY];
             success = YES;
         } else {
             OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
-            NSLog(@"Can't update geometry: sunlight buffer is busy.");
+            [lockGeometry unlockWithCondition:!READY];
+            DebugLog(@"Can't update geometry: sunlight buffer is busy.");
         }
-        
-        [lockGeometry unlockWithCondition:READY];
     };
     
     if(![neighborhood tryReaderAccessToVoxelDataUsingBlock:b]) {
         OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
-        NSLog(@"Can't update geometry: voxel data buffers are busy.");
+        DebugLog(@"Can't update geometry: voxel data buffers are busy.");
     }
     
     return success;

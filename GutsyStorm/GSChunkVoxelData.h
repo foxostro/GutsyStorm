@@ -28,10 +28,13 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
     voxel_t *voxelData; // the voxels that make up the chunk
     
     GSLightingBuffer *sunlight; // lighting contributions from sunlight
+    BOOL dirtySunlight;
+    int updateForSunlightInFlight;
 }
 
 @property (readonly, nonatomic) voxel_t *voxelData;
 @property (readonly, nonatomic) GSLightingBuffer *sunlight;
+@property (assign) BOOL dirtySunlight;
 
 /* There are circumstances when it is necessary to use this lock directly, but in most cases the reader/writer accessor methods
  * here and in GSNeighborhood should be preferred.
@@ -61,7 +64,11 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 - (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
 
-// Rebuilds sunlight for this chunk and then calls the completion handler block.
-- (void)rebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler;
+/* Try to immediately update sunlight using voxel data for the local neighborhood. If it is not possible to immediately take all
+ * the locks on necessary resources then this method aborts the update and returns NO. If it is able to complete the update
+ * successfully then it returns YES and marks this GSChunkVoxelData as being clean. (dirtySunlight=NO)
+ * If the update was able to complete succesfully then the completionHandler block is called.
+ */
+- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler;
 
 @end

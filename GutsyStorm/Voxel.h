@@ -10,6 +10,13 @@
 #define GutsyStorm_Voxel_h
 
 
+#ifdef DEBUG // TODO: find a better home for this macro
+#    define DebugLog(...) do { NSLog(__VA_ARGS__) } while(0);
+#else
+#    define DebugLog(...)
+#endif
+
+
 #define CHUNK_SIZE_X (8)
 #define CHUNK_SIZE_Y (128)
 #define CHUNK_SIZE_Z (8)
