@@ -14,15 +14,13 @@
 #import "GSCamera.h"
 #import "GSShader.h"
 #import "GSActiveRegion.h"
+#import "GSGrid.h"
 
 
 @interface GSChunkStore : NSObject
 {
-    NSLock *lockVoxelDataCache;
-    NSCache *cacheVoxelData;
-    
-    NSLock *lockGeometryDataCache;
-    NSCache *cacheGeometryData;
+    GSGrid *gridVoxelData;
+    GSGrid *gridGeometryData;
     
     dispatch_group_t groupForSaving;
     dispatch_queue_t chunkTaskQueue;

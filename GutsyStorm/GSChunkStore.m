@@ -100,13 +100,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
          */
         chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
         
-        lockGeometryDataCache = [[NSLock alloc] init];
-        cacheGeometryData = [[NSCache alloc] init];
-        [cacheGeometryData setCountLimit:INT_MAX];
-        
-        lockVoxelDataCache = [[NSLock alloc] init];
-        cacheVoxelData = [[NSCache alloc] init];
-        [cacheVoxelData setCountLimit:INT_MAX];
+        gridGeometryData = [[GSGrid alloc] init];
+        gridVoxelData = [[GSGrid alloc] init];
         
         // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
@@ -139,10 +134,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     [self waitForSaveToFinish];
     dispatch_release(groupForSaving);
     
-    [lockVoxelDataCache release];
-    [cacheVoxelData release];
-    [lockGeometryDataCache release];
-    [cacheGeometryData release];
+    [gridVoxelData release];
+    [gridGeometryData release];
     [camera release];
     [folder release];
     [terrainShader release];
@@ -348,30 +341,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 @implementation GSChunkStore (Private)
 
-- (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p
-{
-    [lockGeometryDataCache lock];
-    
-    GSChunkGeometryData *geometry = nil;
-    GSVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
-    chunk_id_t chunkID = [GSChunkData chunkIDWithChunkMinCorner:minP];
-    
-    assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
-    
-    geometry = [cacheGeometryData objectForKey:chunkID];
-    if(!geometry) {
-        // Chunk geometry will be generated later and is only marked "dirty" for now.
-        geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP glContext:glContext] autorelease];
-        [cacheGeometryData setObject:geometry forKey:chunkID];
-    }
-    
-    [lockGeometryDataCache unlock];
-    
-    return geometry;
-}
-
-
 - (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p
 {
     GSNeighborhood *neighborhood = [[[GSNeighborhood alloc] init] autorelease];
@@ -386,32 +355,36 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p
 {
-    [lockVoxelDataCache lock];
-    
-    GSVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
-    chunk_id_t chunkID = [GSChunkData chunkIDWithChunkMinCorner:minP];
-    
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
-    GSChunkVoxelData *voxels = [cacheVoxelData objectForKey:chunkID];
-    if(!voxels) {
-        voxels = [[GSChunkVoxelData alloc] initWithMinP:minP
-                                                 folder:folder
-                                         groupForSaving:groupForSaving
-                                         chunkTaskQueue:chunkTaskQueue
-                                              generator:^(GSVector3 p, voxel_t *voxel) {
-                                                  generateTerrainVoxel(seed, terrainHeight, p, voxel);
-                                              }];
-        [voxels autorelease];
-        [cacheVoxelData setObject:voxels forKey:chunkID];
-    }
+    GSChunkGeometryData *g = [gridGeometryData objectAtPoint:p objectFactory:^id(GSVector3 minP) {
+        // Chunk geometry will be generated later and is only marked "dirty" for now.
+        return [[[GSChunkGeometryData alloc] initWithMinP:minP glContext:glContext] autorelease];
+    }];
     
-    [lockVoxelDataCache unlock];
+    return g;
+}
+
+
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p
+{
+    assert(p.y >= 0); // world does not extend below y=0
+    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
-    return voxels;
+    GSChunkVoxelData *v = [gridVoxelData objectAtPoint:p objectFactory:^id(GSVector3 minP) {
+        return [[[GSChunkVoxelData alloc] initWithMinP:minP
+                                                folder:folder
+                                        groupForSaving:groupForSaving
+                                        chunkTaskQueue:chunkTaskQueue
+                                             generator:^(GSVector3 a, voxel_t *voxel) {
+                                                 generateTerrainVoxel(seed, terrainHeight, a, voxel);
+                                             }] autorelease];
+    }];
+    
+    return v;
 }
 
 
