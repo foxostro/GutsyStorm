@@ -118,6 +118,15 @@
 }
 
 
+- (void)enumerateNeighborsWithBlock2:(void (^)(neighbor_index_t, GSChunkVoxelData*))block
+{
+    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        block(i, neighbors[i]);
+    }
+}
+
+
 - (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
     NSMutableArray *locksTaken = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];

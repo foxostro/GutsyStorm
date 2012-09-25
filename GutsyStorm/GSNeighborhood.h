@@ -41,7 +41,8 @@ typedef enum
 
 - (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx;
 - (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor;
-- (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block;
+- (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData *voxels))block;
+- (void)enumerateNeighborsWithBlock2:(void (^)(neighbor_index_t i, GSChunkVoxelData *voxels))block;
 
 /* Given a position relative to this voxel, return the chunk that contains the specified position.
  * Also returns the position in the local coordinate system of that chunk.

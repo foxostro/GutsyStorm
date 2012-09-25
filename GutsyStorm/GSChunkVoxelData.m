@@ -178,19 +178,36 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
     
-    GSIntegerVector3 p;
-    for(p.x = -CHUNK_SIZE_X; p.x < 2*CHUNK_SIZE_X; ++p.x)
-    {
-        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+    static ssize_t offsetsX[CHUNK_NUM_NEIGHBORS];
+    static ssize_t offsetsZ[CHUNK_NUM_NEIGHBORS];
+    static dispatch_once_t onceToken;
+    
+    dispatch_once(&onceToken, ^{
+        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
-            for(p.z = -CHUNK_SIZE_Z; p.z < 2*CHUNK_SIZE_Z; ++p.z)
+            GSVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+            offsetsX[i] = offset.x;
+            offsetsZ[i] = offset.z;
+        }
+    });
+    
+    [neighborhood enumerateNeighborsWithBlock2:^(neighbor_index_t i, GSChunkVoxelData *voxels) {
+        const voxel_t *data = voxels.voxelData;
+        ssize_t offsetX = offsetsX[i];
+        ssize_t offsetZ = offsetsZ[i];
+        
+        for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+        {
+            for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
             {
-                GSIntegerVector3 ap = p;
-                GSChunkVoxelData *chunk = [neighborhood neighborVoxelAtPoint:&ap];
-                combinedVoxelData[INDEX2(p.x, p.y, p.z)] = chunk.voxelData[INDEX(ap.x, ap.y, ap.z)];
+                for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
+                {
+                    combinedVoxelData[INDEX2(x + offsetX, y, z + offsetZ)] = data[INDEX(x, y, z)];
+                }
             }
         }
-    }
+    }];
+    
     return combinedVoxelData;
 }
 
