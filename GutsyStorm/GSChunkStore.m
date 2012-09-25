@@ -86,12 +86,14 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         
         chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
         
-        gridGeometryData = [[GSGrid alloc] init];
-        gridVoxelData = [[GSGrid alloc] init];
+        NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
+        
+        size_t areaXZ = (w/CHUNK_SIZE_X) * (w/CHUNK_SIZE_Z);
+        gridGeometryData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
+        gridVoxelData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
         
         // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
-        NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         activeRegionExtent = GSVector3_Make(w, CHUNK_SIZE_Y, w);
         activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:activeRegionExtent];
         [activeRegion updateWithSorting:YES camera:camera chunkProducer:^GSChunkGeometryData *(GSVector3 p) {

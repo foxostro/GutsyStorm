@@ -13,8 +13,14 @@
 {
     NSUInteger numBuckets;
     NSMutableArray **buckets;
+    
+    NSUInteger numLocks;
     NSLock **locks;
+    
+    //int32_t n;
 }
+
+- (id)initWithActiveRegionArea:(size_t)areaXZ;
 
 // Returns the object corresponding to the given point on the grid. The given factory can create that object, if necessary.
 - (id)objectAtPoint:(GSVector3)p objectFactory:(id (^)(GSVector3 minP))factory;

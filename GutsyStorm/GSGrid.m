@@ -58,9 +58,19 @@
 
 - (id)init
 {
+    return [self initWithActiveRegionArea:1024];
+}
+
+- (id)initWithActiveRegionArea:(size_t)areaXZ
+{
     self = [super init];
     if (self) {
-        numBuckets = 8192; // TODO: this value is chosen arbitrarily. Choose hash table size more intelligently.
+        // TODO: table should rehash when load exceeds 80%.
+        // Choosing this number of buckets generally gives a hash table load of ~30% on game launch.
+        numBuckets = areaXZ << 4;
+        
+        // Choosing this number of locks gives ~2% time spent blocked on hash table locks during game launch.
+        numLocks = [[NSProcessInfo processInfo] processorCount] * 32;
         
         buckets = malloc(numBuckets * sizeof(NSMutableArray *));
         for(NSUInteger i=0; i<numBuckets; ++i)
@@ -69,10 +79,12 @@
         }
         
         locks = malloc(numBuckets * sizeof(NSMutableArray *));
-        for(NSUInteger i=0; i<numBuckets; ++i)
+        for(NSUInteger i=0; i<numLocks; ++i)
         {
             locks[i] = [[NSLock alloc] init];
         }
+        
+        //n = 0;
     }
     
     return self;
@@ -85,7 +97,7 @@
         [buckets[i] release];
     }
     
-    for(NSUInteger i=0; i<numBuckets; ++i)
+    for(NSUInteger i=0; i<numLocks; ++i)
     {
         [locks[i] release];
     }
@@ -101,9 +113,11 @@
     
     GSVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
     chunk_id_t aKey = [GSChunkData chunkIDWithChunkMinCorner:minP];
-    NSUInteger idx = [aKey hash] % numBuckets;
-    NSLock *lock = locks[idx];
-    NSMutableArray *bucket = buckets[idx];
+    NSUInteger hash = [aKey hash];
+    NSUInteger idxBucket = hash % numBuckets;
+    NSUInteger idxLock = hash % numLocks;
+    NSLock *lock = locks[idxLock];
+    NSMutableArray *bucket = buckets[idxBucket];
     
     [lock lock];
     
@@ -119,6 +133,9 @@
         anObject = factory(minP);
         assert(anObject);
         [bucket addObject:[[[GSGridItem alloc] initWithKey:aKey object:anObject] autorelease]];
+        //OSAtomicIncrement32Barrier(&n);
+        //float load = (float)n / numBuckets;
+        //NSLog(@"hash table load = %.3f", load);
     }
     
     [lock unlock];
