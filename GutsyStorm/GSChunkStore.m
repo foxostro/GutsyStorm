@@ -268,72 +268,91 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-/* Get the distance to the first intersection of the ray with a solid block.
- * A distance before the intersection will be returned in outDistanceBefore.
- * A distance after the intersection will be returned in outDistanceAfter.
- * Will not look farther than maxDist.
- * Returns YES if an intersection could be found, false otherwise.
- */
-- (BOOL)positionOfBlockAlongRay:(GSRay)ray
-                        maxDist:(float)maxDist
-              outDistanceBefore:(float *)outDistanceBefore
-               outDistanceAfter:(float *)outDistanceAfter
+- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GSVector3 p, BOOL *stop))block
 {
-    [lock lock];
+    /* Implementation is based on:
+     * "A Fast Voxel Traversal Algorithm for Ray Tracing"
+     * John Amanatides, Andrew Woo
+     * http://www.cse.yorku.ca/~amana/research/grid.pdf
+     *
+     * See also: http://www.xnawiki.com/index.php?title=Voxel_traversal
+     */
     
-    assert(maxDist > 0);
+    // NOTES:
+    // * This code assumes that the ray's position and direction are in 'cell coordinates', which means
+    //   that one unit equals one cell in all directions.
+    // * When the ray doesn't start within the voxel grid, calculate the first position at which the
+    //   ray could enter the grid. If it never enters the grid, there is nothing more to do here.
+    // * Also, it is important to test when the ray exits the voxel grid when the grid isn't infinite.
+    // * The Point3D structure is a simple structure having three integer fields (X, Y and Z).
     
-    const size_t MAX_PASSES = 6;
-    const float step[MAX_PASSES] = {1.0f, 0.1f, 0.01f, 0.001f, 0.0001f, 0.00001f};
+    // The cell in which the ray starts.
+    GSIntegerVector3 start = GSIntegerVector3_Make(floorf(ray.origin.x), floorf(ray.origin.y), floorf(ray.origin.z));
+    int x = (int)start.x;
+    int y = (int)start.y;
+    int z = (int)start.z;
     
-    BOOL foundAnything = NO;
-    float d = 0, prevD = 0;
+    // Determine which way we go.
+    int stepX = (ray.direction.x<0) ? -1 : (ray.direction.x==0) ? 0 : +1;
+    int stepY = (ray.direction.y<0) ? -1 : (ray.direction.y==0) ? 0 : +1;
+    int stepZ = (ray.direction.z<0) ? -1 : (ray.direction.z==0) ? 0 : +1;
     
-    for(size_t i = 0; i < MAX_PASSES; ++i)
+    // Calculate cell boundaries. When the step (i.e. direction sign) is positive,
+    // the next boundary is AFTER our current position, meaning that we have to add 1.
+    // Otherwise, it is BEFORE our current position, in which case we add nothing.
+    GSIntegerVector3 cellBoundary = GSIntegerVector3_Make(x + (stepX > 0 ? 1 : 0),
+                                                          y + (stepY > 0 ? 1 : 0),
+                                                          z + (stepZ > 0 ? 1 : 0));
+    
+    // NOTE: For the following calculations, the result will be Single.PositiveInfinity
+    // when ray.Direction.X, Y or Z equals zero, which is OK. However, when the left-hand
+    // value of the division also equals zero, the result is Single.NaN, which is not OK.
+    
+    // Determine how far we can travel along the ray before we hit a voxel boundary.
+    GSVector3 tMax = GSVector3_Make((cellBoundary.x - ray.origin.x) / ray.direction.x,    // Boundary is a plane on the YZ axis.
+                                    (cellBoundary.y - ray.origin.y) / ray.direction.y,    // Boundary is a plane on the XZ axis.
+                                    (cellBoundary.z - ray.origin.z) / ray.direction.z);   // Boundary is a plane on the XY axis.
+    if(isnan(tMax.x)) { tMax.x = +INFINITY; }
+    if(isnan(tMax.y)) { tMax.y = +INFINITY; }
+    if(isnan(tMax.z)) { tMax.z = +INFINITY; }
+
+    // Determine how far we must travel along the ray before we have crossed a gridcell.
+    GSVector3 tDelta = GSVector3_Make(stepX / ray.direction.x,                    // Crossing the width of a cell.
+                                      stepY / ray.direction.y,                    // Crossing the height of a cell.
+                                      stepZ / ray.direction.z);                   // Crossing the depth of a cell.
+    if(isnan(tDelta.x)) { tDelta.x = +INFINITY; }
+    if(isnan(tDelta.y)) { tDelta.y = +INFINITY; }
+    if(isnan(tDelta.z)) { tDelta.z = +INFINITY; }
+    
+    // For each step, determine which distance to the next voxel boundary is lowest (i.e.
+    // which voxel boundary is nearest) and walk that way.
+    for(int i = 0; i < maxDepth; i++)
     {
-        // Sweep forward to find the intersection point.
-        for(d = prevD; d < maxDist; d += step[i])
-        {
-            GSVector3 pos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
-            
-            // world does not extend below y=0
-            if(pos.y < 0) {
-                [lock unlock];
-                return NO;
-            }
-            
-            // world does not extend below y=activeRegionExtent.y
-            if(pos.y >= activeRegionExtent.y) {
-                [lock unlock];
-                return NO;
-            }
-            
-            voxel_t block = [self voxelAtPoint:pos];
-            
-            if(!isVoxelEmpty(block)) {
-                foundAnything = YES;
-                break;
-            }
-            
-            prevD = d;
+        if(y >= activeRegionExtent.y || y < 0) {
+            return; // The vertical extent of the world is limited.
         }
         
-        if(!foundAnything) {
-            [lock unlock];
-            return NO;
+        BOOL stop = NO;
+        block(GSVector3_Make(x, y, z), &stop);
+        if(stop) {
+            return;
+        }
+        
+        // Do the next step.
+        if (tMax.x < tMax.y && tMax.x < tMax.z) {
+            // tMax.X is the lowest, an YZ cell boundary plane is nearest.
+            x += stepX;
+            tMax.x += tDelta.x;
+        } else if (tMax.y < tMax.z) {
+            // tMax.Y is the lowest, an XZ cell boundary plane is nearest.
+            y += stepY;
+            tMax.y += tDelta.y;
+        } else {
+            // tMax.Z is the lowest, an XY cell boundary plane is nearest.
+            z += stepZ;
+            tMax.z += tDelta.z;
         }
     }
-    
-    if(outDistanceBefore) {
-        *outDistanceBefore = prevD;
-    }
-    
-    if(outDistanceAfter) {
-        *outDistanceAfter = d;
-    }
-    
-    [lock unlock];
-    return YES;
 }
 
 @end

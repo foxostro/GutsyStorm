@@ -53,10 +53,10 @@
 - (void)updateWithDeltaTime:(float)dt
         cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
-- (BOOL)positionOfBlockAlongRay:(GSRay)ray
-                           maxDist:(float)maxDist
-                 outDistanceBefore:(float *)outDistanceBefore
-                  outDistanceAfter:(float *)outDistanceAfter;
+/* Enumerates the voxels on the specified ray up to the specified maximum depth. Calls the block for each voxel cell. The block
+ * may set '*stop=YES;' to indicate that enumeration should terminate.
+ */
+- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GSVector3 p, BOOL *stop))block;
 
 - (voxel_t)voxelAtPoint:(GSVector3)pos;
 
