@@ -84,21 +84,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         assert(n > 0 && n < INT_MAX);
         numVBOGenerationsAllowedPerFrame = (int)n;
         
-        /* Why are we specfying the background-priority global dispatch queue here?
-         *
-         * Answer:
-         * My use of locks does not work well with libdispatch. Neither does the way I'm handling the loading of chunks from disk.
-         * When a dispatch block blocks the thread its running on, libdispatch will create a new thread to begin execution of the
-         * next block in the queue (up to a limit). Because I'm using locks all over the place, I cause many, many new threads to be
-         * created. These put too much load on the system, and cause the main thread to get less execution time; frame deadlines are
-         * missed, and FPS drops. These threads eventually quiet down as computation to generate/load the active region is
-         * completed. So, eventually, the "warm up" period ends, and FPS jumps up to a steady 60.
-         *
-         * The threads that execute blocks on background queue run with a less favorable scheduling priority, allowing the main
-         * thread to meet its deadlines. They also run with I/O throttling per setpriority(2) and so is not a good long-term
-         * solution.
-         */
-        chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+        chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
         
         gridGeometryData = [[GSGrid alloc] init];
         gridVoxelData = [[GSGrid alloc] init];
