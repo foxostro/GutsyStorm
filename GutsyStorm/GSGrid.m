@@ -70,7 +70,7 @@
         numBuckets = areaXZ << 4;
         
         // Choosing this number of locks gives ~2% time spent blocked on hash table locks during game launch.
-        numLocks = [[NSProcessInfo processInfo] processorCount] * 32;
+        numLocks = [[NSProcessInfo processInfo] processorCount] * 64;
         
         buckets = malloc(numBuckets * sizeof(NSMutableArray *));
         for(NSUInteger i=0; i<numBuckets; ++i)
