@@ -198,6 +198,8 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)awakeFromNib
 {
+    [self  setWantsBestResolutionOpenGLSurface:YES];
+    
     cubeRotY = 0.0;
     cubeRotSpeed = 10.0;
     prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
