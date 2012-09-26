@@ -17,11 +17,11 @@
 #endif
 
 
-#define CHUNK_SIZE_X (8)
+#define CHUNK_SIZE_X (16)
 #define CHUNK_SIZE_Y (128)
-#define CHUNK_SIZE_Z (8)
+#define CHUNK_SIZE_Z (16)
 
-#define CHUNK_LIGHTING_MAX (7)
+#define CHUNK_LIGHTING_MAX (MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z) - 1)
 
 #define VOXEL_EMPTY   (1) // a flag on the first LSB
 #define VOXEL_OUTSIDE (2) // a flag on the second LSB

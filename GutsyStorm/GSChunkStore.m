@@ -78,7 +78,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         lock = [[NSLock alloc] init];
         
         timeUntilNextPeriodicChunkUpdate = 0.0;
-        timeBetweenPerioducChunkUpdates = 0.2;
+        timeBetweenPerioducChunkUpdates = 1.0;
         activeRegionNeedsUpdate = 0;
         
         /* VBO generation must be performed on the main thread.
