@@ -13,6 +13,7 @@
 
 
 @class GSChunkVoxelData;
+@class GSNeighborhood;
 
 
 @interface GSChunkGeometryData : GSChunkData
@@ -36,17 +37,25 @@
     GLfloat *colorBuffer;
     GLsizei numIndicesForGenerating;
     GLuint *indexBufferForGenerating; // Index buffer which is filled by the geometry generation routine.
+    BOOL dirty;
+    int updateInFlight;
+    
+    NSOpenGLContext *glContext;
     
  @public
     GSVector3 corners[8];
     BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
 }
 
+@property (assign) BOOL dirty;
 
-- (id)initWithMinP:(GSVector3)_minP
-         voxelData:(GSChunkVoxelData **)voxels;
+- (id)initWithMinP:(GSVector3)_minP glContext:(NSOpenGLContext *)_glContext;
 
-- (void)updateWithVoxelData:(GSChunkVoxelData **)voxels doItSynchronously:(BOOL)sync;
+/* Try to immediately update geometry using voxel data for the local neighborhood. If it is not possible to immediately take all
+ * the locks on necessary resources then this method aborts the update and returns NO. If it is able to complete the update
+ * successfully then it returns YES and marks this GSChunkGeometryData as being clean. (dirty=NO)
+ */
+- (BOOL)tryToUpdateWithVoxelData:(GSNeighborhood *)neighborhood;
 
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
 

@@ -8,33 +8,38 @@
 
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"
-#import "GSNoise.h"
+#import "GSBoxedVector.h"
 
 
-#define SQR(a) ((a)*(a))
-#define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
-
-
-static int getBlockSunlightAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
-static float groundGradient(float terrainHeight, GSVector3 p);
-static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p);
+static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
+    { 1, 0, 0},
+    {-1, 0, 0},
+    { 0, 1, 0},
+    { 0,-1, 0},
+    { 0, 0, 1},
+    { 0, 0,-1},
+};
 
 
 @interface GSChunkVoxelData (Private)
 
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
-- (void)loadVoxelDataFromFile:(NSURL *)url;
-- (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight;
+- (void)loadVoxelDataFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler;
 - (void)recalcOutsideVoxelsNoLock;
+- (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)saveVoxelDataToFile;
-- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel;
-- (void)generateSunlight;
+- (void)loadOrGenerateVoxelData:(terrain_generator_t)callback completionHandler:(void (^)(void))completionHandler;
 
 @end
 
 
 @implementation GSChunkVoxelData
+
+@synthesize voxelData;
+@synthesize sunlight;
+@synthesize lockVoxelData;
+@synthesize dirtySunlight;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
@@ -42,56 +47,41 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-- (id)initWithSeed:(unsigned)seed
-              minP:(GSVector3)_minP
-     terrainHeight:(float)terrainHeight
+- (id)initWithMinP:(GSVector3)_minP
             folder:(NSURL *)_folder
-    groupForSaving:(dispatch_group_t)_groupForSaving;
+    groupForSaving:(dispatch_group_t)_groupForSaving
+    chunkTaskQueue:(dispatch_queue_t)_chunkTaskQueue
+         generator:(terrain_generator_t)callback
 {
     self = [super initWithMinP:_minP];
     if (self) {
-        // Initialization code here.
-        assert(terrainHeight >= 0.0);
+        assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
         
         groupForSaving = _groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         dispatch_retain(groupForSaving);
+        
+        chunkTaskQueue = _chunkTaskQueue; // dispatch queue used for chunk background work
+        dispatch_retain(_chunkTaskQueue);
         
         folder = _folder;
         [folder retain];
         
         lockVoxelData = [[GSReaderWriterLock alloc] init];
         [lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
-        
-        lockSunlight = [[GSReaderWriterLock alloc] init];
-        [lockSunlight lockForWriting]; // This is locked initially and unlocked at the end of the first update.
-        
         voxelData = NULL;
-        sunlight = NULL;
         
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(3*CHUNK_SIZE_X,CHUNK_SIZE_Y,3*CHUNK_SIZE_Z)];
+        dirtySunlight = YES;
+        updateForSunlightInFlight = 0;
         
-        // Fire off asynchronous task to generate voxel data.
-        // When this finishes, the condition in lockVoxelData will be set to CONDITION_VOXEL_DATA_READY.
-        dispatch_async(queue, ^{
-            NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
-                                relativeToURL:folder];
-            
+        // Fire off asynchronous task to load or generate voxel data.
+        dispatch_async(chunkTaskQueue, ^{
             [self allocateVoxelData];
-            
-            if([url checkResourceIsReachableAndReturnError:NULL]) {
-                // Load chunk from disk.
-                [self loadVoxelDataFromFile:url];
-            } else {
-                // Generate chunk from scratch.
-                [self generateVoxelDataWithSeed:seed terrainHeight:terrainHeight];
-                [self saveVoxelDataToFile];
-            }
-            
-            [lockVoxelData unlockForWriting];
-            
-            // And now generate sunlight for this chunk.
-            [self generateSunlight];
-            [lockSunlight unlockForWriting];
+            [self loadOrGenerateVoxelData:callback completionHandler:^{
+                [self recalcOutsideVoxelsNoLock];
+                [lockVoxelData unlockForWriting];
+                // We don't need to call -voxelDataWasModified in the special case of initialization.
+            }];
         });
     }
     
@@ -102,33 +92,27 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 - (void)dealloc
 {
     dispatch_release(groupForSaving);
-    
+    dispatch_release(chunkTaskQueue);
     [folder release];
     
-    [lockVoxelData lockForWriting];
     [self destroyVoxelData];
-    [lockVoxelData unlockForWriting];
     [lockVoxelData release];
     
-    [lockSunlight lockForWriting];
-    free(sunlight);
-    sunlight = NULL;
-    [lockSunlight unlockForWriting];
-    [lockSunlight release];
+    [sunlight release];
     
     [super dealloc];
 }
 
 
 // Assumes the caller is already holding "lockVoxelData".
-- (voxel_t)getVoxelAtPoint:(GSIntegerVector3)p
+- (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)p
 {
-    return *[self getPointerToVoxelAtPoint:p];
+    return *[self pointerToVoxelAtLocalPosition:p];
 }
 
 
 // Assumes the caller is already holding "lockVoxelData".
-- (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)p
+- (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)p
 {
     assert(voxelData);
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
@@ -142,190 +126,211 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 }
 
 
-- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)_chunks doItSynchronously:(BOOL)sync
+- (void)voxelDataWasModified
 {
-    GSChunkVoxelData **chunks = copyNeighbors(_chunks);
+    [self recalcOutsideVoxelsNoLock];
     
-    void (^b)(void) = ^{
-        [lockSunlight lockForWriting];
-        [self generateSunlight];
-        [lockSunlight unlockForWriting];
-        
-        freeNeighbors(chunks);
-    };
+    // Caller must make sure to update sunlight later...
+    dirtySunlight = YES;
     
-    if(sync) {
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
-        dispatch_sync(queue, b);
-    } else {
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        dispatch_async(queue, b);
-    }
+    /* Spin off a task to save the chunk.
+     * This is latency sensitive, so submit to the global queue. Do not use `chunkTaskQueue' as that would cause the block to be
+     * added to the end of a long queue of basically serialized background tasks.
+     */
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_group_async(groupForSaving, queue, ^{
+        [lockVoxelData lockForReading];
+        [self saveVoxelDataToFile];
+        [lockVoxelData unlockForReading];
+    });
 }
 
 
-// Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
-- (void)getSunlightAtPoint:(GSIntegerVector3)p
-                 neighbors:(GSChunkVoxelData **)voxels
-               outLighting:(block_lighting_t *)lighting
+- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    /* Front is in the -Z direction and back is the +Z direction.
-     * This is a totally arbitrary convention.
-     */
+    [lockVoxelData lockForReading];
+    block();
+    [lockVoxelData unlockForReading];
+}
+
+
+- (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
+{
+    [lockVoxelData lockForWriting];
+    block();
+    [self voxelDataWasModified];
+    [lockVoxelData unlockForWriting];
+}
+
+
+/* Copy the voxel data for the neighborhood into a new buffer and return the buffer. If the method would block when taking the
+ * locks on the neighborhood then instead return NULL. The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y
+ * elements in size and may be indexed using the INDEX2 macro.
+ * Assumes the caller has already locked the voxelData for chunks in the neighborhood (for reading).
+ */
+- (voxel_t *)newVoxelBufferWithNeighborhood:(GSNeighborhood *)neighborhood
+{
+    static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     
-    // If the block is empty then bail out early. The point p is always within the chunk.
-    if(isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z)])) {
-        block_lighting_vertex_t packed = packBlockLightingValuesForVertex(CHUNK_LIGHTING_MAX,
-                                                                          CHUNK_LIGHTING_MAX,
-                                                                          CHUNK_LIGHTING_MAX,
-                                                                          CHUNK_LIGHTING_MAX);
-        
-        lighting->top = packed;
-        lighting->bottom = packed;
-        lighting->left = packed;
-        lighting->right = packed;
-        lighting->front = packed;
-        lighting->back = packed;
-        return;
+    // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
+    voxel_t *combinedVoxelData = combinedVoxelData = malloc(size*sizeof(voxel_t));
+    if(!combinedVoxelData) {
+        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
     
-#define SUNLIGHT(x, y, z) (samples[(x+1)*3*3 + (y+1)*3 + (z+1)])
+    static ssize_t offsetsX[CHUNK_NUM_NEIGHBORS];
+    static ssize_t offsetsZ[CHUNK_NUM_NEIGHBORS];
+    static dispatch_once_t onceToken;
     
-    unsigned samples[3*3*3];
-    
-    for(ssize_t x = -1; x <= 1; ++x)
-    {
-        for(ssize_t y = -1; y <= 1; ++y)
+    dispatch_once(&onceToken, ^{
+        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
-            for(ssize_t z = -1; z <= 1; ++z)
+            GSVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+            offsetsX[i] = offset.x;
+            offsetsZ[i] = offset.z;
+        }
+    });
+    
+    [neighborhood enumerateNeighborsWithBlock2:^(neighbor_index_t i, GSChunkVoxelData *voxels) {
+        const voxel_t *data = voxels.voxelData;
+        ssize_t offsetX = offsetsX[i];
+        ssize_t offsetZ = offsetsZ[i];
+        
+        for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+        {
+            for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
             {
-                int lightLevel = getBlockSunlightAtPoint(GSIntegerVector3_Make(p.x + x, p.y + y, p.z + z), voxels);
-                assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
-                SUNLIGHT(x, y, z) = lightLevel;
+                for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
+                {
+                    combinedVoxelData[INDEX2(x + offsetX, y, z + offsetZ)] = data[INDEX(x, y, z)];
+                }
             }
+        }
+    }];
+    
+    return combinedVoxelData;
+}
+
+
+- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p
+                         lightLevel:(int)lightLevel
+                  combinedVoxelData:(voxel_t *)combinedVoxelData
+       combinedSunlightData:(voxel_t *)combinedSunlightData
+{
+    for(face_t i=0; i<FACE_NUM_FACES; ++i)
+    {
+        GSIntegerVector3 a = GSIntegerVector3_Add(p, offsets[i]);
+        
+        if(a.x < -CHUNK_SIZE_X || a.x >= (2*CHUNK_SIZE_X) ||
+           a.z < -CHUNK_SIZE_Z || a.z >= (2*CHUNK_SIZE_Z) ||
+           a.y < 0 || a.y >= CHUNK_SIZE_Y) {
+            continue; // The point is out of bounds, so bail out.
+        }
+        
+        if(!isVoxelEmpty(combinedVoxelData[INDEX2(a.x, a.y, a.z)])) {
+            continue;
+        }
+        
+        if(combinedSunlightData[INDEX2(a.x, a.y, a.z)] == lightLevel) {
+            return YES;
         }
     }
     
-    lighting->top = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, 1,  0),
-                                                                 SUNLIGHT( 0, 1, -1),
-                                                                 SUNLIGHT(-1, 1,  0),
-                                                                 SUNLIGHT(-1, 1, -1)),
-                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
-                                                                 SUNLIGHT( 0, 1, +1),
-                                                                 SUNLIGHT(-1, 1,  0),
-                                                                 SUNLIGHT(-1, 1, +1)),
-                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
-                                                                 SUNLIGHT( 0, 1, +1),
-                                                                 SUNLIGHT(+1, 1,  0),
-                                                                 SUNLIGHT(+1, 1, +1)),
-                                                     avgSunlight(SUNLIGHT( 0, 1,  0),
-                                                                 SUNLIGHT( 0, 1, -1),
-                                                                 SUNLIGHT(+1, 1,  0),
-                                                                 SUNLIGHT(+1, 1, -1)));
-    
-    lighting->bottom = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1,  0),
-                                                                    SUNLIGHT( 0, -1, -1),
-                                                                    SUNLIGHT(-1, -1,  0),
-                                                                    SUNLIGHT(-1, -1, -1)),
-                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
-                                                                    SUNLIGHT( 0, -1, -1),
-                                                                    SUNLIGHT(+1, -1,  0),
-                                                                    SUNLIGHT(+1, -1, -1)),
-                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
-                                                                    SUNLIGHT( 0, -1, +1),
-                                                                    SUNLIGHT(+1, -1,  0),
-                                                                    SUNLIGHT(+1, -1, +1)),
-                                                        avgSunlight(SUNLIGHT( 0, -1,  0),
-                                                                    SUNLIGHT( 0, -1, +1),
-                                                                    SUNLIGHT(-1, -1,  0),
-                                                                    SUNLIGHT(-1, -1, +1)));
-    
-    lighting->back = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1, 1),
-                                                                  SUNLIGHT( 0,  0, 1),
-                                                                  SUNLIGHT(-1, -1, 1),
-                                                                  SUNLIGHT(-1,  0, 1)),
-                                                      avgSunlight(SUNLIGHT( 0, -1, 1),
-                                                                  SUNLIGHT( 0,  0, 1),
-                                                                  SUNLIGHT(+1, -1, 1),
-                                                                  SUNLIGHT(+1,  0, 1)),
-                                                      avgSunlight(SUNLIGHT( 0, +1, 1),
-                                                                  SUNLIGHT( 0,  0, 1),
-                                                                  SUNLIGHT(+1, +1, 1),
-                                                                  SUNLIGHT(+1,  0, 1)),
-                                                      avgSunlight(SUNLIGHT( 0, +1, 1),
-                                                                  SUNLIGHT( 0,  0, 1),
-                                                                  SUNLIGHT(-1, +1, 1),
-                                                                  SUNLIGHT(-1,  0, 1)));
-    
-    lighting->front = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT( 0, -1, -1),
-                                                                   SUNLIGHT( 0,  0, -1),
-                                                                   SUNLIGHT(-1, -1, -1),
-                                                                   SUNLIGHT(-1,  0, -1)),
-                                                       avgSunlight(SUNLIGHT( 0, +1, -1),
-                                                                   SUNLIGHT( 0,  0, -1),
-                                                                   SUNLIGHT(-1, +1, -1),
-                                                                   SUNLIGHT(-1,  0, -1)),
-                                                       avgSunlight(SUNLIGHT( 0, +1, -1),
-                                                                   SUNLIGHT( 0,  0, -1),
-                                                                   SUNLIGHT(+1, +1, -1),
-                                                                   SUNLIGHT(+1,  0, -1)),
-                                                       avgSunlight(SUNLIGHT( 0, -1, -1),
-                                                                   SUNLIGHT( 0,  0, -1),
-                                                                   SUNLIGHT(+1, -1, -1),
-                                                                   SUNLIGHT(+1,  0, -1)));
-    
-    lighting->right = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT(+1,  0,  0),
-                                                                   SUNLIGHT(+1,  0, -1),
-                                                                   SUNLIGHT(+1, -1,  0),
-                                                                   SUNLIGHT(+1, -1, -1)),
-                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
-                                                                   SUNLIGHT(+1,  0, -1),
-                                                                   SUNLIGHT(+1, +1,  0),
-                                                                   SUNLIGHT(+1, +1, -1)),
-                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
-                                                                   SUNLIGHT(+1,  0, +1),
-                                                                   SUNLIGHT(+1, +1,  0),
-                                                                   SUNLIGHT(+1, +1, +1)),
-                                                       avgSunlight(SUNLIGHT(+1,  0,  0),
-                                                                   SUNLIGHT(+1,  0, +1),
-                                                                   SUNLIGHT(+1, -1,  0),
-                                                                   SUNLIGHT(+1, -1, +1)));
-    
-    lighting->left = packBlockLightingValuesForVertex(avgSunlight(SUNLIGHT(-1,  0,  0),
-                                                                  SUNLIGHT(-1,  0, -1),
-                                                                  SUNLIGHT(-1, -1,  0),
-                                                                  SUNLIGHT(-1, -1, -1)),
-                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
-                                                                  SUNLIGHT(-1,  0, +1),
-                                                                  SUNLIGHT(-1, -1,  0),
-                                                                  SUNLIGHT(-1, -1, +1)),
-                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
-                                                                  SUNLIGHT(-1,  0, +1),
-                                                                  SUNLIGHT(-1, +1,  0),
-                                                                  SUNLIGHT(-1, +1, +1)),
-                                                      avgSunlight(SUNLIGHT(-1,  0,  0),
-                                                                  SUNLIGHT(-1,  0, -1),
-                                                                  SUNLIGHT(-1, +1,  0),
-                                                                  SUNLIGHT(-1, +1, -1)));
-    
-#undef SUNLIGHT
+    return NO;
 }
 
 
-- (void)markAsDirtyAndSpinOffSavingTask
+/* Generate and return  sunlight data for this chunk from the specified voxel data buffer. The voxel data buffer must be
+ * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local neighborhood.
+ * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight values for the
+ * region of the buffer corresponding to this chunk should be considered to be totally correct.
+ * Assumes the caller has already locked the sunlight buffer for reading (sunlight.lockLightingBuffer).
+ */
+- (void)fillSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
 {
-    // first, mark as dirty
-    [lockVoxelData lockForWriting];
-    dirty = YES;
-    [lockVoxelData unlockForWriting];
+    GSIntegerVector3 p;
     
-    // second, spin off a task to save the chunk (marks as clean when complete)
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
-    dispatch_group_async(groupForSaving, queue, ^{
-        [lockVoxelData lockForWriting];
-        [self saveVoxelDataToFile];
-        [lockVoxelData unlockForWriting];
-    });
+    uint8_t *combinedSunlightData = sunlight.lightingBuffer;
+    
+    for(p.x = -CHUNK_SIZE_X; p.x < (2*CHUNK_SIZE_X); ++p.x)
+    {
+        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+        {
+            for(p.z = -CHUNK_SIZE_Z; p.z < (2*CHUNK_SIZE_Z); ++p.z)
+            {
+                voxel_t voxel = combinedVoxelData[INDEX2(p.x, p.y, p.z)];
+                BOOL directlyLit = isVoxelEmpty(voxel) && isVoxelOutside(voxel);
+                combinedSunlightData[INDEX2(p.x, p.y, p.z)] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
+            }
+        }
+    }
+
+    // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
+    // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
+    // Set the blocks we find to the next lower light level.
+    for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
+    {
+        for(p.x = -CHUNK_SIZE_X; p.x < (2*CHUNK_SIZE_X); ++p.x)
+        {
+            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
+            {
+                for(p.z = -CHUNK_SIZE_Z; p.z < (2*CHUNK_SIZE_Z); ++p.z)
+                {
+                    if(!isVoxelEmpty(combinedVoxelData[INDEX2(p.x, p.y, p.z)]) ||
+                       isVoxelOutside(combinedVoxelData[INDEX2(p.x, p.y, p.z)])) {
+                        continue;
+                    }
+                    
+                    if([self isAdjacentToSunlightAtPoint:p
+                                              lightLevel:lightLevel
+                                       combinedVoxelData:combinedVoxelData
+                            combinedSunlightData:combinedSunlightData]) {
+                        uint8_t *val = &combinedSunlightData[INDEX2(p.x, p.y, p.z)];
+                        *val = MAX(*val, lightLevel - 1);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler
+{
+    BOOL success = NO;
+    __block voxel_t *buf = NULL;
+    
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &updateForSunlightInFlight)) {
+        DebugLog(@"Can't update sunlight: already in-flight.");
+        return NO; // an update is already in flight, so bail out now
+    }
+    
+    if(![sunlight.lockLightingBuffer tryLockForWriting]) {
+        DebugLog(@"Can't update sunlight: sunlight buffer is busy."); // This failure really shouldn't happen much...
+        success = NO;
+        goto cleanup1;
+    }
+    
+    // Try to copy the entire neighborhood's voxel data into one large buffer.
+    if(![neighborhood tryReaderAccessToVoxelDataUsingBlock:^{ buf = [self newVoxelBufferWithNeighborhood:neighborhood]; }]) {
+        DebugLog(@"Can't update sunlight: voxel data buffers are busy.");
+        success = NO;
+        goto cleanup2;
+    }
+    
+    // Actually generate sunlight data.
+    [self fillSunlightBufferUsingCombinedVoxelData:buf];
+    
+    dirtySunlight = NO;
+    success = YES;
+    completionHandler(); // Only call the completion handler if the update was successful.
+    
+cleanup2:
+    [sunlight.lockLightingBuffer unlockForWriting];
+cleanup1:
+    OSAtomicCompareAndSwapIntBarrier(1, 0, &updateForSunlightInFlight); // reset
+    free(buf);
+    return success;
 }
 
 @end
@@ -333,21 +338,15 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 
 @implementation GSChunkVoxelData (Private)
 
-// Assumes the caller is already holding "lockVoxelData" for writing. ("writing" so we can protect `dirty')
+// Assumes the caller is already holding "lockVoxelData" for reading.
 - (void)saveVoxelDataToFile
 {
-    if(!dirty) {
-        return;
-    }
-    
     const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
     
     NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
                         relativeToURL:folder];
     
     [[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
-    
-    dirty = YES;
 }
 
 
@@ -356,7 +355,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
 {
     [self destroyVoxelData];
     
-    voxelData = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(voxel_t));
+    voxelData = malloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t));
     if(!voxelData) {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for chunk's voxelData"];
     }
@@ -385,7 +384,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
             {
                 GSIntegerVector3 p = {x, heightOfHighestVoxel, z};
-                voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
+                voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
                 
                 if(!isVoxelEmpty(*voxel)) {
                     break;
@@ -395,7 +394,7 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
             for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
             {
                 GSIntegerVector3 p = {x, y, z};
-                voxel_t *voxel = [self getPointerToVoxelAtPoint:p];
+                voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
                 BOOL outside = y >= heightOfHighestVoxel;
                 
                 markVoxelAsOutside(outside, voxel);
@@ -411,12 +410,9 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
  *
  * Assumes the caller already holds "lockVoxelData" for writing.
  */
-- (void)generateVoxelDataWithSeed:(unsigned)seed terrainHeight:(float)terrainHeight
+- (void)generateVoxelDataWithCallback:(terrain_generator_t)generator
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-    
-    GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
-    GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:(seed+1)];
     
     for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
     {
@@ -424,32 +420,61 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
         {
             for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
             {
-                GSVector3 p = GSVector3_Add(GSVector3_Make(x, y, z), minP);
-                voxel_t *voxel = [self getPointerToVoxelAtPoint:GSIntegerVector3_Make(x, y, z)];
-                BOOL empty = !isGround(terrainHeight, noiseSource0, noiseSource1, p);
-                
-                markVoxelAsEmpty(empty, voxel);
+                generator(GSVector3_Add(GSVector3_Make(x, y, z), minP),
+                          [self pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(x, y, z)]);
                 
                 // whether the block is outside or not is calculated later
             }
-        }
+       }
     }
-    
-    [noiseSource0 release];
-    [noiseSource1 release];
-    
-    dirty = YES;
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
 }
 
 
-/* Returns YES if the chunk data is reachable on the filesystem and loading was successful.
- * Assumes the caller already holds "lockVoxelData" for writing.
- */
-- (void)loadVoxelDataFromFile:(NSURL *)url
+// Attempt to load chunk data from file asynchronously. Call the completioHandler when finished.
+- (void)loadVoxelDataFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler
 {
+#if 0
+    const size_t chunkSizeOnDisk = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
+    
+    const char *fileName = [[url path] cStringUsingEncoding:NSUTF8StringEncoding];
+    
+    // TODO: fix the bug which keeps causing fopen to fail with EINVAL. Wtf?
+    FILE *fp = fopen(fileName, "r");
+    
+    if(!fp) {
+        NSLog(@"Failed to open the file for reading: \"%s\"", fileName);
+        perror("Cannot open file\n");
+        return;
+    }
+    
+    NSMutableData *dataReadSoFar = [[NSMutableData alloc] initWithCapacity:chunkSizeOnDisk];
+    
+    dispatch_read(fileno(fp), chunkSizeOnDisk, chunkTaskQueue, ^(dispatch_data_t data, int error) {
+        if(error) {
+            NSLog(@"File I/O error: %d", error);
+            return;
+        }
+        
+        const void *buffer = NULL;
+        size_t size = 0;
+        dispatch_data_t newData = dispatch_data_create_map(data, &buffer, &size);
+        [dataReadSoFar appendBytes:buffer length:size];
+        dispatch_release(newData);
+        
+        assert([dataReadSoFar length] <= chunkSizeOnDisk);
+        
+        if([dataReadSoFar length] == chunkSizeOnDisk) {
+            // okay, we're done reading data from the file
+            fclose(fp);
+            [dataReadSoFar getBytes:voxelData length:chunkSizeOnDisk];
+            [dataReadSoFar release];
+            completionHandler();
+        }
+    });
+#else
     const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
     
     // Read the contents of the file into "voxelData".
@@ -460,315 +485,23 @@ static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseS
     }
     [data getBytes:voxelData length:len];
     [data release];
-    
-    dirty = NO;
+    completionHandler();
+#endif
 }
 
 
-/* Assumes the caller is already holding "lockVoxelData".
- * Returns YES if any of the empty, adjacent blocks are lit to the specified light level.
- * NOTE: This totally ignores the neighboring chunks.
- */
-- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p lightLevel:(int)lightLevel
+- (void)loadOrGenerateVoxelData:(terrain_generator_t)callback completionHandler:(void (^)(void))completionHandler
 {
-    if(p.y+1 >= CHUNK_SIZE_Y) {
-        return YES;
-    } else if(isVoxelEmpty(voxelData[INDEX(p.x, p.y+1, p.z)]) && sunlight[INDEX(p.x, p.y+1, p.z)]) {
-        return YES;
-    }
-    
-    if(p.y-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y-1, p.z)]) && sunlight[INDEX(p.x, p.y-1, p.z)]) {
-        return YES;
-    }
-    
-    if(p.x-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x-1, p.y, p.z)]) && sunlight[INDEX(p.x-1, p.y, p.z)] == lightLevel) {
-        return YES;
-    }
-    
-    if(p.x+1 < CHUNK_SIZE_X && isVoxelEmpty(voxelData[INDEX(p.x+1, p.y, p.z)]) && sunlight[INDEX(p.x+1, p.y, p.z)] == lightLevel) {
-        return YES;
-    }
-    
-    if(p.z-1 >= 0 && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z-1)]) && sunlight[INDEX(p.x, p.y, p.z-1)] == lightLevel) {
-        return YES;
-    }
-    
-    if(p.z+1 < CHUNK_SIZE_Z && isVoxelEmpty(voxelData[INDEX(p.x, p.y, p.z+1)]) && sunlight[INDEX(p.x, p.y, p.z+1)] == lightLevel) {
-        return YES;
-    }
-    
-    return NO;
-}
-
-
-/* Generates sunlight values for all blocks in the chunk.
- * Assumes the caller has already holding "lockSunlight" for writing.
- * NOTE: This totally ignores the neighboring chunks.
- */
-- (void)generateSunlight
-{
-    GSIntegerVector3 p = {0};
-    
-    if(!sunlight) {
-        sunlight = calloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z, sizeof(int8_t));
-        if(!sunlight) {
-            [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for sunlight array."];
-        }
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
+                        relativeToURL:folder];
+    if([url checkResourceIsReachableAndReturnError:NULL]) {
+        [self loadVoxelDataFromFile:url completionHandler:completionHandler];
     } else {
-        bzero(sunlight, sizeof(int8_t) * CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z);
+        // Generate chunk from scratch.
+        [self generateVoxelDataWithCallback:callback];
+        [self saveVoxelDataToFile];
+        completionHandler();
     }
-    
-    [lockVoxelData lockForReading];
-    
-    [self recalcOutsideVoxelsNoLock];
-    
-    // Reset all empty, outside blocks to full sunlight.
-    for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-    {
-        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-        {
-            for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-            {
-                size_t idx = INDEX(p.x, p.y, p.z);
-                assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
-                
-                // This is "hard" lighting with exactly two lighting levels.
-                // Solid blocks always have zero sunlight. They pick up light from surrounding air.
-                if(isVoxelEmpty(voxelData[idx]) && isVoxelOutside(voxelData[idx])) {
-                    sunlight[idx] = CHUNK_LIGHTING_MAX;
-                }
-            }
-        }
-    }
-    
-    // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
-    // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
-    // Set the blocks we find to the next lower light level.
-    for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
-    {
-        for(p.x = 0; p.x < CHUNK_SIZE_X; ++p.x)
-        {
-            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-            {
-                for(p.z = 0; p.z < CHUNK_SIZE_Z; ++p.z)
-                {
-                    size_t idx = INDEX(p.x, p.y, p.z);
-                    assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));    
-                    
-                    if((sunlight[idx] < lightLevel) && [self isAdjacentToSunlightAtPoint:p lightLevel:lightLevel]) {
-                        sunlight[idx] = MAX(sunlight[idx], lightLevel - 1);
-                    }
-                }
-            }
-        }
-    }
-    
-    [lockVoxelData unlockForReading];
 }
 
 @end
-
-
-// Return a value between -1 and +1 so that a line through the y-axis maps to a smooth gradient of values from -1 to +1.
-static float groundGradient(float terrainHeight, GSVector3 p)
-{
-    const float y = p.y;
-    
-    if(y < 0.0) {
-        return -1;
-    } else if(y > terrainHeight) {
-        return +1;
-    } else {
-        return 2.0*(y/terrainHeight) - 1.0;
-    }
-}
-
-
-// Returns YES if the point is ground, NO otherwise.
-static BOOL isGround(float terrainHeight, GSNoise *noiseSource0, GSNoise *noiseSource1, GSVector3 p)
-{
-    BOOL groundLayer = NO;
-    BOOL floatingMountain = NO;
-    
-    // Normal rolling hills
-    {
-        const float freqScale = 0.025;
-        float n = [noiseSource0 getNoiseAtPoint:GSVector3_Scale(p, freqScale) numOctaves:4];
-        float turbScaleX = 2.0;
-        float turbScaleY = terrainHeight / 2.0;
-        float yFreq = turbScaleX * ((n+1) / 2.0);
-        float t = turbScaleY * [noiseSource1 getNoiseAtPoint:GSVector3_Make(p.x*freqScale, p.y*yFreq*freqScale, p.z*freqScale)];
-        groundLayer = groundGradient(terrainHeight, GSVector3_Make(p.x, p.y + t, p.z)) <= 0;
-    }
-    
-    // Giant floating mountain
-    {
-        /* The floating mountain is generated by starting with a sphere and applying turbulence to the surface.
-         * The upper hemisphere is also squashed to make the top flatter.
-         */
-        
-        GSVector3 mountainCenter = GSVector3_Make(50, 50, 80);
-        GSVector3 toMountainCenter = GSVector3_Sub(mountainCenter, p);
-        float distance = GSVector3_Length(toMountainCenter);
-        float radius = 30.0;
-        
-        // Apply turbulence to the surface of the mountain.
-        float freqScale = 0.70;
-        float turbScale = 15.0;
-        
-        // Avoid generating noise when too far away from the center to matter.
-        if(distance > 2.0*radius) {
-            floatingMountain = NO;
-        } else {
-            // Convert the point into spherical coordinates relative to the center of the mountain.
-            float azimuthalAngle = acosf(toMountainCenter.z / distance);
-            float polarAngle = atan2f(toMountainCenter.y, toMountainCenter.x);
-            
-            float t = turbScale * [noiseSource0 getNoiseAtPoint:GSVector3_Make(azimuthalAngle * freqScale, polarAngle * freqScale, 0.0)
-                                                     numOctaves:4];
-            
-            // Flatten the top.
-            if(p.y > mountainCenter.y) {
-                radius -= (p.y - mountainCenter.y) * 3;
-            }
-            
-            floatingMountain = (distance+t) < radius;
-        }
-    }
-    
-    return groundLayer || floatingMountain;
-}
-
-
-/* Given a position relative to this voxel, and a list of neighboring chunks, return the chunk that contains the specified position.
- * also returns the position in the local coordinate system of that chunk.
- * The position must be contained in this chunk or any of the specified neighbors.
- */
-GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
-                                          GSChunkVoxelData **neighbors,
-                                          GSIntegerVector3 *outRelativeToNeighborP)
-{
-    (*outRelativeToNeighborP) = chunkLocalP;
-    
-    if(chunkLocalP.x >= CHUNK_SIZE_X) {
-        outRelativeToNeighborP->x -= CHUNK_SIZE_X;
-        
-        if(chunkLocalP.z < 0) {
-            outRelativeToNeighborP->z += CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z];
-        } else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-            outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z];
-        } else {
-            return neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z];
-        }
-    } else if(chunkLocalP.x < 0) {
-        outRelativeToNeighborP->x += CHUNK_SIZE_X;
-        
-        if(chunkLocalP.z < 0) {
-            outRelativeToNeighborP->z += CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z];
-        } else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-            outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z];
-        } else {
-            return neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z];
-        }
-    } else {
-        if(chunkLocalP.z < 0) {
-            outRelativeToNeighborP->z += CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z];
-        } else if(chunkLocalP.z >= CHUNK_SIZE_Z) {
-            outRelativeToNeighborP->z -= CHUNK_SIZE_Z;
-            return neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z];
-        } else {
-            return neighbors[CHUNK_NEIGHBOR_CENTER];
-        }
-    }
-}
-
-
-/* Assumes the caller is already holding "lockSunlight" on all neighbors.
- * Returns the block's sunlight value.
- */
-int getBlockSunlightAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
-{
-    // Assumes each chunk spans the entire vertical extent of the world.
-    
-    if(p.y < 0) {
-        return 0; // Space below the world is always dark.
-    }
-    
-    if(p.y >= CHUNK_SIZE_Y) {
-        return CHUNK_LIGHTING_MAX; // Space above the world is always bright.
-    }
-    
-    GSIntegerVector3 adjustedPos = {0};
-    GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
-    
-    return chunk->sunlight[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)];
-}
-
-
-/* Assumes the caller is already holding "lockVoxelData" on all neighbors.
- * Returns YES if the specified block is empty.
- */
-BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors)
-{
-    // Assumes each chunk spans the entire vertical extent of the world.
-    
-    if(p.y < 0) {
-        return NO; // Space below the world is always full.
-    }
-    
-    if(p.y >= CHUNK_SIZE_Y) {
-        return YES; // Space above the world is always empty.
-    }
-    
-    GSIntegerVector3 adjustedPos = {0};
-    GSChunkVoxelData *chunk = getNeighborVoxelAtPoint(p, neighbors, &adjustedPos);
-    
-    voxel_t voxel = chunk->voxelData[INDEX(adjustedPos.x, adjustedPos.y, adjustedPos.z)];
-    
-    return isVoxelEmpty(voxel);
-}
-
-
-void freeNeighbors(GSChunkVoxelData **chunks)
-{
-    // No longer need references to the neighboring chunks.
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        [chunks[i] release];
-    }
-    free(chunks);
-}
-
-
-GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **_chunks)
-{
-    assert(_chunks);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_ZER_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_POS_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_ZER_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_NEG_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_NEG_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_ZER_X_POS_Z]);
-    assert(_chunks[CHUNK_NEIGHBOR_CENTER]);
-    
-    // chunks array is freed by th asynchronous task to fetch/load the lighting data
-    GSChunkVoxelData **chunks = calloc(CHUNK_NUM_NEIGHBORS, sizeof(GSChunkVoxelData *));
-    if(!chunks) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for temporary chunks array."];
-    }
-    
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        chunks[i] = _chunks[i];
-        [chunks[i] retain];
-    }
-    
-    return chunks;
-}

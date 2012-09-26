@@ -10,161 +10,65 @@
 #import "GSChunkData.h"
 #import "GSIntegerVector3.h"
 #import "GSReaderWriterLock.h"
+#import "Voxel.h"
+#import "GSNeighborhood.h"
+#import "GSLightingBuffer.h"
 
 
-#define CHUNK_NEIGHBOR_POS_X_NEG_Z  (0)
-#define CHUNK_NEIGHBOR_POS_X_ZER_Z  (1)
-#define CHUNK_NEIGHBOR_POS_X_POS_Z  (2)
-#define CHUNK_NEIGHBOR_NEG_X_NEG_Z  (3)
-#define CHUNK_NEIGHBOR_NEG_X_ZER_Z  (4)
-#define CHUNK_NEIGHBOR_NEG_X_POS_Z  (5)
-#define CHUNK_NEIGHBOR_ZER_X_NEG_Z  (6)
-#define CHUNK_NEIGHBOR_ZER_X_POS_Z  (7)
-#define CHUNK_NEIGHBOR_CENTER       (8)
-#define CHUNK_NUM_NEIGHBORS         (9)
-
-#define CHUNK_LIGHTING_MAX (7)
-#define CHUNK_MAX_AO_COUNT (4)
-
-
-#define VOXEL_EMPTY   (1) // a flag on the first LSB
-#define VOXEL_OUTSIDE (2) // a flag on the second LSB
-
-typedef uint8_t voxel_t;
-
-
-static inline void markVoxelAsEmpty(BOOL empty, voxel_t * voxel)
-{
-    const voxel_t originalVoxel = *voxel;
-    const voxel_t emptyVoxel = originalVoxel | VOXEL_EMPTY;
-    const voxel_t nonEmptyVoxel = originalVoxel & ~VOXEL_EMPTY;
-    *voxel = empty ? emptyVoxel : nonEmptyVoxel;
-}
-
-
-static inline void markVoxelAsOutside(BOOL outside, voxel_t * voxel)
-{
-    const voxel_t originalVoxel = *voxel;
-    const voxel_t outsideVoxel = originalVoxel | VOXEL_OUTSIDE;
-    const voxel_t nonOutsideVoxel = originalVoxel & ~VOXEL_OUTSIDE;
-    *voxel = outside ? outsideVoxel : nonOutsideVoxel;
-}
-
-
-static inline BOOL isVoxelEmpty(voxel_t voxel)
-{
-    return voxel & VOXEL_EMPTY;
-}
-
-
-static inline BOOL isVoxelOutside(voxel_t voxel)
-{
-    return voxel & VOXEL_OUTSIDE;
-}
-
-
-static inline unsigned avgSunlight(unsigned a, unsigned b, unsigned c, unsigned d)
-{
-    return (a+b+c+d) >> 2;
-}
-
-
-typedef uint16_t block_lighting_vertex_t;
-
-
-// Pack four block lighting values into a single unsigned integer value.
-static inline block_lighting_vertex_t packBlockLightingValuesForVertex(unsigned v0, unsigned v1, unsigned v2, unsigned v3)
-{
-    block_lighting_vertex_t packed1;
-    
-    const unsigned m = 15;
-    
-    packed1 =  (v0 & m)
-            | ((v1 <<  4) & (m <<  4))
-            | ((v2 <<  8) & (m <<  8))
-            | ((v3 << 12) & (m << 12));
-    
-    return packed1;
-}
-
-
-// Extact four block lighting values from a single unsigned integer value.
-static inline void unpackBlockLightingValuesForVertex(block_lighting_vertex_t packed, unsigned * outValues)
-{
-    assert(outValues);
-    
-    const unsigned m = 15;
-    
-    outValues[0] = (packed & m);
-    outValues[1] = (packed & (m <<  4)) >>  4;
-    outValues[2] = (packed & (m <<  8)) >>  8;
-    outValues[3] = (packed & (m << 12)) >> 12;
-}
-
-
-typedef struct
-{
-    /* Each face has four vertices, and we need a brightness factor for
-     * all 24 of these vertices.
-     */
-    
-    block_lighting_vertex_t top;
-    block_lighting_vertex_t bottom;
-    block_lighting_vertex_t left;
-    block_lighting_vertex_t right;
-    block_lighting_vertex_t front;
-    block_lighting_vertex_t back;
-} block_lighting_t;
+typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
 
 
 @interface GSChunkVoxelData : GSChunkData
 {
     NSURL *folder;
-    BOOL dirty;
     dispatch_group_t groupForSaving;
+    dispatch_queue_t chunkTaskQueue;
     
- @public
     GSReaderWriterLock *lockVoxelData;
-    voxel_t *voxelData;
+    voxel_t *voxelData; // the voxels that make up the chunk
     
-    GSReaderWriterLock *lockSunlight;
-    uint8_t *sunlight;
+    GSLightingBuffer *sunlight; // lighting contributions from sunlight
+    BOOL dirtySunlight;
+    int updateForSunlightInFlight;
 }
+
+@property (readonly, nonatomic) voxel_t *voxelData;
+@property (readonly, nonatomic) GSLightingBuffer *sunlight;
+@property (assign) BOOL dirtySunlight;
+
+/* There are circumstances when it is necessary to use this lock directly, but in most cases the reader/writer accessor methods
+ * here and in GSNeighborhood should be preferred.
+ */
+@property (readonly, nonatomic) GSReaderWriterLock *lockVoxelData;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
 
-- (id)initWithSeed:(unsigned)seed
-              minP:(GSVector3)minP
-     terrainHeight:(float)terrainHeight
+- (id)initWithMinP:(GSVector3)minP
             folder:(NSURL *)folder
-    groupForSaving:(dispatch_group_t)groupForSaving;
+    groupForSaving:(dispatch_group_t)groupForSaving
+    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+         generator:(terrain_generator_t)callback;
 
-- (void)updateLightingWithNeighbors:(GSChunkVoxelData **)neighbors doItSynchronously:(BOOL)sync;
+// Must call after modifying voxel data and while still holding the lock on "lockVoxelData".
+- (void)voxelDataWasModified;
 
-- (void)markAsDirtyAndSpinOffSavingTask;
+// Obtains a reader lock on the voxel data and allows the caller to access it in the specified block.
+- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
+
+/* Obtains a writer lock on the voxel data and allows the caller to access it in the specified block. Calls -voxelDataWasModified
+ * after the block returns.
+ */
+- (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
 // Assumes the caller is already holding "lockVoxelData".
-- (voxel_t)getVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
-- (voxel_t *)getPointerToVoxelAtPoint:(GSIntegerVector3)chunkLocalP;
+- (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
+- (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
 
-// Assumes the caller is already holding "lockSunlight" on all neighbors and "lockVoxelData" on self, at least.
-- (void)getSunlightAtPoint:(GSIntegerVector3)p
-                 neighbors:(GSChunkVoxelData **)voxels
-               outLighting:(block_lighting_t *)lighting;
+/* Try to immediately update sunlight using voxel data for the local neighborhood. If it is not possible to immediately take all
+ * the locks on necessary resources then this method aborts the update and returns NO. If it is able to complete the update
+ * successfully then it returns YES and marks this GSChunkVoxelData as being clean. (dirtySunlight=NO)
+ * If the update was able to complete succesfully then the completionHandler block is called.
+ */
+- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler;
 
 @end
-
-
-// Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
-GSChunkVoxelData* getNeighborVoxelAtPoint(GSIntegerVector3 chunkLocalP,
-                                          GSChunkVoxelData **neighbors,
-                                          GSIntegerVector3 *outRelativeToNeighborP);
-
-
-// Assumes the caller is already holding "lockVoxelData" on all chunks in neighbors.
-BOOL isEmptyAtPoint(GSIntegerVector3 p, GSChunkVoxelData **neighbors);
-
-
-void freeNeighbors(GSChunkVoxelData **chunks);
-
-GSChunkVoxelData ** copyNeighbors(GSChunkVoxelData **chunks);

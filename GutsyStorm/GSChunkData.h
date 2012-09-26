@@ -9,10 +9,11 @@
 #import <Foundation/Foundation.h>
 #import "GSVector3.h"
 
-#define CHUNK_SIZE_X (16)
-#define CHUNK_SIZE_Y (128)
-#define CHUNK_SIZE_Z (16)
+
 #define READY (1)
+
+
+typedef id chunk_id_t;
 
 
 @interface GSChunkData : NSObject
@@ -25,6 +26,10 @@
 @property (readonly, nonatomic) GSVector3 minP;
 @property (readonly, nonatomic) GSVector3 maxP;
 @property (readonly, nonatomic) GSVector3 centerP;
+
++ (GSVector3)minCornerForChunkAtPoint:(GSVector3)p;
++ (GSVector3)centerPointOfChunkAtPoint:(GSVector3)p;
++ (chunk_id_t)chunkIDWithChunkMinCorner:(GSVector3)minP;
 
 - (id)initWithMinP:(GSVector3)minP;
 

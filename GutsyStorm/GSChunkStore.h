@@ -13,55 +13,52 @@
 #import "GSChunkGeometryData.h"
 #import "GSCamera.h"
 #import "GSShader.h"
-#import "GSRenderTexture.h"
-
-
-typedef id chunk_id_t;
+#import "GSActiveRegion.h"
+#import "GSGrid.h"
 
 
 @interface GSChunkStore : NSObject
 {
-    NSCache *cacheVoxelData;
-    NSCache *cacheGeometryData;
+    GSGrid *gridVoxelData;
+    GSGrid *gridGeometryData;
     
     dispatch_group_t groupForSaving;
+    dispatch_queue_t chunkTaskQueue;
     
+    NSLock *lock;
+    NSUInteger numVBOGenerationsAllowedPerFrame;
     float terrainHeight;
     unsigned seed;
     GSCamera *camera;
     chunk_id_t oldCenterChunkID;
     NSURL *folder;
     GSShader *terrainShader;
-    GSVector3 activeRegionExtent; // The active region is positioned relative to the camera.
-    
-    size_t maxActiveChunks;
-    GSChunkGeometryData **activeChunks;
-    
-    // Limit the number of times chunk VBOs can be generated per frame.
-    int numVBOGenerationsAllowedPerFrame;
-    int numVBOGenerationsRemaining;
+    NSOpenGLContext *glContext;
+
+    GSActiveRegion *activeRegion;
+    GSVector3 activeRegionExtent; // The active region is specified relative to the camera position.
+    int needsChunkVisibilityUpdate;
 }
-
-@property (readonly, nonatomic) GSVector3 activeRegionExtent;
-
-+ (NSLock *)lockWhileLockingMultipleChunksVoxelData;
-+ (NSLock *)lockWhileLockingMultipleChunksSunlight;
 
 - (id)initWithSeed:(unsigned)_seed
             camera:(GSCamera *)_camera
-     terrainShader:(GSShader *)_terrainShader;
+     terrainShader:(GSShader *)_terrainShader
+         glContext:(NSOpenGLContext *)_glContext;
 
-- (void)drawChunks;
+/* Assumes the caller has already locked the GL context or
+ * otherwise ensures no concurrent GL calls will be made.
+ */
+- (void)drawActiveChunks;
 
 - (void)updateWithDeltaTime:(float)dt
         cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
-- (BOOL)getPositionOfBlockAlongRay:(GSRay)ray
-                           maxDist:(float)maxDist
-                 outDistanceBefore:(float *)outDistanceBefore
-                  outDistanceAfter:(float *)outDistanceAfter;
+/* Enumerates the voxels on the specified ray up to the specified maximum depth. Calls the block for each voxel cell. The block
+ * may set '*stop=YES;' to indicate that enumeration should terminate.
+ */
+- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GSVector3 p, BOOL *stop))block;
 
-- (voxel_t)getVoxelAtPoint:(GSVector3)pos;
+- (voxel_t)voxelAtPoint:(GSVector3)pos;
 
 - (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)block;
 

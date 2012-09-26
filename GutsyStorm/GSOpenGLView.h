@@ -7,6 +7,7 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import <CoreVideo/CVDisplayLink.h>
 #import "GSCamera.h"
 #import "GLString.h"
 #import "GSCube.h"
@@ -16,7 +17,7 @@
 
 @interface GSOpenGLView : NSOpenGLView
 {
-    NSTimer *renderTimer;
+    NSTimer *updateTimer;
     CFAbsoluteTime prevFrameTime, lastRenderTime;
     CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
     size_t numFramesSinceLastFpsLabelUpdate;
@@ -39,6 +40,8 @@
     GSVector3 cursorPos;
     GSVector3 cursorPlacePos;
     GSCube *cursor;
+    
+    CVDisplayLinkRef displayLink;
 }
 
 - (void)drawHUD;
@@ -47,11 +50,12 @@
 - (void)resetMouseInputSettings;
 - (void)timerFired:(id)sender;
 - (unsigned)handleUserInput:(float)dt;
-- (NSString *)loadShaderSourceFileWithPath:(NSString *)path;
+- (NSString *)newShaderSourceStringFromFileAt:(NSString *)path;
 - (void)buildTerrainShader;
 - (void)buildFontsAndStrings;
 - (void)placeBlockUnderCrosshairs;
 - (void)removeBlockUnderCrosshairs;
 - (void)recalcCursorPosition;
+- (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
 
 @end

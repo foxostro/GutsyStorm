@@ -14,6 +14,12 @@
 #import "GSAppDelegate.h"
 
 
+static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
+                                      const CVTimeStamp* now,
+                                      const CVTimeStamp* outputTime,
+                                      CVOptionFlags flagsIn,
+                                      CVOptionFlags* flagsOut,
+                                      void* displayLinkContext);
 int checkGLErrors(void);
 BOOL checkForOpenGLExtension(NSString *extension);
 
@@ -28,7 +34,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
 }
 
 
-- (NSString *)loadShaderSourceFileWithPath:(NSString *)path
+- (NSString *)newShaderSourceStringFromFileAt:(NSString *)path
 {
     NSError *error;
     NSString *str = [[NSString alloc] initWithContentsOfFile:path
@@ -52,9 +58,9 @@ BOOL checkForOpenGLExtension(NSString *extension);
     NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.vert" ofType:@"txt"];
     NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.frag" ofType:@"txt"];
     
-    NSString *vertSrc = [self loadShaderSourceFileWithPath:vertFn];
-    NSString *fragSrc = [self loadShaderSourceFileWithPath:fragFn];
-        
+    NSString *vertSrc = [self newShaderSourceStringFromFileAt:vertFn];
+    NSString *fragSrc = [self newShaderSourceStringFromFileAt:fragFn];
+    
     terrainShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
     
     [fragSrc release];
@@ -74,7 +80,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     stringAttribs = [[NSMutableDictionary dictionary] retain];
     [stringAttribs setObject:font forKey:NSFontAttributeName];
     [stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
-    [font release];
     
     fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
                                       withAttributes:stringAttribs
@@ -151,7 +156,8 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     chunkStore = [[GSChunkStore alloc] initWithSeed:0
                                              camera:camera
-                                      terrainShader:terrainShader];
+                                      terrainShader:terrainShader
+                                          glContext:[self openGLContext]];
     
     GSAppDelegate *appDelegate = [[NSApplication sharedApplication] delegate];
     appDelegate.chunkStore = chunkStore;
@@ -162,6 +168,20 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [self enableVSync];
     
     assert(checkGLErrors() == 0);
+    
+    // Create a display link capable of being used with all active displays
+    CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
+    
+    // Set the renderer output callback function
+    CVDisplayLinkSetOutputCallback(displayLink, &MyDisplayLinkCallback, (void *)self);
+    
+    // Set the display link for the current renderer
+    CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
+    CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
+    CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, cglContext, cglPixelFormat);
+    
+    // Activate the display link
+    CVDisplayLinkStart(displayLink);
 }
 
 
@@ -189,7 +209,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     chunkStore = nil;
     spaceBarDebounce = NO;
     bKeyDebounce = NO;
-    maxPlaceDistance = 4.0;
+    maxPlaceDistance = 6.0;
     
     // XXX: Should the cursor be handled in its own unique class?
     cursorIsActive = NO;
@@ -206,17 +226,14 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [[self window] setAcceptsMouseMovedEvents: YES];
     
     // Register a timer to drive the game loop.
-    renderTimer = [NSTimer timerWithTimeInterval:0.001
+    updateTimer = [NSTimer timerWithTimeInterval:1.0 / 30.0
                                           target:self
                                         selector:@selector(timerFired:)
                                         userInfo:nil
                                          repeats:YES];
                    
-    [[NSRunLoop currentRunLoop] addTimer:renderTimer 
+    [[NSRunLoop currentRunLoop] addTimer:updateTimer 
                                  forMode:NSDefaultRunLoopMode];
-    
-    [[NSRunLoop currentRunLoop] addTimer:renderTimer 
-                                 forMode:NSEventTrackingRunLoopMode]; // Ensure timer fires during resize
 }
 
 
@@ -248,7 +265,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     NSRect bounds = [self bounds];
     CGPoint viewCenter;
     viewCenter.x = bounds.origin.x + bounds.size.width / 2;
-    viewCenter.x = bounds.origin.y + bounds.size.height / 2;
+    viewCenter.y = bounds.origin.y + bounds.size.height / 2;
     CGWarpMouseCursorPosition(viewCenter);
 }
 
@@ -354,23 +371,22 @@ BOOL checkForOpenGLExtension(NSString *extension);
 - (void)recalcCursorPosition
 {
     GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
-    float distBefore = 0, distAfter = 0;
-    BOOL foundABlock = [chunkStore getPositionOfBlockAlongRay:ray
-                                                      maxDist:maxPlaceDistance
-                                            outDistanceBefore:&distBefore
-                                             outDistanceAfter:&distAfter];
+    __block GSVector3 prev = ray.origin;
     
-    if(foundABlock) {
-        cursorPos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), distAfter));
-        cursorPos = GSVector3_Make((int)cursorPos.x, (int)cursorPos.y, (int)cursorPos.z);
+    cursorIsActive = NO; // reset
+    
+    [chunkStore enumerateVoxelsOnRay:ray maxDepth:maxPlaceDistance withBlock:^(GSVector3 p, BOOL *stop) {
+        voxel_t voxel = [chunkStore voxelAtPoint:p];
         
-        cursorPlacePos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), distBefore));
-        cursorPlacePos = GSVector3_Make((int)cursorPlacePos.x, (int)cursorPlacePos.y, (int)cursorPlacePos.z);
-        
-        cursorIsActive = YES;
-    } else {
-        cursorIsActive = NO;
-    }
+        if(!isVoxelEmpty(voxel)) {
+            cursorIsActive = YES;
+            cursorPos = p;
+            cursorPlacePos = prev;
+            *stop = YES;
+        } else {
+            prev = p;
+        }
+    }];
 }
 
 
@@ -393,7 +409,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
     
     prevFrameTime = frameTime;
-    [self setNeedsDisplay:YES];
 }
 
 
@@ -444,10 +459,16 @@ BOOL checkForOpenGLExtension(NSString *extension);
 }
 
 
-- (void)drawRect:(NSRect)dirtyRect
+- (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime
 {
     static const float edgeOffset = 1e-4;
     static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
+    
+    NSOpenGLContext *currentContext = [self openGLContext];
+    [currentContext makeCurrentContext];
+    
+    // must lock GL context because display link is threaded
+    CGLLockContext((CGLContextObj)[currentContext CGLContextObj]);
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPushMatrix();
@@ -458,7 +479,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 
     glDepthRange(edgeOffset, 1.0); // Use glDepthRange so the block cursor is properly offset from the block itself.
-    [chunkStore drawChunks];
+    [chunkStore drawActiveChunks];
     
     if(cursorIsActive) {
         glDepthRange(0.0, 1.0 - edgeOffset);
@@ -474,11 +495,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     [self drawHUD];
 
-    if ([self inLiveResize]) {
-        glFlush();
-    } else {
-        [[self openGLContext] flushBuffer];
-    }
+    [currentContext flushBuffer];
     
     CFAbsoluteTime time = CFAbsoluteTimeGetCurrent();
     
@@ -493,6 +510,9 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     lastRenderTime = time;
     numFramesSinceLastFpsLabelUpdate++;
+    
+    CGLUnlockContext((CGLContextObj)[currentContext CGLContextObj]);
+    return kCVReturnSuccess;
 }
 
 
@@ -504,10 +524,27 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [textureArray release];
     [cursor release];
     
+    CVDisplayLinkRelease(displayLink);
+    
     [super dealloc];
 }
 
 @end
+
+
+// This is the renderer output callback function
+static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
+                                      const CVTimeStamp *now,
+                                      const CVTimeStamp *outputTime,
+                                      CVOptionFlags flagsIn,
+                                      CVOptionFlags *flagsOut,
+                                      void *displayLinkContext)
+{
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    CVReturn result = [(GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
+    [pool release];
+    return result;
+}
 
 
 // Returns YES if the given OpenGL extension is supported on this machine.

@@ -18,8 +18,8 @@ extern int checkGLErrors(void);
 - (const GLchar **)buildSourceStringsArray:(NSString *)source
                                     length:(GLsizei *)length;
 
-- (NSString *)getShaderInfoLog:(GLuint)shader;
-- (NSString *)getProgramInfoLog:(GLuint)program;
+- (NSString *)shaderInfoLog:(GLuint)shader;
+- (NSString *)programInfoLog:(GLuint)program;
 - (BOOL)wasShaderCompileSuccessful:(GLuint)shader;
 - (BOOL)wasProgramLinkSuccessful:(GLuint)shader;
 - (void)createShaderWithSource:(NSString *)sourceString
@@ -96,14 +96,12 @@ extern int checkGLErrors(void);
         src[i] = [object cStringUsingEncoding:NSMacOSRomanStringEncoding];
     }
     
-    [lines release];
-    
     (*length) = (GLsizei)count;
     return src;
 }
 
 
-- (NSString *)getShaderInfoLog:(GLuint)shader
+- (NSString *)shaderInfoLog:(GLuint)shader
 {
     GLint errorLogLen = 0;
     
@@ -117,8 +115,7 @@ extern int checkGLErrors(void);
     
     glGetShaderInfoLog(shader, errorLogLen, NULL, buffer);
     
-    NSString *infoLogStr = [NSString stringWithCString:buffer
-                                              encoding:NSMacOSRomanStringEncoding];
+    NSString *infoLogStr = [NSString stringWithCString:buffer encoding:NSMacOSRomanStringEncoding];
     
     free(buffer);
     
@@ -126,7 +123,7 @@ extern int checkGLErrors(void);
 }
 
 
-- (NSString *)getProgramInfoLog:(GLuint)program
+- (NSString *)programInfoLog:(GLuint)program
 {
     GLint errorLogLen = 0;
     
@@ -140,8 +137,7 @@ extern int checkGLErrors(void);
     
     glGetProgramInfoLog(program, errorLogLen, NULL, buffer);
     
-    NSString *infoLogStr = [NSString stringWithCString:buffer
-                                              encoding:NSMacOSRomanStringEncoding];
+    NSString *infoLogStr = [NSString stringWithCString:buffer encoding:NSMacOSRomanStringEncoding];
     
     free(buffer);
     
@@ -157,11 +153,7 @@ extern int checkGLErrors(void);
     
     // if compilation failed, print the log
     if(!status) {
-        NSString *infoLog = [self getShaderInfoLog:shader];
-        
-        NSLog(@"Failed to compile shader object:\n%@", infoLog);
-        [infoLog release];
-        
+        NSLog(@"Failed to compile shader object:\n%@", [self shaderInfoLog:shader]);
         return NO;
     } else {
         return YES;
@@ -177,9 +169,7 @@ extern int checkGLErrors(void);
     
     // if compilation failed, print the log
     if(!status) {
-        NSString *infoLog = [self getShaderInfoLog:program];
-        NSLog(@"Failed to link shader program:\n%@", infoLog);
-        [infoLog release];
+        NSLog(@"Failed to link shader program:\n%@", [self programInfoLog:program]);
         return NO;
     } else {
         return YES;

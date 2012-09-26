@@ -7,12 +7,33 @@
 //
 
 #import "GSChunkData.h"
+#import "Voxel.h"
+#import "GSBoxedVector.h"
 
 @implementation GSChunkData
 
 @synthesize minP;
 @synthesize maxP;
 @synthesize centerP;
+
++ (GSVector3)minCornerForChunkAtPoint:(GSVector3)p
+{
+    return GSVector3_Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
+                          floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
+                          floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
+}
+
++ (GSVector3)centerPointOfChunkAtPoint:(GSVector3)p
+{
+    return GSVector3_Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,
+                          floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
+                          floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z + CHUNK_SIZE_Z/2);
+}
+
++ (chunk_id_t)chunkIDWithChunkMinCorner:(GSVector3)minP
+{
+    return [[[GSBoxedVector alloc] initWithVector:minP] autorelease];
+}
 
 - (id)initWithMinP:(GSVector3)_minP
 {

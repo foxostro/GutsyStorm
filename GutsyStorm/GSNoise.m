@@ -31,13 +31,13 @@
 }
 
 
-- (float)getNoiseAtPoint:(GSVector3)p
+- (float)noiseAtPoint:(GSVector3)p
 {
     return FeepingCreature_noise3(p, context);
 }
 
 
-- (float)getNoiseAtPoint:(GSVector3)p numOctaves:(unsigned)numOctaves
+- (float)noiseAtPoint:(GSVector3)p numOctaves:(unsigned)numOctaves
 {
     const float persistence = 0.5;
     float noise = 0.0;
@@ -49,7 +49,20 @@
         noise += FeepingCreature_noise3(GSVector3_Scale(p, frequency), context) * amplitude;
     }
     
-    return noise; 
+    return noise;
+}
+
+
+- (float)noiseAtPointWithFourOctaves:(GSVector3)p
+{
+    float noise;
+    
+    noise =  FeepingCreature_noise3(GSVector3_Scale(p, 1.0f), context) * 0.5000f;
+    noise += FeepingCreature_noise3(GSVector3_Scale(p, 2.0f), context) * 0.2500f;
+    noise += FeepingCreature_noise3(GSVector3_Scale(p, 4.0f), context) * 0.1250f;
+    noise += FeepingCreature_noise3(GSVector3_Scale(p, 8.0f), context) * 0.0625f;
+    
+    return noise;
 }
 
 

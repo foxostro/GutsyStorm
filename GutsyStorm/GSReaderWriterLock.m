@@ -32,6 +32,30 @@
 }
 
 
+- (BOOL)tryLockForReading
+{
+    BOOL success = YES;
+    
+    if(0 != dispatch_semaphore_wait(mutex, DISPATCH_TIME_NOW)) {
+        return NO;
+    }
+
+    readcount++;
+    
+    if(1 == readcount) {
+        if(0 != dispatch_semaphore_wait(writing, DISPATCH_TIME_NOW)) {
+            // There is a writer holding the lock right now.
+            readcount--;
+            success = NO;
+        }
+    }
+    
+    dispatch_semaphore_signal(mutex);
+    
+    return success;
+}
+
+
 - (void)lockForReading
 {
     dispatch_semaphore_wait(mutex, DISPATCH_TIME_FOREVER);
@@ -57,6 +81,12 @@
     }
     
     dispatch_semaphore_signal(mutex);    
+}
+
+
+- (BOOL)tryLockForWriting
+{
+    return 0 == dispatch_semaphore_wait(writing, DISPATCH_TIME_NOW);
 }
 
 

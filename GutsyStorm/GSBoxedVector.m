@@ -35,28 +35,52 @@ static NSUInteger sdbm(const size_t len, const char * str)
 
 @implementation GSBoxedVector
 
++ (GSBoxedVector *)boxedVectorWithVector:(GSVector3)vector
+{
+    return [[[GSBoxedVector alloc] initWithVector:vector] autorelease];
+}
+
+
++ (GSBoxedVector *)boxedVectorWithIntegerVector:(GSIntegerVector3)vector
+{
+    return [[[GSBoxedVector alloc] initWithIntegerVector:vector] autorelease];
+}
+
+
 - (id)initWithVector:(GSVector3)v
 {
     self = [super init];
     if (self) {
         // Initialization code here.
-        [self setVector:v];
+        vector = v;
+        cachedHash = [self computeHash];
     }
     
     return self;
 }
 
 
-- (GSVector3)getVector
+- (id)initWithIntegerVector:(GSIntegerVector3)v
+{
+    self = [super init];
+    if (self) {
+        vector = GSVector3_Make(v.x, v.y, v.z);
+        cachedHash = [self computeHash];
+    }
+    
+    return self;
+}
+
+
+- (GSVector3)vectorValue
 {
     return vector;
 }
 
 
-- (void)setVector:(GSVector3)v
+- (GSIntegerVector3)integerVectorValue
 {
-    vector = v;
-    cachedHash = [self computeHash];
+    return GSIntegerVector3_Make(vector.x, vector.y, vector.z);
 }
 
 
@@ -80,7 +104,7 @@ static NSUInteger sdbm(const size_t len, const char * str)
         return YES;
     }
     
-    GSVector3 vector2 = [otherVector getVector];
+    GSVector3 vector2 = [otherVector vectorValue];
     
     return GSVector3_AreEqual(vector, vector2);
 }
@@ -95,6 +119,12 @@ static NSUInteger sdbm(const size_t len, const char * str)
 - (NSString *)toString
 {
     return [NSString stringWithFormat:@"%f_%f_%f", vector.x, vector.y, vector.z];
+}
+
+- (id)copyWithZone:(NSZone *)zone
+{
+    [self retain];
+    return self;
 }
 
 @end

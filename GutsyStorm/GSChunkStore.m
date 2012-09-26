@@ -13,32 +13,25 @@
 #import "GSBoxedRay.h"
 #import "GSBoxedVector.h"
 #import "GSChunkStore.h"
+#import "GSNoise.h"
+
+static float groundGradient(float terrainHeight, GSVector3 p);
+static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p, voxel_t *outVoxel);
 
 
 @interface GSChunkStore (Private)
 
-+ (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed;
-- (void)deallocChunksWithArray:(GSChunkData **)array len:(size_t)len;
-- (GSVector3)computeChunkMinPForPoint:(GSVector3)p;
-- (GSVector3)computeChunkCenterForPoint:(GSVector3)p;
-- (chunk_id_t)getChunkIDWithMinP:(GSVector3)minP;
-- (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock;
-- (void)computeChunkVisibility;
-- (void)computeActiveChunks:(BOOL)sorted;
-- (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
-- (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints;
-- (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks;
-- (void)getNeighborsForChunkAtPoint:(GSVector3)p outNeighbors:(GSChunkVoxelData **)neighbors;
-
-- (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p;
-- (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p;
++ (NSURL *)newWorldSaveFolderURLWithSeed:(unsigned)seed;
+- (void)updateChunkVisibilityForActiveRegion;
+- (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
+- (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p;
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p;
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p;
 
 @end
 
 
 @implementation GSChunkStore
-
-@synthesize activeRegionExtent;
 
 + (void)initialize
 {
@@ -49,83 +42,65 @@
         [[NSUserDefaults standardUserDefaults] registerDefaults:values];
     }
     
+    if(![defaults objectForKey:@"NumVBOGenerationsAllowedPerFrame"]) {
+        NSDictionary *values = [NSDictionary dictionaryWithObjectsAndKeys:@"64", @"NumVBOGenerationsAllowedPerFrame", nil];
+        [[NSUserDefaults standardUserDefaults] registerDefaults:values];
+    }
+    
     [[NSUserDefaults standardUserDefaults] synchronize];
-}
-
-
-+ (NSLock *)lockWhileLockingMultipleChunksVoxelData
-{
-    static dispatch_once_t onceToken;
-    static NSLock *doingNeighborhoodLock = nil;
-    
-    dispatch_once(&onceToken, ^{
-        doingNeighborhoodLock = [[NSLock alloc] init];
-        [doingNeighborhoodLock setName:@"lockWhileLockingMultipleChunksVoxelData"];
-    });
-    
-    return doingNeighborhoodLock;
-}
-
-
-+ (NSLock *)lockWhileLockingMultipleChunksSunlight
-{
-    static dispatch_once_t onceToken;
-    static NSLock *doingNeighborhoodLock = nil;
-    
-    dispatch_once(&onceToken, ^{
-        doingNeighborhoodLock = [[NSLock alloc] init];
-        [doingNeighborhoodLock setName:@"lockWhileLockingMultipleChunksSunlight"];
-    });
-    
-    return doingNeighborhoodLock;
 }
 
 
 - (id)initWithSeed:(unsigned)_seed
             camera:(GSCamera *)_camera
      terrainShader:(GSShader *)_terrainShader
+         glContext:(NSOpenGLContext *)_glContext
 {
     self = [super init];
     if (self) {
         // Initialization code here.
         seed = _seed;
         terrainHeight = 40.0;
-        folder = [GSChunkStore createWorldSaveFolderWithSeed:seed];
+        folder = [GSChunkStore newWorldSaveFolderURLWithSeed:seed];
         groupForSaving = dispatch_group_create();
         
         camera = _camera;
         [camera retain];
-        oldCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
+        oldCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[camera cameraEye]]];
         [oldCenterChunkID retain];
         
         terrainShader = _terrainShader;
         [terrainShader retain];
         
-        numVBOGenerationsAllowedPerFrame = 1;
-        numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
+        glContext = _glContext;
+        [glContext retain];
         
-        // Active region is bounded at y>=0.
+        lock = [[NSLock alloc] init];
+        
+        /* VBO generation must be performed on the main thread.
+         * To preserve responsiveness, limit the number of VBOs we create per frame.
+         */
+        NSInteger n = [[NSUserDefaults standardUserDefaults] integerForKey:@"NumVBOGenerationsAllowedPerFrame"];
+        assert(n > 0 && n < INT_MAX);
+        numVBOGenerationsAllowedPerFrame = (int)n;
+        
+        chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
+        
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
+        
+        size_t areaXZ = (w/CHUNK_SIZE_X) * (w/CHUNK_SIZE_Z);
+        gridGeometryData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
+        gridVoxelData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
+        
+        // Do a full refresh fo the active region
+        // Active region is bounded at y>=0.
         activeRegionExtent = GSVector3_Make(w, CHUNK_SIZE_Y, w);
-        assert(fmodf(activeRegionExtent.x, CHUNK_SIZE_X) == 0);
-        assert(fmodf(activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
-        assert(fmodf(activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
+        activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:activeRegionExtent];
+        [activeRegion updateWithSorting:YES camera:camera chunkProducer:^GSChunkGeometryData *(GSVector3 p) {
+            return [self chunkGeometryAtPoint:p];
+        }];
+        needsChunkVisibilityUpdate = 1;
         
-        maxActiveChunks = (2*activeRegionExtent.x/CHUNK_SIZE_X) *
-                          (activeRegionExtent.y/CHUNK_SIZE_Y) *
-                          (2*activeRegionExtent.z/CHUNK_SIZE_Z);
-        
-        activeChunks = calloc(maxActiveChunks, sizeof(GSChunkGeometryData *));
-        
-        cacheGeometryData = [[NSCache alloc] init];
-        [cacheGeometryData setCountLimit:INT_MAX];
-        
-        cacheVoxelData = [[NSCache alloc] init];
-        [cacheVoxelData setCountLimit:INT_MAX];
-        
-        // Do a full refresh.
-        [self computeActiveChunks:YES];
-        [self computeChunkVisibility];
     }
     
     return self;
@@ -134,9 +109,11 @@
 
 - (void)waitForSaveToFinish
 {
+    [lock lock];
     NSLog(@"Waiting for all chunk-saving tasks to complete.");
     dispatch_group_wait(groupForSaving, DISPATCH_TIME_FOREVER); // wait for save operations to complete
     NSLog(@"All chunks have been saved.");
+    [lock unlock];
 }
 
 
@@ -145,17 +122,21 @@
     [self waitForSaveToFinish];
     dispatch_release(groupForSaving);
     
-    [cacheVoxelData release];
-    [cacheGeometryData release];
+    [gridVoxelData release];
+    [gridGeometryData release];
     [camera release];
     [folder release];
     [terrainShader release];
-    [self deallocChunksWithArray:activeChunks len:maxActiveChunks];
+    [glContext release];
+    [lock release];
+    [activeRegion release];
+    dispatch_release(chunkTaskQueue);
+    
     [super dealloc];
 }
 
 
-- (void)drawChunks
+- (void)drawActiveChunks
 {
     [terrainShader bind];
     
@@ -165,16 +146,19 @@
     glEnableClientState(GL_COLOR_ARRAY);
     
     glTranslatef(0.5, 0.5, 0.5);
-        
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        GSChunkGeometryData *chunk = activeChunks[i];
-        assert(chunk);
-        
-        if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining > 0)]) {
-            numVBOGenerationsRemaining--;
-        }
+    
+    // Update chunk visibility flags now. We've been told it's necessary.
+    if(OSAtomicCompareAndSwapIntBarrier(1, 0, &needsChunkVisibilityUpdate)) {
+        [self updateChunkVisibilityForActiveRegion];
     }
+
+    __block NSUInteger numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
+    [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
+        assert(chunk);
+        if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
+            numVBOGenerationsRemaining--;
+        };
+    }];
     
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -185,129 +169,178 @@
 }
 
 
+// Try to update asynchronously dirty chunk sunlight. Skip any that would block due to lock contention.
+- (void)tryToUpdateDirtySunlight
+{
+    dispatch_async(chunkTaskQueue, ^{
+        void (^b)(GSVector3) = ^(GSVector3 p) {
+            GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:p];
+            dispatch_async(chunkTaskQueue, ^{
+                if(voxels.dirtySunlight) {
+                    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:voxels.centerP];
+                    [voxels tryToRebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
+                        GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:p];
+                        geometry.dirty = YES;
+                        [geometry tryToUpdateWithVoxelData:neighborhood]; // make an effort to update geometry immediately
+                    }];
+                }
+            });
+        };
+        
+        [activeRegion enumeratePointsInActiveRegionNearCamera:camera usingBlock:b];
+    });
+}
+
+
+// Try to asynchronously update dirty chunk geometry. Skip any that would block due to lock contention.
+- (void)tryToUpdateDirtyGeometry
+{
+    dispatch_async(chunkTaskQueue, ^{
+        void (^b)(GSChunkGeometryData *) = ^(GSChunkGeometryData *geometry) {
+            dispatch_async(chunkTaskQueue, ^{
+                if(geometry.dirty) {
+                    [geometry tryToUpdateWithVoxelData:[self neighborhoodAtPoint:geometry.centerP]];
+                }
+            });
+        };
+        
+        [activeRegion enumerateActiveChunkWithBlock:b];
+    });
+}
+
+
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame; // reset
-    [self recalculateActiveChunksWithCameraModifiedFlags:flags];
+    [self tryToUpdateDirtySunlight];
+    [self tryToUpdateDirtyGeometry];    
+    [self updateActiveChunksWithCameraModifiedFlags:flags];
 }
 
 
 - (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)newBlock
 {
-    /* XXX: There is a bug where geometry may fail to update after changing a block in the chunk.
-     *      This occurs frequently when running in Debug mode and infrequently when running in Release mode.
+    GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
+    [chunk writerAccessToVoxelDataUsingBlock:^{
+        GSVector3 chunkLocalP;
+        voxel_t *block;
+        
+        chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+        
+        block = [chunk pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+        assert(block);
+        
+        *block = newBlock;
+    }];
+    
+    /* Invalidate sunlight data and geometry for the modified chunk and surrounding chunks.
+     * Chunks' sunlight and geometry will be updated on the next update tick.
      */
-    
-    voxel_t *block;
-    GSVector3 chunkLocalP;
-    GSChunkVoxelData *chunk;
-    
-    chunk = [self getChunkVoxelsAtPoint:pos];
-    [chunk retain];
-    [chunk->lockVoxelData lockForWriting];
-    
-    chunkLocalP = GSVector3_Sub(pos, chunk.minP);
-    block = [chunk getPointerToVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
-    assert(block);
-    *block = newBlock;
-    
-    [chunk->lockVoxelData unlockForWriting];
-    
-    [chunk markAsDirtyAndSpinOffSavingTask]; // save the changes asynchronously
-    [chunk release];
-    
-    // Now update geometry for this chunk and its neighbors.
-    // Do it all synchronously too, so changes will appear "immediately."
-    GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
-    [self getNeighborsForChunkAtPoint:pos outNeighbors:chunks];
-    
-    for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        GSChunkVoxelData *neighbors[CHUNK_NUM_NEIGHBORS] = {nil};
-        [self getNeighborsForChunkAtPoint:chunks[i].centerP outNeighbors:neighbors];
-        [chunks[i] updateLightingWithNeighbors:neighbors doItSynchronously:YES];
-        [[self getChunkGeometryAtPoint:chunks[i].centerP] updateWithVoxelData:neighbors doItSynchronously:YES];
-    }
+    [[self neighborhoodAtPoint:pos] enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
+        voxels.dirtySunlight = YES;
+        [self chunkGeometryAtPoint:voxels.centerP].dirty = YES;
+    }];
 }
 
 
-- (voxel_t)getVoxelAtPoint:(GSVector3)pos
+- (voxel_t)voxelAtPoint:(GSVector3)pos
 {
-    GSChunkVoxelData *chunk = [self getChunkVoxelsAtPoint:pos];
-    [chunk retain];
-    [chunk->lockVoxelData lockForReading];
-
-    GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+    __block voxel_t block;
+    GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
     
-    voxel_t block = [chunk getVoxelAtPoint:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
-
-    [chunk->lockVoxelData unlockForReading];
-    [chunk release];
+    [chunk readerAccessToVoxelDataUsingBlock:^{
+        GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+        block = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+    }];
     
     return block;
 }
 
 
-/* Get the distance to the first intersection of the ray with a solid block.
- * A distance before the intersection will be returned in outDistanceBefore.
- * A distance after the intersection will be returned in outDistanceAfter.
- * Will not look farther than maxDist.
- * Returns YES if an intersection could be found, false otherwise.
- */
-- (BOOL)getPositionOfBlockAlongRay:(GSRay)ray
-                           maxDist:(float)maxDist
-                  outDistanceBefore:(float *)outDistanceBefore
-                  outDistanceAfter:(float *)outDistanceAfter
+- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GSVector3 p, BOOL *stop))block
 {
-    assert(maxDist > 0);
+    /* Implementation is based on:
+     * "A Fast Voxel Traversal Algorithm for Ray Tracing"
+     * John Amanatides, Andrew Woo
+     * http://www.cse.yorku.ca/~amana/research/grid.pdf
+     *
+     * See also: http://www.xnawiki.com/index.php?title=Voxel_traversal
+     */
     
-    const size_t MAX_PASSES = 6;
-    const float step[MAX_PASSES] = {1.0f, 0.1f, 0.01f, 0.001f, 0.0001f, 0.00001f};
+    // NOTES:
+    // * This code assumes that the ray's position and direction are in 'cell coordinates', which means
+    //   that one unit equals one cell in all directions.
+    // * When the ray doesn't start within the voxel grid, calculate the first position at which the
+    //   ray could enter the grid. If it never enters the grid, there is nothing more to do here.
+    // * Also, it is important to test when the ray exits the voxel grid when the grid isn't infinite.
+    // * The Point3D structure is a simple structure having three integer fields (X, Y and Z).
     
-    BOOL foundAnything = NO;
-    float d = 0, prevD = 0;
+    // The cell in which the ray starts.
+    GSIntegerVector3 start = GSIntegerVector3_Make(floorf(ray.origin.x), floorf(ray.origin.y), floorf(ray.origin.z));
+    int x = (int)start.x;
+    int y = (int)start.y;
+    int z = (int)start.z;
     
-    for(size_t i = 0; i < MAX_PASSES; ++i)
+    // Determine which way we go.
+    int stepX = (ray.direction.x<0) ? -1 : (ray.direction.x==0) ? 0 : +1;
+    int stepY = (ray.direction.y<0) ? -1 : (ray.direction.y==0) ? 0 : +1;
+    int stepZ = (ray.direction.z<0) ? -1 : (ray.direction.z==0) ? 0 : +1;
+    
+    // Calculate cell boundaries. When the step (i.e. direction sign) is positive,
+    // the next boundary is AFTER our current position, meaning that we have to add 1.
+    // Otherwise, it is BEFORE our current position, in which case we add nothing.
+    GSIntegerVector3 cellBoundary = GSIntegerVector3_Make(x + (stepX > 0 ? 1 : 0),
+                                                          y + (stepY > 0 ? 1 : 0),
+                                                          z + (stepZ > 0 ? 1 : 0));
+    
+    // NOTE: For the following calculations, the result will be Single.PositiveInfinity
+    // when ray.Direction.X, Y or Z equals zero, which is OK. However, when the left-hand
+    // value of the division also equals zero, the result is Single.NaN, which is not OK.
+    
+    // Determine how far we can travel along the ray before we hit a voxel boundary.
+    GSVector3 tMax = GSVector3_Make((cellBoundary.x - ray.origin.x) / ray.direction.x,    // Boundary is a plane on the YZ axis.
+                                    (cellBoundary.y - ray.origin.y) / ray.direction.y,    // Boundary is a plane on the XZ axis.
+                                    (cellBoundary.z - ray.origin.z) / ray.direction.z);   // Boundary is a plane on the XY axis.
+    if(isnan(tMax.x)) { tMax.x = +INFINITY; }
+    if(isnan(tMax.y)) { tMax.y = +INFINITY; }
+    if(isnan(tMax.z)) { tMax.z = +INFINITY; }
+
+    // Determine how far we must travel along the ray before we have crossed a gridcell.
+    GSVector3 tDelta = GSVector3_Make(stepX / ray.direction.x,                    // Crossing the width of a cell.
+                                      stepY / ray.direction.y,                    // Crossing the height of a cell.
+                                      stepZ / ray.direction.z);                   // Crossing the depth of a cell.
+    if(isnan(tDelta.x)) { tDelta.x = +INFINITY; }
+    if(isnan(tDelta.y)) { tDelta.y = +INFINITY; }
+    if(isnan(tDelta.z)) { tDelta.z = +INFINITY; }
+    
+    // For each step, determine which distance to the next voxel boundary is lowest (i.e.
+    // which voxel boundary is nearest) and walk that way.
+    for(int i = 0; i < maxDepth; i++)
     {
-        // Sweep forward to find the intersection point.
-        for(d = prevD; d < maxDist; d += step[i])
-        {
-            GSVector3 pos = GSVector3_Add(ray.origin, GSVector3_Scale(GSVector3_Normalize(ray.direction), d));
-            
-            // world does not extend below y=0
-            if(pos.y < 0) {
-                return NO;
-            }
-            
-            // world does not extend below y=activeRegionExtent.y
-            if(pos.y >= activeRegionExtent.y) {
-                return NO;
-            }
-            
-            voxel_t block = [self getVoxelAtPoint:pos];
-            
-            if(!isVoxelEmpty(block)) {
-                foundAnything = YES;
-                break;
-            }
-            
-            prevD = d;
+        if(y >= activeRegionExtent.y || y < 0) {
+            return; // The vertical extent of the world is limited.
         }
         
-        if(!foundAnything) {
-            return NO;
+        BOOL stop = NO;
+        block(GSVector3_Make(x, y, z), &stop);
+        if(stop) {
+            return;
+        }
+        
+        // Do the next step.
+        if (tMax.x < tMax.y && tMax.x < tMax.z) {
+            // tMax.X is the lowest, an YZ cell boundary plane is nearest.
+            x += stepX;
+            tMax.x += tDelta.x;
+        } else if (tMax.y < tMax.z) {
+            // tMax.Y is the lowest, an XZ cell boundary plane is nearest.
+            y += stepY;
+            tMax.y += tDelta.y;
+        } else {
+            // tMax.Z is the lowest, an XY cell boundary plane is nearest.
+            z += stepZ;
+            tMax.z += tDelta.z;
         }
     }
-    
-    if(outDistanceBefore) {
-        *outDistanceBefore = prevD;
-    }
-    
-    if(outDistanceAfter) {
-        *outDistanceAfter = d;
-    }
-    
-    return YES;
 }
 
 @end
@@ -315,113 +348,54 @@
 
 @implementation GSChunkStore (Private)
 
-- (GSChunkGeometryData *)getChunkGeometryAtPoint:(GSVector3)p
+- (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p
 {
-    GSChunkGeometryData *geometry = nil;
-    GSVector3 minP = [self computeChunkMinPForPoint:p];
-    chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
+    GSNeighborhood *neighborhood = [[[GSNeighborhood alloc] init] autorelease];
     
-    assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
-    
-    geometry = [cacheGeometryData objectForKey:chunkID];
-    if(!geometry) {
-        GSChunkVoxelData *chunks[CHUNK_NUM_NEIGHBORS] = {nil};
-        [self getNeighborsForChunkAtPoint:p outNeighbors:chunks];
-        
-        // Now that neighboring chunks are actually available, spin off a task to asynchronously update lighting in the chunk.
-        [chunks[CHUNK_NEIGHBOR_CENTER] updateLightingWithNeighbors:chunks doItSynchronously:NO];
-        
-        geometry = [[[GSChunkGeometryData alloc] initWithMinP:minP voxelData:chunks] autorelease];
-        
-        [cacheGeometryData setObject:geometry forKey:chunkID];
-    }
-    
-    return geometry;
-}
-
-
-- (void)getNeighborsForChunkAtPoint:(GSVector3)p outNeighbors:(GSChunkVoxelData **)neighbors;
-{
-    neighbors[CHUNK_NEIGHBOR_POS_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(+CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_POS_X_ZER_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(+CHUNK_SIZE_X, 0, 0))];
-    neighbors[CHUNK_NEIGHBOR_POS_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(+CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_NEG_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_NEG_X_ZER_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(-CHUNK_SIZE_X, 0, 0))];
-    neighbors[CHUNK_NEIGHBOR_NEG_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(-CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_ZER_X_NEG_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(0, 0, -CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_ZER_X_POS_Z] = [self getChunkVoxelsAtPoint:GSVector3_Add(p, GSVector3_Make(0, 0, +CHUNK_SIZE_Z))];
-    neighbors[CHUNK_NEIGHBOR_CENTER] = [self getChunkVoxelsAtPoint:p];
-}
-
-
-- (GSChunkVoxelData *)getChunkVoxelsAtPoint:(GSVector3)p
-{
-    GSVector3 minP = [self computeChunkMinPForPoint:p];
-    chunk_id_t chunkID = [self getChunkIDWithMinP:minP];
-    
-    assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
-    
-    GSChunkVoxelData *voxels = [cacheVoxelData objectForKey:chunkID];
-    if(!voxels) {
-        voxels = [[[GSChunkVoxelData alloc] initWithSeed:seed
-                                                    minP:minP
-                                           terrainHeight:terrainHeight
-                                                  folder:folder
-                                          groupForSaving:groupForSaving] autorelease];
-        
-        [cacheVoxelData setObject:voxels forKey:chunkID];
-    }
-    
-    return voxels;
-}
-
-
-- (void)deallocChunksWithArray:(GSChunkData **)array len:(size_t)len
-{
-    for(size_t i = 0; i < len; ++i)
+    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        [array[i] release];
-        array[i] = nil;
+        GSVector3 a = GSVector3_Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
+        [neighborhood setNeighborAtIndex:i neighbor:[self chunkVoxelsAtPoint:a]];
     }
-    free(array);
+    
+    return neighborhood;
 }
 
 
-- (NSArray *)sortChunksByDistFromCamera:(NSMutableArray *)unsortedChunks
-{    
-    GSVector3 cameraEye = [camera cameraEye];
-    
-    NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(id a, id b) {
-        GSChunkData *chunkA = (GSChunkData *)a;
-        GSChunkData *chunkB = (GSChunkData *)b;
-        GSVector3 centerA = GSVector3_Scale(GSVector3_Add([chunkA minP], [chunkA maxP]), 0.5);
-        GSVector3 centerB = GSVector3_Scale(GSVector3_Add([chunkB minP], [chunkB maxP]), 0.5);
-        float distA = GSVector3_Length(GSVector3_Sub(centerA, cameraEye));
-        float distB = GSVector3_Length(GSVector3_Sub(centerB, cameraEye));;
-        return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
-    }];
-    
-    return sortedChunks;
-}
-
-
-- (NSArray *)sortPointsByDistFromCamera:(NSMutableArray *)unsortedPoints
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p
 {
-    GSVector3 center = [camera cameraEye];
+    assert(p.y >= 0); // world does not extend below y=0
+    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
-    return [unsortedPoints sortedArrayUsingComparator: ^(id a, id b) {
-        GSVector3 centerA = [(GSBoxedVector *)a getVector];
-        GSVector3 centerB = [(GSBoxedVector *)b getVector];
-        float distA = GSVector3_Length(GSVector3_Sub(centerA, center));
-        float distB = GSVector3_Length(GSVector3_Sub(centerB, center));
-        return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
+    GSChunkGeometryData *g = [gridGeometryData objectAtPoint:p objectFactory:^id(GSVector3 minP) {
+        // Chunk geometry will be generated later and is only marked "dirty" for now.
+        return [[[GSChunkGeometryData alloc] initWithMinP:minP glContext:glContext] autorelease];
     }];
+    
+    return g;
 }
 
 
-+ (NSURL *)createWorldSaveFolderWithSeed:(unsigned)seed
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p
+{
+    assert(p.y >= 0); // world does not extend below y=0
+    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    
+    GSChunkVoxelData *v = [gridVoxelData objectAtPoint:p objectFactory:^id(GSVector3 minP) {
+        return [[[GSChunkVoxelData alloc] initWithMinP:minP
+                                                folder:folder
+                                        groupForSaving:groupForSaving
+                                        chunkTaskQueue:chunkTaskQueue
+                                             generator:^(GSVector3 a, voxel_t *voxel) {
+                                                 generateTerrainVoxel(seed, terrainHeight, a, voxel);
+                                             }] autorelease];
+    }];
+    
+    return v;
+}
+
+
++ (NSURL *)newWorldSaveFolderURLWithSeed:(unsigned)seed
 {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
     NSString *folder = ([paths count] > 0) ? [paths objectAtIndex:0] : NSTemporaryDirectory();
@@ -447,158 +421,36 @@
     return url;
 }
 
-- (GSVector3)computeChunkMinPForPoint:(GSVector3)p
-{
-    return GSVector3_Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
-                          floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
-                          floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
-}
 
-
-- (GSVector3)computeChunkCenterForPoint:(GSVector3)p
-{
-    return GSVector3_Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,
-                          floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
-                          floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z + CHUNK_SIZE_Z/2);
-}
-
-
-- (chunk_id_t)getChunkIDWithMinP:(GSVector3)minP
-{
-    return [[[GSBoxedVector alloc] initWithVector:minP] autorelease];
-}
-
-
-- (void)computeChunkVisibility
+- (void)updateChunkVisibilityForActiveRegion
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 
     GSFrustum *frustum = [camera frustum];
     
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        GSChunkGeometryData *geometry = activeChunks[i];
-        assert(geometry);
-        geometry->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry->corners]);
-    }
+    [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
+        if(geometry) {
+            geometry->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry->corners]);
+        }
+    }];
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished chunk visibility checks. It took %.3fs", timeEnd - timeStart);
 }
 
 
-- (void)enumeratePointsInActiveRegionUsingBlock:(void (^)(GSVector3))myBlock
-{
-    const GSVector3 center = [camera cameraEye];
-    const ssize_t activeRegionExtentX = activeRegionExtent.x/CHUNK_SIZE_X;
-    const ssize_t activeRegionExtentZ = activeRegionExtent.z/CHUNK_SIZE_Z;
-    const ssize_t activeRegionSizeY = activeRegionExtent.y/CHUNK_SIZE_Y;
-
-    for(ssize_t x = -activeRegionExtentX; x < activeRegionExtentX; ++x)
-    {
-        for(ssize_t y = 0; y < activeRegionSizeY; ++y)
-        {
-            for(ssize_t z = -activeRegionExtentZ; z < activeRegionExtentZ; ++z)
-            {
-                assert((x+activeRegionExtentX) >= 0);
-                assert(x < activeRegionExtentX);
-                assert((z+activeRegionExtentZ) >= 0);
-                assert(z < activeRegionExtentZ);
-                assert(y >= 0);
-                assert(y < activeRegionSizeY);
-                
-                GSVector3 p1 = GSVector3_Make(center.x + x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, center.z + z*CHUNK_SIZE_Z);
-                
-                GSVector3 p2 = [self computeChunkCenterForPoint:p1];
-                
-                myBlock(p2);
-            }
-        }
-    }
-}
-
-
-// Compute active chunks. If sorted then take the time to ensure NEAR chunks come in before FAR chunks.
-- (void)computeActiveChunks:(BOOL)sorted
-{
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    
-    /* Copy the activeChunks array to retain all chunks. This prevents chunks from being deallocated when we are in the process of
-     * selecting the new set of active chunks. This, in turn, can prevent eviction of chunks which were in the active region and
-     * will remain in the active region.
-     * Also, reset visibility computation on all active chunks. We'll recalculate a bit later.
-     */
-    NSMutableArray *tmpActiveChunks = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        GSChunkGeometryData *geometry = activeChunks[i];
-        
-        if(geometry) {
-            geometry->visible = NO;
-            [tmpActiveChunks addObject:geometry];
-        }
-    }
-    
-    for(size_t i = 0; i < maxActiveChunks; ++i)
-    {
-        [activeChunks[i] release];
-        activeChunks[i] = nil;
-    }
-    
-    if(sorted) {
-        NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
-        
-        [self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
-            GSBoxedVector *b = [[GSBoxedVector alloc] initWithVector:p];
-            [unsortedChunks addObject:b];
-            [b release];
-        }];
-        
-        // Sort by distance from the camera. Near chunks are first.
-        NSArray *sortedChunks = [self sortPointsByDistFromCamera:unsortedChunks]; // is autorelease
-        
-        // Fill the activeChunks array.
-        size_t i = 0;
-        for(GSBoxedVector *b in sortedChunks)
-        {
-            activeChunks[i] = [self getChunkGeometryAtPoint:[b getVector]];
-            [activeChunks[i] retain];
-            i++;
-        }
-        assert(i == maxActiveChunks);
-        
-        [unsortedChunks release];
-    } else {
-        __block size_t i = 0;
-        [self enumeratePointsInActiveRegionUsingBlock: ^(GSVector3 p) {
-            activeChunks[i] = [self getChunkGeometryAtPoint:p];
-            [activeChunks[i] retain];
-            i++;
-        }];
-        assert(i == maxActiveChunks);
-    }
-    
-    /* Now release all the chunks in tmpActiveChunks. Chunks which remain in the
-     * active region have the same refcount as when we started the update. Chunks
-     * which left the active region are released entirely.
-     */
-    [tmpActiveChunks release];
-    
-    // Clean up
-    [pool release];
-}
-
-
-- (void)recalculateActiveChunksWithCameraModifiedFlags:(unsigned)flags
+- (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags
 {
     // If the camera moved then recalculate the set of active chunks.
     if(flags & CAMERA_MOVED) {
         // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
-        chunk_id_t newCenterChunkID = [self getChunkIDWithMinP:[self computeChunkMinPForPoint:[camera cameraEye]]];
+        chunk_id_t newCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[camera cameraEye]]];
         
         if(![oldCenterChunkID isEqual:newCenterChunkID]) {
-            [self computeActiveChunks:NO];
-            
+            [activeRegion updateWithSorting:NO camera:camera chunkProducer:^GSChunkGeometryData *(GSVector3 p) {
+                return [self chunkGeometryAtPoint:p];
+            }];
+
             // Now save this chunk ID for comparison next update.
             [oldCenterChunkID release];
             oldCenterChunkID = newCenterChunkID;
@@ -608,8 +460,90 @@
     
     // If the camera moved or turned then recalculate chunk visibility.
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        [self computeChunkVisibility];
+        OSAtomicCompareAndSwapIntBarrier(0, 1, &needsChunkVisibilityUpdate);
     }
 }
 
 @end
+
+
+// Return a value between -1 and +1 so that a line through the y-axis maps to a smooth gradient of values from -1 to +1.
+static float groundGradient(float terrainHeight, GSVector3 p)
+{
+    const float y = p.y;
+    
+    if(y < 0.0) {
+        return -1;
+    } else if(y > terrainHeight) {
+        return +1;
+    } else {
+        return 2.0*(y/terrainHeight) - 1.0;
+    }
+}
+
+
+// Generates a voxel for the specified point in space. Returns that voxel in `outVoxel'.
+static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p, voxel_t *outVoxel)
+{
+    static dispatch_once_t onceToken;
+    static GSNoise *noiseSource0;
+    static GSNoise *noiseSource1;
+    
+    BOOL groundLayer = NO;
+    BOOL floatingMountain = NO;
+    
+    assert(outVoxel);
+    
+    dispatch_once(&onceToken, ^{
+        noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
+        noiseSource1 = [[GSNoise alloc] initWithSeed:seed+1];
+    });
+    
+    // Normal rolling hills
+    {
+        const float freqScale = 0.025;
+        float n = [noiseSource0 noiseAtPointWithFourOctaves:GSVector3_Scale(p, freqScale)];
+        float turbScaleX = 2.0;
+        float turbScaleY = terrainHeight / 2.0;
+        float yFreq = turbScaleX * ((n+1) / 2.0);
+        float t = turbScaleY * [noiseSource1 noiseAtPoint:GSVector3_Make(p.x*freqScale, p.y*yFreq*freqScale, p.z*freqScale)];
+        groundLayer = groundGradient(terrainHeight, GSVector3_Make(p.x, p.y + t, p.z)) <= 0;
+    }
+    
+    // Giant floating mountain
+    {
+        /* The floating mountain is generated by starting with a sphere and applying turbulence to the surface.
+         * The upper hemisphere is also squashed to make the top flatter.
+         */
+        
+        GSVector3 mountainCenter = GSVector3_Make(50, 50, 80);
+        GSVector3 toMountainCenter = GSVector3_Sub(mountainCenter, p);
+        float distance = GSVector3_Length(toMountainCenter);
+        float radius = 30.0;
+        
+        // Apply turbulence to the surface of the mountain.
+        float freqScale = 0.70;
+        float turbScale = 15.0;
+        
+        // Avoid generating noise when too far away from the center to matter.
+        if(distance > 2.0*radius) {
+            floatingMountain = NO;
+        } else {
+            // Convert the point into spherical coordinates relative to the center of the mountain.
+            float azimuthalAngle = acosf(toMountainCenter.z / distance);
+            float polarAngle = atan2f(toMountainCenter.y, toMountainCenter.x);
+            
+            float t = turbScale * [noiseSource0 noiseAtPointWithFourOctaves:GSVector3_Make(azimuthalAngle * freqScale,
+                                                                                              polarAngle * freqScale, 0.0)];
+            
+            // Flatten the top.
+            if(p.y > mountainCenter.y) {
+                radius -= (p.y - mountainCenter.y) * 3;
+            }
+            
+            floatingMountain = (distance+t) < radius;
+        }
+    }
+    
+    *outVoxel = (groundLayer || floatingMountain) ? ~VOXEL_EMPTY : VOXEL_EMPTY;
+}
