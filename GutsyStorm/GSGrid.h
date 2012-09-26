@@ -17,7 +17,7 @@
     NSUInteger numLocks;
     NSLock **locks;
     
-    //int32_t n;
+    int32_t n;
 }
 
 - (id)initWithActiveRegionArea:(size_t)areaXZ;

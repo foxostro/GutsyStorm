@@ -11,21 +11,6 @@
 static const float EPS = 1e-5;
 
 
-static NSUInteger sdbm(const size_t len, const char * str)
-{
-    // Source: <http://www.cse.yorku.ca/~oz/hash.html>
-    
-    NSUInteger hash = 0;
-    
-    for(size_t i = 0; i < len; ++i)
-    {
-        hash = str[i] + (hash << 6) + (hash << 16) - hash;
-    }
-    
-    return hash;
-}
-
-
 @interface GSBoxedVector (Private)
 
 - (NSUInteger)computeHash;
@@ -134,7 +119,7 @@ static NSUInteger sdbm(const size_t len, const char * str)
 
 - (NSUInteger)computeHash
 {
-    return sdbm(sizeof(vector), (const char *)&vector);
+    return GSVector3_Hash(vector);
 }
 
 @end

@@ -24,5 +24,6 @@ int GSVector3_ToString(char * str, size_t len, GSVector3 v);
 int GSVector3_AreEqual(GSVector3 a, GSVector3 b);
 GSVector3 GSVector3_Scale(GSVector3 v, float scale);
 GSVector3 GSVector3_Make(float x, float y, float z);
+size_t GSVector3_Hash(GSVector3 v);
 
 #endif

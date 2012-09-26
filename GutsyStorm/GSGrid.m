@@ -9,51 +9,6 @@
 #import "GSGrid.h"
 #import "GSChunkData.h"
 
-/*********************************************************************************************************************************/
-
-@interface GSGridItem : NSObject
-{
-    id aKey;
-    id anObject;
-}
-
-@property (readonly) id aKey;
-@property (readonly) id anObject;
-
-- (id)initWithKey:(id)_aKey object:(id)_anObject;
-
-@end
-
-/*********************************************************************************************************************************/
-
-@implementation GSGridItem
-
-@synthesize aKey;
-@synthesize anObject;
-
-- (id)initWithKey:(id)_aKey object:(id)_anObject
-{
-    self = [super init];
-    if (self) {
-        aKey = [_aKey copyWithZone:NULL];
-        anObject = _anObject;
-        [anObject retain];
-    }
-    
-    return self;
-}
-
-- (void)dealloc
-{
-    [aKey release];
-    [anObject release];
-    [super dealloc];
-}
-
-@end
-
-/*********************************************************************************************************************************/
-
 @implementation GSGrid
 
 - (id)init
@@ -84,7 +39,7 @@
             locks[i] = [[NSLock alloc] init];
         }
         
-        //n = 0;
+        n = 0;
     }
     
     return self;
@@ -112,8 +67,7 @@
     id anObject = nil;
     
     GSVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
-    chunk_id_t aKey = [GSChunkData chunkIDWithChunkMinCorner:minP];
-    NSUInteger hash = [aKey hash];
+    NSUInteger hash = GSVector3_Hash(minP);
     NSUInteger idxBucket = hash % numBuckets;
     NSUInteger idxLock = hash % numLocks;
     NSLock *lock = locks[idxLock];
@@ -121,21 +75,23 @@
     
     [lock lock];
     
-    for(GSGridItem *item in bucket)
+    for(GSChunkData *item in bucket)
     {
-        if([item.aKey isEqual:aKey])
-        {
-            anObject = item.anObject;
+        if(GSVector3_AreEqual(item.minP, minP)) {
+            anObject = item;
         }
     }
     
     if(!anObject) {
         anObject = factory(minP);
         assert(anObject);
-        [bucket addObject:[[[GSGridItem alloc] initWithKey:aKey object:anObject] autorelease]];
-        //OSAtomicIncrement32Barrier(&n);
-        //float load = (float)n / numBuckets;
-        //NSLog(@"hash table load = %.3f", load);
+        [bucket addObject:anObject];
+        
+#if 0
+        OSAtomicIncrement32Barrier(&n);
+        float load = (float)n / numBuckets;
+        NSLog(@"hash table load = %.3f", load);
+#endif
     }
     
     [lock unlock];

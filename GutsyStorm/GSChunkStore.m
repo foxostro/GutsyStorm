@@ -77,6 +77,10 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         
         lock = [[NSLock alloc] init];
         
+        timeUntilNextPeriodicChunkUpdate = 0.0;
+        timeBetweenPerioducChunkUpdates = 0.2;
+        activeRegionNeedsUpdate = 0;
+        
         /* VBO generation must be performed on the main thread.
          * To preserve responsiveness, limit the number of VBOs we create per frame.
          */
@@ -172,48 +176,58 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 // Try to update asynchronously dirty chunk sunlight. Skip any that would block due to lock contention.
 - (void)tryToUpdateDirtySunlight
 {
-    dispatch_async(chunkTaskQueue, ^{
-        void (^b)(GSVector3) = ^(GSVector3 p) {
-            GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:p];
-            dispatch_async(chunkTaskQueue, ^{
-                if(voxels.dirtySunlight) {
-                    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:voxels.centerP];
-                    [voxels tryToRebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
-                        GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:p];
-                        geometry.dirty = YES;
-                        [geometry tryToUpdateWithVoxelData:neighborhood]; // make an effort to update geometry immediately
-                    }];
-                }
-            });
-        };
-        
-        [activeRegion enumeratePointsInActiveRegionNearCamera:camera usingBlock:b];
-    });
+    void (^b)(GSVector3) = ^(GSVector3 p) {
+        GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:p];
+        dispatch_async(chunkTaskQueue, ^{
+            if(voxels.dirtySunlight) {
+                GSNeighborhood *neighborhood = [self neighborhoodAtPoint:voxels.centerP];
+                [voxels tryToRebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
+                    GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:p];
+                    geometry.dirty = YES;
+                    [geometry tryToUpdateWithVoxelData:neighborhood]; // make an effort to update geometry immediately
+                }];
+            }
+        });
+    };
+    
+    [activeRegion enumeratePointsInActiveRegionNearCamera:camera usingBlock:b];
 }
 
 
 // Try to asynchronously update dirty chunk geometry. Skip any that would block due to lock contention.
 - (void)tryToUpdateDirtyGeometry
 {
-    dispatch_async(chunkTaskQueue, ^{
-        void (^b)(GSChunkGeometryData *) = ^(GSChunkGeometryData *geometry) {
-            dispatch_async(chunkTaskQueue, ^{
-                if(geometry.dirty) {
-                    [geometry tryToUpdateWithVoxelData:[self neighborhoodAtPoint:geometry.centerP]];
-                }
-            });
-        };
-        
-        [activeRegion enumerateActiveChunkWithBlock:b];
-    });
+    void (^b)(GSChunkGeometryData *) = ^(GSChunkGeometryData *geometry) {
+        dispatch_async(chunkTaskQueue, ^{
+            if(geometry.dirty) {
+                [geometry tryToUpdateWithVoxelData:[self neighborhoodAtPoint:geometry.centerP]];
+            }
+        });
+    };
+    
+    [activeRegion enumerateActiveChunkWithBlock:b];
 }
 
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    [self tryToUpdateDirtySunlight];
-    [self tryToUpdateDirtyGeometry];    
-    [self updateActiveChunksWithCameraModifiedFlags:flags];
+    timeUntilNextPeriodicChunkUpdate -= dt;
+    if(timeUntilNextPeriodicChunkUpdate < 0) {
+        timeBetweenPerioducChunkUpdates = timeBetweenPerioducChunkUpdates;
+        
+        dispatch_async(chunkTaskQueue, ^{
+            [self tryToUpdateDirtySunlight];
+            [self tryToUpdateDirtyGeometry];
+        
+            if(OSAtomicCompareAndSwap32Barrier(1, 0, &activeRegionNeedsUpdate)) {
+                [self updateActiveChunksWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)];
+            }
+        });
+    }
+    
+    if((flags & CAMERA_MOVED) || (flags & CAMERA_TURNED)) {
+        OSAtomicCompareAndSwap32Barrier(0, 1, &activeRegionNeedsUpdate);
+    }
 }
 
 

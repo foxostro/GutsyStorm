@@ -93,3 +93,17 @@ GSVector3 GSVector3_Make(float x, float y, float z)
     GSVector3 r = {x, y, z};
     return r;
 }
+
+size_t GSVector3_Hash(GSVector3 v)
+{
+    // Source: <http://www.cse.yorku.ca/~oz/hash.html>
+    
+    size_t hash = 0;
+    
+    for(size_t i = 0; i < sizeof(GSVector3); ++i)
+    {
+        hash = ((const char *)&v)[i] + (hash << 6) + (hash << 16) - hash;
+    }
+    
+    return hash;
+}
