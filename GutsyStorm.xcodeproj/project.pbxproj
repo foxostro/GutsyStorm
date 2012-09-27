@@ -118,6 +118,7 @@
 		AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSNoise.m; sourceTree = "<group>"; };
 		AC5B2802151E2C1D0045B6E4 /* GSChunkStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkStore.h; sourceTree = "<group>"; };
 		AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkStore.m; sourceTree = "<group>"; };
+		AC68358B1613F20F0063AAFC /* GutsyStorm.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = GutsyStorm.entitlements; sourceTree = "<group>"; };
 		AC9CCD6E1519A90E0081964D /* GSShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSShader.h; sourceTree = "<group>"; };
 		AC9CCD6F1519A90E0081964D /* GSShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSShader.m; sourceTree = "<group>"; };
 		AC9CCD721519B8AA0081964D /* shader.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.frag.txt; sourceTree = "<group>"; };
@@ -212,6 +213,7 @@
 		4A2CCFFC1513C3FC006C6551 /* GutsyStorm */ = {
 			isa = PBXGroup;
 			children = (
+				AC68358B1613F20F0063AAFC /* GutsyStorm.entitlements */,
 				4AC7C9F71559E00000806635 /* GSCube.h */,
 				4AC7C9F81559E00000806635 /* GSCube.m */,
 				ACE99D72151FED59006055F6 /* snoise3.h */,
@@ -486,6 +488,7 @@
 		4A2CD0111513C3FD006C6551 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GutsyStorm/GutsyStorm.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "GutsyStorm/GutsyStorm-Prefix.pch";
@@ -499,6 +502,7 @@
 		4A2CD0121513C3FD006C6551 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GutsyStorm/GutsyStorm.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "GutsyStorm/GutsyStorm-Prefix.pch";
