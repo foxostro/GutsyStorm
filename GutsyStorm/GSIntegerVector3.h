@@ -28,4 +28,6 @@ static inline GSIntegerVector3 GSIntegerVector3_Add(GSIntegerVector3 a, GSIntege
     return p;
 }
 
+static const GSIntegerVector3 ivecZero = {0, 0, 0};
+
 #endif

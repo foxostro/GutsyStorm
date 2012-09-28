@@ -20,6 +20,9 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     { 0, 0,-1},
 };
 
+static const GSIntegerVector3 combinedMinP = {-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z};
+static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CHUNK_SIZE_Z};
+
 
 @interface GSChunkVoxelData (Private)
 
@@ -119,7 +122,7 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     assert(p.y >= 0 && p.y < CHUNK_SIZE_Y);
     assert(p.z >= 0 && p.z < CHUNK_SIZE_Z);
     
-    size_t idx = INDEX(p.x, p.y, p.z);
+    size_t idx = INDEX_BOX(p, ivecZero, chunkSize);
     assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
     
     return &voxelData[idx];
@@ -196,15 +199,20 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
         ssize_t offsetX = offsetsX[i];
         ssize_t offsetZ = offsetsZ[i];
         
-        for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+        GSIntegerVector3 p;
+        FOR_BOX(p, ivecZero, chunkSize)
         {
-            for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
-            {
-                for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
-                {
-                    combinedVoxelData[INDEX2(x + offsetX, y, z + offsetZ)] = data[INDEX(x, y, z)];
-                }
-            }
+            assert(p.x >= 0 && p.x < chunkSize.x);
+            assert(p.y >= 0 && p.y < chunkSize.y);
+            assert(p.z >= 0 && p.z < chunkSize.z);
+            
+            size_t dstIdx = INDEX_BOX(GSIntegerVector3_Make(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
+            size_t srcIdx = INDEX_BOX(p, ivecZero, chunkSize);
+            
+            assert(dstIdx < size);
+            assert(srcIdx < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));
+            
+            combinedVoxelData[dstIdx] = data[srcIdx];
         }
     }];
     
@@ -227,11 +235,13 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
             continue; // The point is out of bounds, so bail out.
         }
         
-        if(!isVoxelEmpty(combinedVoxelData[INDEX2(a.x, a.y, a.z)])) {
+        size_t idx = INDEX_BOX(a, combinedMinP, combinedMaxP);
+        
+        if(!isVoxelEmpty(combinedVoxelData[idx])) {
             continue;
         }
         
-        if(combinedSunlightData[INDEX2(a.x, a.y, a.z)] == lightLevel) {
+        if(combinedSunlightData[idx] == lightLevel) {
             return YES;
         }
     }
@@ -252,17 +262,12 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     
     uint8_t *combinedSunlightData = sunlight.lightingBuffer;
     
-    for(p.x = -CHUNK_SIZE_X; p.x < (2*CHUNK_SIZE_X); ++p.x)
+    FOR_BOX(p, combinedMinP, combinedMaxP)
     {
-        for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-        {
-            for(p.z = -CHUNK_SIZE_Z; p.z < (2*CHUNK_SIZE_Z); ++p.z)
-            {
-                voxel_t voxel = combinedVoxelData[INDEX2(p.x, p.y, p.z)];
-                BOOL directlyLit = isVoxelEmpty(voxel) && isVoxelOutside(voxel);
-                combinedSunlightData[INDEX2(p.x, p.y, p.z)] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
-            }
-        }
+        size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
+        voxel_t voxel = combinedVoxelData[idx];
+        BOOL directlyLit = isVoxelEmpty(voxel) && isVoxelOutside(voxel);
+        combinedSunlightData[idx] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
     }
 
     // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
@@ -270,25 +275,21 @@ static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
     // Set the blocks we find to the next lower light level.
     for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
     {
-        for(p.x = -CHUNK_SIZE_X; p.x < (2*CHUNK_SIZE_X); ++p.x)
+        FOR_BOX(p, combinedMinP, combinedMaxP)
         {
-            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
-            {
-                for(p.z = -CHUNK_SIZE_Z; p.z < (2*CHUNK_SIZE_Z); ++p.z)
-                {
-                    if(!isVoxelEmpty(combinedVoxelData[INDEX2(p.x, p.y, p.z)]) ||
-                       isVoxelOutside(combinedVoxelData[INDEX2(p.x, p.y, p.z)])) {
-                        continue;
-                    }
-                    
-                    if([self isAdjacentToSunlightAtPoint:p
-                                              lightLevel:lightLevel
-                                       combinedVoxelData:combinedVoxelData
-                            combinedSunlightData:combinedSunlightData]) {
-                        uint8_t *val = &combinedSunlightData[INDEX2(p.x, p.y, p.z)];
-                        *val = MAX(*val, lightLevel - 1);
-                    }
-                }
+            size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
+            voxel_t voxel = combinedVoxelData[idx];
+            
+            if(!isVoxelEmpty(voxel) || isVoxelOutside(voxel)) {
+                continue;
+            }
+            
+            if([self isAdjacentToSunlightAtPoint:p
+                                      lightLevel:lightLevel
+                               combinedVoxelData:combinedVoxelData
+                    combinedSunlightData:combinedSunlightData]) {
+                uint8_t *val = &combinedSunlightData[idx];
+                *val = MAX(*val, lightLevel - 1);
             }
         }
     }
@@ -414,18 +415,13 @@ cleanup1:
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
     
-    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+    GSIntegerVector3 p;
+    FOR_BOX(p, ivecZero, chunkSize)
     {
-        for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
-        {
-            for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
-            {
-                generator(GSVector3_Add(GSVector3_Make(x, y, z), minP),
-                          [self pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(x, y, z)]);
-                
-                // whether the block is outside or not is calculated later
-            }
-       }
+        generator(GSVector3_Add(GSVector3_Make(p.x, p.y, p.z), minP),
+                  [self pointerToVoxelAtLocalPosition:p]);
+        
+        // whether the block is outside or not is calculated later
     }
     
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();

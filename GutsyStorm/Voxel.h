@@ -9,6 +9,8 @@
 #ifndef GutsyStorm_Voxel_h
 #define GutsyStorm_Voxel_h
 
+#import "GSIntegerVector3.h"
+
 
 #ifdef DEBUG // TODO: find a better home for this macro
 #    define DebugLog(...) do { NSLog(__VA_ARGS__); } while(0);
@@ -26,11 +28,17 @@
 #define VOXEL_EMPTY   (1) // a flag on the first LSB
 #define VOXEL_OUTSIDE (2) // a flag on the second LSB
 
-// Used for indexing into chunk-sized buffers
-#define INDEX(x,y,z) ((size_t)(((x)*CHUNK_SIZE_Y*CHUNK_SIZE_Z) + ((y)*CHUNK_SIZE_Z) + (z)))
+#define FOR_BOX(p, minP, maxP) for((p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \
+                                   for((p).y = (minP).y; (p).y < (maxP).y; ++(p).y) \
+                                       for((p).z = (minP).z; (p).z < (maxP).z; ++(p).z)
 
-// Used for indexing into neighborhood-sized buffers.
-#define INDEX2(x,y,z) ((((ssize_t)(x)+CHUNK_SIZE_X)*CHUNK_SIZE_Y*(3*CHUNK_SIZE_Z)) + ((ssize_t)(y)*(3*CHUNK_SIZE_Z)) + ((ssize_t)(z)+CHUNK_SIZE_Z))
+static inline size_t INDEX_BOX(GSIntegerVector3 p, GSIntegerVector3 minP, GSIntegerVector3 maxP)
+{
+    const size_t sizeY = maxP.y - minP.y;
+    const size_t sizeZ = maxP.z - minP.z;
+    
+    return ((p.x-minP.x)*sizeY*sizeZ) + ((p.y-minP.y)*sizeZ) + (p.z-minP.z);
+}
 
 typedef uint8_t voxel_t;
 
