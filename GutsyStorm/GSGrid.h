@@ -7,10 +7,13 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "GSReaderWriterLock.h"
 #import "GSVector3.h"
 
 @interface GSGrid : NSObject
 {
+    GSReaderWriterLock *lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
+    
     NSUInteger numBuckets;
     NSMutableArray **buckets;
     
@@ -18,6 +21,7 @@
     NSLock **locks;
     
     int32_t n;
+    float loadLevelToTriggerResize;
 }
 
 - (id)initWithActiveRegionArea:(size_t)areaXZ;

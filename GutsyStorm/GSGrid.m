@@ -20,12 +20,10 @@
 {
     self = [super init];
     if (self) {
-        // TODO: table should rehash when load exceeds 80%.
-        // Choosing this number of buckets generally gives a hash table load of ~30% on game launch.
-        numBuckets = areaXZ << 4;
-        
-        // Choosing this number of locks gives ~2% time spent blocked on hash table locks during game launch.
         numLocks = [[NSProcessInfo processInfo] processorCount] * 64;
+        numBuckets = MAX(areaXZ, numLocks);
+        n = 0;
+        loadLevelToTriggerResize = 0.80;
         
         buckets = malloc(numBuckets * sizeof(NSMutableArray *));
         for(NSUInteger i=0; i<numBuckets; ++i)
@@ -33,13 +31,13 @@
             buckets[i] = [[NSMutableArray alloc] init];
         }
         
-        locks = malloc(numBuckets * sizeof(NSMutableArray *));
+        locks = malloc(numLocks * sizeof(NSMutableArray *));
         for(NSUInteger i=0; i<numLocks; ++i)
         {
             locks[i] = [[NSLock alloc] init];
         }
         
-        n = 0;
+        lockTheTableItself = [[GSReaderWriterLock alloc] init];
     }
     
     return self;
@@ -51,21 +49,63 @@
     {
         [buckets[i] release];
     }
+    free(buckets);
     
     for(NSUInteger i=0; i<numLocks; ++i)
     {
         [locks[i] release];
     }
-    
-    free(buckets);
     free(locks);
+    
+    [lockTheTableItself release];
+    
     [super dealloc];
+}
+
+- (void)resizeTable
+{
+    [lockTheTableItself lockForWriting];
+    
+    n = 0;
+    
+    NSUInteger oldNumBuckets = numBuckets;
+    NSMutableArray **oldBuckets = buckets;
+    
+    // Allocate memory for a new set of buckets.
+    numBuckets *= 2;
+    buckets = malloc(numBuckets * sizeof(NSMutableArray *));
+    for(NSUInteger i=0; i<numBuckets; ++i)
+    {
+        buckets[i] = [[NSMutableArray alloc] init];
+    }
+    
+    // Insert each object into the new hash table.
+    for(NSUInteger i=0; i<oldNumBuckets; ++i)
+    {
+        for(GSChunkData *item in oldBuckets[i])
+        {
+            NSUInteger hash = GSVector3_Hash(item.minP);
+            [buckets[hash % numBuckets] addObject:item];
+            n++;
+        }
+    }
+    
+    // Free the old set of buckets.
+    for(NSUInteger i=0; i<oldNumBuckets; ++i)
+    {
+        [oldBuckets[i] release];
+    }
+    free(oldBuckets);
+    
+    [lockTheTableItself unlockForWriting];
 }
 
 - (id)objectAtPoint:(GSVector3)p objectFactory:(id (^)(GSVector3 minP))factory
 {
-    id anObject = nil;
+    [lockTheTableItself lockForReading]; // The only writer is -resizeTable, so lock contention will be extremely low.
     
+    float load = 0;
+    id anObject = nil;
     GSVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
     NSUInteger hash = GSVector3_Hash(minP);
     NSUInteger idxBucket = hash % numBuckets;
@@ -86,15 +126,16 @@
         anObject = factory(minP);
         assert(anObject);
         [bucket addObject:anObject];
-        
-#if 0
         OSAtomicIncrement32Barrier(&n);
-        float load = (float)n / numBuckets;
-        NSLog(@"hash table load = %.3f", load);
-#endif
+        load = (float)n / numBuckets;
     }
     
     [lock unlock];
+    [lockTheTableItself unlockForReading];
+    
+    if(load > loadLevelToTriggerResize) {
+        [self resizeTable];
+    }
     
     return anObject;
 }
