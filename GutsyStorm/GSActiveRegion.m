@@ -155,26 +155,25 @@
     const ssize_t activeRegionExtentZ = activeRegionExtent.z/CHUNK_SIZE_Z;
     const ssize_t activeRegionSizeY = activeRegionExtent.y/CHUNK_SIZE_Y;
     
-    for(ssize_t x = -activeRegionExtentX; x < activeRegionExtentX; ++x)
+    GSIntegerVector3 p, minP, maxP;
+    
+    minP = GSIntegerVector3_Make(-activeRegionExtentX, 0, -activeRegionExtentZ);
+    maxP = GSIntegerVector3_Make(activeRegionExtentX, activeRegionSizeY, activeRegionExtentZ);
+    
+    FOR_BOX(p, minP, maxP)
     {
-        for(ssize_t y = 0; y < activeRegionSizeY; ++y)
-        {
-            for(ssize_t z = -activeRegionExtentZ; z < activeRegionExtentZ; ++z)
-            {
-                assert((x+activeRegionExtentX) >= 0);
-                assert(x < activeRegionExtentX);
-                assert((z+activeRegionExtentZ) >= 0);
-                assert(z < activeRegionExtentZ);
-                assert(y >= 0);
-                assert(y < activeRegionSizeY);
-                
-                GSVector3 p1 = GSVector3_Make(center.x + x*CHUNK_SIZE_X, y*CHUNK_SIZE_Y, center.z + z*CHUNK_SIZE_Z);
-                
-                GSVector3 p2 = [GSChunkData centerPointOfChunkAtPoint:p1];
-                
-                myBlock(p2);
-            }
-        }
+        assert((x+activeRegionExtentX) >= 0);
+        assert(x < activeRegionExtentX);
+        assert((z+activeRegionExtentZ) >= 0);
+        assert(z < activeRegionExtentZ);
+        assert(y >= 0);
+        assert(y < activeRegionSizeY);
+        
+        GSVector3 p1 = GSVector3_Make(center.x + p.x*CHUNK_SIZE_X, p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z);
+        
+        GSVector3 p2 = [GSChunkData centerPointOfChunkAtPoint:p1];
+        
+        myBlock(p2);
     }
 }
 

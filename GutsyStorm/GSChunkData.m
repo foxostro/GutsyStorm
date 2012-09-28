@@ -10,6 +10,8 @@
 #import "Voxel.h"
 #import "GSBoxedVector.h"
 
+const GSIntegerVector3 chunkSize = {CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
+
 @implementation GSChunkData
 
 @synthesize minP;
