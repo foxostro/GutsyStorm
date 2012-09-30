@@ -53,4 +53,13 @@
  */
 - (void)clear;
 
+/* Saves the lighting buffer contents to file. */
+- (void)saveToFile:(NSURL *)url;
+
+/* Attempts to load the lighting buffer contents from file.
+ * Returns YES if the file was actually loaded.
+ * Runs the completion handler immediately after loading the file and does not run it if the file could not be loaded.
+ */
+- (BOOL)tryToLoadFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler;
+
 @end

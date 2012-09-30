@@ -32,7 +32,9 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (void)recalcOutsideVoxelsNoLock;
 - (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)saveVoxelDataToFile;
+- (void)saveSunlightDataToFile;
 - (void)loadOrGenerateVoxelData:(terrain_generator_t)callback completionHandler:(void (^)(void))completionHandler;
+- (void)tryToLoadSunlightData;
 
 @end
 
@@ -47,6 +49,12 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 + (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
+}
+
+
++ (NSString *)fileNameForSunlightDataFromMinP:(GSVector3)minP
+{
+    return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.sunlight.dat", minP.x, minP.y, minP.z];
 }
 
 
@@ -75,11 +83,17 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         
         sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(3*CHUNK_SIZE_X,CHUNK_SIZE_Y,3*CHUNK_SIZE_Z)];
         dirtySunlight = YES;
-        updateForSunlightInFlight = 0;
+        
+        // The initial loading from disk preceeds all attempts to generate new sunlight data.
+        OSAtomicCompareAndSwapIntBarrier(0, 1, &updateForSunlightInFlight);
         
         // Fire off asynchronous task to load or generate voxel data.
         dispatch_async(chunkTaskQueue, ^{
             [self allocateVoxelData];
+            
+            [self tryToLoadSunlightData];
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateForSunlightInFlight); // reset
+            
             [self loadOrGenerateVoxelData:callback completionHandler:^{
                 [self recalcOutsideVoxelsNoLock];
                 [lockVoxelData unlockForWriting];
@@ -136,10 +150,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     // Caller must make sure to update sunlight later...
     dirtySunlight = YES;
     
-    /* Spin off a task to save the chunk.
-     * This is latency sensitive, so submit to the global queue. Do not use `chunkTaskQueue' as that would cause the block to be
-     * added to the end of a long queue of basically serialized background tasks.
-     */
+    // Spin off a task to save the chunk.
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     dispatch_group_async(groupForSaving, queue, ^{
         [lockVoxelData lockForReading];
@@ -324,6 +335,13 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     
     dirtySunlight = NO;
     success = YES;
+    
+    // Spin off a task to save sunlight data to disk.
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_group_async(groupForSaving, queue, ^{
+        [self saveSunlightDataToFile];
+    });
+    
     completionHandler(); // Only call the completion handler if the update was successful.
     
 cleanup2:
@@ -348,6 +366,14 @@ cleanup1:
                         relativeToURL:folder];
     
     [[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
+}
+
+
+- (void)saveSunlightDataToFile
+{
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:minP]
+                        relativeToURL:folder];
+    [sunlight saveToFile:url];
 }
 
 
@@ -477,7 +503,7 @@ cleanup1:
     NSData *data = [[NSData alloc] initWithContentsOfURL:url];
     if([data length] != len) {
         [NSException raise:@"Runtime Error"
-                    format:@"Unexpected length of data for chunk. Got %zu bytes. Expected %zu bytes.", (size_t)[data length], len];
+                    format:@"Unexpected chunk voxels size. Got %zu bytes. Expected %zu bytes.", (size_t)[data length], len];
     }
     [data getBytes:voxelData length:len];
     [data release];
@@ -498,6 +524,17 @@ cleanup1:
         [self saveVoxelDataToFile];
         completionHandler();
     }
+}
+
+
+- (void)tryToLoadSunlightData
+{
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:minP]
+                        relativeToURL:folder];
+    
+    [sunlight tryToLoadFromFile:url completionHandler:^{
+        dirtySunlight = NO;
+    }];
 }
 
 @end

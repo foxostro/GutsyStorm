@@ -223,4 +223,41 @@
     bzero(lightingBuffer, BUFFER_SIZE_IN_BYTES);
 }
 
+- (void)saveToFile:(NSURL *)url
+{
+    const size_t len = dimensions.x * dimensions.y * dimensions.z * sizeof(uint8_t);
+    
+    [lockLightingBuffer lockForReading];
+    [[NSData dataWithBytes:lightingBuffer length:len] writeToURL:url atomically:YES];
+    [lockLightingBuffer unlockForReading];
+}
+
+- (BOOL)tryToLoadFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler
+{
+    BOOL success = NO;
+    
+    [lockLightingBuffer lockForWriting];
+    
+    // If the file does not exist then do nothing.
+    if([url checkResourceIsReachableAndReturnError:NULL]) {
+        const size_t len = dimensions.x * dimensions.y * dimensions.z * sizeof(uint8_t);
+        
+        // Read the contents of the file into "sunlight.lightingBuffer".
+        NSData *data = [[NSData alloc] initWithContentsOfURL:url];
+        if([data length] != len) {
+            [NSException raise:@"Runtime Error"
+                        format:@"Unexpected lighting buffer size. Got %zu bytes. Expected %zu bytes.", (size_t)[data length], len];
+        }
+        [data getBytes:lightingBuffer length:len];
+        [data release];
+        
+        success = YES;
+        completionHandler();
+    }
+    
+    [lockLightingBuffer unlockForWriting];
+    
+    return success;
+}
+
 @end
