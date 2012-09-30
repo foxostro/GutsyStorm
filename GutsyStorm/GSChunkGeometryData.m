@@ -332,23 +332,16 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     
     // Iterate over all voxels in the chunk and count the number of vertices that would be generated.
     numChunkVerts = 0;
-    for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
+    FOR_BOX(pos, minP, maxP)
     {
-        for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
-        {
-            for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
-            {
-                numChunkVerts += [self generateGeometryForSingleBlockAtPosition:pos
-                                                                    vertsBuffer:NULL
-                                                                    normsBuffer:NULL
-                                                                texCoordsBuffer:NULL
-                                                                    colorBuffer:NULL
-                                                                    indexBuffer:NULL
-                                                                      voxelData:chunks
-                                                              onlyDoingCounting:YES];
-                
-            }
-        }
+        numChunkVerts += [self generateGeometryForSingleBlockAtPosition:pos
+                                                            vertsBuffer:NULL
+                                                            normsBuffer:NULL
+                                                        texCoordsBuffer:NULL
+                                                            colorBuffer:NULL
+                                                            indexBuffer:NULL
+                                                              voxelData:chunks
+                                                      onlyDoingCounting:YES];
     }
     assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
     
@@ -365,23 +358,16 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     GLuint *_indexBufferForGenerating = indexBufferForGenerating;
     
     // Iterate over all voxels in the chunk and generate geometry.
-    for(pos.x = minP.x; pos.x < maxP.x; ++pos.x)
+    FOR_BOX(pos, minP, maxP)
     {
-        for(pos.y = minP.y; pos.y < maxP.y; ++pos.y)
-        {
-            for(pos.z = minP.z; pos.z < maxP.z; ++pos.z)
-            {
-                [self generateGeometryForSingleBlockAtPosition:pos
-                                                   vertsBuffer:&_vertsBuffer
-                                                   normsBuffer:&_normsBuffer
-                                               texCoordsBuffer:&_texCoordsBuffer
-                                                   colorBuffer:&_colorBuffer
-                                                   indexBuffer:&_indexBufferForGenerating
-                                                     voxelData:chunks
-                                             onlyDoingCounting:NO];
-                
-            }
-        }
+        [self generateGeometryForSingleBlockAtPosition:pos
+                                           vertsBuffer:&_vertsBuffer
+                                           normsBuffer:&_normsBuffer
+                                       texCoordsBuffer:&_texCoordsBuffer
+                                           colorBuffer:&_colorBuffer
+                                           indexBuffer:&_indexBufferForGenerating
+                                             voxelData:chunks
+                                     onlyDoingCounting:NO];
     }
 }
 
