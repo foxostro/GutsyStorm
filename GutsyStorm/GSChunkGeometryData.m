@@ -225,9 +225,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         visible = NO;
         
         // Try to load geometry from file so we have something to show before regeneration finishes.
-        dispatch_async(chunkTaskQueue, ^{
-            [self tryToLoadGeometryFromFile];
-        });
+        [self tryToLoadGeometryFromFile];
     }
     
     return self;
@@ -277,9 +275,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
             needsVBORegeneration = YES;
             
             // Cache geometry buffers on disk for next time.
-            dispatch_group_async(groupForSaving, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                [self saveGeometryDataToFile];
-            });
+            [self saveGeometryDataToFile];
             
             dirty = NO;
             OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
@@ -666,24 +662,19 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:minP]
                         relativeToURL:folder];
     
-    if(![url checkResourceIsReachableAndReturnError:NULL]) {
-        DebugLog(@"Can't load geometry: no geometry available on disk.");
-        success = NO;
-        goto cleanup3;
+    if([url checkResourceIsReachableAndReturnError:NULL]) {
+        [self fillGeometryBuffersUsingDataRepr:[NSData dataWithContentsOfURL:url]];
+        
+        // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
+        // Updating a boolean should be atomic on x86_64 and i386;
+        needsVBORegeneration = YES;
+        
+        // Geometry was loaded from disk, so we're not dirty anymore.
+        dirty = NO;
+        
+        success = YES;
     }
     
-    [self fillGeometryBuffersUsingDataRepr:[NSData dataWithContentsOfURL:url]];
-    
-    // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
-    // Updating a boolean should be atomic on x86_64 and i386;
-    needsVBORegeneration = YES;
-    
-    // Geometry was loaded from disk, so we're not dirty anymore.
-    dirty = NO;
-    
-    success = YES;
-    
-cleanup3:
     [lockGeometry unlockWithCondition:success?READY:!READY];
 cleanup2:
     OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
