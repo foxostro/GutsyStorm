@@ -152,6 +152,10 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                                           voxelData:(GSNeighborhood *)chunks
                                   onlyDoingCounting:(BOOL)onlyDoingCounting;
 - (void)fillIndexBufferForGenerating:(GLsizei)n;
+- (NSData *)dataRepr;
+- (void)saveGeometryDataToFile;
+- (void)fillGeometryBuffersUsingDataRepr:(NSData *)data;
+- (BOOL)tryToLoadGeometryFromFile;
 
 @end
 
@@ -160,12 +164,29 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 
 @synthesize dirty;
 
-- (id)initWithMinP:(GSVector3)_minP glContext:(NSOpenGLContext *)_glContext
+
++ (NSString *)fileNameForGeometryDataFromMinP:(GSVector3)minP
+{
+    return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.geometry.dat", minP.x, minP.y, minP.z];
+}
+
+
+- (id)initWithMinP:(GSVector3)_minP
+            folder:(NSURL *)_folder
+    groupForSaving:(dispatch_group_t)_groupForSaving
+    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+         glContext:(NSOpenGLContext *)_glContext
 {
     self = [super initWithMinP:_minP];
     if (self) {
         glContext = _glContext;
         [glContext retain];
+        
+        folder = _folder;
+        [folder retain];
+        
+        groupForSaving = _groupForSaving;
+        dispatch_retain(groupForSaving);
         
         // Geometry for the chunk is protected by lockGeometry and is generated asynchronously.
         lockGeometry = [[NSConditionLock alloc] init];
@@ -202,6 +223,11 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         corners[7] = GSVector3_Add(minP, GSVector3_Make(0,            CHUNK_SIZE_Y, 0));
         
         visible = NO;
+        
+        // Try to load geometry from file so we have something to show before regeneration finishes.
+        dispatch_async(chunkTaskQueue, ^{
+            [self tryToLoadGeometryFromFile];
+        });
     }
     
     return self;
@@ -249,6 +275,11 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
             // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
             // Updating a boolean should be atomic on x86_64 and i386;
             needsVBORegeneration = YES;
+            
+            // Cache geometry buffers on disk for next time.
+            dispatch_group_async(groupForSaving, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                [self saveGeometryDataToFile];
+            });
             
             dirty = NO;
             OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
@@ -313,6 +344,8 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     [self destroyGeometry];
     [lockGeometry release];
     [glContext release];
+    [folder release];
+    dispatch_release(groupForSaving);
     [super dealloc];
 }
 
@@ -560,6 +593,102 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     numIndicesForDrawing = 0;
     free(indexBufferForDrawing);
     indexBufferForDrawing = NULL;
+}
+
+
+// Assumes the caller is already holding "lockGeometry".
+- (NSData *)dataRepr
+{
+    NSMutableData *data = [[[NSMutableData alloc] init] autorelease];
+    
+    size_t len = sizeof(GLfloat) * 3 * numChunkVerts;
+    [data appendBytes:&numChunkVerts length:sizeof(numChunkVerts)];
+    [data appendBytes:vertsBuffer length:len];
+    [data appendBytes:normsBuffer length:len];
+    [data appendBytes:texCoordsBuffer length:len];
+    [data appendBytes:colorBuffer length:len];
+    
+    return data;
+}
+
+
+// Assumes the caller is already holding "lockGeometry".
+- (void)saveGeometryDataToFile
+{
+    NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:minP]
+                        relativeToURL:folder];
+    
+    [[self dataRepr] writeToURL:url atomically:YES];
+}
+
+
+// Assumes the caller is already holding "lockGeometry".
+- (void)fillGeometryBuffersUsingDataRepr:(NSData *)data
+{
+    [self destroyGeometry];
+    
+    [data getBytes:&numChunkVerts range:NSMakeRange(0, sizeof(numChunkVerts))];
+    
+    assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
+    
+    vertsBuffer = allocateGeometryBuffer(numChunkVerts);
+    normsBuffer = allocateGeometryBuffer(numChunkVerts);
+    texCoordsBuffer = allocateGeometryBuffer(numChunkVerts);
+    colorBuffer = allocateGeometryBuffer(numChunkVerts);
+    
+    size_t len = sizeof(GLfloat) * 3 * numChunkVerts;
+    
+    [data getBytes:vertsBuffer     range:NSMakeRange(sizeof(numChunkVerts)+len*0, len)];
+    [data getBytes:normsBuffer     range:NSMakeRange(sizeof(numChunkVerts)+len*1, len)];
+    [data getBytes:texCoordsBuffer range:NSMakeRange(sizeof(numChunkVerts)+len*2, len)];
+    [data getBytes:colorBuffer     range:NSMakeRange(sizeof(numChunkVerts)+len*3, len)];
+    
+    [self fillIndexBufferForGenerating:numChunkVerts];
+}
+
+
+- (BOOL)tryToLoadGeometryFromFile
+{
+    BOOL success = NO;
+    
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &updateInFlight)) {
+        DebugLog(@"Can't load geometry: update already in-flight.");
+        success = NO;
+        goto cleanup1;
+    }
+    
+    if(![lockGeometry tryLock]) {
+        DebugLog(@"Can't load geometry: lockGeometry is already taken.");
+        success = NO;
+        goto cleanup2;
+    }
+    
+    NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:minP]
+                        relativeToURL:folder];
+    
+    if(![url checkResourceIsReachableAndReturnError:NULL]) {
+        DebugLog(@"Can't load geometry: no geometry available on disk.");
+        success = NO;
+        goto cleanup3;
+    }
+    
+    [self fillGeometryBuffersUsingDataRepr:[NSData dataWithContentsOfURL:url]];
+    
+    // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
+    // Updating a boolean should be atomic on x86_64 and i386;
+    needsVBORegeneration = YES;
+    
+    // Geometry was loaded from disk, so we're not dirty anymore.
+    dirty = NO;
+    
+    success = YES;
+    
+cleanup3:
+    [lockGeometry unlockWithCondition:success?READY:!READY];
+cleanup2:
+    OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+cleanup1:
+    return success;
 }
 
 @end

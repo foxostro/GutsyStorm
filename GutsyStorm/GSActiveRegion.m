@@ -162,12 +162,12 @@
     
     FOR_BOX(p, minP, maxP)
     {
-        assert((x+activeRegionExtentX) >= 0);
-        assert(x < activeRegionExtentX);
-        assert((z+activeRegionExtentZ) >= 0);
-        assert(z < activeRegionExtentZ);
-        assert(y >= 0);
-        assert(y < activeRegionSizeY);
+        assert((p.x+activeRegionExtentX) >= 0);
+        assert(p.x < activeRegionExtentX);
+        assert((p.z+activeRegionExtentZ) >= 0);
+        assert(p.z < activeRegionExtentZ);
+        assert(p.y >= 0);
+        assert(p.y < activeRegionSizeY);
         
         GSVector3 p1 = GSVector3_Make(center.x + p.x*CHUNK_SIZE_X, p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z);
         

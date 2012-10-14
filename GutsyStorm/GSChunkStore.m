@@ -383,7 +383,11 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     
     GSChunkGeometryData *g = [gridGeometryData objectAtPoint:p objectFactory:^id(GSVector3 minP) {
         // Chunk geometry will be generated later and is only marked "dirty" for now.
-        return [[[GSChunkGeometryData alloc] initWithMinP:minP glContext:glContext] autorelease];
+        return [[[GSChunkGeometryData alloc] initWithMinP:minP
+                                                   folder:folder
+                                           groupForSaving:groupForSaving
+                                           chunkTaskQueue:chunkTaskQueue
+                                                glContext:glContext] autorelease];
     }];
     
     return g;

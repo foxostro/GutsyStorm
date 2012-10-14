@@ -40,6 +40,8 @@
     BOOL dirty;
     int updateInFlight;
     
+    NSURL *folder;
+    dispatch_group_t groupForSaving;
     NSOpenGLContext *glContext;
     
  @public
@@ -49,7 +51,11 @@
 
 @property (assign) BOOL dirty;
 
-- (id)initWithMinP:(GSVector3)_minP glContext:(NSOpenGLContext *)_glContext;
+- (id)initWithMinP:(GSVector3)minP
+            folder:(NSURL *)folder
+    groupForSaving:(dispatch_group_t)groupForSaving
+    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+         glContext:(NSOpenGLContext *)_glContext;
 
 /* Try to immediately update geometry using voxel data for the local neighborhood. If it is not possible to immediately take all
  * the locks on necessary resources then this method aborts the update and returns NO. If it is able to complete the update
