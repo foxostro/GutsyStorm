@@ -11,28 +11,23 @@
 #import "GSChunkStore.h"
 #import "GSVertex.h"
 
+#define ARRAY_LEN(array) (sizeof(array)/sizeof(array[0]))
+#define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
 #define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
 
+struct chunk_geometry_header
+{
+    uint8_t w, h, d;
+    uint16_t numChunkVerts;
+    uint32_t len;
+};
 
+extern int checkGLErrors(void);
+
+static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo);
 static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
-
-static void asyncDestroyChunkVBOs(NSOpenGLContext *context,
-                                  GLuint vboChunkVerts,
-                                  GLuint vboChunkNorms,
-                                  GLuint vboChunkTexCoords,
-                                  GLuint vboChunkColors);
-
-static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
-                      GLfloat nx, GLfloat ny, GLfloat nz,
-                      GLfloat tx, GLfloat ty, GLfloat tz,
-                      GSVector3 c,
-                      GLfloat **verts,
-                      GLfloat **norms,
-                      GLfloat **txcds,
-                      GLfloat **color);
-
-static GLfloat * allocateGeometryBuffer(size_t numVerts);
-
+static void packVertex(struct vertex *vertices,  GSVector3 position, GSVector3 normal, GSVector3 texCoord, GSVector3 color);
+static void * allocateVertexMemory(size_t numVerts);
 
 static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight)
 {
@@ -139,22 +134,17 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 
 @interface GSChunkGeometryData (Private)
 
-- (BOOL)tryToGenerateVBOs;
-- (void)destroyVBOs;
++ (GLushort *)sharedIndexBuffer;
+
 - (void)destroyGeometry;
 - (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)chunks;
 - (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-                                        vertsBuffer:(GLfloat **)_vertsBuffer
-                                        normsBuffer:(GLfloat **)_normsBuffer
-                                    texCoordsBuffer:(GLfloat **)_texCoordsBuffer
-                                        colorBuffer:(GLfloat **)_colorBuffer
-                                        indexBuffer:(GLuint **)_indexBuffer
+                                        vertsBuffer:(struct vertex **)_vertices
                                           voxelData:(GSNeighborhood *)chunks
                                   onlyDoingCounting:(BOOL)onlyDoingCounting;
-- (void)fillIndexBufferForGenerating:(GLsizei)n;
 - (NSData *)dataRepr;
 - (void)saveGeometryDataToFile;
-- (void)fillGeometryBuffersUsingDataRepr:(NSData *)data;
+- (NSError *)fillGeometryBuffersUsingDataRepr:(NSData *)data;
 - (BOOL)tryToLoadGeometryFromFile;
 
 @end
@@ -192,24 +182,15 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         lockGeometry = [[NSConditionLock alloc] init];
         [lockGeometry setName:@"GSChunkGeometryData.lockGeometry"];
         vertsBuffer = NULL;
-        normsBuffer = NULL;
-        texCoordsBuffer = NULL;
-        colorBuffer = NULL;
         numChunkVerts = 0;
-        numIndicesForGenerating = 0;
-        indexBufferForGenerating = NULL;
         dirty = YES;
         updateInFlight = 0;
         
         /* VBO data is not lock protected and is either exclusively accessed on the main thread
          * or is updated in ways that do not require locking for atomicity.
          */
-        vboChunkVerts = 0;
-        vboChunkNorms = 0;
-        vboChunkTexCoords = 0;
-        vboChunkColors = 0;
+        vbo = 0;
         numIndicesForDrawing = 0;
-        indexBufferForDrawing = NULL;
         needsVBORegeneration = NO;
         
         // Frustum-Box testing requires the corners of the cube, so pre-calculate them here.
@@ -268,8 +249,6 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
             [self fillGeometryBuffersUsingVoxelData:neighborhood];
             [center.sunlight.lockLightingBuffer unlockForReading];
             
-            [self fillIndexBufferForGenerating:numChunkVerts];
-            
             // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
             // Updating a boolean should be atomic on x86_64 and i386;
             needsVBORegeneration = YES;
@@ -302,41 +281,34 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 {
     BOOL didGenerateVBOs = NO;
     
-    BOOL vbosAreMissing = !vboChunkVerts || !vboChunkNorms || !vboChunkTexCoords || !vboChunkColors;
-    
-    if(needsVBORegeneration || vbosAreMissing) {
-        if(allowVBOGeneration) {
-            didGenerateVBOs = [self tryToGenerateVBOs];
-        } else {
-            didGenerateVBOs = NO;
+    if(allowVBOGeneration && needsVBORegeneration && [lockGeometry tryLockWhenCondition:READY]) {
+        if(!vbo) {
+            glGenBuffers(1, &vbo);
         }
+        
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, numChunkVerts * sizeof(struct vertex), vertsBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        numIndicesForDrawing = numChunkVerts;
+        needsVBORegeneration = NO; // reset
+        didGenerateVBOs = YES;
+        
+        [lockGeometry unlock];
     }
     
-    BOOL anyGeometryAtAll = (numIndicesForDrawing>0) && indexBufferForDrawing;
-    
-    if(anyGeometryAtAll && (didGenerateVBOs || !vbosAreMissing)) {
-        glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
-        glVertexPointer(3, GL_FLOAT, 0, 0);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
-        glNormalPointer(GL_FLOAT, 0, 0);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
-        glTexCoordPointer(3, GL_FLOAT, 0, 0);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, vboChunkColors);
-        glColorPointer(3, GL_FLOAT, 0, 0);
-        
-        glDrawElements(GL_QUADS, numIndicesForDrawing, GL_UNSIGNED_INT, indexBufferForDrawing);
-    }
-    
+    drawChunkVBO(numIndicesForDrawing, vbo);
+
     return didGenerateVBOs;
 }
 
 
 - (void)dealloc
 {
-    [self destroyVBOs];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        syncDestroySingleVBO(glContext, vbo);
+    });
+    
     [self destroyGeometry];
     [lockGeometry release];
     [glContext release];
@@ -349,6 +321,30 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 
 
 @implementation GSChunkGeometryData (Private)
+
++ (GLushort *)sharedIndexBuffer
+{
+    static dispatch_once_t onceToken;
+    static GLushort *buffer = NULL;
+    dispatch_once(&onceToken, ^{
+        // Make sure the index buffer can handle this many verts.
+        const GLsizei maxChunkVerts = (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z);
+        assert(maxChunkVerts < (1UL << (sizeof(GLushort)*8)));
+        
+        // Take the indices array and generate a raw index buffer that OpenGL can consume.
+        buffer = malloc(sizeof(GLushort) * maxChunkVerts);
+        if(!buffer) {
+            [NSException raise:@"Out of Memory" format:@"Out of memory allocating index buffer."];
+        }
+        
+        for(GLsizei i = 0; i < maxChunkVerts; ++i)
+        {
+            buffer[i] = i; // a simple linear walk
+        }
+    });
+    
+    return buffer;
+}
 
 /* Assumes caller is already holding the following locks:
  * "lockGeometry"
@@ -365,61 +361,22 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     {
         numChunkVerts += [self generateGeometryForSingleBlockAtPosition:pos
                                                             vertsBuffer:NULL
-                                                            normsBuffer:NULL
-                                                        texCoordsBuffer:NULL
-                                                            colorBuffer:NULL
-                                                            indexBuffer:NULL
                                                               voxelData:chunks
                                                       onlyDoingCounting:YES];
     }
     assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
     
     // Take the vertices array and generate raw buffers for OpenGL to consume.
-    vertsBuffer = allocateGeometryBuffer(numChunkVerts);
-    normsBuffer = allocateGeometryBuffer(numChunkVerts);
-    texCoordsBuffer = allocateGeometryBuffer(numChunkVerts);
-    colorBuffer = allocateGeometryBuffer(numChunkVerts);
-    
-    GLfloat *_vertsBuffer = vertsBuffer;
-    GLfloat *_normsBuffer = normsBuffer;
-    GLfloat *_texCoordsBuffer = texCoordsBuffer;
-    GLfloat *_colorBuffer = colorBuffer;
-    GLuint *_indexBufferForGenerating = indexBufferForGenerating;
+    vertsBuffer = allocateVertexMemory(numChunkVerts);
     
     // Iterate over all voxels in the chunk and generate geometry.
+    struct vertex *_vertsBuffer = vertsBuffer;
     FOR_BOX(pos, minP, maxP)
     {
         [self generateGeometryForSingleBlockAtPosition:pos
                                            vertsBuffer:&_vertsBuffer
-                                           normsBuffer:&_normsBuffer
-                                       texCoordsBuffer:&_texCoordsBuffer
-                                           colorBuffer:&_colorBuffer
-                                           indexBuffer:&_indexBufferForGenerating
                                              voxelData:chunks
                                      onlyDoingCounting:NO];
-    }
-}
-
-
-// Assumes the caller is already holding "lockGeometry".
-- (void)fillIndexBufferForGenerating:(GLsizei)n
-{
-    if(indexBufferForGenerating) {
-        free(indexBufferForGenerating);
-        indexBufferForGenerating = NULL;
-    }
-    
-    numIndicesForGenerating = n;
-    
-    // Take the indices array and generate a raw index buffer that OpenGL can consume.
-    indexBufferForGenerating = malloc(sizeof(GLuint) * numIndicesForGenerating);
-    if(!indexBufferForGenerating) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating index buffer."];
-    }
-    
-    for(GLsizei i = 0; i < numIndicesForGenerating; ++i)
-    {
-        indexBufferForGenerating[i] = i; // a simple linear walk
     }
 }
 
@@ -429,21 +386,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 {
     free(vertsBuffer);
     vertsBuffer = NULL;
-    
-    free(normsBuffer);
-    normsBuffer = NULL;
-    
-    free(texCoordsBuffer);
-    texCoordsBuffer = NULL;
-    
-    free(colorBuffer);
-    colorBuffer = NULL;
-    
-    free(indexBufferForGenerating);
-    indexBufferForGenerating = NULL;
-    
     numChunkVerts = 0;
-    numIndicesForGenerating = 0;
 }
 
 
@@ -453,31 +396,19 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
  * "sunlight.lockLightingBuffer" for the center chunk in the neighborhood (for reading).
  */
 - (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
-                                        vertsBuffer:(GLfloat **)_vertsBuffer
-                                        normsBuffer:(GLfloat **)_normsBuffer
-                                    texCoordsBuffer:(GLfloat **)_texCoordsBuffer
-                                        colorBuffer:(GLfloat **)_colorBuffer
-                                        indexBuffer:(GLuint **)_indexBuffer
+                                        vertsBuffer:(struct vertex **)_vertices
                                           voxelData:(GSNeighborhood *)chunks
                                   onlyDoingCounting:(BOOL)onlyDoingCounting
 {
-    if(!onlyDoingCounting && !(_vertsBuffer && _normsBuffer && _texCoordsBuffer && _colorBuffer && _indexBuffer)) {
-        [NSException raise:NSInvalidArgumentException format:@"If countOnly is NO then pointers to buffers must be provided."];
+    if(!onlyDoingCounting && !_vertices) {
+        [NSException raise:NSInvalidArgumentException format:@"If countOnly is NO then _vertices must be provided"];
     }
     
     GLsizei count = 0;
 
     GLfloat page = dirt;
     
-    GLfloat x = pos.x;
-    GLfloat y = pos.y;
-    GLfloat z = pos.z;
-    
-    GLfloat minX = minP.x;
-    GLfloat minY = minP.y;
-    GLfloat minZ = minP.z;
-    
-    GSIntegerVector3 chunkLocalPos = {x-minX, y-minY, z-minZ};
+    GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     
     GSChunkVoxelData *centerVoxels = [chunks neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     
@@ -516,14 +447,13 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                 {
                     ssize_t tz = texCoord[j][i].z;
                     
-                    addVertex(x+vertex[j][i].x, y+vertex[j][i].y, z+vertex[j][i].z,
-                              normals[i].x, normals[i].y, normals[i].z,
-                              texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz,
-                              blockLight(unpackedSunlight[j], unpackedTorchlight[j]),
-                              _vertsBuffer,
-                              _normsBuffer,
-                              _texCoordsBuffer,
-                              _colorBuffer);
+                    packVertex(*_vertices,
+                               GSVector3_Add(vertex[j][i], pos),
+                               normals[i],
+                               GSVector3_Make(texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz),
+                               blockLight(unpackedSunlight[j], unpackedTorchlight[j]));
+                    
+                    (*_vertices)++;
                 }
             }
         }
@@ -533,76 +463,22 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 }
 
 
-- (BOOL)tryToGenerateVBOs
-{
-    if(![lockGeometry tryLockWhenCondition:READY]) {
-        return NO;
-    }
-    
-    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-    [self destroyVBOs];
-    
-    GLsizei len = 3 * numChunkVerts * sizeof(GLfloat);
-    
-    glGenBuffers(1, &vboChunkVerts);
-    glBindBuffer(GL_ARRAY_BUFFER, vboChunkVerts);
-    glBufferData(GL_ARRAY_BUFFER, len, vertsBuffer, GL_STATIC_DRAW);
-    
-    glGenBuffers(1, &vboChunkNorms);
-    glBindBuffer(GL_ARRAY_BUFFER, vboChunkNorms);
-    glBufferData(GL_ARRAY_BUFFER, len, normsBuffer, GL_STATIC_DRAW);
-    
-    glGenBuffers(1, &vboChunkTexCoords);
-    glBindBuffer(GL_ARRAY_BUFFER, vboChunkTexCoords);
-    glBufferData(GL_ARRAY_BUFFER, len, texCoordsBuffer, GL_STATIC_DRAW);
-    
-    glGenBuffers(1, &vboChunkColors);
-    glBindBuffer(GL_ARRAY_BUFFER, vboChunkColors);
-    glBufferData(GL_ARRAY_BUFFER, len, colorBuffer, GL_STATIC_DRAW);
-    
-    // Simply quickly swap the index buffers to get the index buffer to use for actual drawing.
-    SWAP(indexBufferForDrawing, indexBufferForGenerating);
-    SWAP(numIndicesForDrawing, numIndicesForGenerating);
-    
-    needsVBORegeneration = NO; // reset
-    
-    // Geometry isn't needed anymore, so free it now.
-    [self destroyGeometry];
-    
-    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished generating chunk VBOs. It took %.3fs.", timeEnd - timeStart);
-    [lockGeometry unlock];
-    
-    return YES;
-}
-
-
-- (void)destroyVBOs
-{
-    asyncDestroyChunkVBOs(glContext, vboChunkVerts, vboChunkNorms, vboChunkTexCoords, vboChunkColors);
-    
-    vboChunkVerts = 0;
-    vboChunkNorms = 0;
-    vboChunkTexCoords = 0;
-    vboChunkColors = 0;
-    
-    numIndicesForDrawing = 0;
-    free(indexBufferForDrawing);
-    indexBufferForDrawing = NULL;
-}
-
-
 // Assumes the caller is already holding "lockGeometry".
 - (NSData *)dataRepr
 {
     NSMutableData *data = [[[NSMutableData alloc] init] autorelease];
     
-    size_t len = sizeof(GLfloat) * 3 * numChunkVerts;
-    [data appendBytes:&numChunkVerts length:sizeof(numChunkVerts)];
-    [data appendBytes:vertsBuffer length:len];
-    [data appendBytes:normsBuffer length:len];
-    [data appendBytes:texCoordsBuffer length:len];
-    [data appendBytes:colorBuffer length:len];
+    assert(numChunkVerts < (1UL << (sizeof(GLushort)*8))); // make sure the number of vertices can be stored in a 16-bit uint.
+    
+    struct chunk_geometry_header header;
+    header.w = CHUNK_SIZE_X;
+    header.h = CHUNK_SIZE_Y;
+    header.d = CHUNK_SIZE_Z;
+    header.numChunkVerts = numChunkVerts;
+    header.len = numChunkVerts * sizeof(struct vertex);
+    
+    [data appendBytes:&header length:sizeof(header)];
+    [data appendBytes:vertsBuffer length:header.len];
     
     return data;
 }
@@ -619,27 +495,50 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 
 
 // Assumes the caller is already holding "lockGeometry".
-- (void)fillGeometryBuffersUsingDataRepr:(NSData *)data
+- (NSError *)fillGeometryBuffersUsingDataRepr:(NSData *)data
 {
+    struct chunk_geometry_header header;
+    
+    if(!data) {
+        return [NSError errorWithDomain:GSErrorDomain
+                                   code:GSInvalidChunkDataOnDiskError
+                               userInfo:@{NSLocalizedFailureReasonErrorKey:@"Geometry data is nil."}];
+    }
+    
     [self destroyGeometry];
     
-    [data getBytes:&numChunkVerts range:NSMakeRange(0, sizeof(numChunkVerts))];
+    [data getBytes:&header range:NSMakeRange(0, sizeof(struct chunk_geometry_header))];
     
-    assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
+    if((header.w != CHUNK_SIZE_X) || (header.h != CHUNK_SIZE_Y) || (header.d != CHUNK_SIZE_Z)) {
+        return [NSError errorWithDomain:GSErrorDomain
+                                   code:GSInvalidChunkDataOnDiskError
+                               userInfo:@{NSLocalizedFailureReasonErrorKey:@"Geometry data is for chunk of the wrong size."}];
+    }
     
-    vertsBuffer = allocateGeometryBuffer(numChunkVerts);
-    normsBuffer = allocateGeometryBuffer(numChunkVerts);
-    texCoordsBuffer = allocateGeometryBuffer(numChunkVerts);
-    colorBuffer = allocateGeometryBuffer(numChunkVerts);
+    if(header.numChunkVerts <= 0) {
+        return [NSError errorWithDomain:GSErrorDomain
+                                   code:GSInvalidChunkDataOnDiskError
+                               userInfo:@{NSLocalizedFailureReasonErrorKey:@"numChunkVerts <= 0"}];
+    }
     
-    size_t len = sizeof(GLfloat) * 3 * numChunkVerts;
+    if((header.numChunkVerts % 4) != 0) {
+        return [NSError errorWithDomain:GSErrorDomain
+                                   code:GSInvalidChunkDataOnDiskError
+                               userInfo:@{NSLocalizedFailureReasonErrorKey:@"numChunkVerts%4 != 0"}];
+    }
     
-    [data getBytes:vertsBuffer     range:NSMakeRange(sizeof(numChunkVerts)+len*0, len)];
-    [data getBytes:normsBuffer     range:NSMakeRange(sizeof(numChunkVerts)+len*1, len)];
-    [data getBytes:texCoordsBuffer range:NSMakeRange(sizeof(numChunkVerts)+len*2, len)];
-    [data getBytes:colorBuffer     range:NSMakeRange(sizeof(numChunkVerts)+len*3, len)];
+    const size_t expectedLen = header.numChunkVerts * sizeof(struct vertex);
+    if(expectedLen != header.len) {
+        return [NSError errorWithDomain:GSErrorDomain
+                                   code:GSInvalidChunkDataOnDiskError
+                               userInfo:@{NSLocalizedFailureReasonErrorKey:@"Geometry data length is not as unexpected."}];
+    }
     
-    [self fillIndexBufferForGenerating:numChunkVerts];
+    numChunkVerts = header.numChunkVerts;
+    vertsBuffer = allocateVertexMemory(numChunkVerts);
+    [data getBytes:vertsBuffer range:NSMakeRange(sizeof(struct chunk_geometry_header), header.len)];
+    
+    return nil; // Success!
 }
 
 
@@ -659,22 +558,28 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         goto cleanup2;
     }
     
-    NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:minP]
-                        relativeToURL:folder];
+    NSString *path = [GSChunkGeometryData fileNameForGeometryDataFromMinP:minP];
+    NSURL *url = [NSURL URLWithString:path relativeToURL:folder];
     
-    if([url checkResourceIsReachableAndReturnError:NULL]) {
-        [self fillGeometryBuffersUsingDataRepr:[NSData dataWithContentsOfURL:url]];
-        
-        // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
-        // Updating a boolean should be atomic on x86_64 and i386;
-        needsVBORegeneration = YES;
-        
-        // Geometry was loaded from disk, so we're not dirty anymore.
-        dirty = NO;
-        
-        success = YES;
+    if(NO == [url checkResourceIsReachableAndReturnError:NULL]) {
+        DebugLog(@"Can't load geometry: file not present.");
+        success = NO;
+        goto cleanup3;
     }
     
+    NSError *error = [self fillGeometryBuffersUsingDataRepr:[NSData dataWithContentsOfURL:url]];
+    if(nil != error) {
+        DebugLog(@"Can't load geometry: %@", error.localizedDescription);
+        success = NO;
+        goto cleanup3;
+    }
+    
+    // Success!
+    needsVBORegeneration = YES;
+    dirty = NO;
+    success = YES;
+
+cleanup3:
     [lockGeometry unlockWithCondition:success?READY:!READY];
 cleanup2:
     OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
@@ -685,82 +590,89 @@ cleanup1:
 @end
 
 
+static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo)
+{
+    if(!vbo) {
+        return;
+    }
+    
+    if(numIndicesForDrawing <= 0) {
+        return;
+    }
+    
+    const GLushort const *indices = [GSChunkGeometryData sharedIndexBuffer];
+    
+    assert(checkGLErrors() == 0);
+    
+    assert(numIndicesForDrawing < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));
+    assert(indices);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    
+    // Verify that vertex attribute formats are consistent with in-memory storage.
+    assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct vertex, position));
+    assert(sizeof(GLbyte)  == SIZEOF_STRUCT_ARRAY_ELEMENT(struct vertex, normal));
+    assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct vertex, texCoord));
+    assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct vertex, color));
+    
+    const GLvoid *offsetVertex   = (const GLvoid *)offsetof(struct vertex, position);
+    const GLvoid *offsetNormal   = (const GLvoid *)offsetof(struct vertex, normal);
+    const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(struct vertex, texCoord);
+    const GLvoid *offsetColor    = (const GLvoid *)offsetof(struct vertex, color);
+    
+    const GLsizei stride = sizeof(struct vertex);
+    glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
+    glNormalPointer(     GL_BYTE,          stride, offsetNormal);
+    glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
+    glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
+    
+    assert(checkGLErrors() == 0);
+    glDrawElements(GL_QUADS, numIndicesForDrawing, GL_UNSIGNED_SHORT, indices);
+    assert(checkGLErrors() == 0);
+}
+
+
 static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo)
 {
-    [context makeCurrentContext];
-    CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
-    glDeleteBuffers(1, &vbo);
-    CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
+    assert(context);
+    if(vbo) {
+        [context makeCurrentContext];
+        CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
+        glDeleteBuffers(1, &vbo);
+        CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
+    }
 }
 
 
-static void asyncDestroyChunkVBOs(NSOpenGLContext *context,
-                                  GLuint vboChunkVerts,
-                                  GLuint vboChunkNorms,
-                                  GLuint vboChunkTexCoords,
-                                  GLuint vboChunkColors)
+static void packVertex(struct vertex *vertex,  GSVector3 position, GSVector3 normal, GSVector3 texCoord, GSVector3 color)
 {
-    // Free the VBOs on the main thread. Doesn't have to be synchronous with the dealloc method, though.
+    assert(vertices);
     
-    if(vboChunkVerts) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            syncDestroySingleVBO(context, vboChunkVerts);
-        });
-    }
+    vertex->position[0] = position.x;
+    vertex->position[1] = position.y;
+    vertex->position[2] = position.z;
     
-    if(vboChunkNorms) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            syncDestroySingleVBO(context, vboChunkNorms);
-        });
-    }
+    vertex->normal[0] = normal.x;
+    vertex->normal[1] = normal.y;
+    vertex->normal[2] = normal.z;
     
-    if(vboChunkTexCoords) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            syncDestroySingleVBO(context, vboChunkTexCoords);
-        });
-    }
+    vertex->texCoord[0] = texCoord.x;
+    vertex->texCoord[1] = texCoord.y;
+    vertex->texCoord[2] = texCoord.z;
     
-    if(vboChunkColors) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            syncDestroySingleVBO(context, vboChunkColors);
-        });
-    }
+    vertex->color[0] = color.x * 255;
+    vertex->color[1] = color.y * 255;
+    vertex->color[2] = color.z * 255;
+    vertex->color[3] = 1;
 }
 
 
-static void addVertex(GLfloat vx, GLfloat vy, GLfloat vz,
-                      GLfloat nx, GLfloat ny, GLfloat nz,
-                      GLfloat tx, GLfloat ty, GLfloat tz,
-                      GSVector3 c,
-                      GLfloat **verts,
-                      GLfloat **norms,
-                      GLfloat **txcds,
-                      GLfloat **color)
-{
-    **verts = vx; (*verts)++;
-    **verts = vy; (*verts)++;
-    **verts = vz; (*verts)++;
-    
-    **norms = nx; (*norms)++;
-    **norms = ny; (*norms)++;
-    **norms = nz; (*norms)++;
-    
-    **txcds = tx; (*txcds)++;
-    **txcds = ty; (*txcds)++;
-    **txcds = tz; (*txcds)++;
-    
-    **color = c.x; (*color)++;
-    **color = c.y; (*color)++;
-    **color = c.z; (*color)++;
-}
-
-
-// Allocate a buffer for use in geometry generation.
-static GLfloat * allocateGeometryBuffer(size_t numVerts)
+// Allocate a buffer for use in geometry generation and VBOs.
+static void * allocateVertexMemory(size_t numVerts)
 {
     assert(numVerts > 0);
     
-    GLfloat *buffer = malloc(sizeof(GLfloat) * 3 * numVerts);
+    void *buffer = malloc(sizeof(struct vertex) * numVerts);
     if(!buffer) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating chunk buffer."];
     }

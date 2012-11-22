@@ -10,10 +10,7 @@
 #import <CoreVideo/CVDisplayLink.h>
 #import "GSCamera.h"
 #import "GLString.h"
-#import "GSCube.h"
-#import "GSShader.h"
-#import "GSTextureArray.h"
-#import "GSChunkStore.h"
+#import "GSTerrain.h"
 
 @interface GSOpenGLView : NSOpenGLView
 {
@@ -21,26 +18,15 @@
     CFAbsoluteTime prevFrameTime, lastRenderTime;
     CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
     size_t numFramesSinceLastFpsLabelUpdate;
-    float cubeRotSpeed;
-    float cubeRotY;
     NSMutableDictionary *keysDown;
     int32_t mouseDeltaX, mouseDeltaY;
     float mouseSensitivity;
     GSCamera *camera;
     GLString *fpsStringTex;
     NSMutableDictionary *stringAttribs; // attributes for string textures
-    GSShader *terrainShader;
-    GSTextureArray *textureArray;
-    GSChunkStore *chunkStore;
+    GSTerrain *terrain;
     BOOL spaceBarDebounce;
     BOOL bKeyDebounce;
-    float maxPlaceDistance;
-    
-    BOOL cursorIsActive;
-    GSVector3 cursorPos;
-    GSVector3 cursorPlacePos;
-    GSCube *cursor;
-    
     CVDisplayLinkRef displayLink;
 }
 
@@ -50,12 +36,7 @@
 - (void)resetMouseInputSettings;
 - (void)timerFired:(id)sender;
 - (unsigned)handleUserInput:(float)dt;
-- (NSString *)newShaderSourceStringFromFileAt:(NSString *)path;
-- (void)buildTerrainShader;
 - (void)buildFontsAndStrings;
-- (void)placeBlockUnderCrosshairs;
-- (void)removeBlockUnderCrosshairs;
-- (void)recalcCursorPosition;
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
 
 @end

@@ -15,6 +15,13 @@
 @class GSChunkVoxelData;
 @class GSNeighborhood;
 
+struct vertex
+{
+    GLfloat position[3];
+    GLubyte color[4];
+    GLbyte normal[3];
+    GLshort texCoord[3];
+};
 
 @interface GSChunkGeometryData : GSChunkData
 {
@@ -26,17 +33,11 @@
     
     BOOL needsVBORegeneration;
     GLsizei numIndicesForDrawing;
-    GLuint *indexBufferForDrawing; // Index buffer which is used when rendering VBOs.
-    GLuint vboChunkVerts, vboChunkNorms, vboChunkTexCoords, vboChunkColors;
+    GLuint vbo;
     
     NSConditionLock *lockGeometry;
     GLsizei numChunkVerts;
-    GLfloat *vertsBuffer;
-    GLfloat *normsBuffer;
-    GLfloat *texCoordsBuffer;
-    GLfloat *colorBuffer;
-    GLsizei numIndicesForGenerating;
-    GLuint *indexBufferForGenerating; // Index buffer which is filled by the geometry generation routine.
+    struct vertex *vertsBuffer;
     BOOL dirty;
     int updateInFlight;
     

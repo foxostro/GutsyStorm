@@ -244,14 +244,14 @@
         
         // Read the contents of the file into "sunlight.lightingBuffer".
         NSData *data = [[NSData alloc] initWithContentsOfURL:url];
-        if([data length] != len) {
-            [NSException raise:@"Runtime Error"
-                        format:@"Unexpected lighting buffer size. Got %zu bytes. Expected %zu bytes.", (size_t)[data length], len];
+        if([data length] == len) {
+            [data getBytes:lightingBuffer length:len];
+            success = YES;
         }
-        [data getBytes:lightingBuffer length:len];
         [data release];
-        
-        success = YES;
+    }
+    
+    if(success) {
         completionHandler();
     }
     

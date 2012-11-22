@@ -7,16 +7,21 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import "GSChunkStore.h"
+#import "GSTerrain.h"
 
 
 @interface GSAppDelegate : NSObject <NSApplicationDelegate>
 {
     NSWindow *window;
-    GSChunkStore *chunkStore;
+    GSTerrain *terrain;
+    CVDisplayLinkRef displayLink;
 }
 
 @property (assign) IBOutlet NSWindow *window;
-@property (retain) GSChunkStore *chunkStore;
+@property (retain) GSTerrain *terrain;
+@property (assign, getter = displayLink, setter = setDisplayLink:) CVDisplayLinkRef displayLink;
+
+- (CVDisplayLinkRef)displayLink;
+- (void)setDisplayLink:(CVDisplayLinkRef)displayLink;
 
 @end

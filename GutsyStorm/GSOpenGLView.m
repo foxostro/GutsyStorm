@@ -34,45 +34,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
 }
 
 
-- (NSString *)newShaderSourceStringFromFileAt:(NSString *)path
-{
-    NSError *error;
-    NSString *str = [[NSString alloc] initWithContentsOfFile:path
-                                                     encoding:NSMacOSRomanStringEncoding
-                                                        error:&error];
-    if (!str) {
-        NSLog(@"Error reading file at %@: %@", path, [error localizedFailureReason]);
-        return @"";
-    }
-    
-    return str;
-}
-
-
-- (void)buildTerrainShader
-{
-    [terrainShader release];
-    
-    assert(checkGLErrors() == 0);
-    
-    NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.vert" ofType:@"txt"];
-    NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.frag" ofType:@"txt"];
-    
-    NSString *vertSrc = [self newShaderSourceStringFromFileAt:vertFn];
-    NSString *fragSrc = [self newShaderSourceStringFromFileAt:fragFn];
-    
-    terrainShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
-    
-    [fragSrc release];
-    [vertSrc release];
-    
-    [terrainShader bind];
-    [terrainShader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
-    
-    assert(checkGLErrors() == 0);
-}
-
-
 - (void)buildFontsAndStrings
 {
     // init fonts for use with strings
@@ -147,24 +108,14 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, materialShininess);
     
     [self buildFontsAndStrings];
-    [self buildTerrainShader];
     
-    textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
-                                                              pathForResource:@"terrain"
-                                                              ofType:@"png"]
-                                                 numTextures:3];
-    
-    chunkStore = [[GSChunkStore alloc] initWithSeed:0
-                                             camera:camera
-                                      terrainShader:terrainShader
-                                          glContext:[self openGLContext]];
+    terrain = [[GSTerrain alloc] initWithSeed:0
+                                       camera:camera
+                                    glContext:[self openGLContext]];
     
     GSAppDelegate *appDelegate = [[NSApplication sharedApplication] delegate];
-    appDelegate.chunkStore = chunkStore;
+    appDelegate.terrain = terrain;
     
-    cursor = [[GSCube alloc] init];
-    [cursor generateVBO];
-        
     [self enableVSync];
     
     assert(checkGLErrors() == 0);
@@ -200,23 +151,13 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     [self  setWantsBestResolutionOpenGLSurface:YES];
     
-    cubeRotY = 0.0;
-    cubeRotSpeed = 10.0;
     prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
     fpsLabelUpdateInterval = 0.3;
     numFramesSinceLastFpsLabelUpdate = 0;
     keysDown = [[NSMutableDictionary alloc] init];
-    terrainShader = nil;
-    textureArray = nil;
-    chunkStore = nil;
+    terrain = nil;
     spaceBarDebounce = NO;
     bKeyDebounce = NO;
-    maxPlaceDistance = 6.0;
-    
-    // XXX: Should the cursor be handled in its own unique class?
-    cursorIsActive = NO;
-    cursorPos = cursorPlacePos = GSVector3_Make(0, 0, 0);
-    cursor = nil;
     
     camera = [[GSCamera alloc] init];
     [camera moveToPosition:GSVector3_Make(85.1, 16.1, 140.1)];
@@ -319,7 +260,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     if([[keysDown objectForKey:[NSNumber numberWithInt:' ']] boolValue]) {
         if(!spaceBarDebounce) {
             spaceBarDebounce = YES;
-            [self placeBlockUnderCrosshairs];
+            [terrain placeBlockUnderCrosshairs];
         }
     } else {
         spaceBarDebounce = NO;
@@ -328,7 +269,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     if([[keysDown objectForKey:[NSNumber numberWithInt:'b']] boolValue]) {
         if(!bKeyDebounce) {
             bKeyDebounce = YES;
-            [self removeBlockUnderCrosshairs];
+            [terrain removeBlockUnderCrosshairs];
         }
     } else {
         bKeyDebounce = NO;
@@ -342,56 +283,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
 }
 
 
-- (void)placeBlockUnderCrosshairs
-{
-    if(cursorIsActive) {
-        voxel_t block = 0;
-        
-        markVoxelAsEmpty(NO, &block);
-        markVoxelAsOutside(NO, &block); // outside-ness value will be recalculated later
-        
-        [chunkStore placeBlockAtPoint:cursorPlacePos block:block];
-        [self recalcCursorPosition];
-    }
-}
-
-
-- (void)removeBlockUnderCrosshairs
-{
-    if(cursorIsActive) {
-        voxel_t block = 0;
-        
-        markVoxelAsEmpty(YES, &block);
-        markVoxelAsOutside(NO, &block); // outside-ness value will be recalculated later
-        
-        [chunkStore placeBlockAtPoint:cursorPos block:block];
-        [self recalcCursorPosition];
-    }
-}
-
-
-- (void)recalcCursorPosition
-{
-    GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
-    __block GSVector3 prev = ray.origin;
-    
-    cursorIsActive = NO; // reset
-    
-    [chunkStore enumerateVoxelsOnRay:ray maxDepth:maxPlaceDistance withBlock:^(GSVector3 p, BOOL *stop) {
-        voxel_t voxel = [chunkStore voxelAtPoint:p];
-        
-        if(!isVoxelEmpty(voxel)) {
-            cursorIsActive = YES;
-            cursorPos = p;
-            cursorPlacePos = prev;
-            *stop = YES;
-        } else {
-            prev = p;
-        }
-    }];
-}
-
-
 // Timer callback method
 - (void)timerFired:(id)sender
 {
@@ -402,13 +293,8 @@ BOOL checkForOpenGLExtension(NSString *extension);
     // Handle user input and update the camera if it was modified.
     cameraModifiedFlags = [self handleUserInput:dt];
     
-    //Calculate the cursor position.
-    if(cameraModifiedFlags) {
-        [self recalcCursorPosition];
-    }
-    
     // Allow the chunkStore to update every frame.
-    [chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
+    [terrain updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
     
     prevFrameTime = frameTime;
 }
@@ -463,7 +349,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime
 {
-    static const float edgeOffset = 1e-4;
     static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
     
     NSOpenGLContext *currentContext = [self openGLContext];
@@ -476,22 +361,10 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glPushMatrix();
     glLoadIdentity();
     
-    glLoadIdentity();
     [camera submitCameraTransform];
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 
-    glDepthRange(edgeOffset, 1.0); // Use glDepthRange so the block cursor is properly offset from the block itself.
-    [chunkStore drawActiveChunks];
-    
-    if(cursorIsActive) {
-        glDepthRange(0.0, 1.0 - edgeOffset);
-        glPushMatrix();
-        glTranslatef(cursorPos.x, cursorPos.y, cursorPos.z);
-        [cursor draw];
-        glPopMatrix();
-    }
-    
-    glDepthRange(0.0, 1.0);
+    [terrain draw];
     
     glPopMatrix(); // camera transform
     
@@ -520,14 +393,11 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)dealloc
 {
+    CVDisplayLinkStop(displayLink);
+    CVDisplayLinkRelease(displayLink);
     [keysDown release];
     [camera release];
-    [terrainShader release];
-    [textureArray release];
-    [cursor release];
-    
-    CVDisplayLinkRelease(displayLink);
-    
+    [terrain release];
     [super dealloc];
 }
 

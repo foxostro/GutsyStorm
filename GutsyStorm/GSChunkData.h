@@ -9,12 +9,12 @@
 #import <Foundation/Foundation.h>
 #import "GSVector3.h"
 #import "GSIntegerVector3.h"
+#import "GutsyStormErrorCodes.h"
 
 
 #define READY (1)
 
 extern const GSIntegerVector3 chunkSize;
-
 
 typedef id chunk_id_t;
 

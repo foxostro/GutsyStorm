@@ -28,7 +28,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
-- (void)loadVoxelDataFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler;
+- (NSError *)loadVoxelDataFromFile:(NSURL *)url;
 - (void)recalcOutsideVoxelsNoLock;
 - (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
 - (void)saveVoxelDataToFile;
@@ -455,75 +455,46 @@ cleanup1:
 }
 
 
-// Attempt to load chunk data from file asynchronously. Call the completioHandler when finished.
-- (void)loadVoxelDataFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler
+// Attempt to load chunk data from file asynchronously.
+- (NSError *)loadVoxelDataFromFile:(NSURL *)url
 {
-#if 0
-    const size_t chunkSizeOnDisk = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
-    
-    const char *fileName = [[url path] cStringUsingEncoding:NSUTF8StringEncoding];
-    
-    // TODO: fix the bug which keeps causing fopen to fail with EINVAL. Wtf?
-    FILE *fp = fopen(fileName, "r");
-    
-    if(!fp) {
-        NSLog(@"Failed to open the file for reading: \"%s\"", fileName);
-        perror("Cannot open file\n");
-        return;
-    }
-    
-    NSMutableData *dataReadSoFar = [[NSMutableData alloc] initWithCapacity:chunkSizeOnDisk];
-    
-    dispatch_read(fileno(fp), chunkSizeOnDisk, chunkTaskQueue, ^(dispatch_data_t data, int error) {
-        if(error) {
-            NSLog(@"File I/O error: %d", error);
-            return;
-        }
-        
-        const void *buffer = NULL;
-        size_t size = 0;
-        dispatch_data_t newData = dispatch_data_create_map(data, &buffer, &size);
-        [dataReadSoFar appendBytes:buffer length:size];
-        dispatch_release(newData);
-        
-        assert([dataReadSoFar length] <= chunkSizeOnDisk);
-        
-        if([dataReadSoFar length] == chunkSizeOnDisk) {
-            // okay, we're done reading data from the file
-            fclose(fp);
-            [dataReadSoFar getBytes:voxelData length:chunkSizeOnDisk];
-            [dataReadSoFar release];
-            completionHandler();
-        }
-    });
-#else
     const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
+    
+    if(![url checkResourceIsReachableAndReturnError:NULL]) {
+        return [NSError errorWithDomain:GSErrorDomain
+                                   code:GSFileNotFoundError
+                               userInfo:@{NSLocalizedFailureReasonErrorKey:@"Voxel data file is not present."}];
+    }
     
     // Read the contents of the file into "voxelData".
     NSData *data = [[NSData alloc] initWithContentsOfURL:url];
     if([data length] != len) {
-        [NSException raise:@"Runtime Error"
-                    format:@"Unexpected chunk voxels size. Got %zu bytes. Expected %zu bytes.", (size_t)[data length], len];
+        return [NSError errorWithDomain:GSErrorDomain
+                                   code:GSInvalidChunkDataOnDiskError
+                               userInfo:@{NSLocalizedFailureReasonErrorKey:@"Voxel data file is of unexpected length."}];
     }
     [data getBytes:voxelData length:len];
     [data release];
-    completionHandler();
-#endif
+    
+    return nil;
 }
 
 
 - (void)loadOrGenerateVoxelData:(terrain_generator_t)callback completionHandler:(void (^)(void))completionHandler
 {
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
-                        relativeToURL:folder];
-    if([url checkResourceIsReachableAndReturnError:NULL]) {
-        [self loadVoxelDataFromFile:url completionHandler:completionHandler];
-    } else {
-        // Generate chunk from scratch.
-        [self generateVoxelDataWithCallback:callback];
-        [self saveVoxelDataToFile];
-        completionHandler();
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP] relativeToURL:folder];
+    NSError *error = [self loadVoxelDataFromFile:url];
+    
+    if(error) {
+        if((error.code == GSInvalidChunkDataOnDiskError) || (error.code == GSFileNotFoundError)) {
+            [self generateVoxelDataWithCallback:callback];
+            [self saveVoxelDataToFile];
+        } else {
+            [NSException raise:@"Runtime Error" format:@"Error %ld: %@", (long)error.code, error.localizedDescription];
+        }
     }
+
+    completionHandler();
 }
 
 

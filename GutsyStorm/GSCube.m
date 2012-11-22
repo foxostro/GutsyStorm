@@ -105,13 +105,16 @@ static const GLsizei numCubeVerts = 12*3;
 
 - (void)dealloc
 {
-    glDeleteBuffers(1, &vboCubeVerts);
-    glDeleteBuffers(1, &vboCubeNorms);
-    glDeleteBuffers(1, &vboCubeTexCoords);
+    // XXX: can't reference array from within a block...
+    GLuint buffer1 = vboCubeVerts;
+    GLuint buffer2 = vboCubeNorms;
+    GLuint buffer3 = vboCubeTexCoords;
     
-    vboCubeVerts = 0;
-    vboCubeNorms = 0;
-    vboCubeTexCoords = 0;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        glDeleteBuffers(1, &buffer1);
+        glDeleteBuffers(1, &buffer2);
+        glDeleteBuffers(1, &buffer3);
+    });
     
     [super dealloc];
 }
