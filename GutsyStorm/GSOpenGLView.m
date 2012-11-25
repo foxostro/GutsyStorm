@@ -233,7 +233,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     const float nearD = 0.1;
     const float farD = 724.0;
     
-    NSRect r = [self convertRectToBase:[self bounds]];
+    NSRect r = [self convertRectToBacking:[self bounds]];
     glViewport(0, 0, r.size.width, r.size.height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
