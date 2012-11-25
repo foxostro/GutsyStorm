@@ -646,7 +646,7 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo)
 
 static void packVertex(struct vertex *vertex,  GSVector3 position, GSVector3 normal, GSVector3 texCoord, GSVector3 color)
 {
-    assert(vertices);
+    assert(vertex);
     
     vertex->position[0] = position.x;
     vertex->position[1] = position.y;
