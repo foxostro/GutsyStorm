@@ -211,7 +211,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         ssize_t offsetZ = offsetsZ[i];
         
         GSIntegerVector3 p;
-        FOR_BOX(p, ivecZero, chunkSize)
+        FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
         {
             assert(p.x >= 0 && p.x < chunkSize.x);
             assert(p.y >= 0 && p.y < chunkSize.y);
@@ -222,8 +222,9 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
             
             assert(dstIdx < size);
             assert(srcIdx < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));
-            
-            combinedVoxelData[dstIdx] = data[srcIdx];
+            assert(sizeof(combinedVoxelData[0]) == sizeof(data[0]));
+
+            memcpy(&combinedVoxelData[dstIdx], &data[srcIdx], CHUNK_SIZE_Y*sizeof(combinedVoxelData[0]));
         }
     }];
     

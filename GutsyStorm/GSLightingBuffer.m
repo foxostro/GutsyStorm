@@ -10,7 +10,9 @@
 #import "GSChunkVoxelData.h"
 
 #define BUFFER_SIZE_IN_BYTES (dimensions.x * dimensions.y * dimensions.z * sizeof(uint8_t))
-#define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*dimensions.y*dimensions.z) + ((p.y)*dimensions.z) + (p.z)))
+
+// Columns in the y-axis are contiguous in memory.
+#define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*dimensions.y*dimensions.z) + ((p.z)*dimensions.y) + (p.y)))
 
 @implementation GSLightingBuffer
 

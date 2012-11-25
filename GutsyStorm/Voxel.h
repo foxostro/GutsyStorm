@@ -32,12 +32,16 @@
                                    for((p).y = (minP).y; (p).y < (maxP).y; ++(p).y) \
                                        for((p).z = (minP).z; (p).z < (maxP).z; ++(p).z)
 
+#define FOR_Y_COLUMN_IN_BOX(p, minP, maxP) for((p).y = (minP).y, (p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \
+                                             for((p).z = (minP).z; (p).z < (maxP).z; ++(p).z)
+
 static inline size_t INDEX_BOX(GSIntegerVector3 p, GSIntegerVector3 minP, GSIntegerVector3 maxP)
 {
     const size_t sizeY = maxP.y - minP.y;
     const size_t sizeZ = maxP.z - minP.z;
     
-    return ((p.x-minP.x)*sizeY*sizeZ) + ((p.y-minP.y)*sizeZ) + (p.z-minP.z);
+    // Columns in the y-axis are contiguous in memory.
+    return ((p.x-minP.x)*sizeY*sizeZ) + ((p.z-minP.z)*sizeY) + (p.y-minP.y);
 }
 
 typedef uint8_t voxel_t;
