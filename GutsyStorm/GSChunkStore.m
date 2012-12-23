@@ -178,17 +178,21 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 - (void)tryToUpdateDirtySunlight
 {
     void (^b)(GLKVector3) = ^(GLKVector3 p) {
-        GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:p];
-        dispatch_async(chunkTaskQueue, ^{
-            if(voxels.dirtySunlight) {
-                GSNeighborhood *neighborhood = [self neighborhoodAtPoint:voxels.centerP];
-                [voxels tryToRebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
-                    GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:p];
-                    geometry.dirty = YES;
-                    [geometry tryToUpdateWithVoxelData:neighborhood]; // make an effort to update geometry immediately
-                }];
-            }
-        });
+        GSChunkVoxelData *voxels;
+
+        // Avoid blocking to take the lock in GSGrid.
+        if([self tryToGetChunkVoxelsAtPoint:p chunk:&voxels]) {
+            dispatch_async(chunkTaskQueue, ^{
+                if(voxels.dirtySunlight) {
+                    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:voxels.centerP];
+                    [voxels tryToRebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
+                        GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:p];
+                        geometry.dirty = YES;
+                        [geometry tryToUpdateWithVoxelData:neighborhood]; // make an effort to update geometry immediately
+                    }];
+                }
+            });
+        }
     };
     
     [activeRegion enumeratePointsInActiveRegionNearCamera:camera usingBlock:b];
