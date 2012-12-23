@@ -152,7 +152,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     dirtySunlight = YES;
     
     // Spin off a task to save the chunk.
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
     dispatch_group_async(groupForSaving, queue, ^{
         [lockVoxelData lockForReading];
         [self saveVoxelDataToFile];
@@ -351,7 +351,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     success = YES;
     
     // Spin off a task to save sunlight data to disk.
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
     dispatch_group_async(groupForSaving, queue, ^{
         [self saveSunlightDataToFile];
     });
@@ -502,7 +502,13 @@ cleanup1:
     if(error) {
         if((error.code == GSInvalidChunkDataOnDiskError) || (error.code == GSFileNotFoundError)) {
             [self generateVoxelDataWithCallback:callback];
-            [self saveVoxelDataToFile];
+
+            dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+            dispatch_group_async(groupForSaving, queue, ^{
+                [lockVoxelData lockForReading];
+                [self saveVoxelDataToFile];
+                [lockVoxelData unlockForReading];
+            });
         } else {
             [NSException raise:@"Runtime Error" format:@"Error %ld: %@", (long)error.code, error.localizedDescription];
         }
