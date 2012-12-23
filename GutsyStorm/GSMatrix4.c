@@ -96,9 +96,9 @@ GLKVector3 GSMatrix4_ProjVec3(GSMatrix4 m, GLKVector3 v)
 }
 
 
-GSVector4 GSMatrix4_ProjVec4(GSMatrix4 m, GSVector4 v)
+GLKVector4 GSMatrix4_ProjVec4(GSMatrix4 m, GLKVector4 v)
 {
-    GSVector4 result;
+    GLKVector4 result;
     
     result.x = v.x*m.m[0] + v.y*m.m[4] + v.z*m.m[8] + m.m[12];
     result.y = v.x*m.m[1] + v.y*m.m[5] + v.z*m.m[9] + m.m[13];

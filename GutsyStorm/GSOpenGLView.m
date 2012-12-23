@@ -11,7 +11,6 @@
 #import <OpenGL/glu.h>
 #import <GLKit/GLKMath.h>
 #import "GSOpenGLView.h"
-#import "GSVector2.h"
 #import "GSAppDelegate.h"
 
 
