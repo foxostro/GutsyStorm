@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSQuaternion.h"
 #import "GSFrustum.h"
 
 #define CAMERA_MOVED  (1)
@@ -18,7 +17,7 @@
 {
     float ceilingHeight;
     float cameraSpeed, cameraRotSpeed;
-    GSQuaternion cameraRot;
+    GLKQuaternion cameraRot;
     GLKVector3 cameraEye, cameraCenter, cameraUp;
     GSFrustum *frustum;
 }
@@ -26,7 +25,7 @@
 @property (readonly, nonatomic) GLKVector3 cameraEye;
 @property (readonly, nonatomic) GLKVector3 cameraCenter;
 @property (readonly, nonatomic) GLKVector3 cameraUp;
-@property (readonly, nonatomic) GSQuaternion cameraRot;
+@property (readonly, nonatomic) GLKQuaternion cameraRot;
 @property (retain) GSFrustum *frustum;
 
 
@@ -39,7 +38,7 @@
                                             mouseDeltaY:(int)mouseDeltaY
                                        mouseSensitivity:(float)mouseSensitivity;
 - (void)moveToPosition:(GLKVector3)p;
-- (void)setCameraRot:(GSQuaternion)rot;
+- (void)setCameraRot:(GLKQuaternion)rot;
 - (void)reshapeWithBounds:(NSRect)bounds
                       fov:(float)fov
                     nearD:(float)nearD

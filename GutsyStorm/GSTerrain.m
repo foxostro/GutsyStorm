@@ -139,7 +139,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (void)recalcCursorPosition
 {
-    GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GLKVector3Make(0, 0, -1)));
+    GSRay ray = GSRay_Make(camera.cameraEye, GLKQuaternionRotateVector3(camera.cameraRot, GLKVector3Make(0, 0, -1)));
     __block GLKVector3 prev = ray.origin;
     
     cursor.cursorIsActive = NO;

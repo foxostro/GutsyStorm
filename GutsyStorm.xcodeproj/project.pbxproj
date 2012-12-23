@@ -10,7 +10,6 @@
 		1338A2DA15B792C800663E28 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1338A2D915B792C800663E28 /* CoreVideo.framework */; };
 		13C8BE191602854300403815 /* GSNeighborhood.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE171602854300403815 /* GSNeighborhood.m */; };
 		13C8BE1D16038DC000403815 /* GSActiveRegion.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE1C16038DC000403815 /* GSActiveRegion.m */; };
-		4A1B69901516B889008934F6 /* GSQuaternion.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A1B698F1516B889008934F6 /* GSQuaternion.c */; };
 		4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */; };
 		4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */; };
 		4A2310C7153E112900A4EBE6 /* GSChunkData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C6153E112900A4EBE6 /* GSChunkData.m */; };
@@ -57,8 +56,6 @@
 		13C8BE181602854300403815 /* Voxel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Voxel.h; sourceTree = "<group>"; };
 		13C8BE1B16038DC000403815 /* GSActiveRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSActiveRegion.h; sourceTree = "<group>"; };
 		13C8BE1C16038DC000403815 /* GSActiveRegion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSActiveRegion.m; sourceTree = "<group>"; };
-		4A1B698D1516B882008934F6 /* GSQuaternion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSQuaternion.h; sourceTree = "<group>"; };
-		4A1B698F1516B889008934F6 /* GSQuaternion.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSQuaternion.c; sourceTree = "<group>"; };
 		4A1F6E51153F6F6100D194AE /* GSIntegerVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSIntegerVector3.h; sourceTree = "<group>"; };
 		4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkVoxelData.h; sourceTree = "<group>"; };
 		4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkVoxelData.m; sourceTree = "<group>"; };
@@ -255,8 +252,6 @@
 				AC202CC0151E437C00D91067 /* GSFrustum.m */,
 				AC202CC3151E453100D91067 /* GSPlane.h */,
 				AC202CC4151E453E00D91067 /* GSPlane.c */,
-				4A1B698D1516B882008934F6 /* GSQuaternion.h */,
-				4A1B698F1516B889008934F6 /* GSQuaternion.c */,
 				4A4E20751516B07E008745E0 /* GLKVector3Extra.h */,
 				4A4E20761516B086008745E0 /* GLKVector3Extra.c */,
 				4A1F6E51153F6F6100D194AE /* GSIntegerVector3.h */,
@@ -386,7 +381,6 @@
 				4A4E20771516B086008745E0 /* GLKVector3Extra.c in Sources */,
 				4A2CD00A1513C3FC006C6551 /* GSAppDelegate.m in Sources */,
 				4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */,
-				4A1B69901516B889008934F6 /* GSQuaternion.c in Sources */,
 				4A9A3BA61517200E00607B1A /* GSCamera.m in Sources */,
 				4A9A3BAD1517252E00607B1A /* GLString.m in Sources */,
 				AC9CCD701519A90E0081964D /* GSShader.m in Sources */,
