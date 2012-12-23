@@ -23,29 +23,6 @@ extern int checkGLErrors(void);
         
         GLenum format = [bitmap hasAlpha] ? GL_RGBA : GL_RGB;
         
-#if 0
-        // Degamma the input
-        // XXX: Do this offline and bake into the texture itself.
-        size_t bpp = [bitmap hasAlpha] ? 4 : 3;
-        const float gamma = 2.2;
-        unsigned char * data = [bitmap bitmapData];
-        for(size_t x = 0; x < [bitmap size].width; ++x)
-        {
-            for(size_t y = 0; y < [bitmap size].height; ++y)
-            {
-                size_t idx = 0;
-                
-                idx = x*bpp + y*bounds.size.width*bpp;
-                
-                for(size_t i = 0; i < bpp; ++i)
-                {
-                    float val = MAX(0, MIN(1, powf(data[idx+i] / 255.0, gamma)));
-                    data[idx+i] = floorf(val * 255.0);
-                }
-            }
-        }
-#endif
-        
         glGenTextures(1, &handle);        
         glBindTexture(GL_TEXTURE_2D_ARRAY_EXT, handle);
         glTexParameterf(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

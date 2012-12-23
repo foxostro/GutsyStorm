@@ -177,6 +177,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 // Try to update asynchronously dirty chunk sunlight. Skip any that would block due to lock contention.
 - (void)tryToUpdateDirtySunlight
 {
+    // TODO: -neighborhoodAtPoint: can block to get chunk voxel data. Write a non-blocking version and use it here.
+    
     void (^b)(GLKVector3) = ^(GLKVector3 p) {
         GSChunkVoxelData *voxels;
 

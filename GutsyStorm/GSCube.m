@@ -105,7 +105,7 @@ static const GLsizei numCubeVerts = 12*3;
 
 - (void)dealloc
 {
-    // XXX: can't reference array from within a block...
+    // Can't reference array from within a block so use some temporary variables.
     GLuint buffer1 = vboCubeVerts;
     GLuint buffer2 = vboCubeNorms;
     GLuint buffer3 = vboCubeTexCoords;
