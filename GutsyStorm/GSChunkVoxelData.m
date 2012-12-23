@@ -169,6 +169,18 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 }
 
 
+- (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block
+{
+    if(![lockVoxelData tryLockForReading]) {
+        return NO;
+    } else {
+        block();
+        [lockVoxelData unlockForReading];
+        return YES;
+    }
+}
+
+
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
     [lockVoxelData lockForWriting];

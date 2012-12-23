@@ -104,7 +104,7 @@
 
 - (id)objectAtPoint:(GLKVector3)p objectFactory:(id (^)(GLKVector3 minP))factory
 {
-    [lockTheTableItself lockForReading]; // The only writer is -resizeTable, so lock contention will be extremely low.
+    [lockTheTableItself lockForReading]; // The only writer is -resizeTable, so lock contention will be low, hopefully.
     
     float load = 0;
     id anObject = nil;
@@ -140,6 +140,55 @@
     }
     
     return anObject;
+}
+
+- (BOOL)tryToGetObjectAtPoint:(GLKVector3)p object:(id *)object objectFactory:(id (^)(GLKVector3 minP))factory
+{
+    // XXX: try to refactor to consolidate this and the objectAtPoint method.
+    assert(object);
+
+    if(![lockTheTableItself tryLockForReading]) {
+        return NO;
+    }
+
+    float load = 0;
+    id anObject = nil;
+    GLKVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
+    NSUInteger hash = GLKVector3Hash(minP);
+    NSUInteger idxBucket = hash % numBuckets;
+    NSUInteger idxLock = hash % numLocks;
+    NSLock *lock = locks[idxLock];
+    NSMutableArray *bucket = buckets[idxBucket];
+
+    if(![lock tryLock]) {
+        [lockTheTableItself unlockForReading];
+        return NO;
+    }
+
+    for(GSChunkData *item in bucket)
+    {
+        if(GLKVector3AllEqualToVector3(item.minP, minP)) {
+            anObject = item;
+        }
+    }
+
+    if(!anObject) {
+        anObject = factory(minP);
+        assert(anObject);
+        [bucket addObject:anObject];
+        OSAtomicIncrement32Barrier(&n);
+        load = (float)n / numBuckets;
+    }
+
+    [lock unlock];
+    [lockTheTableItself unlockForReading];
+
+    if(load > loadLevelToTriggerResize) {
+        [self resizeTable];
+    }
+
+    *object = anObject;
+    return YES;
 }
 
 @end

@@ -56,6 +56,11 @@ typedef void (^terrain_generator_t)(GLKVector3, voxel_t*);
 // Obtains a reader lock on the voxel data and allows the caller to access it in the specified block.
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
 
+/* Tries to obtain a reader lock on the voxel data and allows the caller to access it in the specified block.
+ * If the lock cannot be taken without blocking then this returns NO immediately. Otherwise, returns YES after executing the block.
+ */
+- (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block;
+
 /* Obtains a writer lock on the voxel data and allows the caller to access it in the specified block. Calls -voxelDataWasModified
  * after the block returns.
  */

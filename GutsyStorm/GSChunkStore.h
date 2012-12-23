@@ -57,9 +57,19 @@
         cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
 /* Enumerates the voxels on the specified ray up to the specified maximum depth. Calls the block for each voxel cell. The block
- * may set '*stop=YES;' to indicate that enumeration should terminate.
+ * may set '*stop=YES;' to indicate that enumeration should terminate with a successful condition. The block may set '*fail=YES;'
+ * to indicate that enumeration should terminate with a non-successful condition. Typically, this occurs when the block realizes
+ * that it must block to take a lock.
+ * Returns YES or NO depending on whether the operation was successful. This method will do its best to avoid blocking (i.e. by
+ * waiting to take locks) and will return early if the alternative is to block. In this case, the function returns NO.
  */
-- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop))block;
+- (BOOL)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop, BOOL *fail))block;
+
+/* Try to get the voxel at the specified position. If successful then store it in 'voxel' and return YES. If unsuccessful then
+ * this returns NO without modifying the voxel pointed to by 'voxel'. This method may fail in this way when it would have to block
+ * to take a lock.
+ */
+- (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel;
 
 - (voxel_t)voxelAtPoint:(GLKVector3)pos;
 

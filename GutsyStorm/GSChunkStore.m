@@ -27,6 +27,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p;
+- (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk;
 
 @end
 
@@ -256,6 +257,30 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 }
 
 
+- (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel
+{
+    __block voxel_t block;
+    GSChunkVoxelData *chunk;
+
+    assert(voxel);
+
+    if(![self tryToGetChunkVoxelsAtPoint:pos chunk:&chunk]) {
+        return NO;
+    }
+
+    if(![chunk tryReaderAccessToVoxelDataUsingBlock:^{
+        GLKVector3 clp = GLKVector3Subtract(pos, chunk.minP);
+        GSIntegerVector3 iclp = GSIntegerVector3_Make(clp.x, clp.y, clp.z);
+        block = [chunk voxelAtLocalPosition:iclp];
+    }]) {
+        return NO;
+    }
+
+    *voxel = block;
+    return YES;
+}
+
+
 - (voxel_t)voxelAtPoint:(GLKVector3)pos
 {
     __block voxel_t block;
@@ -270,7 +295,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 }
 
 
-- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop))block
+- (BOOL)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop, BOOL *fail))block
 {
     /* Implementation is based on:
      * "A Fast Voxel Traversal Algorithm for Ray Tracing"
@@ -331,13 +356,19 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     for(int i = 0; i < maxDepth; i++)
     {
         if(y >= activeRegionExtent.y || y < 0) {
-            return; // The vertical extent of the world is limited.
+            return YES; // The vertical extent of the world is limited.
         }
         
         BOOL stop = NO;
-        block(GLKVector3Make(x, y, z), &stop);
+        BOOL fail = NO;
+        block(GLKVector3Make(x, y, z), &stop, &fail);
+
+        if(fail) {
+            return NO; // the block was going to block so it stopped and called for an abort
+        }
+
         if(stop) {
-            return;
+            return YES;
         }
         
         // Do the next step.
@@ -355,6 +386,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
             tMax.z += tDelta.z;
         }
     }
+
+    return YES;
 }
 
 @end
@@ -410,6 +443,34 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     }];
     
     return v;
+}
+
+
+- (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk
+{
+    BOOL success;
+    GSChunkVoxelData *v;
+
+    assert(p.y >= 0); // world does not extend below y=0
+    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    assert(chunk);
+
+    success = [gridVoxelData tryToGetObjectAtPoint:p object:&v objectFactory:^id(GLKVector3 minP) {
+        return [[[GSChunkVoxelData alloc] initWithMinP:minP
+                                                folder:folder
+                                        groupForSaving:groupForSaving
+                                        chunkTaskQueue:chunkTaskQueue
+                                             generator:^(GLKVector3 a, voxel_t *voxel) {
+                                                 generateTerrainVoxel(seed, terrainHeight, a, voxel);
+                                             }] autorelease];
+    }];
+
+    if(success) {
+        *chunk = v;
+        return YES;
+    } else {
+        return NO;
+    }
 }
 
 

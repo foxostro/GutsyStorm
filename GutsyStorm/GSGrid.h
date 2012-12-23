@@ -28,4 +28,11 @@
 // Returns the object corresponding to the given point on the grid. The given factory can create that object, if necessary.
 - (id)objectAtPoint:(GLKVector3)p objectFactory:(id (^)(GLKVector3 minP))factory;
 
+/* Tries to get the object corresponding to the given point on the grid, returning it in 'object'. The given factory can create
+ * that object, if necessary. On success, 'object' points to the desired object and this method returns YES. On failure, this
+ * method return NO and 'object' is not modified.
+ * The method may fail if getting the object would require blocking to take a lock.
+ */
+- (BOOL)tryToGetObjectAtPoint:(GLKVector3)p object:(id *)object objectFactory:(id (^)(GLKVector3 minP))factory;
+
 @end

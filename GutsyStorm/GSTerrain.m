@@ -140,22 +140,30 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 - (void)recalcCursorPosition
 {
     GSRay ray = GSRay_Make(camera.cameraEye, GLKQuaternionRotateVector3(camera.cameraRot, GLKVector3Make(0, 0, -1)));
+    BOOL success = NO;
     __block GLKVector3 prev = ray.origin;
+    __block GLKVector3 cursorPos;
     
-    cursor.cursorIsActive = NO;
-    
-    [chunkStore enumerateVoxelsOnRay:ray maxDepth:maxPlaceDistance withBlock:^(GLKVector3 p, BOOL *stop) {
-        voxel_t voxel = [chunkStore voxelAtPoint:p];
+    success = [chunkStore enumerateVoxelsOnRay:ray maxDepth:maxPlaceDistance withBlock:^(GLKVector3 p, BOOL *stop, BOOL *fail) {
+        voxel_t voxel;
+
+        if(![chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {
+            *fail = YES; // Stops enumerations with un-successful condition
+        }
         
         if(!isVoxelEmpty(voxel)) {
-            cursor.cursorIsActive = YES;
-            cursor.cursorPos = p;
-            cursor.cursorPlacePos = prev;
-            *stop = YES;
+            cursorPos = p;
+            *stop = YES; // Stops enumeration with successful condition.
         } else {
             prev = p;
         }
     }];
+
+    if(success) {
+        cursor.cursorIsActive = YES;
+        cursor.cursorPos = cursorPos;
+        cursor.cursorPlacePos = prev;
+    }
 }
 
 @end
