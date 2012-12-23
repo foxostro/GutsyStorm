@@ -9,14 +9,15 @@
 #import <OpenGL/glu.h>
 #import <assert.h>
 #import <cache.h>
+#import <GLKit/GLKMath.h>
 #import "GSRay.h"
 #import "GSBoxedRay.h"
 #import "GSBoxedVector.h"
 #import "GSChunkStore.h"
 #import "GSNoise.h"
 
-static float groundGradient(float terrainHeight, GSVector3 p);
-static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p, voxel_t *outVoxel);
+static float groundGradient(float terrainHeight, GLKVector3 p);
+static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 p, voxel_t *outVoxel);
 
 
 @interface GSChunkStore (Private)
@@ -24,9 +25,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 + (NSURL *)newWorldSaveFolderURLWithSeed:(unsigned)seed;
 - (void)updateChunkVisibilityForActiveRegion;
 - (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
-- (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p;
-- (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p;
-- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p;
+- (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p;
 
 @end
 
@@ -98,9 +99,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         
         // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
-        activeRegionExtent = GSVector3_Make(w, CHUNK_SIZE_Y, w);
+        activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
         activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:activeRegionExtent];
-        [activeRegion updateWithSorting:YES camera:camera chunkProducer:^GSChunkGeometryData *(GSVector3 p) {
+        [activeRegion updateWithSorting:YES camera:camera chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
             return [self chunkGeometryAtPoint:p];
         }];
         needsChunkVisibilityUpdate = 1;
@@ -176,7 +177,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 // Try to update asynchronously dirty chunk sunlight. Skip any that would block due to lock contention.
 - (void)tryToUpdateDirtySunlight
 {
-    void (^b)(GSVector3) = ^(GSVector3 p) {
+    void (^b)(GLKVector3) = ^(GLKVector3 p) {
         GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:p];
         dispatch_async(chunkTaskQueue, ^{
             if(voxels.dirtySunlight) {
@@ -231,14 +232,14 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)newBlock
+- (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)newBlock
 {
     GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
     [chunk writerAccessToVoxelDataUsingBlock:^{
-        GSVector3 chunkLocalP;
+        GLKVector3 chunkLocalP;
         voxel_t *block;
         
-        chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+        chunkLocalP = GLKVector3Subtract(pos, chunk.minP);
         
         block = [chunk pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
         assert(block);
@@ -256,13 +257,13 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (voxel_t)voxelAtPoint:(GSVector3)pos
+- (voxel_t)voxelAtPoint:(GLKVector3)pos
 {
     __block voxel_t block;
     GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
     
     [chunk readerAccessToVoxelDataUsingBlock:^{
-        GSVector3 chunkLocalP = GSVector3_Sub(pos, chunk.minP);
+        GLKVector3 chunkLocalP = GLKVector3Subtract(pos, chunk.minP);
         block = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
     }];
     
@@ -270,7 +271,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GSVector3 p, BOOL *stop))block
+- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop))block
 {
     /* Implementation is based on:
      * "A Fast Voxel Traversal Algorithm for Ray Tracing"
@@ -311,7 +312,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     // value of the division also equals zero, the result is Single.NaN, which is not OK.
     
     // Determine how far we can travel along the ray before we hit a voxel boundary.
-    GSVector3 tMax = GSVector3_Make((cellBoundary.x - ray.origin.x) / ray.direction.x,    // Boundary is a plane on the YZ axis.
+    GLKVector3 tMax = GLKVector3Make((cellBoundary.x - ray.origin.x) / ray.direction.x,    // Boundary is a plane on the YZ axis.
                                     (cellBoundary.y - ray.origin.y) / ray.direction.y,    // Boundary is a plane on the XZ axis.
                                     (cellBoundary.z - ray.origin.z) / ray.direction.z);   // Boundary is a plane on the XY axis.
     if(isnan(tMax.x)) { tMax.x = +INFINITY; }
@@ -319,7 +320,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     if(isnan(tMax.z)) { tMax.z = +INFINITY; }
 
     // Determine how far we must travel along the ray before we have crossed a gridcell.
-    GSVector3 tDelta = GSVector3_Make(stepX / ray.direction.x,                    // Crossing the width of a cell.
+    GLKVector3 tDelta = GLKVector3Make(stepX / ray.direction.x,                    // Crossing the width of a cell.
                                       stepY / ray.direction.y,                    // Crossing the height of a cell.
                                       stepZ / ray.direction.z);                   // Crossing the depth of a cell.
     if(isnan(tDelta.x)) { tDelta.x = +INFINITY; }
@@ -335,7 +336,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         }
         
         BOOL stop = NO;
-        block(GSVector3_Make(x, y, z), &stop);
+        block(GLKVector3Make(x, y, z), &stop);
         if(stop) {
             return;
         }
@@ -362,13 +363,13 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 @implementation GSChunkStore (Private)
 
-- (GSNeighborhood *)neighborhoodAtPoint:(GSVector3)p
+- (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p
 {
     GSNeighborhood *neighborhood = [[[GSNeighborhood alloc] init] autorelease];
     
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        GSVector3 a = GSVector3_Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
+        GLKVector3 a = GLKVector3Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
         [neighborhood setNeighborAtIndex:i neighbor:[self chunkVoxelsAtPoint:a]];
     }
     
@@ -376,12 +377,12 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (GSChunkGeometryData *)chunkGeometryAtPoint:(GSVector3)p
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p
 {
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
-    GSChunkGeometryData *g = [gridGeometryData objectAtPoint:p objectFactory:^id(GSVector3 minP) {
+    GSChunkGeometryData *g = [gridGeometryData objectAtPoint:p objectFactory:^id(GLKVector3 minP) {
         // Chunk geometry will be generated later and is only marked "dirty" for now.
         return [[[GSChunkGeometryData alloc] initWithMinP:minP
                                                    folder:folder
@@ -394,17 +395,17 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 }
 
 
-- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GSVector3)p
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p
 {
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
-    GSChunkVoxelData *v = [gridVoxelData objectAtPoint:p objectFactory:^id(GSVector3 minP) {
+    GSChunkVoxelData *v = [gridVoxelData objectAtPoint:p objectFactory:^id(GLKVector3 minP) {
         return [[[GSChunkVoxelData alloc] initWithMinP:minP
                                                 folder:folder
                                         groupForSaving:groupForSaving
                                         chunkTaskQueue:chunkTaskQueue
-                                             generator:^(GSVector3 a, voxel_t *voxel) {
+                                             generator:^(GLKVector3 a, voxel_t *voxel) {
                                                  generateTerrainVoxel(seed, terrainHeight, a, voxel);
                                              }] autorelease];
     }];
@@ -465,7 +466,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
         chunk_id_t newCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[camera cameraEye]]];
         
         if(![oldCenterChunkID isEqual:newCenterChunkID]) {
-            [activeRegion updateWithSorting:NO camera:camera chunkProducer:^GSChunkGeometryData *(GSVector3 p) {
+            [activeRegion updateWithSorting:NO camera:camera chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
                 return [self chunkGeometryAtPoint:p];
             }];
 
@@ -486,7 +487,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
 
 
 // Return a value between -1 and +1 so that a line through the y-axis maps to a smooth gradient of values from -1 to +1.
-static float groundGradient(float terrainHeight, GSVector3 p)
+static float groundGradient(float terrainHeight, GLKVector3 p)
 {
     const float y = p.y;
     
@@ -501,7 +502,7 @@ static float groundGradient(float terrainHeight, GSVector3 p)
 
 
 // Generates a voxel for the specified point in space. Returns that voxel in `outVoxel'.
-static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p, voxel_t *outVoxel)
+static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 p, voxel_t *outVoxel)
 {
     static dispatch_once_t onceToken;
     static GSNoise *noiseSource0;
@@ -520,12 +521,12 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
     // Normal rolling hills
     {
         const float freqScale = 0.025;
-        float n = [noiseSource0 noiseAtPointWithFourOctaves:GSVector3_Scale(p, freqScale)];
+        float n = [noiseSource0 noiseAtPointWithFourOctaves:GLKVector3MultiplyScalar(p, freqScale)];
         float turbScaleX = 2.0;
         float turbScaleY = terrainHeight / 2.0;
         float yFreq = turbScaleX * ((n+1) / 2.0);
-        float t = turbScaleY * [noiseSource1 noiseAtPoint:GSVector3_Make(p.x*freqScale, p.y*yFreq*freqScale, p.z*freqScale)];
-        groundLayer = groundGradient(terrainHeight, GSVector3_Make(p.x, p.y + t, p.z)) <= 0;
+        float t = turbScaleY * [noiseSource1 noiseAtPoint:GLKVector3Make(p.x*freqScale, p.y*yFreq*freqScale, p.z*freqScale)];
+        groundLayer = groundGradient(terrainHeight, GLKVector3Make(p.x, p.y + t, p.z)) <= 0;
     }
     
     // Giant floating mountain
@@ -534,9 +535,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
          * The upper hemisphere is also squashed to make the top flatter.
          */
         
-        GSVector3 mountainCenter = GSVector3_Make(50, 50, 80);
-        GSVector3 toMountainCenter = GSVector3_Sub(mountainCenter, p);
-        float distance = GSVector3_Length(toMountainCenter);
+        GLKVector3 mountainCenter = GLKVector3Make(50, 50, 80);
+        GLKVector3 toMountainCenter = GLKVector3Subtract(mountainCenter, p);
+        float distance = GLKVector3Length(toMountainCenter);
         float radius = 30.0;
         
         // Apply turbulence to the surface of the mountain.
@@ -551,7 +552,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GSVector3 p
             float azimuthalAngle = acosf(toMountainCenter.z / distance);
             float polarAngle = atan2f(toMountainCenter.y, toMountainCenter.x);
             
-            float t = turbScale * [noiseSource0 noiseAtPointWithFourOctaves:GSVector3_Make(azimuthalAngle * freqScale,
+            float t = turbScale * [noiseSource0 noiseAtPointWithFourOctaves:GLKVector3Make(azimuthalAngle * freqScale,
                                                                                               polarAngle * freqScale, 0.0)];
             
             // Flatten the top.

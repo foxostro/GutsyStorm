@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSVector3.h"
 
 @interface GSNoise : NSObject
 {
@@ -15,8 +14,8 @@
 }
 
 - (id)initWithSeed:(unsigned)seed;
-- (float)noiseAtPoint:(GSVector3)p;
-- (float)noiseAtPoint:(GSVector3)p numOctaves:(unsigned)numOctaves;
-- (float)noiseAtPointWithFourOctaves:(GSVector3)p;
+- (float)noiseAtPoint:(GLKVector3)p;
+- (float)noiseAtPoint:(GLKVector3)p numOctaves:(unsigned)numOctaves;
+- (float)noiseAtPointWithFourOctaves:(GLKVector3)p;
 
 @end

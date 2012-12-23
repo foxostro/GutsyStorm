@@ -6,6 +6,7 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"
 #import "GSBoxedVector.h"
@@ -46,19 +47,19 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 @synthesize lockVoxelData;
 @synthesize dirtySunlight;
 
-+ (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP
++ (NSString *)fileNameForVoxelDataFromMinP:(GLKVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
 }
 
 
-+ (NSString *)fileNameForSunlightDataFromMinP:(GSVector3)minP
++ (NSString *)fileNameForSunlightDataFromMinP:(GLKVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.sunlight.dat", minP.x, minP.y, minP.z];
 }
 
 
-- (id)initWithMinP:(GSVector3)_minP
+- (id)initWithMinP:(GLKVector3)_minP
             folder:(NSURL *)_folder
     groupForSaving:(dispatch_group_t)_groupForSaving
     chunkTaskQueue:(dispatch_queue_t)_chunkTaskQueue
@@ -199,7 +200,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     dispatch_once(&onceToken, ^{
         for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
-            GSVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
             offsetsX[i] = offset.x;
             offsetsZ[i] = offset.z;
         }
@@ -445,7 +446,7 @@ cleanup1:
     GSIntegerVector3 p;
     FOR_BOX(p, ivecZero, chunkSize)
     {
-        generator(GSVector3_Add(GSVector3_Make(p.x, p.y, p.z), minP),
+        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), minP),
                   [self pointerToVoxelAtLocalPosition:p]);
         
         // whether the block is outside or not is calculated later

@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSVector3.h"
 #import "GSIntegerVector3.h"
 #import "GSReaderWriterLock.h"
 
@@ -37,7 +36,7 @@ typedef enum
 }
 
 + (NSLock *)_sharedVoxelDataLock;
-+ (GSVector3)offsetForNeighborIndex:(neighbor_index_t)idx;
++ (GLKVector3)offsetForNeighborIndex:(neighbor_index_t)idx;
 
 - (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx;
 - (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor;

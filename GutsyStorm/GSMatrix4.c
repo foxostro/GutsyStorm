@@ -7,6 +7,7 @@
 //
 
 #include <stdio.h>
+#import <GLKit/GLKMath.h>
 #include "GSMatrix4.h"
 
 
@@ -51,7 +52,7 @@ GSMatrix4 GSMatrix4_MulByMat(GSMatrix4 m1, GSMatrix4 m2)
 }
 
 
-GSMatrix4 GSMatrix4_Translate(GSVector3 v)
+GSMatrix4 GSMatrix4_Translate(GLKVector3 v)
 {
     GSMatrix4 matrix;
     
@@ -67,7 +68,7 @@ GSMatrix4 GSMatrix4_Translate(GSVector3 v)
 }
 
 
-GSMatrix4 GSMatrix4_Scale(GSVector3 v)
+GSMatrix4 GSMatrix4_Scale(GLKVector3 v)
 {
     GSMatrix4 matrix;
     
@@ -83,9 +84,9 @@ GSMatrix4 GSMatrix4_Scale(GSVector3 v)
 }
 
 
-GSVector3 GSMatrix4_ProjVec3(GSMatrix4 m, GSVector3 v)
+GLKVector3 GSMatrix4_ProjVec3(GSMatrix4 m, GLKVector3 v)
 {
-    GSVector3 result;
+    GLKVector3 result;
     
     result.x = v.x*m.m[0] + v.y*m.m[4] + v.z*m.m[8] + m.m[12];
     result.y = v.x*m.m[1] + v.y*m.m[5] + v.z*m.m[9] + m.m[13];

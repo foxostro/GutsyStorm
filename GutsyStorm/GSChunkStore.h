@@ -7,7 +7,6 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import "GSVector3.h"
 #import "GSRay.h"
 #import "GSChunkVoxelData.h"
 #import "GSChunkGeometryData.h"
@@ -36,7 +35,7 @@
     NSOpenGLContext *glContext;
 
     GSActiveRegion *activeRegion;
-    GSVector3 activeRegionExtent; // The active region is specified relative to the camera position.
+    GLKVector3 activeRegionExtent; // The active region is specified relative to the camera position.
     int needsChunkVisibilityUpdate;
     
     float timeUntilNextPeriodicChunkUpdate;
@@ -60,11 +59,11 @@
 /* Enumerates the voxels on the specified ray up to the specified maximum depth. Calls the block for each voxel cell. The block
  * may set '*stop=YES;' to indicate that enumeration should terminate.
  */
-- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GSVector3 p, BOOL *stop))block;
+- (void)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop))block;
 
-- (voxel_t)voxelAtPoint:(GSVector3)pos;
+- (voxel_t)voxelAtPoint:(GLKVector3)pos;
 
-- (void)placeBlockAtPoint:(GSVector3)pos block:(voxel_t)block;
+- (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block;
 
 - (void)waitForSaveToFinish;
 

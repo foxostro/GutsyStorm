@@ -13,7 +13,7 @@
 
 @interface GSActiveRegion : NSObject
 {
-    GSVector3 activeRegionExtent; // The active region is specified relative to the camera position.
+    GLKVector3 activeRegionExtent; // The active region is specified relative to the camera position.
     NSUInteger maxActiveChunks;
     GSChunkGeometryData **activeChunks;
     NSLock *lock;
@@ -21,13 +21,13 @@
 
 @property (readonly, nonatomic) NSUInteger maxActiveChunks;
 
-- (id)initWithActiveRegionExtent:(GSVector3)activeRegionExtent;
+- (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent;
 - (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block;
 - (NSArray *)pointsListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedPoints;
 - (NSArray *)chunksListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedChunks;
-- (void)enumeratePointsInActiveRegionNearCamera:(GSCamera *)camera usingBlock:(void (^)(GSVector3 p))myBlock;
+- (void)enumeratePointsInActiveRegionNearCamera:(GSCamera *)camera usingBlock:(void (^)(GLKVector3 p))myBlock;
 - (void)updateWithSorting:(BOOL)sorting
                    camera:(GSCamera *)camera
-            chunkProducer:(GSChunkGeometryData * (^)(GSVector3 p))chunkProducer;
+            chunkProducer:(GSChunkGeometryData * (^)(GLKVector3 p))chunkProducer;
 
 @end

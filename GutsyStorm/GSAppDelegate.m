@@ -6,6 +6,7 @@
 //  Copyright © 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
 #import "GSAppDelegate.h"
 
 @implementation GSAppDelegate

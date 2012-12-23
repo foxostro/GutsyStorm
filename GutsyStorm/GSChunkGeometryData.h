@@ -46,13 +46,13 @@ struct vertex
     NSOpenGLContext *glContext;
     
  @public
-    GSVector3 corners[8];
+    GLKVector3 corners[8];
     BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
 }
 
 @property (assign) BOOL dirty;
 
-- (id)initWithMinP:(GSVector3)minP
+- (id)initWithMinP:(GLKVector3)minP
             folder:(NSURL *)folder
     groupForSaving:(dispatch_group_t)groupForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue

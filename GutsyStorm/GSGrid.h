@@ -8,7 +8,6 @@
 
 #import <Foundation/Foundation.h>
 #import "GSReaderWriterLock.h"
-#import "GSVector3.h"
 
 @interface GSGrid : NSObject
 {
@@ -27,6 +26,6 @@
 - (id)initWithActiveRegionArea:(size_t)areaXZ;
 
 // Returns the object corresponding to the given point on the grid. The given factory can create that object, if necessary.
-- (id)objectAtPoint:(GSVector3)p objectFactory:(id (^)(GSVector3 minP))factory;
+- (id)objectAtPoint:(GLKVector3)p objectFactory:(id (^)(GLKVector3 minP))factory;
 
 @end

@@ -6,6 +6,7 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
 #import "GSActiveRegion.h"
 #import "Voxel.h"
 #import "GSBoxedVector.h"
@@ -15,7 +16,7 @@
 
 @synthesize maxActiveChunks;
 
-- (id)initWithActiveRegionExtent:(GSVector3)_activeRegionExtent
+- (id)initWithActiveRegionExtent:(GLKVector3)_activeRegionExtent
 {
     self = [super init];
     if (self) {
@@ -118,15 +119,15 @@
 
 - (NSArray *)chunksListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedChunks
 {
-    GSVector3 cameraEye = [camera cameraEye];
+    GLKVector3 cameraEye = [camera cameraEye];
     
     NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(id a, id b) {
         GSChunkData *chunkA = (GSChunkData *)a;
         GSChunkData *chunkB = (GSChunkData *)b;
-        GSVector3 centerA = GSVector3_Scale(GSVector3_Add([chunkA minP], [chunkA maxP]), 0.5);
-        GSVector3 centerB = GSVector3_Scale(GSVector3_Add([chunkB minP], [chunkB maxP]), 0.5);
-        float distA = GSVector3_Length(GSVector3_Sub(centerA, cameraEye));
-        float distB = GSVector3_Length(GSVector3_Sub(centerB, cameraEye));;
+        GLKVector3 centerA = GLKVector3MultiplyScalar(GLKVector3Add([chunkA minP], [chunkA maxP]), 0.5);
+        GLKVector3 centerB = GLKVector3MultiplyScalar(GLKVector3Add([chunkB minP], [chunkB maxP]), 0.5);
+        float distA = GLKVector3Length(GLKVector3Subtract(centerA, cameraEye));
+        float distB = GLKVector3Length(GLKVector3Subtract(centerB, cameraEye));;
         return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
     }];
     
@@ -136,21 +137,21 @@
 
 - (NSArray *)pointsListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedPoints
 {
-    GSVector3 center = [camera cameraEye];
+    GLKVector3 center = [camera cameraEye];
     
     return [unsortedPoints sortedArrayUsingComparator: ^(id a, id b) {
-        GSVector3 centerA = [(GSBoxedVector *)a vectorValue];
-        GSVector3 centerB = [(GSBoxedVector *)b vectorValue];
-        float distA = GSVector3_Length(GSVector3_Sub(centerA, center));
-        float distB = GSVector3_Length(GSVector3_Sub(centerB, center));
+        GLKVector3 centerA = [(GSBoxedVector *)a vectorValue];
+        GLKVector3 centerB = [(GSBoxedVector *)b vectorValue];
+        float distA = GLKVector3Length(GLKVector3Subtract(centerA, center));
+        float distB = GLKVector3Length(GLKVector3Subtract(centerB, center));
         return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
     }];
 }
 
 
-- (void)enumeratePointsInActiveRegionNearCamera:(GSCamera *)camera usingBlock:(void (^)(GSVector3))myBlock
+- (void)enumeratePointsInActiveRegionNearCamera:(GSCamera *)camera usingBlock:(void (^)(GLKVector3))myBlock
 {
-    const GSVector3 center = [camera cameraEye];
+    const GLKVector3 center = [camera cameraEye];
     const ssize_t activeRegionExtentX = activeRegionExtent.x/CHUNK_SIZE_X;
     const ssize_t activeRegionExtentZ = activeRegionExtent.z/CHUNK_SIZE_Z;
     const ssize_t activeRegionSizeY = activeRegionExtent.y/CHUNK_SIZE_Y;
@@ -169,9 +170,9 @@
         assert(p.y >= 0);
         assert(p.y < activeRegionSizeY);
         
-        GSVector3 p1 = GSVector3_Make(center.x + p.x*CHUNK_SIZE_X, p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z);
+        GLKVector3 p1 = GLKVector3Make(center.x + p.x*CHUNK_SIZE_X, p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z);
         
-        GSVector3 p2 = [GSChunkData centerPointOfChunkAtPoint:p1];
+        GLKVector3 p2 = [GSChunkData centerPointOfChunkAtPoint:p1];
         
         myBlock(p2);
     }
@@ -180,7 +181,7 @@
 
 - (void)updateWithSorting:(BOOL)sorted
                    camera:(GSCamera *)camera
-            chunkProducer:(GSChunkGeometryData * (^)(GSVector3 p))chunkProducer
+            chunkProducer:(GSChunkGeometryData * (^)(GLKVector3 p))chunkProducer
 {
     [lock lock];
     NSMutableArray *retainChunkTemporarily = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
@@ -193,7 +194,7 @@
     if(sorted) {
         NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
         
-        [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GSVector3 p) {
+        [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GLKVector3 p) {
             [unsortedChunks addObject:[GSBoxedVector boxedVectorWithVector:p]];
         }];
         
@@ -212,7 +213,7 @@
         [unsortedChunks release];
     } else {
         __block NSUInteger i = 0;
-        [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GSVector3 p) {
+        [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GLKVector3 p) {
             [self _setActiveChunk:chunkProducer(p) atIndex:i];
             i++;
         }];

@@ -6,6 +6,8 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
+#import "GLKVector3Extra.h" // for GLKVector3_ArePrettyMuchEqual
 #import "GSBoxedVector.h"
 
 static const float EPS = 1e-5;
@@ -20,7 +22,7 @@ static const float EPS = 1e-5;
 
 @implementation GSBoxedVector
 
-+ (GSBoxedVector *)boxedVectorWithVector:(GSVector3)vector
++ (GSBoxedVector *)boxedVectorWithVector:(GLKVector3)vector
 {
     return [[[GSBoxedVector alloc] initWithVector:vector] autorelease];
 }
@@ -32,7 +34,7 @@ static const float EPS = 1e-5;
 }
 
 
-- (id)initWithVector:(GSVector3)v
+- (id)initWithVector:(GLKVector3)v
 {
     self = [super init];
     if (self) {
@@ -49,7 +51,7 @@ static const float EPS = 1e-5;
 {
     self = [super init];
     if (self) {
-        vector = GSVector3_Make(v.x, v.y, v.z);
+        vector = GLKVector3Make(v.x, v.y, v.z);
         cachedHash = [self computeHash];
     }
     
@@ -57,7 +59,7 @@ static const float EPS = 1e-5;
 }
 
 
-- (GSVector3)vectorValue
+- (GLKVector3)vectorValue
 {
     return vector;
 }
@@ -89,9 +91,9 @@ static const float EPS = 1e-5;
         return YES;
     }
     
-    GSVector3 vector2 = [otherVector vectorValue];
+    GLKVector3 vector2 = [otherVector vectorValue];
     
-    return GSVector3_AreEqual(vector, vector2);
+    return GLKVector3AllEqualToVector3(vector, vector2);
 }
 
 
@@ -119,7 +121,7 @@ static const float EPS = 1e-5;
 
 - (NSUInteger)computeHash
 {
-    return GSVector3_Hash(vector);
+    return GLKVector3Hash(vector);
 }
 
 @end

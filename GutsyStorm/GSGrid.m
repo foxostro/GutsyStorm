@@ -6,6 +6,8 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
+#import "GLKVector3Extra.h" // for GLKVector3_Hash
 #import "GSGrid.h"
 #import "GSChunkData.h"
 
@@ -84,7 +86,7 @@
     {
         for(GSChunkData *item in oldBuckets[i])
         {
-            NSUInteger hash = GSVector3_Hash(item.minP);
+            NSUInteger hash = GLKVector3Hash(item.minP);
             [buckets[hash % numBuckets] addObject:item];
             n++;
         }
@@ -100,14 +102,14 @@
     [lockTheTableItself unlockForWriting];
 }
 
-- (id)objectAtPoint:(GSVector3)p objectFactory:(id (^)(GSVector3 minP))factory
+- (id)objectAtPoint:(GLKVector3)p objectFactory:(id (^)(GLKVector3 minP))factory
 {
     [lockTheTableItself lockForReading]; // The only writer is -resizeTable, so lock contention will be extremely low.
     
     float load = 0;
     id anObject = nil;
-    GSVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
-    NSUInteger hash = GSVector3_Hash(minP);
+    GLKVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
+    NSUInteger hash = GLKVector3Hash(minP);
     NSUInteger idxBucket = hash % numBuckets;
     NSUInteger idxLock = hash % numLocks;
     NSLock *lock = locks[idxLock];
@@ -117,7 +119,7 @@
     
     for(GSChunkData *item in bucket)
     {
-        if(GSVector3_AreEqual(item.minP, minP)) {
+        if(GLKVector3AllEqualToVector3(item.minP, minP)) {
             anObject = item;
         }
     }

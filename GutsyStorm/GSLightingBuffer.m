@@ -6,6 +6,7 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
 #import "GSLightingBuffer.h"
 #import "GSChunkVoxelData.h"
 

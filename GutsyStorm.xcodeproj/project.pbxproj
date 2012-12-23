@@ -20,7 +20,7 @@
 		4A2CD0071513C3FC006C6551 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD0051513C3FC006C6551 /* Credits.rtf */; };
 		4A2CD00A1513C3FC006C6551 /* GSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */; };
 		4A2CD00D1513C3FD006C6551 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD00B1513C3FD006C6551 /* MainMenu.xib */; };
-		4A4E20771516B086008745E0 /* GSVector3.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A4E20761516B086008745E0 /* GSVector3.c */; };
+		4A4E20771516B086008745E0 /* GLKVector3Extra.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A4E20761516B086008745E0 /* GLKVector3Extra.c */; };
 		4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A95D39E154645920042C081 /* GSReaderWriterLock.m */; };
 		4A99BE241528197800F2ECDC /* GSBoxedRay.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A99BE231528197800F2ECDC /* GSBoxedRay.m */; };
 		4A99BE2B1528244800F2ECDC /* GSRenderTexture.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A99BE2A1528244800F2ECDC /* GSRenderTexture.m */; };
@@ -48,6 +48,7 @@
 		AC9CCD751519B8AA0081964D /* shader.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD731519B8AA0081964D /* shader.vert.txt */; };
 		ACA913FE1609949800D14625 /* GSLightingBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = ACA913FD1609949800D14625 /* GSLightingBuffer.m */; };
 		ACCCD977152A9DE400757B3F /* GSVector2.c in Sources */ = {isa = PBXBuildFile; fileRef = ACCCD976152A9DE400757B3F /* GSVector2.c */; };
+		ACE787661686E90E00FBC792 /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACE787651686E90E00FBC792 /* GLKit.framework */; };
 		ACE99D70151FE922006055F6 /* snoise3.c in Sources */ = {isa = PBXBuildFile; fileRef = ACE99D6F151FE922006055F6 /* snoise3.c */; };
 		ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */; };
 		ACF27B03151AE486009FCAB9 /* terrain.png in Resources */ = {isa = PBXBuildFile; fileRef = ACF27B02151AE486009FCAB9 /* terrain.png */; };
@@ -82,8 +83,8 @@
 		4A2CD0081513C3FC006C6551 /* GSAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSAppDelegate.h; sourceTree = "<group>"; };
 		4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GSAppDelegate.m; sourceTree = "<group>"; };
 		4A2CD00C1513C3FD006C6551 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		4A4E20751516B07E008745E0 /* GSVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVector3.h; sourceTree = "<group>"; };
-		4A4E20761516B086008745E0 /* GSVector3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSVector3.c; sourceTree = "<group>"; };
+		4A4E20751516B07E008745E0 /* GLKVector3Extra.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLKVector3Extra.h; sourceTree = "<group>"; };
+		4A4E20761516B086008745E0 /* GLKVector3Extra.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GLKVector3Extra.c; sourceTree = "<group>"; };
 		4A95D39D154645920042C081 /* GSReaderWriterLock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSReaderWriterLock.h; sourceTree = "<group>"; };
 		4A95D39E154645920042C081 /* GSReaderWriterLock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSReaderWriterLock.m; sourceTree = "<group>"; };
 		4A99BE221528197800F2ECDC /* GSBoxedRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBoxedRay.h; sourceTree = "<group>"; };
@@ -136,6 +137,7 @@
 		ACA913FD1609949800D14625 /* GSLightingBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSLightingBuffer.m; sourceTree = "<group>"; };
 		ACCCD974152A9DD700757B3F /* GSVector2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVector2.h; sourceTree = "<group>"; };
 		ACCCD976152A9DE400757B3F /* GSVector2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GSVector2.c; sourceTree = "<group>"; };
+		ACE787651686E90E00FBC792 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 		ACE99D6F151FE922006055F6 /* snoise3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = snoise3.c; sourceTree = "<group>"; };
 		ACE99D72151FED59006055F6 /* snoise3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = snoise3.h; sourceTree = "<group>"; };
 		ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextureArray.h; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ACE787661686E90E00FBC792 /* GLKit.framework in Frameworks */,
 				4A2CCFF71513C3FC006C6551 /* Cocoa.framework in Frameworks */,
 				4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */,
 				1338A2DA15B792C800663E28 /* CoreVideo.framework in Frameworks */,
@@ -171,6 +174,7 @@
 		4A2CCFE71513C3FC006C6551 = {
 			isa = PBXGroup;
 			children = (
+				ACE787651686E90E00FBC792 /* GLKit.framework */,
 				4A2CCFFC1513C3FC006C6551 /* GutsyStorm */,
 				4A2CCFF31513C3FC006C6551 /* Products */,
 			);
@@ -271,8 +275,8 @@
 				4A1B698F1516B889008934F6 /* GSQuaternion.c */,
 				4A9EC9231529045C009C80FF /* GSVector4.h */,
 				4A9EC92115290452009C80FF /* GSVector4.c */,
-				4A4E20751516B07E008745E0 /* GSVector3.h */,
-				4A4E20761516B086008745E0 /* GSVector3.c */,
+				4A4E20751516B07E008745E0 /* GLKVector3Extra.h */,
+				4A4E20761516B086008745E0 /* GLKVector3Extra.c */,
 				ACCCD974152A9DD700757B3F /* GSVector2.h */,
 				ACCCD976152A9DE400757B3F /* GSVector2.c */,
 				4A1F6E51153F6F6100D194AE /* GSIntegerVector3.h */,
@@ -399,7 +403,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A2CD0031513C3FC006C6551 /* main.m in Sources */,
-				4A4E20771516B086008745E0 /* GSVector3.c in Sources */,
+				4A4E20771516B086008745E0 /* GLKVector3Extra.c in Sources */,
 				4A2CD00A1513C3FC006C6551 /* GSAppDelegate.m in Sources */,
 				4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */,
 				4A1B69901516B889008934F6 /* GSQuaternion.c in Sources */,
@@ -470,7 +474,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -496,7 +500,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;

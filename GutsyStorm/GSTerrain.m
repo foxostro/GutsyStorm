@@ -6,6 +6,7 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
 #import "GSTerrain.h"
 #import "GSShader.h"
 #import "GSRay.h"
@@ -138,12 +139,12 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (void)recalcCursorPosition
 {
-    GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GSVector3_Make(0, 0, -1)));
-    __block GSVector3 prev = ray.origin;
+    GSRay ray = GSRay_Make(camera.cameraEye, GSQuaternion_MulByVec(camera.cameraRot, GLKVector3Make(0, 0, -1)));
+    __block GLKVector3 prev = ray.origin;
     
     cursor.cursorIsActive = NO;
     
-    [chunkStore enumerateVoxelsOnRay:ray maxDepth:maxPlaceDistance withBlock:^(GSVector3 p, BOOL *stop) {
+    [chunkStore enumerateVoxelsOnRay:ray maxDepth:maxPlaceDistance withBlock:^(GLKVector3 p, BOOL *stop) {
         voxel_t voxel = [chunkStore voxelAtPoint:p];
         
         if(!isVoxelEmpty(voxel)) {

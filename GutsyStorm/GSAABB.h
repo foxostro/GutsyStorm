@@ -7,18 +7,17 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSVector3.h"
 
 @interface GSAABB : NSObject
 {
-    GSVector3 mins, maxs;
+    GLKVector3 mins, maxs;
 }
 
-@property (assign, nonatomic) GSVector3 mins;
-@property (assign, nonatomic) GSVector3 maxs;
+@property (assign, nonatomic) GLKVector3 mins;
+@property (assign, nonatomic) GLKVector3 maxs;
 
-- (GSVector3)getVertex:(size_t)i;
-- (id)initWithVerts:(GSVector3 *)vertices numVerts:(size_t)numVerts;
-- (id)initWithMinP:(GSVector3)minP maxP:(GSVector3)maxP;
+- (GLKVector3)getVertex:(size_t)i;
+- (id)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts;
+- (id)initWithMinP:(GLKVector3)minP maxP:(GLKVector3)maxP;
 
 @end

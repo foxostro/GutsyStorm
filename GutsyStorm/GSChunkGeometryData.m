@@ -6,6 +6,7 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
 #import "GSChunkGeometryData.h"
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"
@@ -26,13 +27,13 @@ extern int checkGLErrors(void);
 
 static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo);
 static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
-static void packVertex(struct vertex *vertices,  GSVector3 position, GSVector3 normal, GSVector3 texCoord, GSVector3 color);
+static void packVertex(struct vertex *vertices,  GLKVector3 position, GLKVector3 normal, GLKVector3 texCoord, GLKVector3 color);
 static void * allocateVertexMemory(size_t numVerts);
 
-static inline GSVector3 blockLight(unsigned sunlight, unsigned torchLight)
+static inline GLKVector3 blockLight(unsigned sunlight, unsigned torchLight)
 {
     // Pack sunlight into the Green channel, and torch light into the Blue channel.
-    return GSVector3_Make(0,
+    return GLKVector3Make(0,
                           (sunlight / (float)CHUNK_LIGHTING_MAX) * 0.8f + 0.2f,
                           torchLight / (float)CHUNK_LIGHTING_MAX);
 }
@@ -52,7 +53,7 @@ const static GSIntegerVector3 test[FACE_NUM_FACES] = {
     {-1, 0, 0}
 };
 
-const static GSVector3 normals[FACE_NUM_FACES] = {
+const static GLKVector3 normals[FACE_NUM_FACES] = {
     {0, 1, 0},
     {0, -1, 0},
     {0, 0, 1},
@@ -61,7 +62,7 @@ const static GSVector3 normals[FACE_NUM_FACES] = {
     {-1, 0, 0},
 };
 
-const static GSVector3 vertex[4][FACE_NUM_FACES] = {
+const static GLKVector3 vertex[4][FACE_NUM_FACES] = {
     {
         {-L, +L, -L},
         {-L, -L, -L},
@@ -138,7 +139,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 
 - (void)destroyGeometry;
 - (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)chunks;
-- (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
+- (GLsizei)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
                                         vertsBuffer:(struct vertex **)_vertices
                                           voxelData:(GSNeighborhood *)chunks
                                   onlyDoingCounting:(BOOL)onlyDoingCounting;
@@ -155,13 +156,13 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 @synthesize dirty;
 
 
-+ (NSString *)fileNameForGeometryDataFromMinP:(GSVector3)minP
++ (NSString *)fileNameForGeometryDataFromMinP:(GLKVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.geometry.dat", minP.x, minP.y, minP.z];
 }
 
 
-- (id)initWithMinP:(GSVector3)_minP
+- (id)initWithMinP:(GLKVector3)_minP
             folder:(NSURL *)_folder
     groupForSaving:(dispatch_group_t)_groupForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
@@ -195,13 +196,13 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         
         // Frustum-Box testing requires the corners of the cube, so pre-calculate them here.
         corners[0] = minP;
-        corners[1] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, 0,            0));
-        corners[2] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
-        corners[3] = GSVector3_Add(minP, GSVector3_Make(0,            0,            CHUNK_SIZE_Z));
-        corners[4] = GSVector3_Add(minP, GSVector3_Make(0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-        corners[5] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-        corners[6] = GSVector3_Add(minP, GSVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
-        corners[7] = GSVector3_Add(minP, GSVector3_Make(0,            CHUNK_SIZE_Y, 0));
+        corners[1] = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, 0,            0));
+        corners[2] = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
+        corners[3] = GLKVector3Add(minP, GLKVector3Make(0,            0,            CHUNK_SIZE_Z));
+        corners[4] = GLKVector3Add(minP, GLKVector3Make(0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        corners[5] = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        corners[6] = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
+        corners[7] = GLKVector3Add(minP, GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
         
         visible = NO;
         
@@ -353,7 +354,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
  */
 - (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)chunks
 {
-    GSVector3 pos;
+    GLKVector3 pos;
     
     // Iterate over all voxels in the chunk and count the number of vertices that would be generated.
     numChunkVerts = 0;
@@ -395,7 +396,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
  * "lockVoxelData" for all chunks in the neighborhood (for reading).
  * "sunlight.lockLightingBuffer" for the center chunk in the neighborhood (for reading).
  */
-- (GLsizei)generateGeometryForSingleBlockAtPosition:(GSVector3)pos
+- (GLsizei)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
                                         vertsBuffer:(struct vertex **)_vertices
                                           voxelData:(GSNeighborhood *)chunks
                                   onlyDoingCounting:(BOOL)onlyDoingCounting
@@ -448,9 +449,9 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
                     ssize_t tz = texCoord[j][i].z;
                     
                     packVertex(*_vertices,
-                               GSVector3_Add(vertex[j][i], pos),
+                               GLKVector3Add(vertex[j][i], pos),
                                normals[i],
-                               GSVector3_Make(texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz),
+                               GLKVector3Make(texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz),
                                blockLight(unpackedSunlight[j], unpackedTorchlight[j]));
                     
                     (*_vertices)++;
@@ -644,7 +645,7 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo)
 }
 
 
-static void packVertex(struct vertex *vertex,  GSVector3 position, GSVector3 normal, GSVector3 texCoord, GSVector3 color)
+static void packVertex(struct vertex *vertex,  GLKVector3 position, GLKVector3 normal, GLKVector3 texCoord, GLKVector3 color)
 {
     assert(vertex);
     

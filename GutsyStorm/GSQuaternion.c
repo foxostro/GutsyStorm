@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
+#import <GLKit/GLKMath.h>
 #include "GSQuaternion.h"
 
 static const float EPSILON = 1e-8;
@@ -70,17 +71,17 @@ GSQuaternion GSQuaternion_MulByQuat(GSQuaternion q1, GSQuaternion q2)
 }
 
 
-GSVector3 GSQuaternion_MulByVec(GSQuaternion q, GSVector3 v)
+GLKVector3 GSQuaternion_MulByVec(GSQuaternion q, GLKVector3 v)
 {
     GSQuaternion vAsQ = GSQuaternion_Make(v.x, v.y, v.z, 0);
     GSQuaternion q2 = GSQuaternion_MulByQuat(GSQuaternion_MulByQuat(q, vAsQ), GSQuaternion_Conjugate(q));
-    return GSVector3_Make(q2.x, q2.y, q2.z);
+    return GLKVector3Make(q2.x, q2.y, q2.z);
 }
 
 
-GSQuaternion GSQuaternion_MakeFromAxisAngle(GSVector3 v, float angle)
+GSQuaternion GSQuaternion_MakeFromAxisAngle(GLKVector3 v, float angle)
 {
-    GSVector3 vn = GSVector3_Normalize(v);
+    GLKVector3 vn = GLKVector3Normalize(v);
     float sinAngle = sinf(angle / 2);
     return GSQuaternion_Make(vn.x * sinAngle,
                              vn.y * sinAngle,
@@ -89,10 +90,10 @@ GSQuaternion GSQuaternion_MakeFromAxisAngle(GSVector3 v, float angle)
 }
 
 
-void GSQuaternion_ToAxisAngle(GSQuaternion self, GSVector3 * pAxis, float * pAngle)
+void GSQuaternion_ToAxisAngle(GSQuaternion self, GLKVector3 * pAxis, float * pAngle)
 {
     float angle, scale;
-    GSVector3 axis;
+    GLKVector3 axis;
     
     assert(pAxis);
     assert(pAngle);
@@ -101,9 +102,9 @@ void GSQuaternion_ToAxisAngle(GSQuaternion self, GSVector3 * pAxis, float * pAng
     scale = sqrt(1 - self.w*self.w);
     
     if(scale < EPSILON) {
-        axis = GSVector3_Make(0, 1, 0);
+        axis = GLKVector3Make(0, 1, 0);
     } else {        
-        axis = GSVector3_Make(self.x / scale,
+        axis = GLKVector3Make(self.x / scale,
                               self.y / scale,
                               self.z / scale);
 

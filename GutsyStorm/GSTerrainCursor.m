@@ -6,6 +6,7 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
 #import "GSTerrainCursor.h"
 
 @implementation GSTerrainCursor
@@ -19,7 +20,7 @@
     self = [super init];
     if(self) {
         cursorIsActive = NO;
-        cursorPos = cursorPlacePos = GSVector3_Make(0, 0, 0);
+        cursorPos = cursorPlacePos = GLKVector3Make(0, 0, 0);
         cursor = [[GSCube alloc] init];
         [cursor generateVBO];
     }

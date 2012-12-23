@@ -9,6 +9,7 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <OpenGL/gl.h>
 #import <OpenGL/glu.h>
+#import <GLKit/GLKMath.h>
 #import "GSOpenGLView.h"
 #import "GSVector2.h"
 #import "GSAppDelegate.h"
@@ -160,7 +161,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     bKeyDebounce = NO;
     
     camera = [[GSCamera alloc] init];
-    [camera moveToPosition:GSVector3_Make(85.1, 16.1, 140.1)];
+    [camera moveToPosition:GLKVector3Make(85.1, 16.1, 140.1)];
     [camera updateCameraLookVectors];
     [self resetMouseInputSettings];
     

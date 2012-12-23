@@ -15,7 +15,7 @@
 #import "GSLightingBuffer.h"
 
 
-typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
+typedef void (^terrain_generator_t)(GLKVector3, voxel_t*);
 
 
 @interface GSChunkVoxelData : GSChunkData
@@ -41,10 +41,10 @@ typedef void (^terrain_generator_t)(GSVector3, voxel_t*);
  */
 @property (readonly, nonatomic) GSReaderWriterLock *lockVoxelData;
 
-+ (NSString *)fileNameForVoxelDataFromMinP:(GSVector3)minP;
-+ (NSString *)fileNameForSunlightDataFromMinP:(GSVector3)minP;
++ (NSString *)fileNameForVoxelDataFromMinP:(GLKVector3)minP;
++ (NSString *)fileNameForSunlightDataFromMinP:(GLKVector3)minP;
 
-- (id)initWithMinP:(GSVector3)minP
+- (id)initWithMinP:(GLKVector3)minP
             folder:(NSURL *)folder
     groupForSaving:(dispatch_group_t)groupForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue

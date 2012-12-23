@@ -9,17 +9,16 @@
 #ifndef GutsyStorm_GSRay_h
 #define GutsyStorm_GSRay_h
 
-#include "GSVector3.h"
 #include "GSPlane.h"
 
 typedef struct
 {
-    GSVector3 origin, direction;
+    GLKVector3 origin, direction;
 } GSRay;
 
 
-GSRay GSRay_Make(GSVector3 origin, GSVector3 direction);
-int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GSVector3 *intersectionPointOut);
-int GSRay_IntersectsAABB(GSRay ray, GSVector3 minP, GSVector3 maxP, float *distanceToEntrance, float *distanceToExit);
+GSRay GSRay_Make(GLKVector3 origin, GLKVector3 direction);
+int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GLKVector3 *intersectionPointOut);
+int GSRay_IntersectsAABB(GSRay ray, GLKVector3 minP, GLKVector3 maxP, float *distanceToEntrance, float *distanceToExit);
 
 #endif

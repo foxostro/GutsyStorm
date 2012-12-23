@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSVector3.h"
 #import "GSRay.h"
 #import "GSChunkStore.h"
 #import "GSCube.h"
@@ -15,14 +14,14 @@
 @interface GSTerrainCursor : NSObject
 {
     BOOL cursorIsActive;
-    GSVector3 cursorPos;
-    GSVector3 cursorPlacePos;
+    GLKVector3 cursorPos;
+    GLKVector3 cursorPlacePos;
     GSCube *cursor;
 }
 
 @property (assign) BOOL cursorIsActive;
-@property (assign) GSVector3 cursorPos;
-@property (assign) GSVector3 cursorPlacePos;
+@property (assign) GLKVector3 cursorPos;
+@property (assign) GLKVector3 cursorPlacePos;
 
 - (void)drawWithEdgeOffset:(GLfloat)edgeOffset;
 

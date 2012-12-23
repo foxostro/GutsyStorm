@@ -9,15 +9,13 @@
 #ifndef GutsyStorm_GSPlane_h
 #define GutsyStorm_GSPlane_h
 
-#include "GSVector3.h"
-
 typedef struct
 {
-    GSVector3 p, n;
+    GLKVector3 p, n;
 } GSPlane;
 
 
-float GSPlane_Distance(GSPlane plane, GSVector3 r);
-GSPlane GSPlane_MakeFromPoints(GSVector3 p0, GSVector3 p1, GSVector3 p2);
+float GSPlane_Distance(GSPlane plane, GLKVector3 r);
+GSPlane GSPlane_MakeFromPoints(GLKVector3 p0, GLKVector3 p1, GLKVector3 p2);
 
 #endif

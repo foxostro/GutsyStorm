@@ -7,6 +7,7 @@
 //
 
 #import <assert.h>
+#import <GLKit/GLKMath.h>
 #import "GSAABB.h"
 
 @implementation GSAABB
@@ -15,7 +16,7 @@
 @synthesize maxs;
 
 
-- (id)initWithVerts:(GSVector3 *)vertices numVerts:(size_t)numVerts
+- (id)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts
 {
     self = [super init];
     if (self) {
@@ -41,26 +42,26 @@
 }
 
 
-- (id)initWithMinP:(GSVector3)minP maxP:(GSVector3)maxP
+- (id)initWithMinP:(GLKVector3)minP maxP:(GLKVector3)maxP
 {
-    GSVector3 verts[2] = {minP, maxP};
+    GLKVector3 verts[2] = {minP, maxP};
     return [self initWithVerts:verts numVerts:2];
 }
 
 
-- (GSVector3)getVertex:(size_t)i
+- (GLKVector3)getVertex:(size_t)i
 {
     switch(i)
     {
-    case 0: return GSVector3_Make(mins.x, mins.y, mins.z);
-    case 1: return GSVector3_Make(mins.x, mins.y, maxs.z);
-    case 2: return GSVector3_Make(maxs.x, mins.y, mins.z);
-    case 3: return GSVector3_Make(maxs.x, mins.y, maxs.z);
+    case 0: return GLKVector3Make(mins.x, mins.y, mins.z);
+    case 1: return GLKVector3Make(mins.x, mins.y, maxs.z);
+    case 2: return GLKVector3Make(maxs.x, mins.y, mins.z);
+    case 3: return GLKVector3Make(maxs.x, mins.y, maxs.z);
             
-    case 4: return GSVector3_Make(mins.x, maxs.y, mins.z);
-    case 5: return GSVector3_Make(mins.x, maxs.y, maxs.z);
-    case 6: return GSVector3_Make(maxs.x, maxs.y, mins.z);
-    case 7: return GSVector3_Make(maxs.x, maxs.y, maxs.z);
+    case 4: return GLKVector3Make(mins.x, maxs.y, mins.z);
+    case 5: return GLKVector3Make(mins.x, maxs.y, maxs.z);
+    case 6: return GLKVector3Make(maxs.x, maxs.y, mins.z);
+    case 7: return GLKVector3Make(maxs.x, maxs.y, maxs.z);
             
     default:
         [NSException raise:@"Bad index" format:@"Bad index in -getVertex:"];

@@ -9,8 +9,6 @@
 #ifndef GutsyStorm_GSQuaternion_h
 #define GutsyStorm_GSQuaternion_h
 
-#include "GSVector3.h"
-
 typedef struct
 {
     float x, y, z, w;
@@ -21,9 +19,9 @@ int GSQuaternion_ToString(char * str, size_t len, GSQuaternion q);
 GSQuaternion GSQuaternion_Normalize(GSQuaternion q);
 GSQuaternion GSQuaternion_Conjugate(GSQuaternion q);
 GSQuaternion GSQuaternion_MulByQuat(GSQuaternion a, GSQuaternion b);
-GSVector3 GSQuaternion_MulByVec(GSQuaternion a, GSVector3 b);
-GSQuaternion GSQuaternion_MakeFromAxisAngle(GSVector3 v, float angle);
-void GSQuaternion_ToAxisAngle(GSQuaternion q, GSVector3 * axis, float * angle);
+GLKVector3 GSQuaternion_MulByVec(GSQuaternion a, GLKVector3 b);
+GSQuaternion GSQuaternion_MakeFromAxisAngle(GLKVector3 v, float angle);
+void GSQuaternion_ToAxisAngle(GSQuaternion q, GLKVector3 * axis, float * angle);
 GSQuaternion GSQuaternion_Make(float x, float y, float z, float w);
 
 #endif

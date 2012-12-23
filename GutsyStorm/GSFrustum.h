@@ -10,7 +10,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSVector3.h"
 #import "GSPlane.h"
 
 
@@ -22,14 +21,14 @@
 @interface GSFrustum : NSObject
 {
     GSPlane pl[6];
-    GSVector3 ntl;
-    GSVector3 ntr;
-    GSVector3 nbl;
-    GSVector3 nbr;
-    GSVector3 ftl;
-    GSVector3 ftr;
-    GSVector3 fbl;
-    GSVector3 fbr;
+    GLKVector3 ntl;
+    GLKVector3 ntr;
+    GLKVector3 nbl;
+    GLKVector3 nbr;
+    GLKVector3 ftl;
+    GLKVector3 ftr;
+    GLKVector3 fbl;
+    GLKVector3 fbr;
     float nearD;
     float farD;
     float ratio;
@@ -42,8 +41,8 @@
 }
 
 - (void)setCamInternalsWithAngle:(float)angle ratio:(float)ratio nearD:(float)nearD farD:(float)farD;
-- (void)setCamDefWithCameraEye:(GSVector3)p cameraCenter:(GSVector3)l cameraUp:(GSVector3)u;
-- (int)boxInFrustumWithBoxVertices:(GSVector3 *)vertices;
+- (void)setCamDefWithCameraEye:(GLKVector3)p cameraCenter:(GLKVector3)l cameraUp:(GLKVector3)u;
+- (int)boxInFrustumWithBoxVertices:(GLKVector3 *)vertices;
 - (void)draw;
 
 @end

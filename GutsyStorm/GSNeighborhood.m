@@ -6,6 +6,7 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
 #import "GSNeighborhood.h"
 #import "Voxel.h"
 #import "GSChunkVoxelData.h"
@@ -28,43 +29,43 @@
 }
 
 
-+ (GSVector3)offsetForNeighborIndex:(neighbor_index_t)idx
++ (GLKVector3)offsetForNeighborIndex:(neighbor_index_t)idx
 {
     switch(idx)
     {
         case CHUNK_NEIGHBOR_POS_X_NEG_Z:
-            return GSVector3_Make(+CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z);
+            return GLKVector3Make(+CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z);
             
         case CHUNK_NEIGHBOR_POS_X_ZER_Z:
-            return GSVector3_Make(+CHUNK_SIZE_X, 0, 0);
+            return GLKVector3Make(+CHUNK_SIZE_X, 0, 0);
             
         case CHUNK_NEIGHBOR_POS_X_POS_Z:
-            return GSVector3_Make(+CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z);
+            return GLKVector3Make(+CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z);
             
         case CHUNK_NEIGHBOR_NEG_X_NEG_Z:
-            return GSVector3_Make(-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z);
+            return GLKVector3Make(-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z);
             
         case CHUNK_NEIGHBOR_NEG_X_ZER_Z:
-            return GSVector3_Make(-CHUNK_SIZE_X, 0, 0);
+            return GLKVector3Make(-CHUNK_SIZE_X, 0, 0);
             
         case CHUNK_NEIGHBOR_NEG_X_POS_Z:
-            return GSVector3_Make(-CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z);
+            return GLKVector3Make(-CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z);
             
         case CHUNK_NEIGHBOR_ZER_X_NEG_Z:
-            return GSVector3_Make(0, 0, -CHUNK_SIZE_Z);
+            return GLKVector3Make(0, 0, -CHUNK_SIZE_Z);
             
         case CHUNK_NEIGHBOR_ZER_X_POS_Z:
-            return GSVector3_Make(0, 0, +CHUNK_SIZE_Z);
+            return GLKVector3Make(0, 0, +CHUNK_SIZE_Z);
             
         case CHUNK_NEIGHBOR_CENTER:
-            return GSVector3_Make(0, 0, 0);
+            return GLKVector3Make(0, 0, 0);
             
         case CHUNK_NUM_NEIGHBORS:
             [NSException raise:NSInvalidArgumentException format:@"\"idx\" must not be CHUNK_NUM_NEIGHBORS."];
     }
     
     NSAssert(NO, @"shouldn't get here");
-    return GSVector3_Make(0, 0, 0);
+    return GLKVector3Make(0, 0, 0);
 }
 
 

@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#import <GLKit/GLKMath.h>
 #include "GSRay.h"
 
 #define TOP    (0)
@@ -24,7 +25,7 @@
 static const float EPSILON = 1e-8;
 
 
-GSRay GSRay_Make(GSVector3 origin, GSVector3 direction)
+GSRay GSRay_Make(GLKVector3 origin, GLKVector3 direction)
 {
     GSRay ray;
     ray.origin = origin;
@@ -33,9 +34,9 @@ GSRay GSRay_Make(GSVector3 origin, GSVector3 direction)
 }
 
 
-int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GSVector3 *intersectionPointOut)
+int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GLKVector3 *intersectionPointOut)
 {
-    float denominator = GSVector3_Dot(ray.direction, plane.n);
+    float denominator = GLKVector3DotProduct(ray.direction, plane.n);
     
     if(fabsf(denominator) < EPSILON) {
         // Ray is parallel to the plane. So, it intersections at the origin.
@@ -45,14 +46,14 @@ int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GSVector3 *intersectionPoint
         return 1;
     }
     
-    float d = -GSVector3_Dot(plane.p, plane.n);
-    float numerator = -GSVector3_Dot(ray.origin, plane.n) + d;
+    float d = -GLKVector3DotProduct(plane.p, plane.n);
+    float numerator = -GLKVector3DotProduct(ray.origin, plane.n) + d;
     float t = numerator / denominator;
     
     if(t >= 0) {
         // Ray intersects plane.
         if(intersectionPointOut) {
-            *intersectionPointOut = GSVector3_Add(ray.origin, GSVector3_Scale(ray.direction, t));
+            *intersectionPointOut = GLKVector3Add(ray.origin, GLKVector3MultiplyScalar(ray.direction, t));
         }
         return 1;
     }
@@ -66,7 +67,7 @@ int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GSVector3 *intersectionPoint
  * exits the box. If the ray originates within the box then distanceToEntrance will be set to NAN.
  * Returns 1 if there is an intersection, and 0 if there is no intersection at all.
  */
-int GSRay_IntersectsAABB(GSRay r, GSVector3 minP, GSVector3 maxP, float *distanceToEntrance, float *distanceToExit)
+int GSRay_IntersectsAABB(GSRay r, GLKVector3 minP, GLKVector3 maxP, float *distanceToEntrance, float *distanceToExit)
 {
 	struct {
 		float t1, t2;
