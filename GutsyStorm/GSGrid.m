@@ -23,7 +23,8 @@
     self = [super init];
     if (self) {
         numLocks = [[NSProcessInfo processInfo] processorCount] * 64;
-        numBuckets = MAX(areaXZ, numLocks);
+        const size_t k = 6;  // Experimentation shows this is the minimum to avoid a table resize during app launch.
+        numBuckets = k * areaXZ;
         n = 0;
         loadLevelToTriggerResize = 0.80;
         
