@@ -22,7 +22,6 @@
 		4A2CD00D1513C3FD006C6551 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD00B1513C3FD006C6551 /* MainMenu.xib */; };
 		4A4E20771516B086008745E0 /* GLKVector3Extra.c in Sources */ = {isa = PBXBuildFile; fileRef = 4A4E20761516B086008745E0 /* GLKVector3Extra.c */; };
 		4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A95D39E154645920042C081 /* GSReaderWriterLock.m */; };
-		4A99BE241528197800F2ECDC /* GSBoxedRay.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A99BE231528197800F2ECDC /* GSBoxedRay.m */; };
 		4A99BE2B1528244800F2ECDC /* GSRenderTexture.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A99BE2A1528244800F2ECDC /* GSRenderTexture.m */; };
 		4A9A3BA61517200E00607B1A /* GSCamera.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9A3BA51517200E00607B1A /* GSCamera.m */; };
 		4A9A3BAD1517252E00607B1A /* GLString.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9A3BAC1517252E00607B1A /* GLString.m */; };
@@ -84,8 +83,6 @@
 		4A4E20761516B086008745E0 /* GLKVector3Extra.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GLKVector3Extra.c; sourceTree = "<group>"; };
 		4A95D39D154645920042C081 /* GSReaderWriterLock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSReaderWriterLock.h; sourceTree = "<group>"; };
 		4A95D39E154645920042C081 /* GSReaderWriterLock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSReaderWriterLock.m; sourceTree = "<group>"; };
-		4A99BE221528197800F2ECDC /* GSBoxedRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBoxedRay.h; sourceTree = "<group>"; };
-		4A99BE231528197800F2ECDC /* GSBoxedRay.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedRay.m; sourceTree = "<group>"; };
 		4A99BE291528244800F2ECDC /* GSRenderTexture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSRenderTexture.h; sourceTree = "<group>"; };
 		4A99BE2A1528244800F2ECDC /* GSRenderTexture.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSRenderTexture.m; sourceTree = "<group>"; };
 		4A9A3BA41517200E00607B1A /* GSCamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSCamera.h; sourceTree = "<group>"; };
@@ -252,8 +249,6 @@
 				AC154884152C04EF00434374 /* GSBoxedVector.m */,
 				4A9EC91815282ADA009C80FF /* GSAABB.h */,
 				4A9EC91915282ADA009C80FF /* GSAABB.m */,
-				4A99BE221528197800F2ECDC /* GSBoxedRay.h */,
-				4A99BE231528197800F2ECDC /* GSBoxedRay.m */,
 				4ACB9C271527CF45005D50B8 /* GSRay.h */,
 				4ACB9C291527CF50005D50B8 /* GSRay.c */,
 				AC202CBF151E437C00D91067 /* GSFrustum.h */,
@@ -402,7 +397,6 @@
 				AC202CC5151E453E00D91067 /* GSPlane.c in Sources */,
 				ACE99D70151FE922006055F6 /* snoise3.c in Sources */,
 				4ACB9C2A1527CF50005D50B8 /* GSRay.c in Sources */,
-				4A99BE241528197800F2ECDC /* GSBoxedRay.m in Sources */,
 				4A99BE2B1528244800F2ECDC /* GSRenderTexture.m in Sources */,
 				4A9EC91A15282ADA009C80FF /* GSAABB.m in Sources */,
 				AC154885152C04EF00434374 /* GSBoxedVector.m in Sources */,

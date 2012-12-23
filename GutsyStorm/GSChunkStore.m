@@ -11,7 +11,6 @@
 #import <cache.h>
 #import <GLKit/GLKMath.h>
 #import "GSRay.h"
-#import "GSBoxedRay.h"
 #import "GSBoxedVector.h"
 #import "GSChunkStore.h"
 #import "GSNoise.h"
