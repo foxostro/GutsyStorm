@@ -114,10 +114,13 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 - (void)placeBlockUnderCrosshairs
 {
     if(cursor.cursorIsActive) {
-        voxel_t block = 0;
+        voxel_t block;
         
-        markVoxelAsEmpty(NO, &block);
-        markVoxelAsOutside(NO, &block); // outside-ness value will be recalculated later
+        bzero(&block, sizeof(voxel_t));
+        block.outside = NO; // outside-ness value will be recalculated later
+        block.dir = VOXEL_DIR_NORTH;
+        block.tex = 0;
+        block.type = VOXEL_TYPE_CUBE;
         
         [chunkStore placeBlockAtPoint:cursor.cursorPlacePos block:block];
         [self recalcCursorPosition];
@@ -127,10 +130,13 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 - (void)removeBlockUnderCrosshairs
 {
     if(cursor.cursorIsActive) {
-        voxel_t block = 0;
+        voxel_t block;
         
-        markVoxelAsEmpty(YES, &block);
-        markVoxelAsOutside(NO, &block); // outside-ness value will be recalculated later
+        bzero(&block, sizeof(voxel_t));
+        block.outside = NO; // outside-ness value will be recalculated later
+        block.dir = VOXEL_DIR_NORTH;
+        block.tex = 0;
+        block.type = VOXEL_TYPE_EMPTY;
         
         [chunkStore placeBlockAtPoint:cursor.cursorPos block:block];
         [self recalcCursorPosition];

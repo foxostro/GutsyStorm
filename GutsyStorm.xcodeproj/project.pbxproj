@@ -159,7 +159,6 @@
 		4A2CCFE71513C3FC006C6551 = {
 			isa = PBXGroup;
 			children = (
-				ACE787651686E90E00FBC792 /* GLKit.framework */,
 				4A2CCFFC1513C3FC006C6551 /* GutsyStorm */,
 				4A2CCFF31513C3FC006C6551 /* Products */,
 			);
@@ -186,6 +185,7 @@
 		4A2CCFF81513C3FC006C6551 /* Other Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				ACE787651686E90E00FBC792 /* GLKit.framework */,
 				1338A2D915B792C800663E28 /* CoreVideo.framework */,
 				4AD9531815142AA000C2AF8E /* OpenGL.framework */,
 				4A2CCFF91513C3FC006C6551 /* AppKit.framework */,

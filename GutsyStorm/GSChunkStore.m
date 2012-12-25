@@ -105,7 +105,6 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
             return [self chunkGeometryAtPoint:p];
         }];
         needsChunkVisibilityUpdate = 1;
-        
     }
     
     return self;
@@ -619,7 +618,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
             float polarAngle = atan2f(toMountainCenter.y, toMountainCenter.x);
             
             float t = turbScale * [noiseSource0 noiseAtPointWithFourOctaves:GLKVector3Make(azimuthalAngle * freqScale,
-                                                                                              polarAngle * freqScale, 0.0)];
+                                                                                           polarAngle * freqScale,
+                                                                                           0.0)];
             
             // Flatten the top.
             if(p.y > mountainCenter.y) {
@@ -630,5 +630,8 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
         }
     }
     
-    *outVoxel = (groundLayer || floatingMountain) ? ~VOXEL_EMPTY : VOXEL_EMPTY;
+    outVoxel->dir = VOXEL_DIR_NORTH;
+    outVoxel->outside = NO; // calculated later
+    outVoxel->tex = 0;
+    outVoxel->type = (groundLayer || floatingMountain) ? VOXEL_TYPE_CUBE : VOXEL_TYPE_EMPTY;
 }
