@@ -25,6 +25,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 - (void)updateChunkVisibilityForActiveRegion;
 - (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
+- (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p neighborhood:(GSNeighborhood **)neighborhood;
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p;
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk;
@@ -176,22 +177,26 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 // Try to update asynchronously dirty chunk sunlight. Skip any that would block due to lock contention.
 - (void)tryToUpdateDirtySunlight
 {
-    // TODO: -neighborhoodAtPoint: can block to get chunk voxel data. Write a non-blocking version and use it here.
-    
     void (^b)(GLKVector3) = ^(GLKVector3 p) {
         GSChunkVoxelData *voxels;
 
         // Avoid blocking to take the lock in GSGrid.
         if([self tryToGetChunkVoxelsAtPoint:p chunk:&voxels]) {
             dispatch_async(chunkTaskQueue, ^{
-                if(voxels.dirtySunlight) {
-                    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:voxels.centerP];
-                    [voxels tryToRebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
-                        GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:p];
-                        geometry.dirty = YES;
-                        [geometry tryToUpdateWithVoxelData:neighborhood]; // make an effort to update geometry immediately
-                    }];
+                if(!voxels.dirtySunlight) {
+                    return;
                 }
+
+                GSNeighborhood *neighborhood = nil;
+                if(![self tryToGetNeighborhoodAtPoint:voxels.centerP neighborhood:&neighborhood]) {
+                    return;
+                }
+                
+                [voxels tryToRebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
+                    GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:p];
+                    geometry.dirty = YES;
+                    [geometry tryToUpdateWithVoxelData:neighborhood]; // make an effort to update geometry immediately
+                }];
             });
         }
     };
@@ -205,9 +210,16 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 {
     void (^b)(GSChunkGeometryData *) = ^(GSChunkGeometryData *geometry) {
         dispatch_async(chunkTaskQueue, ^{
-            if(geometry.dirty) {
-                [geometry tryToUpdateWithVoxelData:[self neighborhoodAtPoint:geometry.centerP]];
+            if(!geometry.dirty) {
+                return;
             }
+
+            GSNeighborhood *neighborhood = nil;
+            if(![self tryToGetNeighborhoodAtPoint:geometry.centerP neighborhood:&neighborhood]) {
+                return;
+            }
+
+            [geometry tryToUpdateWithVoxelData:neighborhood];
         });
     };
     
@@ -407,10 +419,35 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         GLKVector3 a = GLKVector3Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
-        [neighborhood setNeighborAtIndex:i neighbor:[self chunkVoxelsAtPoint:a]];
+        GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a]; // NOTE: may block
+        [neighborhood setNeighborAtIndex:i neighbor:voxels];
     }
     
     return neighborhood;
+}
+
+
+- (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p
+                       neighborhood:(GSNeighborhood **)outNeighborhood
+{
+    assert(neighborhood);
+
+    GSNeighborhood *neighborhood = [[[GSNeighborhood alloc] init] autorelease];
+
+    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        GLKVector3 a = GLKVector3Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
+        GSChunkVoxelData *voxels = nil;
+
+        if(![self tryToGetChunkVoxelsAtPoint:a chunk:&voxels]) {
+            return NO;
+        }
+
+        [neighborhood setNeighborAtIndex:i neighbor:voxels];
+    }
+
+    *outNeighborhood = neighborhood;
+    return YES;
 }
 
 
