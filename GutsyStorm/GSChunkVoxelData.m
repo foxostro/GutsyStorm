@@ -262,7 +262,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         
         size_t idx = INDEX_BOX(a, combinedMinP, combinedMaxP);
         
-        if(!isVoxelEmpty(combinedVoxelData[idx])) {
+        if(combinedVoxelData[idx].type != VOXEL_TYPE_EMPTY) {
             continue;
         }
         
@@ -291,7 +291,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     {
         size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
         voxel_t voxel = combinedVoxelData[idx];
-        BOOL directlyLit = isVoxelEmpty(voxel) && isVoxelOutside(voxel);
+        BOOL directlyLit = (voxel.type == VOXEL_TYPE_EMPTY) && (voxel.outside);
         combinedSunlightData[idx] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
     }
 
@@ -305,7 +305,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
             size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
             voxel_t voxel = combinedVoxelData[idx];
             
-            if(!isVoxelEmpty(voxel) || isVoxelOutside(voxel)) {
+            if((voxel.type != VOXEL_TYPE_EMPTY) || voxel.outside) {
                 continue;
             }
             
@@ -426,18 +426,14 @@ cleanup1:
                 GSIntegerVector3 p = {x, heightOfHighestVoxel, z};
                 voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
                 
-                if(!isVoxelEmpty(*voxel)) {
+                if(voxel->type != VOXEL_TYPE_EMPTY) {
                     break;
                 }
             }
             
             for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
             {
-                GSIntegerVector3 p = {x, y, z};
-                voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
-                BOOL outside = y >= heightOfHighestVoxel;
-                
-                markVoxelAsOutside(outside, voxel);
+                [self pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(x, y, z)]->outside = (y >= heightOfHighestVoxel);
             }
         }
     }

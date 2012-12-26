@@ -157,7 +157,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             *fail = YES; // Stops enumerations with un-successful condition
         }
         
-        if(!isVoxelEmpty(voxel)) {
+        if(voxel.type != VOXEL_TYPE_EMPTY) {
             cursorIsActive = YES;
             cursorPos = p;
             *stop = YES; // Stops enumeration with successful condition.

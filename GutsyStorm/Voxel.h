@@ -94,30 +94,6 @@ typedef enum
 } face_t;
 
 
-static inline void markVoxelAsEmpty(BOOL empty, voxel_t * voxel)
-{
-    voxel->type = empty ? VOXEL_TYPE_EMPTY : VOXEL_TYPE_CUBE;
-}
-
-
-static inline void markVoxelAsOutside(BOOL outside, voxel_t * voxel)
-{
-    voxel->outside = outside;
-}
-
-
-static inline BOOL isVoxelEmpty(voxel_t voxel)
-{
-    return voxel.type == VOXEL_TYPE_EMPTY;
-}
-
-
-static inline BOOL isVoxelOutside(voxel_t voxel)
-{
-    return voxel.outside;
-}
-
-
 static inline unsigned averageLightValue(unsigned a, unsigned b, unsigned c, unsigned d)
 {
     return (a+b+c+d) >> 2;

@@ -412,7 +412,7 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     
     GSChunkVoxelData *centerVoxels = [chunks neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     
-    if(isVoxelEmpty([centerVoxels voxelAtLocalPosition:chunkLocalPos])) {
+    if([centerVoxels voxelAtLocalPosition:chunkLocalPos].type == VOXEL_TYPE_EMPTY) {
         return count;
     }
     

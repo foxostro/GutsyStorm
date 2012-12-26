@@ -228,7 +228,7 @@
         return YES; // Space above the world is always empty.
     }
     
-    return isVoxelEmpty([[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p]);
+    return [[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p].type == VOXEL_TYPE_EMPTY;
 }
 
 
