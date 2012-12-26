@@ -10,6 +10,7 @@
 #import "GSChunkGeometryData.h"
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"
+#import "GSVertex.h"
 
 #define ARRAY_LEN(array) (sizeof(array)/sizeof(array[0]))
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
