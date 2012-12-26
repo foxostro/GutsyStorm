@@ -248,7 +248,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p
                          lightLevel:(int)lightLevel
                   combinedVoxelData:(voxel_t *)combinedVoxelData
-       combinedSunlightData:(voxel_t *)combinedSunlightData
+       combinedSunlightData:(uint8_t *)combinedSunlightData
 {
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
@@ -313,8 +313,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
                                       lightLevel:lightLevel
                                combinedVoxelData:combinedVoxelData
                     combinedSunlightData:combinedSunlightData]) {
-                uint8_t *val = &combinedSunlightData[idx];
-                *val = MAX(*val, lightLevel - 1);
+                combinedSunlightData[idx] = MAX(combinedSunlightData[idx], lightLevel - 1);
             }
         }
     }
