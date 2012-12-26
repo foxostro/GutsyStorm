@@ -94,12 +94,6 @@ typedef enum
 } face_t;
 
 
-static inline unsigned averageLightValue(unsigned a, unsigned b, unsigned c, unsigned d)
-{
-    return (a+b+c+d) >> 2;
-}
-
-
 typedef uint16_t block_lighting_vertex_t;
 
 

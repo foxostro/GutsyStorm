@@ -15,6 +15,13 @@
 // Columns in the y-axis are contiguous in memory.
 #define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*dimensions.y*dimensions.z) + ((p.z)*dimensions.y) + (p.y)))
 
+
+static inline unsigned averageLightValue(unsigned a, unsigned b, unsigned c, unsigned d)
+{
+    return (a+b+c+d) >> 2;
+}
+
+
 @implementation GSLightingBuffer
 
 @synthesize lockLightingBuffer;
