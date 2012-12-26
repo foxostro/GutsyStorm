@@ -10,18 +10,12 @@
 #import <OpenGL/gl.h>
 #import <OpenGL/OpenGL.h>
 #import "GSChunkData.h"
+#import "Vertex.h"
 
 
 @class GSChunkVoxelData;
 @class GSNeighborhood;
 
-struct vertex
-{
-    GLfloat position[3];
-    GLubyte color[4];
-    GLbyte normal[3];
-    GLshort texCoord[3];
-};
 
 @interface GSChunkGeometryData : GSChunkData
 {
