@@ -27,16 +27,7 @@ extern int checkGLErrors(void);
 
 static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo);
 static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
-static void packVertex(struct vertex *vertices,  GLKVector3 position, GLKVector3 normal, GLKVector3 texCoord, GLKVector3 color);
 static void * allocateVertexMemory(size_t numVerts);
-
-static inline GLKVector3 blockLight(unsigned sunlight, unsigned torchLight)
-{
-    // Pack sunlight into the Green channel, and torch light into the Blue channel.
-    return GLKVector3Make(0,
-                          (sunlight / (float)CHUNK_LIGHTING_MAX) * 0.8f + 0.2f,
-                          torchLight / (float)CHUNK_LIGHTING_MAX);
-}
 
 
 const static GLfloat L = 0.5f; // half the length of a block along one side
@@ -53,83 +44,159 @@ const static GSIntegerVector3 test[FACE_NUM_FACES] = {
     {-1, 0, 0}
 };
 
-const static GLKVector3 normals[FACE_NUM_FACES] = {
-    {0, 1, 0},
-    {0, -1, 0},
-    {0, 0, 1},
-    {0, 1, -1},
-    {1, 0, 0},
-    {-1, 0, 0},
-};
-
-const static GLKVector3 vertex[4][FACE_NUM_FACES] = {
+const static struct vertex meshCube[4][FACE_NUM_FACES] = {
     {
-        {-L, +L, -L},
-        {-L, -L, -L},
-        {-L, -L, +L},
-        {-L, -L, -L},
-        {+L, -L, -L},
-        {-L, -L, -L}
+        {
+            {-L, +L, -L},  // position
+            {1, 1, 1},     // color
+            {0, 1, 0},     // normal
+            {1, 0, grass}  // texCoord
+        },
+        {
+            {-L, -L, -L},  // position
+            {1, 1, 1},     // color
+            {0, -1, 0},    // normal
+            {1, 0, dirt}   // texCoord
+        },
+        {
+            {-L, -L, +L},  // position
+            {1, 1, 1},     // color
+            {0, 0, 1},     // normal
+            {0, 1, -1}     // texCoord
+        },
+        {
+            {-L, -L, -L},  // position
+            {1, 1, 1},     // color
+            {0, 1, -1},    // normal
+            {0, 1, -1}     // texCoord
+        },
+        {
+            {+L, -L, -L},  // position
+            {1, 1, 1},     // color
+            {1, 0, 0},     // normal
+            {0, 1, -1}     // texCoord
+        },
+        {
+            {-L, -L, -L},  // position
+            {1, 1, 1},     // color
+            {-1, 0, 0},    // normal
+            {0, 1, -1}     // texCoord
+        }
     },
     {
-        {-L, +L, +L},
-        {+L, -L, -L},
-        {+L, -L, +L},
-        {-L, +L, -L},
-        {+L, +L, -L},
-        {-L, -L, +L}
+        {
+            {-L, +L, +L},  // position
+            {1, 1, 1},     // color
+            {0, 1, 0},     // normal
+            {1, 1, grass}  // texCoord
+        },
+        {
+            {+L, -L, -L},  // position
+            {1, 1, 1},     // color
+            {0, -1, 0},    // normal
+            {0, 0, dirt}   // texCoord
+        },
+        {
+            {+L, -L, +L},  // position
+            {1, 1, 1},     // color
+            {0, 0, 1},     // normal
+            {1, 1, -1}     // texCoord
+        },
+        {
+            {-L, +L, -L},  // position
+            {1, 1, 1},     // color
+            {0, 1, -1},    // normal
+            {0, 0, -1}     // texCoord
+        },
+        {
+            {+L, +L, -L},  // position
+            {1, 1, 1},     // color
+            {1, 0, 0},     // normal
+            {0, 0, -1}     // texCoord
+        },
+        {
+            {-L, -L, +L},  // position
+            {1, 1, 1},     // color
+            {-1, 0, 0},    // normal
+            {1, 1, -1}     // texCoord
+        }
     },
     {
-        {+L, +L, +L},
-        {+L, -L, +L},
-        {+L, +L, +L},
-        {+L, +L, -L},
-        {+L, +L, +L},
-        {-L, +L, +L}
+        {
+            {+L, +L, +L},  // position
+            {1, 1, 1},     // color
+            {0, 1, 0},     // normal
+            {0, 1, grass}  // texCoord
+        },
+        {
+            {+L, -L, +L},  // position
+            {1, 1, 1},     // color
+            {0, -1, 0},    // normal
+            {0, 1, dirt}   // texCoord
+        },
+        {
+            {+L, +L, +L},  // position
+            {1, 1, 1},     // color
+            {0, 0, 1},     // normal
+            {1, 0, -1}     // texCoord
+        },
+        {
+            {+L, +L, -L},  // position
+            {1, 1, 1},     // color
+            {0, 1, -1},    // normal
+            {1, 0, -1}     // texCoord
+        },
+        {
+            {+L, +L, +L},  // position
+            {1, 1, 1},     // color
+            {1, 0, 0},     // normal
+            {1, 0, -1}     // texCoord
+        },
+        {
+            {-L, +L, +L},  // position
+            {1, 1, 1},     // color
+            {-1, 0, 0},    // normal
+            {1, 0, -1}     // texCoord
+        }
     },
     {
-        {+L, +L, -L},
-        {-L, -L, +L},
-        {-L, +L, +L},
-        {+L, -L, -L},
-        {+L, -L, +L},
-        {-L, +L, -L}
+        {
+            {+L, +L, -L},  // position
+            {1, 1, 1},     // color
+            {0, 1, 0},     // normal
+            {0, 0, grass}  // texCoord
+        },
+        {
+            {-L, -L, +L},  // position
+            {1, 1, 1},     // color
+            {0, -1, 0},    // normal
+            {1, 1, dirt}   // texCoord
+        },
+        {
+            {-L, +L, +L},  // position
+            {1, 1, 1},     // color
+            {0, 0, 1},     // normal
+            {0, 0, -1}     // texCoord
+        },
+        {
+            {+L, -L, -L},  // position
+            {1, 1, 1},     // color
+            {0, 1, -1},    // normal
+            {1, 1, -1}
+        },
+        {
+            {+L, -L, +L},  // position
+            {1, 1, 1},     // color
+            {1, 0, 0},     // normal
+            {1, 1, -1}     // texCoord
+        },
+        {
+            {-L, +L, -L},  // position
+            {1, 1, 1},     // color
+            {-1, 0, 0},    // normal
+            {0, 0, -1}     // texCoord
+        }
     }
-};
-
-const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
-    {
-        {1, 0, grass},
-        {1, 0, dirt},
-        {0, 1, -1},
-        {0, 1, -1},
-        {0, 1, -1},
-        {0, 1, -1}
-    },
-    {
-        {1, 1, grass},
-        {0, 0, dirt},
-        {1, 1, -1},
-        {0, 0, -1},
-        {0, 0, -1},
-        {1, 1, -1}
-    },
-    {
-        {0, 1, grass},
-        {0, 1, dirt},
-        {1, 0, -1},
-        {1, 0, -1},
-        {1, 0, -1},
-        {1, 0, -1}
-    },
-    {
-        {0, 0, grass},
-        {1, 1, dirt},
-        {0, 0, -1},
-        {1, 1, -1},
-        {1, 1, -1},
-        {0, 0, -1}
-    },
 };
 
 
@@ -447,14 +514,21 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
         
         for(size_t j=0; j<4; ++j)
         {
-            struct vertex v;
-            ssize_t tz = texCoord[j][i].z;
-            
-            packVertex(&v,
-                       GLKVector3Add(vertex[j][i], pos),
-                       normals[i],
-                       GLKVector3Make(texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz),
-                       blockLight(unpackedSunlight[j], unpackedTorchlight[j]));
+            struct vertex v = meshCube[j][i];
+
+            // translate point within the world
+            v.position[0] += pos.v[0];
+            v.position[1] += pos.v[1];
+            v.position[2] += pos.v[2];
+
+            // select the texture
+            v.texCoord[2] = (v.texCoord[2]<0) ? page : v.texCoord[2];
+
+            // set the vertex color
+            v.color[0] = 0; // red channel is unused
+            v.color[1] = 255 * ((unpackedSunlight[j] / (float)CHUNK_LIGHTING_MAX) * 0.8f + 0.2f); // sunlight in green
+            v.color[2] = 255 * (unpackedTorchlight[j] / (float)CHUNK_LIGHTING_MAX); // torchlight in blue
+            v.color[3] = 255;
 
             [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
         }
@@ -640,29 +714,6 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo)
         glDeleteBuffers(1, &vbo);
         CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
     }
-}
-
-
-static void packVertex(struct vertex *vertex,  GLKVector3 position, GLKVector3 normal, GLKVector3 texCoord, GLKVector3 color)
-{
-    assert(vertex);
-    
-    vertex->position[0] = position.x;
-    vertex->position[1] = position.y;
-    vertex->position[2] = position.z;
-    
-    vertex->normal[0] = normal.x;
-    vertex->normal[1] = normal.y;
-    vertex->normal[2] = normal.z;
-    
-    vertex->texCoord[0] = texCoord.x;
-    vertex->texCoord[1] = texCoord.y;
-    vertex->texCoord[2] = texCoord.z;
-    
-    vertex->color[0] = color.x * 255;
-    vertex->color[1] = color.y * 255;
-    vertex->color[2] = color.z * 255;
-    vertex->color[3] = 1;
 }
 
 
