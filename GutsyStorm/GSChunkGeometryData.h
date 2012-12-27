@@ -10,7 +10,7 @@
 #import <OpenGL/gl.h>
 #import <OpenGL/OpenGL.h>
 #import "GSChunkData.h"
-#import "Vertex.h"
+#import "GSVertex.h"
 
 
 @class GSChunkVoxelData;

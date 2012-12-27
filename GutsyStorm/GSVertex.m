@@ -7,80 +7,28 @@
 //
 
 #import <GLKit/GLKMath.h>
+#import "GLKVector3Extra.h"
 #import "GSVertex.h"
 
 @implementation GSVertex
 
-@synthesize position;
-@synthesize normal;
-@synthesize texCoord;
-@synthesize color;
+@synthesize v;
 
-
-- (id)initWithPosition:(GSBoxedVector *)_position
-                normal:(GSBoxedVector *)_normal
-              texCoord:(GSBoxedVector *)_texCoord
-                 color:(GSBoxedVector *)_color
+- (id)initWithVertex:(struct vertex *)pv
 {
+    assert(pv);
+    
     self = [super init];
     if (self) {
-        // Initialization code here.
-        position = _position;
-        normal = _normal;
-        texCoord = _texCoord;
-        color = _color;
+        v = *pv;
     }
-    
+
     return self;
 }
 
-
-- (BOOL)isEqual:(id)other
+- (void)dealloc
 {
-    if(other == self) {
-        return YES;
-    }
-    
-    if(!other || ![other isKindOfClass:[self class]]) {
-        return NO;
-    }
-    
-    return [self isEqualToVertex:other];
-}
-
-
-- (BOOL)isEqualToVertex:(GSVertex *)vertex
-{
-    if(self == vertex) {
-        return YES;
-    }
-    
-    return [position isEqual:vertex.position] &&
-           [normal isEqual:vertex.normal] &&
-           [texCoord isEqual:vertex.texCoord] &&
-           [color isEqual:vertex.color];
-}
-
-
-- (NSUInteger)hash
-{
-    NSUInteger prime = 31;
-    NSUInteger result = 1;
-    
-    result = prime * result + [position hash];
-    result = prime * result + [normal hash];
-    result = prime * result + [texCoord hash];
-    result = prime * result + [color hash];
-    
-    return result;
-    
-}
-
-
-- (NSString *)toString
-{
-    return [NSString stringWithFormat:@"position=%@ ; normal=%@ ; texCoord=%@ ; color=%@",
-            [position toString], [normal toString], [texCoord toString], [color toString]];
+    [super dealloc];
 }
 
 @end

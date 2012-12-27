@@ -9,26 +9,21 @@
 #import <Foundation/Foundation.h>
 #import "GSBoxedVector.h"
 
+struct vertex
+{
+    GLfloat position[3];
+    GLubyte color[4];
+    GLbyte normal[3];
+    GLshort texCoord[3];
+};
+
 @interface GSVertex : NSObject
 {
-    GSBoxedVector *position;
-    GSBoxedVector *normal;
-    GSBoxedVector *texCoord;
-    GSBoxedVector *color;
+    struct vertex v;
 }
 
-@property (retain, nonatomic) GSBoxedVector *position;
-@property (retain, nonatomic) GSBoxedVector *normal;
-@property (retain, nonatomic) GSBoxedVector *texCoord;
-@property (retain, nonatomic) GSBoxedVector *color;
+@property (assign, nonatomic) struct vertex v;
 
-- (id)initWithPosition:(GSBoxedVector *)position
-                normal:(GSBoxedVector *)normal
-              texCoord:(GSBoxedVector *)texCoord
-                 color:(GSBoxedVector *)color;
-- (BOOL)isEqual:(id)other;
-- (BOOL)isEqualToVertex:(GSVertex *)vector;
-- (NSUInteger)hash;
-- (NSString *)toString;
+- (id)initWithVertex:(struct vertex *)pv;
 
 @end

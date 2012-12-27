@@ -138,11 +138,10 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 + (GLushort *)sharedIndexBuffer;
 
 - (void)destroyGeometry;
-- (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)chunks;
-- (GLsizei)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
-                                        vertsBuffer:(struct vertex **)_vertices
-                                          voxelData:(GSNeighborhood *)chunks
-                                  onlyDoingCounting:(BOOL)onlyDoingCounting;
+- (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)voxelData;
+- (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
+                                     vertexList:(NSMutableArray *)vertexList
+                                       voxelData:(GSNeighborhood *)voxelData;
 - (NSData *)dataRepr;
 - (void)saveGeometryDataToFile;
 - (NSError *)fillGeometryBuffersUsingDataRepr:(NSData *)data;
@@ -347,38 +346,41 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
     return buffer;
 }
 
-/* Assumes caller is already holding the following locks:
+/* Completely regenerate geometry for the chunk.
+ *
+ * Assumes caller is already holding the following locks:
  * "lockGeometry"
  * "lockVoxelData" for all chunks in the neighborhood (for reading).
  * "sunlight.lockLightingBuffer" for the center chunk in the neighborhood (for reading).
  */
-- (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)chunks
+- (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)neighborhood
 {
     GLKVector3 pos;
-    
-    // Iterate over all voxels in the chunk and count the number of vertices that would be generated.
-    numChunkVerts = 0;
-    FOR_BOX(pos, minP, maxP)
-    {
-        numChunkVerts += [self generateGeometryForSingleBlockAtPosition:pos
-                                                            vertsBuffer:NULL
-                                                              voxelData:chunks
-                                                      onlyDoingCounting:YES];
-    }
-    assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
-    
-    // Take the vertices array and generate raw buffers for OpenGL to consume.
-    vertsBuffer = allocateVertexMemory(numChunkVerts);
-    
+    NSMutableArray *vertices;
+
+    assert(neighborhood);
+
     // Iterate over all voxels in the chunk and generate geometry.
-    struct vertex *_vertsBuffer = vertsBuffer;
+    vertices = [[NSMutableArray alloc] init];
     FOR_BOX(pos, minP, maxP)
     {
         [self generateGeometryForSingleBlockAtPosition:pos
-                                           vertsBuffer:&_vertsBuffer
-                                             voxelData:chunks
-                                     onlyDoingCounting:NO];
+                                           vertexList:vertices
+                                             voxelData:neighborhood];
     }
+    
+    numChunkVerts = (GLsizei)[vertices count];
+    assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
+
+    // Take the vertices array and generate raw buffers for OpenGL to consume.
+    vertsBuffer = allocateVertexMemory(numChunkVerts);
+    for(GLsizei i=0; i<numChunkVerts; ++i)
+    {
+        GSVertex *v = [vertices objectAtIndex:i];
+        vertsBuffer[i] = v.v;
+    }
+
+    [vertices release];
 }
 
 
@@ -391,76 +393,72 @@ const static GSIntegerVector3 texCoord[4][FACE_NUM_FACES] = {
 }
 
 
-/* Assumes caller is already holding the following locks:
+/* Generates geometry for the block at the specified position. For each new vertex, this method
+ * adds a vertex to vertsBuffer.
+ *
+ * pos - World space position of the block.
+ * vertsBuffer - Buffer for vertices being added to the chunk.
+ * voxelData - Information on the block and the neighboring blocks.
+ *
+ * Assumes caller is already holding the following locks:
  * "lockGeometry"
  * "lockVoxelData" for all chunks in the neighborhood (for reading).
  * "sunlight.lockLightingBuffer" for the center chunk in the neighborhood (for reading).
  */
-- (GLsizei)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
-                                        vertsBuffer:(struct vertex **)_vertices
-                                          voxelData:(GSNeighborhood *)chunks
-                                  onlyDoingCounting:(BOOL)onlyDoingCounting
+- (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
+                                        vertexList:(NSMutableArray *)vertexList
+                                          voxelData:(GSNeighborhood *)voxelData
 {
-    if(!onlyDoingCounting && !_vertices) {
-        [NSException raise:NSInvalidArgumentException format:@"If countOnly is NO then _vertices must be provided"];
-    }
+    assert(vertexList);
+    assert(voxelData);
     
-    GLsizei count = 0;
-
     GLfloat page = dirt;
     
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     
-    GSChunkVoxelData *centerVoxels = [chunks neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+    GSChunkVoxelData *centerVoxels = [voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     
     if([centerVoxels voxelAtLocalPosition:chunkLocalPos].type == VOXEL_TYPE_EMPTY) {
-        return count;
+        return; // nothing needs to be generated
     }
     
     block_lighting_t sunlight;
-    if(!onlyDoingCounting) {
-        [centerVoxels.sunlight interpolateLightAtPoint:chunkLocalPos outLighting:&sunlight];
-    }
+    [centerVoxels.sunlight interpolateLightAtPoint:chunkLocalPos outLighting:&sunlight];
     
     // TODO: add torch lighting to the world.
     block_lighting_t torchLight;
-    if(!onlyDoingCounting) {
-        bzero(&torchLight, sizeof(torchLight));
-    }
+    bzero(&torchLight, sizeof(torchLight));
     
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
-        if([chunks emptyAtPoint:GSIntegerVector3_Add(chunkLocalPos, test[i])]) {
-            count += 4;
+        if(![voxelData emptyAtPoint:GSIntegerVector3_Add(chunkLocalPos, test[i])]) {
+            continue;
+        }
+
+        unsigned unpackedSunlight[4];
+        unsigned unpackedTorchlight[4];
+        
+        if(i == FACE_TOP) {
+            page = side;
+        }
+        
+        unpackBlockLightingValuesForVertex(sunlight.face[i], unpackedSunlight);
+        unpackBlockLightingValuesForVertex(torchLight.face[i], unpackedTorchlight);
+        
+        for(size_t j=0; j<4; ++j)
+        {
+            struct vertex v;
+            ssize_t tz = texCoord[j][i].z;
             
-            if(!onlyDoingCounting) {
-                unsigned unpackedSunlight[4];
-                unsigned unpackedTorchlight[4];
-                
-                if(i == FACE_TOP) {
-                    page = side;
-                }
-                
-                unpackBlockLightingValuesForVertex(sunlight.face[i], unpackedSunlight);
-                unpackBlockLightingValuesForVertex(torchLight.face[i], unpackedTorchlight);
-                
-                for(size_t j=0; j<4; ++j)
-                {
-                    ssize_t tz = texCoord[j][i].z;
-                    
-                    packVertex(*_vertices,
-                               GLKVector3Add(vertex[j][i], pos),
-                               normals[i],
-                               GLKVector3Make(texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz),
-                               blockLight(unpackedSunlight[j], unpackedTorchlight[j]));
-                    
-                    (*_vertices)++;
-                }
-            }
+            packVertex(&v,
+                       GLKVector3Add(vertex[j][i], pos),
+                       normals[i],
+                       GLKVector3Make(texCoord[j][i].x, texCoord[j][i].y, tz<0?page:tz),
+                       blockLight(unpackedSunlight[j], unpackedTorchlight[j]));
+
+            [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
         }
     }
-    
-    return count;
 }
 
 
