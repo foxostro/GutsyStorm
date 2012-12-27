@@ -11,6 +11,9 @@
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"
 #import "GSVertex.h"
+#import "Voxel.h"
+#import "GSBlockMeshCube.h"
+#import "GSBlockMeshEmpty.h"
 
 #define ARRAY_LEN(array) (sizeof(array)/sizeof(array[0]))
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
@@ -30,185 +33,12 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
 static void * allocateVertexMemory(size_t numVerts);
 
 
-const static GLfloat L = 0.5f; // half the length of a block along one side
-const static int grass = 0;
-const static int dirt = 1;
-const static int side = 2;
-
-const static GSIntegerVector3 test[FACE_NUM_FACES] = {
-    {0, +1, 0},
-    {0, -1, 0},
-    {0, 0, +1},
-    {0, 0, -1},
-    {+1, 0, 0},
-    {-1, 0, 0}
-};
-
-const static struct vertex meshCube[4][FACE_NUM_FACES] = {
-    {
-        {
-            {-L, +L, -L},  // position
-            {1, 1, 1},     // color
-            {0, 1, 0},     // normal
-            {1, 0, grass}  // texCoord
-        },
-        {
-            {-L, -L, -L},  // position
-            {1, 1, 1},     // color
-            {0, -1, 0},    // normal
-            {1, 0, dirt}   // texCoord
-        },
-        {
-            {-L, -L, +L},  // position
-            {1, 1, 1},     // color
-            {0, 0, 1},     // normal
-            {0, 1, -1}     // texCoord
-        },
-        {
-            {-L, -L, -L},  // position
-            {1, 1, 1},     // color
-            {0, 1, -1},    // normal
-            {0, 1, -1}     // texCoord
-        },
-        {
-            {+L, -L, -L},  // position
-            {1, 1, 1},     // color
-            {1, 0, 0},     // normal
-            {0, 1, -1}     // texCoord
-        },
-        {
-            {-L, -L, -L},  // position
-            {1, 1, 1},     // color
-            {-1, 0, 0},    // normal
-            {0, 1, -1}     // texCoord
-        }
-    },
-    {
-        {
-            {-L, +L, +L},  // position
-            {1, 1, 1},     // color
-            {0, 1, 0},     // normal
-            {1, 1, grass}  // texCoord
-        },
-        {
-            {+L, -L, -L},  // position
-            {1, 1, 1},     // color
-            {0, -1, 0},    // normal
-            {0, 0, dirt}   // texCoord
-        },
-        {
-            {+L, -L, +L},  // position
-            {1, 1, 1},     // color
-            {0, 0, 1},     // normal
-            {1, 1, -1}     // texCoord
-        },
-        {
-            {-L, +L, -L},  // position
-            {1, 1, 1},     // color
-            {0, 1, -1},    // normal
-            {0, 0, -1}     // texCoord
-        },
-        {
-            {+L, +L, -L},  // position
-            {1, 1, 1},     // color
-            {1, 0, 0},     // normal
-            {0, 0, -1}     // texCoord
-        },
-        {
-            {-L, -L, +L},  // position
-            {1, 1, 1},     // color
-            {-1, 0, 0},    // normal
-            {1, 1, -1}     // texCoord
-        }
-    },
-    {
-        {
-            {+L, +L, +L},  // position
-            {1, 1, 1},     // color
-            {0, 1, 0},     // normal
-            {0, 1, grass}  // texCoord
-        },
-        {
-            {+L, -L, +L},  // position
-            {1, 1, 1},     // color
-            {0, -1, 0},    // normal
-            {0, 1, dirt}   // texCoord
-        },
-        {
-            {+L, +L, +L},  // position
-            {1, 1, 1},     // color
-            {0, 0, 1},     // normal
-            {1, 0, -1}     // texCoord
-        },
-        {
-            {+L, +L, -L},  // position
-            {1, 1, 1},     // color
-            {0, 1, -1},    // normal
-            {1, 0, -1}     // texCoord
-        },
-        {
-            {+L, +L, +L},  // position
-            {1, 1, 1},     // color
-            {1, 0, 0},     // normal
-            {1, 0, -1}     // texCoord
-        },
-        {
-            {-L, +L, +L},  // position
-            {1, 1, 1},     // color
-            {-1, 0, 0},    // normal
-            {1, 0, -1}     // texCoord
-        }
-    },
-    {
-        {
-            {+L, +L, -L},  // position
-            {1, 1, 1},     // color
-            {0, 1, 0},     // normal
-            {0, 0, grass}  // texCoord
-        },
-        {
-            {-L, -L, +L},  // position
-            {1, 1, 1},     // color
-            {0, -1, 0},    // normal
-            {1, 1, dirt}   // texCoord
-        },
-        {
-            {-L, +L, +L},  // position
-            {1, 1, 1},     // color
-            {0, 0, 1},     // normal
-            {0, 0, -1}     // texCoord
-        },
-        {
-            {+L, -L, -L},  // position
-            {1, 1, 1},     // color
-            {0, 1, -1},    // normal
-            {1, 1, -1}
-        },
-        {
-            {+L, -L, +L},  // position
-            {1, 1, 1},     // color
-            {1, 0, 0},     // normal
-            {1, 1, -1}     // texCoord
-        },
-        {
-            {-L, +L, -L},  // position
-            {1, 1, 1},     // color
-            {-1, 0, 0},    // normal
-            {0, 0, -1}     // texCoord
-        }
-    }
-};
-
-
 @interface GSChunkGeometryData (Private)
 
 + (GLushort *)sharedIndexBuffer;
 
 - (void)destroyGeometry;
 - (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)voxelData;
-- (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
-                                     vertexList:(NSMutableArray *)vertexList
-                                       voxelData:(GSNeighborhood *)voxelData;
 - (NSData *)dataRepr;
 - (void)saveGeometryDataToFile;
 - (NSError *)fillGeometryBuffersUsingDataRepr:(NSData *)data;
@@ -220,6 +50,33 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] = {
 @implementation GSChunkGeometryData
 
 @synthesize dirty;
+
+
+
++ (id <GSBlockMesh>)sharedMeshFactoryWithBlockType:(voxel_type_t)type
+{
+    static GSBlockMeshCube *cube;
+    static GSBlockMeshEmpty *empty;
+
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        cube = [[GSBlockMeshCube alloc] init];
+        empty = [[GSBlockMeshEmpty alloc] init];
+    });
+
+    switch(type)
+    {
+        case VOXEL_TYPE_CUBE:
+            return cube;
+            
+        case VOXEL_TYPE_RAMP:
+        case VOXEL_TYPE_CORNER_INSIDE:
+        case VOXEL_TYPE_CORNER_OUTSIDE:
+        case VOXEL_TYPE_EMPTY:
+        default:
+            return empty;
+    }
+}
 
 
 + (NSString *)fileNameForGeometryDataFromMinP:(GLKVector3)minP
@@ -431,9 +288,15 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] = {
     vertices = [[NSMutableArray alloc] init];
     FOR_BOX(pos, minP, maxP)
     {
-        [self generateGeometryForSingleBlockAtPosition:pos
-                                           vertexList:vertices
-                                             voxelData:neighborhood];
+        GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
+        GSChunkVoxelData *centerVoxels = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+        voxel_type_t type = [centerVoxels voxelAtLocalPosition:chunkLocalPos].type;
+        id <GSBlockMesh> factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
+
+        [factory generateGeometryForSingleBlockAtPosition:pos
+                                               vertexList:vertices
+                                                voxelData:neighborhood
+                                                     minP:minP];
     }
     
     numChunkVerts = (GLsizei)[vertices count];
@@ -457,82 +320,6 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] = {
     free(vertsBuffer);
     vertsBuffer = NULL;
     numChunkVerts = 0;
-}
-
-
-/* Generates geometry for the block at the specified position. For each new vertex, this method
- * adds a vertex to vertsBuffer.
- *
- * pos - World space position of the block.
- * vertsBuffer - Buffer for vertices being added to the chunk.
- * voxelData - Information on the block and the neighboring blocks.
- *
- * Assumes caller is already holding the following locks:
- * "lockGeometry"
- * "lockVoxelData" for all chunks in the neighborhood (for reading).
- * "sunlight.lockLightingBuffer" for the center chunk in the neighborhood (for reading).
- */
-- (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
-                                        vertexList:(NSMutableArray *)vertexList
-                                          voxelData:(GSNeighborhood *)voxelData
-{
-    assert(vertexList);
-    assert(voxelData);
-    
-    GLfloat page = dirt;
-    
-    GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
-    
-    GSChunkVoxelData *centerVoxels = [voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-    
-    if([centerVoxels voxelAtLocalPosition:chunkLocalPos].type == VOXEL_TYPE_EMPTY) {
-        return; // nothing needs to be generated
-    }
-    
-    block_lighting_t sunlight;
-    [centerVoxels.sunlight interpolateLightAtPoint:chunkLocalPos outLighting:&sunlight];
-    
-    // TODO: add torch lighting to the world.
-    block_lighting_t torchLight;
-    bzero(&torchLight, sizeof(torchLight));
-    
-    for(face_t i=0; i<FACE_NUM_FACES; ++i)
-    {
-        if(![voxelData emptyAtPoint:GSIntegerVector3_Add(chunkLocalPos, test[i])]) {
-            continue;
-        }
-
-        unsigned unpackedSunlight[4];
-        unsigned unpackedTorchlight[4];
-        
-        if(i == FACE_TOP) {
-            page = side;
-        }
-        
-        unpackBlockLightingValuesForVertex(sunlight.face[i], unpackedSunlight);
-        unpackBlockLightingValuesForVertex(torchLight.face[i], unpackedTorchlight);
-        
-        for(size_t j=0; j<4; ++j)
-        {
-            struct vertex v = meshCube[j][i];
-
-            // translate point within the world
-            v.position[0] += pos.v[0];
-            v.position[1] += pos.v[1];
-            v.position[2] += pos.v[2];
-
-            // select the texture
-            v.texCoord[2] = (v.texCoord[2]<0) ? page : v.texCoord[2];
-
-            // set the vertex color
-            v.color[0] = 0; // red channel is unused
-            v.color[1] = 255 * ((unpackedSunlight[j] / (float)CHUNK_LIGHTING_MAX) * 0.8f + 0.2f); // sunlight in green
-            v.color[2] = 255 * (unpackedTorchlight[j] / (float)CHUNK_LIGHTING_MAX); // torchlight in blue
-            v.color[3] = 255;
-
-            [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
-        }
-    }
 }
 
 

@@ -11,6 +11,8 @@
 #import <OpenGL/OpenGL.h>
 #import "GSChunkData.h"
 #import "GSVertex.h"
+#import "Voxel.h"
+#import "GSBlockMesh.h"
 
 
 @class GSChunkVoxelData;
@@ -45,6 +47,9 @@
 }
 
 @property (assign) BOOL dirty;
+
+/* Returns the shared block mesh factory for the specified voxel type. */
++ (id <GSBlockMesh>)sharedMeshFactoryWithBlockType:(voxel_type_t)type;
 
 - (id)initWithMinP:(GLKVector3)minP
             folder:(NSURL *)folder

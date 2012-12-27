@@ -39,11 +39,12 @@
 		AC3EF787161030DE00323C25 /* GSGrid.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3EF786161030DD00323C25 /* GSGrid.m */; };
 		AC5B2800151DC7BB0045B6E4 /* GSNoise.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */; };
 		AC5B2804151E2C1D0045B6E4 /* GSChunkStore.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */; };
+		AC96B179168CF2A500FF7FFC /* GSBlockMeshCube.m in Sources */ = {isa = PBXBuildFile; fileRef = AC96B178168CF2A500FF7FFC /* GSBlockMeshCube.m */; };
+		AC96B17D168CF73800FF7FFC /* GSBlockMeshEmpty.m in Sources */ = {isa = PBXBuildFile; fileRef = AC96B17C168CF73800FF7FFC /* GSBlockMeshEmpty.m */; };
 		AC9CCD701519A90E0081964D /* GSShader.m in Sources */ = {isa = PBXBuildFile; fileRef = AC9CCD6F1519A90E0081964D /* GSShader.m */; };
 		AC9CCD741519B8AA0081964D /* shader.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD721519B8AA0081964D /* shader.frag.txt */; };
 		AC9CCD751519B8AA0081964D /* shader.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD731519B8AA0081964D /* shader.vert.txt */; };
 		ACA913FE1609949800D14625 /* GSLightingBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = ACA913FD1609949800D14625 /* GSLightingBuffer.m */; };
-		ACD9802D168B7CDB0019FA24 /* GSBlockMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = ACD9802C168B7CDB0019FA24 /* GSBlockMesh.m */; };
 		ACE787661686E90E00FBC792 /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACE787651686E90E00FBC792 /* GLKit.framework */; };
 		ACE99D70151FE922006055F6 /* snoise3.c in Sources */ = {isa = PBXBuildFile; fileRef = ACE99D6F151FE922006055F6 /* snoise3.c */; };
 		ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */; };
@@ -117,6 +118,10 @@
 		AC5B2802151E2C1D0045B6E4 /* GSChunkStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkStore.h; sourceTree = "<group>"; };
 		AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkStore.m; sourceTree = "<group>"; };
 		AC68358B1613F20F0063AAFC /* GutsyStorm.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = GutsyStorm.entitlements; sourceTree = "<group>"; };
+		AC96B177168CF2A500FF7FFC /* GSBlockMeshCube.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMeshCube.h; sourceTree = "<group>"; };
+		AC96B178168CF2A500FF7FFC /* GSBlockMeshCube.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshCube.m; sourceTree = "<group>"; };
+		AC96B17B168CF73800FF7FFC /* GSBlockMeshEmpty.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMeshEmpty.h; sourceTree = "<group>"; };
+		AC96B17C168CF73800FF7FFC /* GSBlockMeshEmpty.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshEmpty.m; sourceTree = "<group>"; };
 		AC9CCD6E1519A90E0081964D /* GSShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSShader.h; sourceTree = "<group>"; };
 		AC9CCD6F1519A90E0081964D /* GSShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSShader.m; sourceTree = "<group>"; };
 		AC9CCD721519B8AA0081964D /* shader.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.frag.txt; sourceTree = "<group>"; };
@@ -124,7 +129,6 @@
 		ACA913FC1609949700D14625 /* GSLightingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSLightingBuffer.h; sourceTree = "<group>"; };
 		ACA913FD1609949800D14625 /* GSLightingBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSLightingBuffer.m; sourceTree = "<group>"; };
 		ACD9802B168B7CDB0019FA24 /* GSBlockMesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMesh.h; sourceTree = "<group>"; };
-		ACD9802C168B7CDB0019FA24 /* GSBlockMesh.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMesh.m; sourceTree = "<group>"; };
 		ACE787651686E90E00FBC792 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 		ACE99D6F151FE922006055F6 /* snoise3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = snoise3.c; sourceTree = "<group>"; };
 		ACE99D72151FED59006055F6 /* snoise3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = snoise3.h; sourceTree = "<group>"; };
@@ -282,8 +286,6 @@
 		AC3767A7163E04E100BAE03F /* Terrain Internals */ = {
 			isa = PBXGroup;
 			children = (
-				ACD9802B168B7CDB0019FA24 /* GSBlockMesh.h */,
-				ACD9802C168B7CDB0019FA24 /* GSBlockMesh.m */,
 				AC3767A8163E053400BAE03F /* GSTerrainCursor.h */,
 				AC3767A9163E053400BAE03F /* GSTerrainCursor.m */,
 				13C8BE161602854300403815 /* GSNeighborhood.h */,
@@ -294,6 +296,11 @@
 				4A2310C6153E112900A4EBE6 /* GSChunkData.m */,
 				4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */,
 				4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */,
+				ACD9802B168B7CDB0019FA24 /* GSBlockMesh.h */,
+				AC96B17B168CF73800FF7FFC /* GSBlockMeshEmpty.h */,
+				AC96B17C168CF73800FF7FFC /* GSBlockMeshEmpty.m */,
+				AC96B177168CF2A500FF7FFC /* GSBlockMeshCube.h */,
+				AC96B178168CF2A500FF7FFC /* GSBlockMeshCube.m */,
 				4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */,
 				4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */,
 				13C8BE1B16038DC000403815 /* GSActiveRegion.h */,
@@ -412,7 +419,8 @@
 				AC3767A2163DFB4000BAE03F /* GutsyStormErrorCodes.m in Sources */,
 				AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */,
 				AC3767AA163E053400BAE03F /* GSTerrainCursor.m in Sources */,
-				ACD9802D168B7CDB0019FA24 /* GSBlockMesh.m in Sources */,
+				AC96B179168CF2A500FF7FFC /* GSBlockMeshCube.m in Sources */,
+				AC96B17D168CF73800FF7FFC /* GSBlockMeshEmpty.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

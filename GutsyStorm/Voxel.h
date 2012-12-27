@@ -66,6 +66,15 @@ typedef enum
 } voxel_dir_t;
 
 
+/* The texture to use for the voxel mesh. */
+typedef enum
+{
+    VOXEL_TEX_GRASS=0,
+    VOXEL_TEX_DIRT,
+    VOXEL_TEX_SIDE
+} voxel_tex_t;
+
+
 typedef struct
 {
     /* Cache the results of the calculation of whether this vertex is outside or inside. */
