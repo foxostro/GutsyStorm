@@ -13,16 +13,16 @@
 #import "GSVertex.h"
 #import "Voxel.h"
 #import "GSBlockMeshCube.h"
+#import "GSBlockMeshRamp.h"
 #import "GSBlockMeshEmpty.h"
 
-#define ARRAY_LEN(array) (sizeof(array)/sizeof(array[0]))
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
 #define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
 
 struct chunk_geometry_header
 {
     uint8_t w, h, d;
-    uint16_t numChunkVerts;
+    GLsizei numChunkVerts;
     uint32_t len;
 };
 
@@ -36,10 +36,15 @@ static void applyLightToVertices(size_t numChunkVerts,
                                  GSLightingBuffer *sunlight,
                                  GLKVector3 minP);
 
+typedef GLint index_t;
+
+// Make sure the number of indices can be stored in the type used for the shared index buffer.
+static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different value when index_t is GLushort.
+
 
 @interface GSChunkGeometryData (Private)
 
-+ (GLushort *)sharedIndexBuffer;
++ (index_t *)sharedIndexBuffer;
 
 - (void)destroyGeometry;
 - (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)voxelData;
@@ -60,11 +65,13 @@ static void applyLightToVertices(size_t numChunkVerts,
 + (id <GSBlockMesh>)sharedMeshFactoryWithBlockType:(voxel_type_t)type
 {
     static GSBlockMeshCube *cube;
+    static GSBlockMeshRamp *ramp;
     static GSBlockMeshEmpty *empty;
 
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         cube = [[GSBlockMeshCube alloc] init];
+        ramp = [[GSBlockMeshRamp alloc] init];
         empty = [[GSBlockMeshEmpty alloc] init];
     });
 
@@ -74,6 +81,8 @@ static void applyLightToVertices(size_t numChunkVerts,
             return cube;
             
         case VOXEL_TYPE_RAMP:
+            return ramp;
+
         case VOXEL_TYPE_CORNER_INSIDE:
         case VOXEL_TYPE_CORNER_OUTSIDE:
         case VOXEL_TYPE_EMPTY:
@@ -250,22 +259,19 @@ static void applyLightToVertices(size_t numChunkVerts,
 
 @implementation GSChunkGeometryData (Private)
 
-+ (GLushort *)sharedIndexBuffer
++ (index_t *)sharedIndexBuffer
 {
     static dispatch_once_t onceToken;
-    static GLushort *buffer = NULL;
-    dispatch_once(&onceToken, ^{
-        // Make sure the index buffer can handle this many verts.
-        const GLsizei maxChunkVerts = (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z);
-        assert(maxChunkVerts < (1UL << (sizeof(GLushort)*8)));
-        
+    static index_t *buffer;
+
+    dispatch_once(&onceToken, ^{        
         // Take the indices array and generate a raw index buffer that OpenGL can consume.
-        buffer = malloc(sizeof(GLushort) * maxChunkVerts);
+        buffer = malloc(sizeof(index_t) * SHARED_INDEX_BUFFER_LEN);
         if(!buffer) {
             [NSException raise:@"Out of Memory" format:@"Out of memory allocating index buffer."];
         }
         
-        for(GLsizei i = 0; i < maxChunkVerts; ++i)
+        for(GLsizei i = 0; i < SHARED_INDEX_BUFFER_LEN; ++i)
         {
             buffer[i] = i; // a simple linear walk
         }
@@ -288,8 +294,9 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     assert(neighborhood);
 
-    // Iterate over all voxels in the chunk and generate geometry.
     vertices = [[NSMutableArray alloc] init];
+
+    // Iterate over all voxels in the chunk and generate geometry.
     FOR_BOX(pos, minP, maxP)
     {
         GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
@@ -336,8 +343,6 @@ static void applyLightToVertices(size_t numChunkVerts,
 - (NSData *)dataRepr
 {
     NSMutableData *data = [[[NSMutableData alloc] init] autorelease];
-    
-    assert(numChunkVerts < (1UL << (sizeof(GLushort)*8))); // make sure the number of vertices can be stored in a 16-bit uint.
     
     struct chunk_geometry_header header;
     header.w = CHUNK_SIZE_X;
@@ -468,12 +473,13 @@ static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo)
     if(numIndicesForDrawing <= 0) {
         return;
     }
+
+    // TODO: use VAOs
     
-    const GLushort const *indices = [GSChunkGeometryData sharedIndexBuffer];
+    const index_t const *indices = [GSChunkGeometryData sharedIndexBuffer]; // TODO: index buffer object
     
     assert(checkGLErrors() == 0);
-    
-    assert(numIndicesForDrawing < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));
+    assert(numIndicesForDrawing < SHARED_INDEX_BUFFER_LEN);
     assert(indices);
     
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -494,9 +500,17 @@ static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo)
     glNormalPointer(     GL_BYTE,          stride, offsetNormal);
     glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
     glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
-    
-    assert(checkGLErrors() == 0);
-    glDrawElements(GL_QUADS, numIndicesForDrawing, GL_UNSIGNED_SHORT, indices);
+
+    GLenum indexEnum;
+    if(2 == sizeof(index_t)) {
+        indexEnum = GL_UNSIGNED_SHORT;
+    } else if(4 == sizeof(index_t)) {
+        indexEnum = GL_UNSIGNED_INT;
+    } else {
+        assert(!"I don't know the GLenum to use with index_t.");
+    }
+
+    glDrawElements(GL_QUADS, numIndicesForDrawing, indexEnum, indices);
     assert(checkGLErrors() == 0);
 }
 

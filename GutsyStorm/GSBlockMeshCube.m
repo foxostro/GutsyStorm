@@ -183,11 +183,6 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
     return self;
 }
 
-- (void)dealloc
-{
-    [super dealloc];
-}
-
 - (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
                                       vertexList:(NSMutableArray *)vertexList
                                        voxelData:(GSNeighborhood *)voxelData
