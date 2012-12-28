@@ -430,7 +430,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 - (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p
                        neighborhood:(GSNeighborhood **)outNeighborhood
 {
-    assert(neighborhood);
+    assert(outNeighborhood);
 
     GSNeighborhood *neighborhood = [[[GSNeighborhood alloc] init] autorelease];
 
