@@ -103,47 +103,4 @@ typedef enum
 } face_t;
 
 
-typedef uint16_t block_lighting_vertex_t;
-
-
-// Pack four block lighting values into a single unsigned integer value.
-static inline block_lighting_vertex_t packBlockLightingValuesForVertex(unsigned v0, unsigned v1, unsigned v2, unsigned v3)
-{
-    block_lighting_vertex_t packed1;
-    
-    const unsigned m = 15;
-    
-    packed1 =  (v0 & m)
-            | ((v1 <<  4) & (m <<  4))
-            | ((v2 <<  8) & (m <<  8))
-            | ((v3 << 12) & (m << 12));
-    
-    return packed1;
-}
-
-
-// Extact four block lighting values from a single unsigned integer value.
-static inline void unpackBlockLightingValuesForVertex(block_lighting_vertex_t packed, unsigned * outValues)
-{
-    assert(outValues);
-    
-    const unsigned m = 15;
-    
-    outValues[0] = (packed & m);
-    outValues[1] = (packed & (m <<  4)) >>  4;
-    outValues[2] = (packed & (m <<  8)) >>  8;
-    outValues[3] = (packed & (m << 12)) >> 12;
-}
-
-
-typedef struct
-{
-    /* Each face has four vertices, and we need a brightness factor for
-     * all 24 of these vertices.
-     */
-    
-    block_lighting_vertex_t face[FACE_NUM_FACES];
-} block_lighting_t;
-
-
 #endif

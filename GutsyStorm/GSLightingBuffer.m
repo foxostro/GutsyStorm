@@ -15,11 +15,7 @@
 // Columns in the y-axis are contiguous in memory.
 #define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*dimensions.y*dimensions.z) + ((p.z)*dimensions.y) + (p.y)))
 
-
-static inline unsigned averageLightValue(unsigned a, unsigned b, unsigned c, unsigned d)
-{
-    return (a+b+c+d) >> 2;
-}
+static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVector3 normal);
 
 
 @implementation GSLightingBuffer
@@ -81,136 +77,28 @@ static inline unsigned averageLightValue(unsigned a, unsigned b, unsigned c, uns
     }
 }
 
-- (void)interpolateLightAtPoint:(GSIntegerVector3)chunkLocalPos outLighting:(block_lighting_t *)lighting
+- (uint8_t)lightForVertexAtPoint:(GSIntegerVector3)chunkLocalPos
+                      withNormal:(GSIntegerVector3)normal
 {
-    /* Front is in the -Z direction and back is the +Z direction.
-     * This is a totally arbitrary convention.
-     */
-    
+    static const size_t count = 4;
+    GSIntegerVector3 sample[count];
+    unsigned light;
+
     assert(lightingBuffer);
     assert(lighting);
     assert(chunkLocalPos.x >= 0 && chunkLocalPos.x < CHUNK_SIZE_X);
     assert(chunkLocalPos.y >= 0 && chunkLocalPos.y < CHUNK_SIZE_Y);
     assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < CHUNK_SIZE_Z);
+
+    samplingPoints(count, sample, normal);
+    light = 0;
     
-#define SAMPLE(x, y, z) (samples[(x+1)*3*3 + (y+1)*3 + (z+1)])
-    
-    unsigned samples[3*3*3];
-    
-    for(ssize_t x = -1; x <= 1; ++x)
+    for(int i=0; i<count; ++i)
     {
-        for(ssize_t y = -1; y <= 1; ++y)
-        {
-            for(ssize_t z = -1; z <= 1; ++z)
-            {
-                SAMPLE(x, y, z) = [self lightAtPoint:GSIntegerVector3_Add(chunkLocalPos, GSIntegerVector3_Make(x, y, z))];
-            }
-        }
+        light += [self lightAtPoint:GSIntegerVector3_Add(chunkLocalPos, sample[i])];
     }
-    
-    lighting->face[FACE_TOP] = packBlockLightingValuesForVertex(averageLightValue(SAMPLE( 0, 1,  0),
-                                                                                  SAMPLE( 0, 1, -1),
-                                                                                  SAMPLE(-1, 1,  0),
-                                                                                  SAMPLE(-1, 1, -1)),
-                                                                averageLightValue(SAMPLE( 0, 1,  0),
-                                                                                  SAMPLE( 0, 1, +1),
-                                                                                  SAMPLE(-1, 1,  0),
-                                                                                  SAMPLE(-1, 1, +1)),
-                                                                averageLightValue(SAMPLE( 0, 1,  0),
-                                                                                  SAMPLE( 0, 1, +1),
-                                                                                  SAMPLE(+1, 1,  0),
-                                                                                  SAMPLE(+1, 1, +1)),
-                                                                averageLightValue(SAMPLE( 0, 1,  0),
-                                                                                  SAMPLE( 0, 1, -1),
-                                                                                  SAMPLE(+1, 1,  0),
-                                                                                  SAMPLE(+1, 1, -1)));
-    
-    lighting->face[FACE_BOTTOM] = packBlockLightingValuesForVertex(averageLightValue(SAMPLE( 0, -1,  0),
-                                                                                     SAMPLE( 0, -1, -1),
-                                                                                     SAMPLE(-1, -1,  0),
-                                                                                     SAMPLE(-1, -1, -1)),
-                                                                   averageLightValue(SAMPLE( 0, -1,  0),
-                                                                                     SAMPLE( 0, -1, -1),
-                                                                                     SAMPLE(+1, -1,  0),
-                                                                                     SAMPLE(+1, -1, -1)),
-                                                                   averageLightValue(SAMPLE( 0, -1,  0),
-                                                                                     SAMPLE( 0, -1, +1),
-                                                                                     SAMPLE(+1, -1,  0),
-                                                                                     SAMPLE(+1, -1, +1)),
-                                                                   averageLightValue(SAMPLE( 0, -1,  0),
-                                                                                     SAMPLE( 0, -1, +1),
-                                                                                     SAMPLE(-1, -1,  0),
-                                                                                     SAMPLE(-1, -1, +1)));
-    
-    lighting->face[FACE_BACK] = packBlockLightingValuesForVertex(averageLightValue(SAMPLE( 0, -1, 1),
-                                                                                   SAMPLE( 0,  0, 1),
-                                                                                   SAMPLE(-1, -1, 1),
-                                                                                   SAMPLE(-1,  0, 1)),
-                                                                 averageLightValue(SAMPLE( 0, -1, 1),
-                                                                                   SAMPLE( 0,  0, 1),
-                                                                                   SAMPLE(+1, -1, 1),
-                                                                                   SAMPLE(+1,  0, 1)),
-                                                                 averageLightValue(SAMPLE( 0, +1, 1),
-                                                                                   SAMPLE( 0,  0, 1),
-                                                                                   SAMPLE(+1, +1, 1),
-                                                                                   SAMPLE(+1,  0, 1)),
-                                                                 averageLightValue(SAMPLE( 0, +1, 1),
-                                                                                   SAMPLE( 0,  0, 1),
-                                                                                   SAMPLE(-1, +1, 1),
-                                                                                   SAMPLE(-1,  0, 1)));
-    
-    lighting->face[FACE_FRONT] = packBlockLightingValuesForVertex(averageLightValue(SAMPLE( 0, -1, -1),
-                                                                                    SAMPLE( 0,  0, -1),
-                                                                                    SAMPLE(-1, -1, -1),
-                                                                                    SAMPLE(-1,  0, -1)),
-                                                                  averageLightValue(SAMPLE( 0, +1, -1),
-                                                                                    SAMPLE( 0,  0, -1),
-                                                                                    SAMPLE(-1, +1, -1),
-                                                                                    SAMPLE(-1,  0, -1)),
-                                                                  averageLightValue(SAMPLE( 0, +1, -1),
-                                                                                    SAMPLE( 0,  0, -1),
-                                                                                    SAMPLE(+1, +1, -1),
-                                                                                    SAMPLE(+1,  0, -1)),
-                                                                  averageLightValue(SAMPLE( 0, -1, -1),
-                                                                                    SAMPLE( 0,  0, -1),
-                                                                                    SAMPLE(+1, -1, -1),
-                                                                                    SAMPLE(+1,  0, -1)));
-    
-    lighting->face[FACE_RIGHT] = packBlockLightingValuesForVertex(averageLightValue(SAMPLE(+1,  0,  0),
-                                                                                    SAMPLE(+1,  0, -1),
-                                                                                    SAMPLE(+1, -1,  0),
-                                                                                    SAMPLE(+1, -1, -1)),
-                                                                  averageLightValue(SAMPLE(+1,  0,  0),
-                                                                                    SAMPLE(+1,  0, -1),
-                                                                                    SAMPLE(+1, +1,  0),
-                                                                                    SAMPLE(+1, +1, -1)),
-                                                                  averageLightValue(SAMPLE(+1,  0,  0),
-                                                                                    SAMPLE(+1,  0, +1),
-                                                                                    SAMPLE(+1, +1,  0),
-                                                                                    SAMPLE(+1, +1, +1)),
-                                                                  averageLightValue(SAMPLE(+1,  0,  0),
-                                                                                    SAMPLE(+1,  0, +1),
-                                                                                    SAMPLE(+1, -1,  0),
-                                                                                    SAMPLE(+1, -1, +1)));
-    
-    lighting->face[FACE_LEFT] = packBlockLightingValuesForVertex(averageLightValue(SAMPLE(-1,  0,  0),
-                                                                                   SAMPLE(-1,  0, -1),
-                                                                                   SAMPLE(-1, -1,  0),
-                                                                                   SAMPLE(-1, -1, -1)),
-                                                                 averageLightValue(SAMPLE(-1,  0,  0),
-                                                                                   SAMPLE(-1,  0, +1),
-                                                                                   SAMPLE(-1, -1,  0),
-                                                                                   SAMPLE(-1, -1, +1)),
-                                                                 averageLightValue(SAMPLE(-1,  0,  0),
-                                                                                   SAMPLE(-1,  0, +1),
-                                                                                   SAMPLE(-1, +1,  0),
-                                                                                   SAMPLE(-1, +1, +1)),
-                                                                 averageLightValue(SAMPLE(-1,  0,  0),
-                                                                                   SAMPLE(-1,  0, -1),
-                                                                                   SAMPLE(-1, +1,  0),
-                                                                                   SAMPLE(-1, +1, -1)));
-    
-#undef SAMPLE
+
+    return light / count;
 }
 
 - (void)readerAccessToBufferUsingBlock:(void (^)(void))block
@@ -271,3 +159,36 @@ static inline unsigned averageLightValue(unsigned a, unsigned b, unsigned c, uns
 }
 
 @end
+
+static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVector3 normal)
+{
+    assert(count == 4);
+    assert(sample);
+    
+    /* The normal must be unit length and point along one of the eight cardinal directions. */
+    assert(normal.x == 0 || normal.x == -1 || normal.x == +1);
+    assert(normal.y == 0 || normal.y == -1 || normal.y == +1);
+    assert(normal.z == 0 || normal.z == -1 || normal.z == +1);
+    assert(  (normal.x != 0 && normal.y == 0 && normal.z == 0) ||
+           (normal.y != 0 && normal.x == 0 && normal.z == 0) ||
+           (normal.z != 0 && normal.x == 0 && normal.y == 0)  );
+
+    if(normal.x != 0) { // If the normal is along the x-axis.
+        sample[0] = GSIntegerVector3_Make(normal.x, -1, -1);
+        sample[1] = GSIntegerVector3_Make(normal.x, -1, +1);
+        sample[2] = GSIntegerVector3_Make(normal.x, +1, -1);
+        sample[3] = GSIntegerVector3_Make(normal.x, +1, +1);
+    } else if(normal.y != 0) { // If the normal is along the y-axis.
+        sample[0] = GSIntegerVector3_Make(-1, normal.y, -1);
+        sample[1] = GSIntegerVector3_Make(-1, normal.y, +1);
+        sample[2] = GSIntegerVector3_Make(+1, normal.y, -1);
+        sample[3] = GSIntegerVector3_Make(+1, normal.y, +1);
+    } else if(normal.z != 0) { // If the normal is along the z-axis.
+        sample[0] = GSIntegerVector3_Make(-1, -1, normal.z);
+        sample[1] = GSIntegerVector3_Make(-1, +1, normal.z);
+        sample[2] = GSIntegerVector3_Make(+1, -1, normal.z);
+        sample[3] = GSIntegerVector3_Make(+1, +1, normal.z);
+    } else {
+        assert(!"expected normal vector to point along one of the eight cardinal directions");
+    }
+}

@@ -15,51 +15,42 @@
 
 const static GLfloat L = 0.5f; // half the length of a block along one side
 
-const static GSIntegerVector3 test[FACE_NUM_FACES] = {
-    {0, +1, 0},
-    {0, -1, 0},
-    {0, 0, +1},
-    {0, 0, -1},
-    {+1, 0, 0},
-    {-1, 0, 0}
-};
-
 const static struct vertex meshCube[4][FACE_NUM_FACES] =
 {
     {
         {
             {-L, +L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 1, 0},     // normal
             {1, 0, VOXEL_TEX_GRASS} // texCoord
         },
         {
             {-L, -L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, -1, 0},    // normal
             {1, 0, VOXEL_TEX_DIRT} // texCoord
         },
         {
             {-L, -L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 0, 1},     // normal
             {0, 1, -1}     // texCoord
         },
         {
             {-L, -L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 1, -1},    // normal
             {0, 1, -1}     // texCoord
         },
         {
             {+L, -L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {1, 0, 0},     // normal
             {0, 1, -1}     // texCoord
         },
         {
             {-L, -L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {-1, 0, 0},    // normal
             {0, 1, -1}     // texCoord
         }
@@ -67,37 +58,37 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
     {
         {
             {-L, +L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 1, 0},     // normal
             {1, 1, VOXEL_TEX_GRASS} // texCoord
         },
         {
             {+L, -L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, -1, 0},    // normal
             {0, 0, VOXEL_TEX_DIRT} // texCoord
         },
         {
             {+L, -L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 0, 1},     // normal
             {1, 1, -1}     // texCoord
         },
         {
             {-L, +L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 1, -1},    // normal
             {0, 0, -1}     // texCoord
         },
         {
             {+L, +L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {1, 0, 0},     // normal
             {0, 0, -1}     // texCoord
         },
         {
             {-L, -L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {-1, 0, 0},    // normal
             {1, 1, -1}     // texCoord
         }
@@ -105,37 +96,37 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
     {
         {
             {+L, +L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 1, 0},     // normal
             {0, 1, VOXEL_TEX_GRASS} // texCoord
         },
         {
             {+L, -L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, -1, 0},    // normal
             {0, 1, VOXEL_TEX_DIRT} // texCoord
         },
         {
             {+L, +L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 0, 1},     // normal
             {1, 0, -1}     // texCoord
         },
         {
             {+L, +L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 1, -1},    // normal
             {1, 0, -1}     // texCoord
         },
         {
             {+L, +L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {1, 0, 0},     // normal
             {1, 0, -1}     // texCoord
         },
         {
             {-L, +L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {-1, 0, 0},    // normal
             {1, 0, -1}     // texCoord
         }
@@ -143,37 +134,37 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
     {
         {
             {+L, +L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 1, 0},     // normal
             {0, 0, VOXEL_TEX_GRASS} // texCoord
         },
         {
             {-L, -L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, -1, 0},    // normal
             {1, 1, VOXEL_TEX_DIRT} // texCoord
         },
         {
             {-L, +L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 0, 1},     // normal
             {0, 0, -1}     // texCoord
         },
         {
             {+L, -L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {0, 1, -1},    // normal
-            {1, 1, -1}
+            {1, 1, -1}     // texCoord
         },
         {
             {+L, -L, +L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {1, 0, 0},     // normal
             {1, 1, -1}     // texCoord
         },
         {
             {-L, +L, -L},  // position
-            {1, 1, 1},     // color
+            {0, 0, 0},     // color
             {-1, 0, 0},    // normal
             {0, 0, -1}     // texCoord
         }
@@ -208,35 +199,16 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
     GLfloat page = VOXEL_TEX_DIRT;
 
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
-    GSChunkVoxelData *centerVoxels = [voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-    voxel_t centerVoxel = [centerVoxels voxelAtLocalPosition:chunkLocalPos];
-
-    if(centerVoxel.type == VOXEL_TYPE_EMPTY) {
-        return; // nothing needs to be generated
-    }
-
-    block_lighting_t sunlight;
-    [centerVoxels.sunlight interpolateLightAtPoint:chunkLocalPos outLighting:&sunlight];
-
-    // TODO: add torch lighting to the world.
-    block_lighting_t torchLight;
-    bzero(&torchLight, sizeof(torchLight));
 
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
-        if(![voxelData emptyAtPoint:GSIntegerVector3_Add(chunkLocalPos, test[i])]) {
+        if(![voxelData emptyAtPoint:GSIntegerVector3_Add(chunkLocalPos, offsetForFace[i])]) {
             continue;
         }
-
-        unsigned unpackedSunlight[4];
-        unsigned unpackedTorchlight[4];
 
         if(i == FACE_TOP) {
             page = VOXEL_TEX_SIDE;
         }
-
-        unpackBlockLightingValuesForVertex(sunlight.face[i], unpackedSunlight);
-        unpackBlockLightingValuesForVertex(torchLight.face[i], unpackedTorchlight);
 
         for(size_t j=0; j<4; ++j)
         {
@@ -248,13 +220,8 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
             v.position[2] += pos.v[2];
 
             // select the texture
+            // TODO: grass spread should be handled somewhere else. Maybe in GSTerrain?
             v.texCoord[2] = (v.texCoord[2]<0) ? page : v.texCoord[2];
-
-            // set the vertex color
-            v.color[0] = 0; // red channel is unused
-            v.color[1] = 255 * ((unpackedSunlight[j] / (float)CHUNK_LIGHTING_MAX) * 0.8f + 0.2f); // sunlight in green
-            v.color[2] = 255 * (unpackedTorchlight[j] / (float)CHUNK_LIGHTING_MAX); // torchlight in blue
-            v.color[3] = 255;
 
             [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
         }

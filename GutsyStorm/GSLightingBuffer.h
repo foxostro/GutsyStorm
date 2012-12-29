@@ -42,11 +42,13 @@
  */
 - (uint8_t)lightAtPoint:(GSIntegerVector3)chunkLocalP;
 
-/* Gets a smooth lighting value by interpolating block light values around the specified point in chunk-local space. As the
- * lighting buffer has no knowledge of the neighboring chunks, expect values on the border to be incorrect.
+/* Given a specific vertex position in the chunk, and a normal for that vertex, get the contribution of the lighting buffer on
+ * the vertex.
+ * As the lighting buffer has no knowledge of the neighboring chunks, expect values on the border to be incorrect.
  * Assumes the caller is already holding the lock on the lighting buffer.
  */
-- (void)interpolateLightAtPoint:(GSIntegerVector3)chunkLocalPos outLighting:(block_lighting_t *)lighting;
+- (uint8_t)lightForVertexAtPoint:(GSIntegerVector3)chunkLocalPos
+                      withNormal:(GSIntegerVector3)normal;
 
 /* Clear the lighting buffer to all zeroes.
  * Assumes the caller is already holding the buffer's lock for writing.

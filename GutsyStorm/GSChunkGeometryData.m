@@ -31,6 +31,10 @@ extern int checkGLErrors(void);
 static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo);
 static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
 static void * allocateVertexMemory(size_t numVerts);
+static void applyLightToVertices(size_t numChunkVerts,
+                                 struct vertex *vertsBuffer,
+                                 GSLightingBuffer *sunlight,
+                                 GLKVector3 minP);
 
 
 @interface GSChunkGeometryData (Private)
@@ -311,6 +315,11 @@ static void * allocateVertexMemory(size_t numVerts);
     }
 
     [vertices release];
+
+    // Iterate over all vertices and calculate lighting.
+    applyLightToVertices(numChunkVerts, vertsBuffer,
+                         [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER].sunlight,
+                         minP);
 }
 
 
@@ -515,4 +524,33 @@ static void * allocateVertexMemory(size_t numVerts)
     }
     
     return buffer;
+}
+
+
+static void applyLightToVertices(size_t numChunkVerts,
+                                 struct vertex *vertsBuffer,
+                                 GSLightingBuffer *sunlight,
+                                 GLKVector3 minP)
+{
+    assert(vertsBuffer);
+    assert(sunlight);
+
+    for(GLsizei i=0; i<numChunkVerts; ++i)
+    {
+        GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(vertsBuffer[i].position[0] - minP.x,
+                                                               vertsBuffer[i].position[1] - minP.y,
+                                                               vertsBuffer[i].position[2] - minP.z);
+        GSIntegerVector3 normal = {vertsBuffer[i].normal[0], vertsBuffer[i].normal[1], vertsBuffer[i].normal[2]};
+        uint8_t sunlightValue = [sunlight lightForVertexAtPoint:chunkLocalPos withNormal:normal];
+
+        // sunlight in the green channel
+        vertsBuffer[i].color[1] = 204*sunlightValue/CHUNK_LIGHTING_MAX + 51;
+
+        // TODO: torchlight in the blue channel
+        vertsBuffer[i].color[2] = 0;
+
+        // red and alpha channels are unused
+        vertsBuffer[i].color[0] = 0;
+        vertsBuffer[i].color[3] = 0;
+    }
 }

@@ -11,19 +11,8 @@
 #import "GSChunkStore.h"
 #import "GSBoxedVector.h"
 
-
-static const GSIntegerVector3 offsets[FACE_NUM_FACES] = {
-    { 1, 0, 0},
-    {-1, 0, 0},
-    { 0, 1, 0},
-    { 0,-1, 0},
-    { 0, 0, 1},
-    { 0, 0,-1},
-};
-
 static const GSIntegerVector3 combinedMinP = {-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z};
 static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CHUNK_SIZE_Z};
-
 
 @interface GSChunkVoxelData (Private)
 
@@ -252,7 +241,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 {
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
-        GSIntegerVector3 a = GSIntegerVector3_Add(p, offsets[i]);
+        GSIntegerVector3 a = GSIntegerVector3_Add(p, offsetForFace[i]);
         
         if(a.x < -CHUNK_SIZE_X || a.x >= (2*CHUNK_SIZE_X) ||
            a.z < -CHUNK_SIZE_Z || a.z >= (2*CHUNK_SIZE_Z) ||

@@ -12,6 +12,15 @@
 #import "GSBoxedVector.h"
 
 const GSIntegerVector3 chunkSize = {CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
+const GSIntegerVector3 offsetForFace[FACE_NUM_FACES] =
+{
+    {0, +1, 0},
+    {0, -1, 0},
+    {0, 0, +1},
+    {0, 0, -1},
+    {+1, 0, 0},
+    {-1, 0, 0}
+};
 
 @implementation GSChunkData
 
