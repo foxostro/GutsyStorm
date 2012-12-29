@@ -437,16 +437,64 @@ cleanup1:
 - (void)generateVoxelDataWithCallback:(terrain_generator_t)generator
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-    
-    GSIntegerVector3 p;
-    FOR_BOX(p, ivecZero, chunkSize)
+
+    GSIntegerVector3 directionVectors[] =
     {
-        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), minP),
-                  [self pointerToVoxelAtLocalPosition:p]);
-        
-        // whether the block is outside or not is calculated later
+        GSIntegerVector3_Make(0, 0, 1),  // VOXEL_DIR_NORTH
+        GSIntegerVector3_Make(1, 0, 0),  // VOXEL_DIR_EAST
+        GSIntegerVector3_Make(0, 0, -1), // VOXEL_DIR_SOUTH
+        GSIntegerVector3_Make(-1, 0, 0)  // VOXEL_DIR_WEST
+    };
+    
+    voxel_t *temp = calloc((CHUNK_SIZE_X+2) * CHUNK_SIZE_Y * (CHUNK_SIZE_Z+2), sizeof(voxel_t));
+    
+    GSIntegerVector3 p, a, b;
+    a = GSIntegerVector3_Make(-1, 0, -1);
+    b = GSIntegerVector3_Make(chunkSize.x+1, chunkSize.y, chunkSize.z+1);
+
+    // First, generate voxels for the region of the chunk, plus a 1 block wide border.
+    // Note that whether the block is outside or not is calculated later.
+    FOR_BOX(p, a, b)
+    {
+        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), minP), &temp[INDEX_BOX(p, a, b)]);
+    }
+
+    // Post-process the voxels: add ramps to ledges.
+    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+    {
+        // Find a voxel which is empty and is directly above a cube voxel.
+        p.y = 0;
+        voxel_type_t prevType = [self voxelAtLocalPosition:p].type;
+        for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
+        {
+            voxel_t *voxel = &temp[INDEX_BOX(p, a, b)];
+            voxel_type_t type = voxel->type;
+
+            if(voxel->type == VOXEL_TYPE_EMPTY && prevType == VOXEL_TYPE_CUBE) {
+                for(voxel_dir_t dir=VOXEL_DIR_NORTH; dir<4; ++dir)
+                {
+                    GSIntegerVector3 testPos = GSIntegerVector3_Add(p, directionVectors[dir]);
+                    if(temp[INDEX_BOX(testPos, a, b)].type == VOXEL_TYPE_CUBE) {
+                        voxel->type = VOXEL_TYPE_RAMP;
+                        voxel->dir = dir;
+                    }
+                }
+            }
+            
+            prevType = type;
+        }
     }
     
+    // TODO: inside corners, outside corners, and ramps on the underside of ledges
+
+    // Copy the voxels for the chunk to their final destination.
+    FOR_BOX(p, ivecZero, chunkSize)
+    {
+        voxelData[INDEX_BOX(p, ivecZero, chunkSize)] = temp[INDEX_BOX(p, a, b)];
+    }
+
+    free(temp);
+
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
 }
