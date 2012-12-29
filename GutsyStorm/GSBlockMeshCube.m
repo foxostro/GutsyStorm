@@ -214,7 +214,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
 
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
-        if(![voxelData emptyAtPoint:GSIntegerVector3_Add(chunkLocalPos, test[i])]) {
+        if([voxelData cubeAtPoint:GSIntegerVector3_Add(chunkLocalPos, test[i])]) {
             continue;
         }
 

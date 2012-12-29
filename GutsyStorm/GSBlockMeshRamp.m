@@ -162,7 +162,7 @@ const static struct ramp_vertex meshRamp[] =
             {+L, +L, +L},          // position
             {255, 255, 255},       // color
             {1, 0, 0},             // normal
-            {0, 1, VOXEL_TEX_SIDE} // texCoord
+            {1, 0, VOXEL_TEX_DIRT} // texCoord
         },
         {FACE_RIGHT, FACE_RIGHT, FACE_RIGHT, FACE_RIGHT},
         {0, 0, 0, 0}
@@ -172,7 +172,7 @@ const static struct ramp_vertex meshRamp[] =
             {+L, -L, +L},          // position
             {255, 255, 255},       // color
             {1, 0, 0},             // normal
-            {1, 1, VOXEL_TEX_SIDE} // texCoord
+            {1, 1, VOXEL_TEX_DIRT} // texCoord
         },
         {FACE_RIGHT, FACE_RIGHT, FACE_RIGHT, FACE_RIGHT},
         {1, 0, 0, 0}
@@ -182,7 +182,7 @@ const static struct ramp_vertex meshRamp[] =
             {+L, -L, -L},          // position
             {255, 255, 255},       // color
             {1, 0, 0},             // normal
-            {1, 0, VOXEL_TEX_SIDE} // texCoord
+            {0, 1, VOXEL_TEX_DIRT} // texCoord
         },
         {FACE_RIGHT, FACE_RIGHT, FACE_RIGHT, FACE_RIGHT},
         {2, 0, 0, 0}
@@ -192,7 +192,7 @@ const static struct ramp_vertex meshRamp[] =
             {+L, -L, -L},          // position
             {255, 255, 255},       // color
             {1, 0, 0},             // normal
-            {1, 0, VOXEL_TEX_SIDE} // texCoord
+            {0, 1, VOXEL_TEX_DIRT} // texCoord
         },
         {FACE_RIGHT, FACE_RIGHT, FACE_RIGHT, FACE_RIGHT},
         {3, 0, 0, 0}
@@ -204,7 +204,7 @@ const static struct ramp_vertex meshRamp[] =
             {-L, -L, -L},          // position
             {255, 255, 255},       // color
             {-1, 0, 0},            // normal
-            {0, 0, VOXEL_TEX_DIRT} // texCoord
+            {0, 1, VOXEL_TEX_DIRT} // texCoord
         },
         {FACE_LEFT, FACE_LEFT, FACE_LEFT, FACE_LEFT},
         {0, 0, 0, 0}
@@ -214,7 +214,7 @@ const static struct ramp_vertex meshRamp[] =
             {-L, -L, -L},          // position
             {255, 255, 255},       // color
             {-1, 0, 0},            // normal
-            {0, 0, VOXEL_TEX_DIRT} // texCoord
+            {0, 1, VOXEL_TEX_DIRT} // texCoord
         },
         {FACE_LEFT, FACE_LEFT, FACE_LEFT, FACE_LEFT},
         {1, 0, 0, 0}
@@ -224,7 +224,7 @@ const static struct ramp_vertex meshRamp[] =
             {-L, -L, +L},          // position
             {255, 255, 255},       // color
             {-1, 0, 0},            // normal
-            {0, 1, VOXEL_TEX_DIRT} // texCoord
+            {1, 1, VOXEL_TEX_DIRT} // texCoord
         },
         {FACE_LEFT, FACE_LEFT, FACE_LEFT, FACE_LEFT},
         {2, 0, 0, 0}
@@ -234,7 +234,7 @@ const static struct ramp_vertex meshRamp[] =
             {-L, +L, +L},          // position
             {255, 255, 255},       // color
             {-1, 0, 0},            // normal
-            {1, 1, VOXEL_TEX_DIRT} // texCoord
+            {1, 0, VOXEL_TEX_DIRT} // texCoord
         },
         {FACE_LEFT, FACE_LEFT, FACE_LEFT, FACE_LEFT},
         {3, 0, 0, 0}

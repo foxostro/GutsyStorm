@@ -216,19 +216,19 @@
 }
 
 
-- (BOOL)emptyAtPoint:(GSIntegerVector3)p
+- (BOOL)cubeAtPoint:(GSIntegerVector3)p
 {
     // Assumes each chunk spans the entire vertical extent of the world.
     
     if(p.y < 0) {
-        return NO; // Space below the world is always full.
+        return YES; // Space below the world is always full (of solid cubes).
     }
     
     if(p.y >= CHUNK_SIZE_Y) {
-        return YES; // Space above the world is always empty.
+        return NO; // Space above the world is always empty.
     }
     
-    return [[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p].type == VOXEL_TYPE_EMPTY;
+    return [[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p].type == VOXEL_TYPE_CUBE;
 }
 
 
