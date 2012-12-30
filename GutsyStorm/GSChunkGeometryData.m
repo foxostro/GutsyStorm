@@ -551,8 +551,10 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     for(GLsizei i=0; i<numChunkVerts; ++i)
     {
-        GLKVector3 vertexPos = GLKVector3MakeWithArray(vertsBuffer[i].position);
-        GSIntegerVector3 normal = GSIntegerVector3_MakeWithGLubyte3(vertsBuffer[i].normal);
+        struct vertex *v = &vertsBuffer[i];
+        
+        GLKVector3 vertexPos = GLKVector3MakeWithArray(v->position);
+        GSIntegerVector3 normal = GSIntegerVector3_MakeWithGLubyte3(v->normal);
 
         uint8_t sunlightValue = [sunlight lightForVertexAtPoint:vertexPos
                                                      withNormal:normal
@@ -562,9 +564,9 @@ static void applyLightToVertices(size_t numChunkVerts,
 
         color.g = 204.0f * (sunlightValue / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
 
-        vertsBuffer[i].color[0] = color.v[0];
-        vertsBuffer[i].color[1] = color.v[1];
-        vertsBuffer[i].color[2] = color.v[2];
-        vertsBuffer[i].color[3] = color.v[3];
+        v->color[0] = color.v[0];
+        v->color[1] = color.v[1];
+        v->color[2] = color.v[2];
+        v->color[3] = color.v[3];
     }
 }

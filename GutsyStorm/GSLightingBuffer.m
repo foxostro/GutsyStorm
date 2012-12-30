@@ -204,5 +204,9 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 n)
         sample[3] = GLKVector3Make(+a, +a, -a);
     } else {
         assert(!"shouldn't get here");
+        sample[0] = GLKVector3Make(0, 0, 0);
+        sample[1] = GLKVector3Make(0, 0, 0);
+        sample[2] = GLKVector3Make(0, 0, 0);
+        sample[3] = GLKVector3Make(0, 0, 0);
     }
 }
