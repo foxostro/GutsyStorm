@@ -22,7 +22,7 @@ const static struct vertex meshRamp[] =
     {
         {-L, -L, -L},           // position
         {0, 0, 0},              // color
-        {0, +1, 0},             // normal
+        {0, 0, -1},             // normal
         {1, 1, VOXEL_TEX_GRASS} // texCoord
     },
     {
@@ -40,7 +40,7 @@ const static struct vertex meshRamp[] =
     {
         {+L, -L, -L},           // position
         {0, 0, 0},              // color
-        {0, +1, 0},             // normal
+        {0, 0, -1},             // normal
         {0, 1, VOXEL_TEX_GRASS} // texCoord
 	},
 
