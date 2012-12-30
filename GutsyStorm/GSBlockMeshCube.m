@@ -39,7 +39,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
         {
             {-L, -L, -L},  // position
             {0, 0, 0},     // color
-            {0, 1, -1},    // normal
+            {0, 0, -1},    // normal
             {0, 1, -1}     // texCoord
         },
         {
@@ -77,7 +77,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
         {
             {-L, +L, -L},  // position
             {0, 0, 0},     // color
-            {0, 1, -1},    // normal
+            {0, 0, -1},    // normal
             {0, 0, -1}     // texCoord
         },
         {
@@ -115,7 +115,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
         {
             {+L, +L, -L},  // position
             {0, 0, 0},     // color
-            {0, 1, -1},    // normal
+            {0, 0, -1},    // normal
             {1, 0, -1}     // texCoord
         },
         {
@@ -153,7 +153,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
         {
             {+L, -L, -L},  // position
             {0, 0, 0},     // color
-            {0, 1, -1},    // normal
+            {0, 0, -1},    // normal
             {1, 1, -1}     // texCoord
         },
         {
