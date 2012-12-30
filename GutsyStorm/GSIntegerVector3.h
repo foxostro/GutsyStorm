@@ -14,18 +14,19 @@ typedef struct
     ssize_t x, y, z;
 } GSIntegerVector3;
 
-
 static inline GSIntegerVector3 GSIntegerVector3_Make(ssize_t x, ssize_t y, ssize_t z)
 {
-    GSIntegerVector3 p = {x, y, z};
-    return p;
+    return (GSIntegerVector3){x, y, z};
 }
 
+static inline GSIntegerVector3 GSIntegerVector3_MakeWithGLubyte3(GLbyte *v)
+{
+    return (GSIntegerVector3){v[0], v[1], v[2]};
+}
 
 static inline GSIntegerVector3 GSIntegerVector3_Add(GSIntegerVector3 a, GSIntegerVector3 b)
 {
-    GSIntegerVector3 p = {a.x+b.x, a.y+b.y, a.z+b.z};
-    return p;
+    return (GSIntegerVector3){a.x+b.x, a.y+b.y, a.z+b.z};
 }
 
 static const GSIntegerVector3 ivecZero = {0, 0, 0};

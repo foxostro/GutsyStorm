@@ -253,14 +253,10 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 {
     GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
     [chunk writerAccessToVoxelDataUsingBlock:^{
-        GLKVector3 chunkLocalP;
-        voxel_t *block;
-        
-        chunkLocalP = GLKVector3Subtract(pos, chunk.minP);
-        
-        block = [chunk pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+        voxel_t *block = [chunk pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
+                                                                                    pos.y-chunk.minP.y,
+                                                                                    pos.z-chunk.minP.z)];
         assert(block);
-        
         *block = newBlock;
     }];
     
@@ -286,9 +282,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     }
 
     if(![chunk tryReaderAccessToVoxelDataUsingBlock:^{
-        GLKVector3 clp = GLKVector3Subtract(pos, chunk.minP);
-        GSIntegerVector3 iclp = GSIntegerVector3_Make(clp.x, clp.y, clp.z);
-        block = [chunk voxelAtLocalPosition:iclp];
+        block = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
+                                                                  pos.y-chunk.minP.y,
+                                                                  pos.z-chunk.minP.z)];
     }]) {
         return NO;
     }
@@ -304,8 +300,9 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
     
     [chunk readerAccessToVoxelDataUsingBlock:^{
-        GLKVector3 chunkLocalP = GLKVector3Subtract(pos, chunk.minP);
-        block = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(chunkLocalP.x, chunkLocalP.y, chunkLocalP.z)];
+        block = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
+                                                                  pos.y-chunk.minP.y,
+                                                                  pos.z-chunk.minP.z)];
     }];
     
     return block;

@@ -54,7 +54,7 @@ static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVect
 
 - (id)init
 {
-    return [self initWithDimensions:GSIntegerVector3_Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z)];
+    return [self initWithDimensions:chunkSize];
 }
 
 - (void)dealloc

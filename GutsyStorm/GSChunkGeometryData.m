@@ -540,8 +540,9 @@ static void applyLightToVertices(size_t numChunkVerts,
         GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(vertsBuffer[i].position[0] - minP.x,
                                                                vertsBuffer[i].position[1] - minP.y,
                                                                vertsBuffer[i].position[2] - minP.z);
-        GSIntegerVector3 normal = {vertsBuffer[i].normal[0], vertsBuffer[i].normal[1], vertsBuffer[i].normal[2]};
-        uint8_t sunlightValue = [sunlight lightForVertexAtPoint:chunkLocalPos withNormal:normal];
+        
+        uint8_t sunlightValue = [sunlight lightForVertexAtPoint:chunkLocalPos
+                                                     withNormal:GSIntegerVector3_MakeWithGLubyte3(vertsBuffer[i].normal)];
 
         // sunlight in the green channel
         vertsBuffer[i].color[1] = 204*sunlightValue/CHUNK_LIGHTING_MAX + 51;

@@ -412,8 +412,7 @@ cleanup1:
             ssize_t heightOfHighestVoxel;
             for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
             {
-                GSIntegerVector3 p = {x, heightOfHighestVoxel, z};
-                voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
+                voxel_t *voxel = [self pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(x, heightOfHighestVoxel, z)];
                 
                 if(voxel->type != VOXEL_TYPE_EMPTY) {
                     break;
