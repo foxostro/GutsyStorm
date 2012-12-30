@@ -85,7 +85,6 @@ static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVect
     unsigned light;
 
     assert(lightingBuffer);
-    assert(lighting);
     assert(chunkLocalPos.x >= 0 && chunkLocalPos.x < CHUNK_SIZE_X);
     assert(chunkLocalPos.y >= 0 && chunkLocalPos.y < CHUNK_SIZE_Y);
     assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < CHUNK_SIZE_Z);
@@ -160,35 +159,42 @@ static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVect
 
 @end
 
-static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVector3 normal)
+static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVector3 n)
 {
     assert(count == 4);
     assert(sample);
-    
-    /* The normal must be unit length and point along one of the eight cardinal directions. */
-    assert(normal.x == 0 || normal.x == -1 || normal.x == +1);
-    assert(normal.y == 0 || normal.y == -1 || normal.y == +1);
-    assert(normal.z == 0 || normal.z == -1 || normal.z == +1);
-    assert(  (normal.x != 0 && normal.y == 0 && normal.z == 0) ||
-           (normal.y != 0 && normal.x == 0 && normal.z == 0) ||
-           (normal.z != 0 && normal.x == 0 && normal.y == 0)  );
 
-    if(normal.x != 0) { // If the normal is along the x-axis.
-        sample[0] = GSIntegerVector3_Make(normal.x, -1, -1);
-        sample[1] = GSIntegerVector3_Make(normal.x, -1, +1);
-        sample[2] = GSIntegerVector3_Make(normal.x, +1, -1);
-        sample[3] = GSIntegerVector3_Make(normal.x, +1, +1);
-    } else if(normal.y != 0) { // If the normal is along the y-axis.
-        sample[0] = GSIntegerVector3_Make(-1, normal.y, -1);
-        sample[1] = GSIntegerVector3_Make(-1, normal.y, +1);
-        sample[2] = GSIntegerVector3_Make(+1, normal.y, -1);
-        sample[3] = GSIntegerVector3_Make(+1, normal.y, +1);
-    } else if(normal.z != 0) { // If the normal is along the z-axis.
-        sample[0] = GSIntegerVector3_Make(-1, -1, normal.z);
-        sample[1] = GSIntegerVector3_Make(-1, +1, normal.z);
-        sample[2] = GSIntegerVector3_Make(+1, -1, normal.z);
-        sample[3] = GSIntegerVector3_Make(+1, +1, normal.z);
+    if(n.x==1 && n.y==0 && n.z==0) {
+        sample[0] = GSIntegerVector3_Make(+1, -1, -1);
+        sample[1] = GSIntegerVector3_Make(+1, -1, +1);
+        sample[2] = GSIntegerVector3_Make(+1, +1, -1);
+        sample[3] = GSIntegerVector3_Make(+1, +1, +1);
+    } else if(n.x==-1 && n.y==0 && n.z==0) {
+        sample[0] = GSIntegerVector3_Make(-1, -1, -1);
+        sample[1] = GSIntegerVector3_Make(-1, -1, +1);
+        sample[2] = GSIntegerVector3_Make(-1, +1, -1);
+        sample[3] = GSIntegerVector3_Make(-1, +1, +1);
+    } else if(n.x==0 && n.y==1 && n.z==0) {
+        sample[0] = GSIntegerVector3_Make(-1, +1, -1);
+        sample[1] = GSIntegerVector3_Make(-1, +1, +1);
+        sample[2] = GSIntegerVector3_Make(+1, +1, -1);
+        sample[3] = GSIntegerVector3_Make(+1, +1, +1);
+    } else if(n.x==0 && n.y==-1 && n.z==0) {
+        sample[0] = GSIntegerVector3_Make(-1, -1, -1);
+        sample[1] = GSIntegerVector3_Make(-1, -1, +1);
+        sample[2] = GSIntegerVector3_Make(+1, -1, -1);
+        sample[3] = GSIntegerVector3_Make(+1, -1, +1);
+    } else if(n.x==0 && n.y==0 && n.z==1) {
+        sample[0] = GSIntegerVector3_Make(-1, -1, +1);
+        sample[1] = GSIntegerVector3_Make(-1, +1, +1);
+        sample[2] = GSIntegerVector3_Make(+1, -1, +1);
+        sample[3] = GSIntegerVector3_Make(+1, +1, +1);
+    } else if(n.x==0 && n.y==0 && n.z==-1) {
+        sample[0] = GSIntegerVector3_Make(-1, -1, -1);
+        sample[1] = GSIntegerVector3_Make(-1, +1, -1);
+        sample[2] = GSIntegerVector3_Make(+1, -1, -1);
+        sample[3] = GSIntegerVector3_Make(+1, +1, -1);
     } else {
-        assert(!"expected normal vector to point along one of the eight cardinal directions");
+        assert(!"shouldn't get here");
     }
 }
