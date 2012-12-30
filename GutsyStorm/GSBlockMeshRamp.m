@@ -72,80 +72,80 @@ const static struct vertex meshRamp[] =
 
     // Back
     {
-        {-L, -L, +L},          // position
-        {0, 0, 0},             // color
-        {0, 0, +1},            // normal
-        {0, 1, VOXEL_TEX_SIDE} // texCoord
+        {-L, -L, +L},           // position
+        {0, 0, 0},              // color
+        {0, 0, +1},             // normal
+        {0, 1, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {+L, -L, +L},          // position
-        {0, 0, 0},             // color
-        {0, 0, +1},            // normal
-        {1, 1, VOXEL_TEX_SIDE} // texCoord
+        {+L, -L, +L},           // position
+        {0, 0, 0},              // color
+        {0, 0, +1},             // normal
+        {1, 1, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {+L, +L, +L},          // position
-        {0, 0, 0},             // color
-        {0, 0, +1},            // normal
-        {1, 0, VOXEL_TEX_SIDE} // texCoord
+        {+L, +L, +L},           // position
+        {0, 0, 0},              // color
+        {0, 0, +1},             // normal
+        {1, 0, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {-L, +L, +L},          // position
-        {0, 0, 0},             // color
-        {0, 0, +1},            // normal
-        {0, 0, VOXEL_TEX_SIDE} // texCoord
+        {-L, +L, +L},           // position
+        {0, 0, 0},              // color
+        {0, 0, +1},             // normal
+        {0, 0, VOXEL_TEX_GRASS} // texCoord
 	},
 
     // Side A
     {
-        {+L, +L, +L},          // position
-        {0, 0, 0},             // color
-        {1, 0, 0},             // normal
-        {1, 0, VOXEL_TEX_DIRT} // texCoord
+        {+L, +L, +L},           // position
+        {0, 0, 0},              // color
+        {1, 0, 0},              // normal
+        {1, 0, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {+L, -L, +L},          // position
-        {0, 0, 0},             // color
-        {1, 0, 0},             // normal
-        {1, 1, VOXEL_TEX_DIRT} // texCoord
+        {+L, -L, +L},           // position
+        {0, 0, 0},              // color
+        {1, 0, 0},              // normal
+        {1, 1, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {+L, -L, -L},          // position
-        {0, 0, 0},             // color
-        {1, 0, 0},             // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
+        {+L, -L, -L},           // position
+        {0, 0, 0},              // color
+        {1, 0, 0},              // normal
+        {0, 1, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {+L, -L, -L},          // position
-        {0, 0, 0},             // color
-        {1, 0, 0},             // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
+        {+L, -L, -L},           // position
+        {0, 0, 0},              // color
+        {1, 0, 0},              // normal
+        {0, 1, VOXEL_TEX_GRASS} // texCoord
 	},
 
     // Side B
     {
-        {-L, -L, -L},          // position
-        {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
+        {-L, -L, -L},           // position
+        {0, 0, 0},              // color
+        {-1, 0, 0},             // normal
+        {0, 1, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {-L, -L, -L},          // position
-        {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
+        {-L, -L, -L},           // position
+        {0, 0, 0},              // color
+        {-1, 0, 0},             // normal
+        {0, 1, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {-L, -L, +L},          // position
-        {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
-        {1, 1, VOXEL_TEX_DIRT} // texCoord
+        {-L, -L, +L},           // position
+        {0, 0, 0},              // color
+        {-1, 0, 0},             // normal
+        {1, 1, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {-L, +L, +L},          // position
-        {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
-        {1, 0, VOXEL_TEX_DIRT} // texCoord
+        {-L, +L, +L},           // position
+        {0, 0, 0},              // color
+        {-1, 0, 0},             // normal
+        {1, 0, VOXEL_TEX_GRASS} // texCoord
 	},
 };
 
