@@ -15,7 +15,7 @@
 // Columns in the y-axis are contiguous in memory.
 #define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*dimensions.y*dimensions.z) + ((p.z)*dimensions.y) + (p.y)))
 
-static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVector3 normal);
+static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
 
 
 @implementation GSLightingBuffer
@@ -77,27 +77,33 @@ static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVect
     }
 }
 
-- (uint8_t)lightForVertexAtPoint:(GSIntegerVector3)chunkLocalPos
+- (uint8_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
                       withNormal:(GSIntegerVector3)normal
+                            minP:(GLKVector3)minP
 {
     static const size_t count = 4;
-    GSIntegerVector3 sample[count];
-    unsigned light;
+    GLKVector3 sample[count];
+    float light;
+    int i;
 
     assert(lightingBuffer);
-    assert(chunkLocalPos.x >= 0 && chunkLocalPos.x < CHUNK_SIZE_X);
-    assert(chunkLocalPos.y >= 0 && chunkLocalPos.y < CHUNK_SIZE_Y);
-    assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < CHUNK_SIZE_Z);
 
     samplingPoints(count, sample, normal);
-    light = 0;
-    
-    for(int i=0; i<count; ++i)
+
+    for(light = 0.0f, i = 0; i < count; ++i)
     {
-        light += [self lightAtPoint:GSIntegerVector3_Add(chunkLocalPos, sample[i])];
+        GSIntegerVector3 clp = GSIntegerVector3_Make(truncf(sample[i].x + vertexPosInWorldSpace.x - minP.x),
+                                                     truncf(sample[i].y + vertexPosInWorldSpace.y - minP.y),
+                                                     truncf(sample[i].z + vertexPosInWorldSpace.z - minP.z));
+        
+        assert(clp.x >= -1 && clp.x <= CHUNK_SIZE_X);
+        assert(clp.y >= -1 && clp.y <= CHUNK_SIZE_Y);
+        assert(clp.z >= -1 && clp.z <= CHUNK_SIZE_Z);
+
+        light += [self lightAtPoint:clp] / (float)count;
     }
 
-    return light / count;
+    return light;
 }
 
 - (void)readerAccessToBufferUsingBlock:(void (^)(void))block
@@ -159,41 +165,43 @@ static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVect
 
 @end
 
-static void samplingPoints(size_t count, GSIntegerVector3 *sample, GSIntegerVector3 n)
+static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 n)
 {
     assert(count == 4);
     assert(sample);
 
+    const float a = 0.5f;
+
     if(n.x==1 && n.y==0 && n.z==0) {
-        sample[0] = GSIntegerVector3_Make(+1, -1, -1);
-        sample[1] = GSIntegerVector3_Make(+1, -1, +1);
-        sample[2] = GSIntegerVector3_Make(+1, +1, -1);
-        sample[3] = GSIntegerVector3_Make(+1, +1, +1);
+        sample[0] = GLKVector3Make(+a, -a, -a);
+        sample[1] = GLKVector3Make(+a, -a, +a);
+        sample[2] = GLKVector3Make(+a, +a, -a);
+        sample[3] = GLKVector3Make(+a, +a, +a);
     } else if(n.x==-1 && n.y==0 && n.z==0) {
-        sample[0] = GSIntegerVector3_Make(-1, -1, -1);
-        sample[1] = GSIntegerVector3_Make(-1, -1, +1);
-        sample[2] = GSIntegerVector3_Make(-1, +1, -1);
-        sample[3] = GSIntegerVector3_Make(-1, +1, +1);
+        sample[0] = GLKVector3Make(-a, -a, -a);
+        sample[1] = GLKVector3Make(-a, -a, +a);
+        sample[2] = GLKVector3Make(-a, +a, -a);
+        sample[3] = GLKVector3Make(-a, +a, +a);
     } else if(n.x==0 && n.y==1 && n.z==0) {
-        sample[0] = GSIntegerVector3_Make(-1, +1, -1);
-        sample[1] = GSIntegerVector3_Make(-1, +1, +1);
-        sample[2] = GSIntegerVector3_Make(+1, +1, -1);
-        sample[3] = GSIntegerVector3_Make(+1, +1, +1);
+        sample[0] = GLKVector3Make(-a, +a, -a);
+        sample[1] = GLKVector3Make(-a, +a, +a);
+        sample[2] = GLKVector3Make(+a, +a, -a);
+        sample[3] = GLKVector3Make(+a, +a, +a);
     } else if(n.x==0 && n.y==-1 && n.z==0) {
-        sample[0] = GSIntegerVector3_Make(-1, -1, -1);
-        sample[1] = GSIntegerVector3_Make(-1, -1, +1);
-        sample[2] = GSIntegerVector3_Make(+1, -1, -1);
-        sample[3] = GSIntegerVector3_Make(+1, -1, +1);
+        sample[0] = GLKVector3Make(-a, -a, -a);
+        sample[1] = GLKVector3Make(-a, -a, +a);
+        sample[2] = GLKVector3Make(+a, -a, -a);
+        sample[3] = GLKVector3Make(+a, -a, +a);
     } else if(n.x==0 && n.y==0 && n.z==1) {
-        sample[0] = GSIntegerVector3_Make(-1, -1, +1);
-        sample[1] = GSIntegerVector3_Make(-1, +1, +1);
-        sample[2] = GSIntegerVector3_Make(+1, -1, +1);
-        sample[3] = GSIntegerVector3_Make(+1, +1, +1);
+        sample[0] = GLKVector3Make(-a, -a, +a);
+        sample[1] = GLKVector3Make(-a, +a, +a);
+        sample[2] = GLKVector3Make(+a, -a, +a);
+        sample[3] = GLKVector3Make(+a, +a, +a);
     } else if(n.x==0 && n.y==0 && n.z==-1) {
-        sample[0] = GSIntegerVector3_Make(-1, -1, -1);
-        sample[1] = GSIntegerVector3_Make(-1, +1, -1);
-        sample[2] = GSIntegerVector3_Make(+1, -1, -1);
-        sample[3] = GSIntegerVector3_Make(+1, +1, -1);
+        sample[0] = GLKVector3Make(-a, -a, -a);
+        sample[1] = GLKVector3Make(-a, +a, -a);
+        sample[2] = GLKVector3Make(+a, -a, -a);
+        sample[3] = GLKVector3Make(+a, +a, -a);
     } else {
         assert(!"shouldn't get here");
     }

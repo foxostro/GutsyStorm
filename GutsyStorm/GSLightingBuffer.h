@@ -44,11 +44,17 @@
 
 /* Given a specific vertex position in the chunk, and a normal for that vertex, get the contribution of the lighting buffer on
  * the vertex.
+ *
+ * vertexPosInWorldSpace -- Vertex position in world space.
+ * normal -- Vertex normal
+ * minP -- Minimum corner of the chunk. This is the offset between world-space and chunk-local-space.
+ *
  * As the lighting buffer has no knowledge of the neighboring chunks, expect values on the border to be incorrect.
  * Assumes the caller is already holding the lock on the lighting buffer.
  */
-- (uint8_t)lightForVertexAtPoint:(GSIntegerVector3)chunkLocalPos
-                      withNormal:(GSIntegerVector3)normal;
+- (uint8_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
+                      withNormal:(GSIntegerVector3)normal
+                            minP:(GLKVector3)minP;
 
 /* Clear the lighting buffer to all zeroes.
  * Assumes the caller is already holding the buffer's lock for writing.

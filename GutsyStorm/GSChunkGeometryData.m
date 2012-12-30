@@ -537,21 +537,20 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     for(GLsizei i=0; i<numChunkVerts; ++i)
     {
-        GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(vertsBuffer[i].position[0] - minP.x,
-                                                               vertsBuffer[i].position[1] - minP.y,
-                                                               vertsBuffer[i].position[2] - minP.z);
-        
-        uint8_t sunlightValue = [sunlight lightForVertexAtPoint:chunkLocalPos
-                                                     withNormal:GSIntegerVector3_MakeWithGLubyte3(vertsBuffer[i].normal)];
+        GLKVector3 vertexPos = GLKVector3MakeWithArray(vertsBuffer[i].position);
+        GSIntegerVector3 normal = GSIntegerVector3_MakeWithGLubyte3(vertsBuffer[i].normal);
 
-        // sunlight in the green channel
-        vertsBuffer[i].color[1] = 204*sunlightValue/CHUNK_LIGHTING_MAX + 51;
+        uint8_t sunlightValue = [sunlight lightForVertexAtPoint:vertexPos
+                                                     withNormal:normal
+                                                           minP:minP];
 
-        // TODO: torchlight in the blue channel
-        vertsBuffer[i].color[2] = 0;
+        GLKVector4 color = {0};
 
-        // red and alpha channels are unused
-        vertsBuffer[i].color[0] = 0;
-        vertsBuffer[i].color[3] = 0;
+        color.g = 204.0f * (sunlightValue / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
+
+        vertsBuffer[i].color[0] = color.v[0];
+        vertsBuffer[i].color[1] = color.v[1];
+        vertsBuffer[i].color[2] = color.v[2];
+        vertsBuffer[i].color[3] = color.v[3];
     }
 }

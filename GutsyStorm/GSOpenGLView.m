@@ -356,7 +356,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     // must lock GL context because display link is threaded
     CGLLockContext((CGLContextObj)[currentContext CGLContextObj]);
-    
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPushMatrix();
     glLoadIdentity();
@@ -385,7 +385,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     lastRenderTime = time;
     numFramesSinceLastFpsLabelUpdate++;
-    
+
     CGLUnlockContext((CGLContextObj)[currentContext CGLContextObj]);
     return kCVReturnSuccess;
 }
