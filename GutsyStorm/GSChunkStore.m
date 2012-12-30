@@ -666,6 +666,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     
     outVoxel->dir = VOXEL_DIR_NORTH;
     outVoxel->outside = NO; // calculated later
+    outVoxel->opaque = groundLayer || floatingMountain;
     outVoxel->tex = 0;
     outVoxel->type = (groundLayer || floatingMountain) ? VOXEL_TYPE_CUBE : VOXEL_TYPE_EMPTY;
 }

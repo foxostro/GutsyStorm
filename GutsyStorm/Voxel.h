@@ -99,6 +99,9 @@ typedef struct
     /* Cache the results of the calculation of whether this vertex is outside or inside. */
     BOOL outside;
 
+    /* Indicates the voxel transmits light as if it were air. (used by the lighting engine) */
+    BOOL opaque;
+
     /* The direction of the voxel. Affects the orientation of the mesh and traversibility. */
     uint8_t dir;
 

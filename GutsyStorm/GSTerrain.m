@@ -118,6 +118,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         
         bzero(&block, sizeof(voxel_t));
         block.outside = NO; // outside-ness value will be recalculated later
+        block.opaque = YES;
         block.dir = VOXEL_DIR_NORTH;
         block.tex = 0;
         block.type = VOXEL_TYPE_CUBE;
@@ -134,6 +135,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         
         bzero(&block, sizeof(voxel_t));
         block.outside = NO; // outside-ness value will be recalculated later
+        block.opaque = NO;
         block.dir = VOXEL_DIR_NORTH;
         block.tex = 0;
         block.type = VOXEL_TYPE_EMPTY;

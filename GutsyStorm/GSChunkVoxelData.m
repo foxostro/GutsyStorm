@@ -251,7 +251,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         
         size_t idx = INDEX_BOX(a, combinedMinP, combinedMaxP);
         
-        if(combinedVoxelData[idx].type != VOXEL_TYPE_EMPTY) {
+        if(combinedVoxelData[idx].opaque) {
             continue;
         }
         
@@ -280,7 +280,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     {
         size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
         voxel_t voxel = combinedVoxelData[idx];
-        BOOL directlyLit = (voxel.type == VOXEL_TYPE_EMPTY) && (voxel.outside);
+        BOOL directlyLit = (!voxel.opaque) && (voxel.outside);
         combinedSunlightData[idx] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
     }
 
@@ -294,7 +294,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
             size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
             voxel_t voxel = combinedVoxelData[idx];
             
-            if((voxel.type != VOXEL_TYPE_EMPTY) || voxel.outside) {
+            if(voxel.opaque || voxel.outside) {
                 continue;
             }
             
@@ -414,7 +414,7 @@ cleanup1:
             {
                 voxel_t *voxel = [self pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(x, heightOfHighestVoxel, z)];
                 
-                if(voxel->type != VOXEL_TYPE_EMPTY) {
+                if(voxel->opaque) {
                     break;
                 }
             }
@@ -469,6 +469,7 @@ cleanup1:
                     if(temp[INDEX_BOX(testPos, a, b)].type == VOXEL_TYPE_CUBE) {
                         voxel->type = VOXEL_TYPE_RAMP;
                         voxel->dir = dir;
+                        voxel->opaque = NO; // Ramps are made transparent to help the lighting engine on slopes.
                     }
                 }
             }
