@@ -22,7 +22,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
             {-L, +L, -L},  // position
             {0, 0, 0},     // color
             {0, 1, 0},     // normal
-            {1, 0, VOXEL_TEX_GRASS} // texCoord
+            {1, 1, VOXEL_TEX_GRASS} // texCoord
         },
         {
             {-L, -L, -L},  // position
@@ -60,7 +60,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
             {-L, +L, +L},  // position
             {0, 0, 0},     // color
             {0, 1, 0},     // normal
-            {1, 1, VOXEL_TEX_GRASS} // texCoord
+            {1, 0, VOXEL_TEX_GRASS} // texCoord
         },
         {
             {+L, -L, -L},  // position
@@ -98,7 +98,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
             {+L, +L, +L},  // position
             {0, 0, 0},     // color
             {0, 1, 0},     // normal
-            {0, 1, VOXEL_TEX_GRASS} // texCoord
+            {0, 0, VOXEL_TEX_GRASS} // texCoord
         },
         {
             {+L, -L, +L},  // position
@@ -136,7 +136,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
             {+L, +L, -L},  // position
             {0, 0, 0},     // color
             {0, 1, 0},     // normal
-            {0, 0, VOXEL_TEX_GRASS} // texCoord
+            {0, 1, VOXEL_TEX_GRASS} // texCoord
         },
         {
             {-L, -L, +L},  // position
