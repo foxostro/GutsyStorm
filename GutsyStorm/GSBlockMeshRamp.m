@@ -172,7 +172,7 @@ const static struct vertex meshRamp[] =
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSChunkVoxelData *centerVoxels = [voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     voxel_dir_t dir = [centerVoxels voxelAtLocalPosition:chunkLocalPos].dir;
-    GLKQuaternion quat = GLKQuaternionMakeWithAngleAndAxis((int)dir * M_PI_2, 0, 1, 0); // The ordering of voxel_dir_t matters...
+    GLKQuaternion quat = quaternionForDirection(dir);
 
     const size_t numVerts = sizeof(meshRamp) / sizeof(meshRamp[0]);
     assert(numVerts % 4 == 0);

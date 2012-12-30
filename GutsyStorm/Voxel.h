@@ -59,11 +59,30 @@ typedef enum
 /* The direction of the voxel. Affects the orientation of the mesh and traversibility. */
 typedef enum
 {
-    VOXEL_DIR_NORTH=0,
-    VOXEL_DIR_EAST,
-    VOXEL_DIR_SOUTH,
-    VOXEL_DIR_WEST
+    VOXEL_DIR_NORTH=0, // ( 0, 0, +1)
+    VOXEL_DIR_EAST,    // (+1, 0,  0)
+    VOXEL_DIR_SOUTH,   // ( 0, 0, -1)
+    VOXEL_DIR_WEST     // (-1, 0,  0)
 } voxel_dir_t;
+
+_Static_assert(0 == (int)VOXEL_DIR_NORTH, "The ordering of voxel_dir_t matters.");
+_Static_assert(1 == (int)VOXEL_DIR_EAST,  "The ordering of voxel_dir_t matters.");
+_Static_assert(2 == (int)VOXEL_DIR_SOUTH, "The ordering of voxel_dir_t matters.");
+_Static_assert(3 == (int)VOXEL_DIR_WEST,  "The ordering of voxel_dir_t matters.");
+
+
+static inline GLKQuaternion quaternionForDirection(voxel_dir_t dir)
+{
+    return GLKQuaternionMakeWithAngleAndAxis((int)dir * M_PI_2, 0, 1, 0);
+}
+
+
+static inline GSIntegerVector3 integerVectorForDirection(voxel_dir_t dir)
+{
+    GLKVector3 vector = GLKQuaternionRotateVector3(quaternionForDirection(dir), GLKVector3Make(0, 0, 1));
+    GSIntegerVector3 iVector = GSIntegerVector3_Make(vector.x, vector.y, vector.z);
+    return iVector;
+}
 
 
 /* The texture to use for the voxel mesh. */

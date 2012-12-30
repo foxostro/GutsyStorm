@@ -438,14 +438,6 @@ cleanup1:
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 
-    GSIntegerVector3 directionVectors[] =
-    {
-        GSIntegerVector3_Make(0, 0, 1),  // VOXEL_DIR_NORTH
-        GSIntegerVector3_Make(1, 0, 0),  // VOXEL_DIR_EAST
-        GSIntegerVector3_Make(0, 0, -1), // VOXEL_DIR_SOUTH
-        GSIntegerVector3_Make(-1, 0, 0)  // VOXEL_DIR_WEST
-    };
-    
     voxel_t *temp = calloc((CHUNK_SIZE_X+2) * CHUNK_SIZE_Y * (CHUNK_SIZE_Z+2), sizeof(voxel_t));
     
     GSIntegerVector3 p, a, b;
@@ -471,9 +463,9 @@ cleanup1:
             voxel_type_t type = voxel->type;
 
             if(voxel->type == VOXEL_TYPE_EMPTY && prevType == VOXEL_TYPE_CUBE) {
-                for(voxel_dir_t dir=VOXEL_DIR_NORTH; dir<4; ++dir)
+                for(voxel_dir_t dir=0; dir<4; ++dir)
                 {
-                    GSIntegerVector3 testPos = GSIntegerVector3_Add(p, directionVectors[dir]);
+                    GSIntegerVector3 testPos = GSIntegerVector3_Add(p, integerVectorForDirection(dir));
                     if(temp[INDEX_BOX(testPos, a, b)].type == VOXEL_TYPE_CUBE) {
                         voxel->type = VOXEL_TYPE_RAMP;
                         voxel->dir = dir;
