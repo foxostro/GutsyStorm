@@ -507,6 +507,7 @@ cleanup1:
     // Read the contents of the file into "voxelData".
     NSData *data = [[NSData alloc] initWithContentsOfURL:url];
     if([data length] != len) {
+        [data release];
         return [NSError errorWithDomain:GSErrorDomain
                                    code:GSInvalidChunkDataOnDiskError
                                userInfo:@{NSLocalizedFailureReasonErrorKey:@"Voxel data file is of unexpected length."}];

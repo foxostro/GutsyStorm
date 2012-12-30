@@ -34,7 +34,7 @@
             buckets[i] = [[NSMutableArray alloc] init];
         }
         
-        locks = malloc(numLocks * sizeof(NSMutableArray *));
+        locks = malloc(numLocks * sizeof(NSLock *));
         for(NSUInteger i=0; i<numLocks; ++i)
         {
             locks[i] = [[NSLock alloc] init];
