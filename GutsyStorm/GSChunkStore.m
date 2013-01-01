@@ -400,10 +400,6 @@ postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
     assert(voxelsIn);
     assert(voxelsOut);
 
-    if(ruleSet->appliesAboveBlockType == VOXEL_TYPE_CORNER_INSIDE) {
-        NSLog(@"set B");
-    }
-
     GSIntegerVector3 p = {0};
 
     // Copy all voxels directly and then, below, replace a few according to the processing rules.
