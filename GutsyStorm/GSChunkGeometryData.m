@@ -15,10 +15,10 @@
 #import "GSBlockMeshCube.h"
 #import "GSBlockMeshRamp.h"
 #import "GSBlockMeshInsideCorner.h"
+#import "GSBlockMeshOutsideCorner.h"
 #import "GSBlockMeshEmpty.h"
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
-#define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
 
 struct chunk_geometry_header
 {
@@ -64,35 +64,24 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 
 + (id <GSBlockMesh>)sharedMeshFactoryWithBlockType:(voxel_type_t)type
 {
-    static GSBlockMeshCube *cube;
-    static GSBlockMeshRamp *ramp;
-    static GSBlockMeshInsideCorner *cornerInside;
-    static GSBlockMeshEmpty *empty;
-
+    static id<GSBlockMesh> factories[NUM_VOXEL_TYPES];
     static dispatch_once_t onceToken;
+    
     dispatch_once(&onceToken, ^{
-        cube = [[GSBlockMeshCube alloc] init];
-        ramp = [[GSBlockMeshRamp alloc] init];
-        empty = [[GSBlockMeshEmpty alloc] init];
-        cornerInside = [[GSBlockMeshInsideCorner alloc] init];
+        GSBlockMeshEmpty *empty = [[GSBlockMeshEmpty alloc] init];
+
+        for(voxel_type_t i=0; i<NUM_VOXEL_TYPES; ++i)
+        {
+            factories[i] = empty;
+        }
+        
+        factories[VOXEL_TYPE_CUBE]           = [[GSBlockMeshCube alloc] init];
+        factories[VOXEL_TYPE_RAMP]           = [[GSBlockMeshRamp alloc] init];
+        factories[VOXEL_TYPE_CORNER_INSIDE]  = [[GSBlockMeshInsideCorner alloc] init];
+        factories[VOXEL_TYPE_CORNER_OUTSIDE] = [[GSBlockMeshOutsideCorner alloc] init];
     });
 
-    switch(type)
-    {
-        case VOXEL_TYPE_CUBE:
-            return cube;
-            
-        case VOXEL_TYPE_RAMP:
-            return ramp;
-
-        case VOXEL_TYPE_CORNER_INSIDE:
-            return cornerInside;
-            
-        case VOXEL_TYPE_CORNER_OUTSIDE:
-        case VOXEL_TYPE_EMPTY:
-        default:
-            return empty;
-    }
+    return factories[type];
 }
 
 
