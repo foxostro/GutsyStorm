@@ -449,7 +449,6 @@ cleanup1:
 
     const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
     voxel_t *rawVoxels = calloc(count, sizeof(voxel_t));
-    voxel_t *processedVoxels = calloc(count, sizeof(voxel_t));
 
     // First, generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.
@@ -459,17 +458,16 @@ cleanup1:
     }
 
     // Post-process the voxels to add ramps, &c.
-    postProcessor(rawVoxels, processedVoxels, a, b);
+    voxel_t *processedVoxels = postProcessor(count, rawVoxels, a, b);
+
+    free(rawVoxels);
+    rawVoxels = NULL;
 
     // Copy the voxels for the chunk to their final destination.
     FOR_BOX(p, ivecZero, chunkSize)
     {
         voxelData[INDEX_BOX(p, ivecZero, chunkSize)] = processedVoxels[INDEX_BOX(p, a, b)];
     }
-
-    // Clean up
-    free(rawVoxels);
-    rawVoxels = NULL;
 
     free(processedVoxels);
     processedVoxels = NULL;

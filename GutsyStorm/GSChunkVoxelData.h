@@ -16,7 +16,7 @@
 
 
 typedef void (^terrain_generator_t)(GLKVector3, voxel_t*);
-typedef void (^terrain_post_processor_t)(voxel_t *voxelsIn, voxel_t *voxelsOut, GSIntegerVector3 minP, GSIntegerVector3 maxP);
+typedef voxel_t* (^terrain_post_processor_t)(size_t count, voxel_t *voxelsIn, GSIntegerVector3 minP, GSIntegerVector3 maxP);
 
 
 @interface GSChunkVoxelData : GSChunkData

@@ -15,6 +15,9 @@
 #import "GSChunkStore.h"
 #import "GSNoise.h"
 
+#define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
+#define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
+
 static float groundGradient(float terrainHeight, GLKVector3 p);
 static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 p, voxel_t *outVoxel);
 
@@ -26,6 +29,7 @@ struct PostProcessingRule
      * ' ' --> "Don't Care." The voxel type doesn't matter for this position.
      * '.' --> VOXEL_TYPE_EMPTY
      * '#' --> VOXEL_TYPE_CUBE
+     * 'r' --> VOXEL_TYPE_RAMP
      *
      * North is at the top of the diagram.
      */
@@ -35,7 +39,16 @@ struct PostProcessingRule
     voxel_t replacement;
 };
 
-struct PostProcessingRule rules[] =
+struct PostProcessingRuleSet
+{
+    size_t count;
+    struct PostProcessingRule *rules;
+
+    /* The rules only apply to empty blocks placed on top of blocks of the type specified by `appliesAboveBlockType'. */
+    voxel_type_t appliesAboveBlockType;
+};
+
+static struct PostProcessingRule replacementRulesA[] =
 {
     // Ramp pieces
     {
@@ -164,6 +177,148 @@ struct PostProcessingRule rules[] =
     },
 };
 
+static struct PostProcessingRule replacementRulesB[] =
+{
+    {
+        " r "
+        "r. "
+        "   ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_NORTH,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+    {
+        " r "
+        " .r"
+        "   ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_EAST,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+    {
+        "   "
+        " .r"
+        " r ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_SOUTH,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+    {
+        "   "
+        "r. "
+        " r ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_WEST,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+
+
+    {
+        " # "
+        "r. "
+        "   ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_NORTH,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+    {
+        " # "
+        " .r"
+        "   ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_EAST,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+    {
+        "   "
+        " .r"
+        " # ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_SOUTH,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+    {
+        "   "
+        "r. "
+        " # ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_WEST,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+
+
+    {
+        " r "
+        "#. "
+        "   ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_NORTH,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+    {
+        " r "
+        " .#"
+        "   ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_EAST,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+    {
+        "   "
+        " .#"
+        " r ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_SOUTH,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+    {
+        "   "
+        "#. "
+        " r ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_WEST,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+};
+
+static struct PostProcessingRuleSet replacementRuleSets[] =
+{
+    {
+        ARRAY_LEN(replacementRulesA),
+        replacementRulesA,
+        VOXEL_TYPE_CUBE
+    },
+    {
+        ARRAY_LEN(replacementRulesB),
+        replacementRulesB,
+        VOXEL_TYPE_CORNER_INSIDE
+    },
+};
+
 static BOOL
 typeMatchesCharacter(voxel_type_t type, char c)
 {
@@ -179,6 +334,9 @@ typeMatchesCharacter(voxel_type_t type, char c)
 
         case '#':
             return type == VOXEL_TYPE_CUBE;
+
+        case 'r':
+            return (type == VOXEL_TYPE_RAMP) || (type == VOXEL_TYPE_CORNER_INSIDE);
     }
 
     return NO;
@@ -234,13 +392,17 @@ findRuleForCellPosition(size_t numRules, struct PostProcessingRule *rules,
 }
 
 static void
-postProcessVoxels(size_t numRules, struct PostProcessingRule *rules,
+postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
                   voxel_t *voxelsIn, voxel_t *voxelsOut,
                   GSIntegerVector3 minP, GSIntegerVector3 maxP)
 {
-    assert(rules);
+    assert(ruleSet);
     assert(voxelsIn);
     assert(voxelsOut);
+
+    if(ruleSet->appliesAboveBlockType == VOXEL_TYPE_CORNER_INSIDE) {
+        NSLog(@"set B");
+    }
 
     GSIntegerVector3 p = {0};
 
@@ -258,9 +420,9 @@ postProcessVoxels(size_t numRules, struct PostProcessingRule *rules,
             const size_t idx = INDEX_BOX(p, minP, maxP);
             voxel_t *voxel = &voxelsIn[idx];
 
-            if(voxel->type == VOXEL_TYPE_EMPTY && prevType == VOXEL_TYPE_CUBE) {
+            if(voxel->type == VOXEL_TYPE_EMPTY && prevType == ruleSet->appliesAboveBlockType) {
                 // Find and apply the first post-processing rule which matches this position.
-                struct PostProcessingRule *rule = findRuleForCellPosition(numRules, rules, p, voxelsIn, minP, maxP);
+                struct PostProcessingRule *rule = findRuleForCellPosition(ruleSet->count, ruleSet->rules, p, voxelsIn, minP, maxP);
                 if(rule) {
                     voxel_t replacement = rule->replacement;
                     replacement.tex = voxel->tex;
@@ -730,7 +892,7 @@ postProcessVoxels(size_t numRules, struct PostProcessingRule *rules,
     
     GSChunkVoxelData *v = [gridVoxelData objectAtPoint:p
                                          objectFactory:^id(GLKVector3 minP) {
-                                             return [self newChunkWithMinimumCorner:minP];
+                                             return [[self newChunkWithMinimumCorner:minP] autorelease];
                                          }];
     
     return v;
@@ -749,7 +911,7 @@ postProcessVoxels(size_t numRules, struct PostProcessingRule *rules,
     success = [gridVoxelData tryToGetObjectAtPoint:p
                                             object:&v
                                      objectFactory:^id(GLKVector3 minP) {
-                                         return [self newChunkWithMinimumCorner:minP];
+                                         return [[self newChunkWithMinimumCorner:minP] autorelease];
                                      }];
 
     if(success) {
@@ -836,18 +998,26 @@ postProcessVoxels(size_t numRules, struct PostProcessingRule *rules,
         generateTerrainVoxel(seed, terrainHeight, a, voxel);
     };
 
-    terrain_post_processor_t postProcessor = ^(voxel_t *voxelsIn, voxel_t *voxelsOut,
-                                               GSIntegerVector3 minP, GSIntegerVector3 maxP) {
-        const size_t numRules = sizeof(rules) / sizeof(rules[0]);
-        postProcessVoxels(numRules, rules, voxelsIn, voxelsOut, minP, maxP);
+    terrain_post_processor_t postProcessor = ^ voxel_t * (size_t count, voxel_t *voxelsIn,
+                                                          GSIntegerVector3 minP, GSIntegerVector3 maxP) {
+        voxel_t *temp = calloc(count, sizeof(voxel_t));
+        voxel_t *voxelsOut = calloc(count, sizeof(voxel_t));
+
+        _Static_assert(2 == ARRAY_LEN(replacementRuleSets), "only expecting two rule sets in total");
+        postProcessVoxels(&replacementRuleSets[0], voxelsIn, temp, minP, maxP);
+        postProcessVoxels(&replacementRuleSets[1], temp, voxelsOut, minP, maxP);
+
+        free(temp);
+
+        return voxelsOut;
     };
 
-    return [[[GSChunkVoxelData alloc] initWithMinP:minP
-                                            folder:folder
-                                    groupForSaving:groupForSaving
-                                    chunkTaskQueue:chunkTaskQueue
-                                         generator:generator
-                                     postProcessor:postProcessor] autorelease];
+    return [[GSChunkVoxelData alloc] initWithMinP:minP
+                                           folder:folder
+                                   groupForSaving:groupForSaving
+                                   chunkTaskQueue:chunkTaskQueue
+                                        generator:generator
+                                    postProcessor:postProcessor];
 }
 
 @end
