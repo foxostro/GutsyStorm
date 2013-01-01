@@ -43,6 +43,8 @@ const static struct vertex mesh[] =
         {0, 0, -1},             // normal
         {0, 1, VOXEL_TEX_GRASS} // texCoord
 	},
+
+    // TODO: need the side faces for this mesh
 };
 
 @implementation GSBlockMeshOutsideCorner
@@ -67,8 +69,8 @@ const static struct vertex mesh[] =
 
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSChunkVoxelData *centerVoxels = [voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-    voxel_dir_t dir = [centerVoxels voxelAtLocalPosition:chunkLocalPos].dir;
-    GLKQuaternion quat = quaternionForDirection(dir);
+    voxel_t voxel = [centerVoxels voxelAtLocalPosition:chunkLocalPos];
+    GLKQuaternion quat = quaternionForDirection(voxel.dir);
 
     const size_t numVerts = sizeof(mesh) / sizeof(mesh[0]);
     assert(numVerts % 4 == 0);

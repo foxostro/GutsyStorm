@@ -197,8 +197,8 @@ const static struct vertex mesh[] =
 
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSChunkVoxelData *centerVoxels = [voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-    voxel_dir_t dir = [centerVoxels voxelAtLocalPosition:chunkLocalPos].dir;
-    GLKQuaternion quat = quaternionForDirection(dir);
+    voxel_t voxel = [centerVoxels voxelAtLocalPosition:chunkLocalPos];
+    GLKQuaternion quat = quaternionForDirection(voxel.dir);
 
     const size_t numVerts = sizeof(mesh) / sizeof(mesh[0]);
     assert(numVerts % 4 == 0);

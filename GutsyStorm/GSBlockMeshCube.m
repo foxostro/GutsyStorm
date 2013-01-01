@@ -19,154 +19,154 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
 {
     {
         {
-            {-L, +L, -L},  // position
-            {0, 0, 0},     // color
-            {0, 1, 0},     // normal
-            {1, 1, VOXEL_TEX_GRASS} // texCoord
+            {-L, +L, -L},              // position
+            {0, 0, 0},                 // color
+            {0, 1, 0},                 // normal
+            {1, 1, VOXEL_TEX_GRASS}    // texCoord
         },
         {
-            {-L, -L, -L},  // position
-            {0, 0, 0},     // color
-            {0, -1, 0},    // normal
-            {1, 0, VOXEL_TEX_DIRT} // texCoord
+            {-L, -L, -L},              // position
+            {0, 0, 0},                 // color
+            {0, -1, 0},                // normal
+            {1, 0, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {-L, -L, +L},  // position
-            {0, 0, 0},     // color
-            {0, 0, 1},     // normal
-            {0, 1, -1}     // texCoord
+            {-L, -L, +L},              // position
+            {0, 0, 0},                 // color
+            {0, 0, 1},                 // normal
+            {0, 1, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {-L, -L, -L},  // position
-            {0, 0, 0},     // color
-            {0, 0, -1},    // normal
-            {0, 1, -1}     // texCoord
+            {-L, -L, -L},              // position
+            {0, 0, 0},                 // color
+            {0, 0, -1},                // normal
+            {0, 1, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {+L, -L, -L},  // position
-            {0, 0, 0},     // color
-            {1, 0, 0},     // normal
-            {0, 1, -1}     // texCoord
+            {+L, -L, -L},              // position
+            {0, 0, 0},                 // color
+            {1, 0, 0},                 // normal
+            {0, 1, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {-L, -L, -L},  // position
-            {0, 0, 0},     // color
-            {-1, 0, 0},    // normal
-            {0, 1, -1}     // texCoord
+            {-L, -L, -L},              // position
+            {0, 0, 0},                 // color
+            {-1, 0, 0},                // normal
+            {0, 1, VOXEL_TEX_DIRT}     // texCoord
         }
     },
     {
         {
-            {-L, +L, +L},  // position
-            {0, 0, 0},     // color
-            {0, 1, 0},     // normal
-            {1, 0, VOXEL_TEX_GRASS} // texCoord
+            {-L, +L, +L},              // position
+            {0, 0, 0},                 // color
+            {0, 1, 0},                 // normal
+            {1, 0, VOXEL_TEX_GRASS}    // texCoord
         },
         {
-            {+L, -L, -L},  // position
-            {0, 0, 0},     // color
-            {0, -1, 0},    // normal
-            {0, 0, VOXEL_TEX_DIRT} // texCoord
+            {+L, -L, -L},              // position
+            {0, 0, 0},                 // color
+            {0, -1, 0},                // normal
+            {0, 0, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {+L, -L, +L},  // position
-            {0, 0, 0},     // color
-            {0, 0, 1},     // normal
-            {1, 1, -1}     // texCoord
+            {+L, -L, +L},              // position
+            {0, 0, 0},                 // color
+            {0, 0, 1},                 // normal
+            {1, 1, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {-L, +L, -L},  // position
-            {0, 0, 0},     // color
-            {0, 0, -1},    // normal
-            {0, 0, -1}     // texCoord
+            {-L, +L, -L},              // position
+            {0, 0, 0},                 // color
+            {0, 0, -1},                // normal
+            {0, 0, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {+L, +L, -L},  // position
-            {0, 0, 0},     // color
-            {1, 0, 0},     // normal
-            {0, 0, -1}     // texCoord
+            {+L, +L, -L},              // position
+            {0, 0, 0},                 // color
+            {1, 0, 0},                 // normal
+            {0, 0, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {-L, -L, +L},  // position
-            {0, 0, 0},     // color
-            {-1, 0, 0},    // normal
-            {1, 1, -1}     // texCoord
+            {-L, -L, +L},              // position
+            {0, 0, 0},                 // color
+            {-1, 0, 0},                // normal
+            {1, 1, VOXEL_TEX_DIRT}     // texCoord
         }
     },
     {
         {
-            {+L, +L, +L},  // position
-            {0, 0, 0},     // color
-            {0, 1, 0},     // normal
-            {0, 0, VOXEL_TEX_GRASS} // texCoord
+            {+L, +L, +L},              // position
+            {0, 0, 0},                 // color
+            {0, 1, 0},                 // normal
+            {0, 0, VOXEL_TEX_GRASS}    // texCoord
         },
         {
-            {+L, -L, +L},  // position
-            {0, 0, 0},     // color
-            {0, -1, 0},    // normal
-            {0, 1, VOXEL_TEX_DIRT} // texCoord
+            {+L, -L, +L},              // position
+            {0, 0, 0},                 // color
+            {0, -1, 0},                // normal
+            {0, 1, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {+L, +L, +L},  // position
-            {0, 0, 0},     // color
-            {0, 0, 1},     // normal
-            {1, 0, -1}     // texCoord
+            {+L, +L, +L},              // position
+            {0, 0, 0},                 // color
+            {0, 0, 1},                 // normal
+            {1, 0, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {+L, +L, -L},  // position
-            {0, 0, 0},     // color
-            {0, 0, -1},    // normal
-            {1, 0, -1}     // texCoord
+            {+L, +L, -L},              // position
+            {0, 0, 0},                 // color
+            {0, 0, -1},                // normal
+            {1, 0, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {+L, +L, +L},  // position
-            {0, 0, 0},     // color
-            {1, 0, 0},     // normal
-            {1, 0, -1}     // texCoord
+            {+L, +L, +L},              // position
+            {0, 0, 0},                 // color
+            {1, 0, 0},                 // normal
+            {1, 0, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {-L, +L, +L},  // position
-            {0, 0, 0},     // color
-            {-1, 0, 0},    // normal
-            {1, 0, -1}     // texCoord
+            {-L, +L, +L},              // position
+            {0, 0, 0},                 // color
+            {-1, 0, 0},                // normal
+            {1, 0, VOXEL_TEX_DIRT}     // texCoord
         }
     },
     {
         {
-            {+L, +L, -L},  // position
-            {0, 0, 0},     // color
-            {0, 1, 0},     // normal
-            {0, 1, VOXEL_TEX_GRASS} // texCoord
+            {+L, +L, -L},              // position
+            {0, 0, 0},                 // color
+            {0, 1, 0},                 // normal
+            {0, 1, VOXEL_TEX_GRASS}    // texCoord
         },
         {
-            {-L, -L, +L},  // position
-            {0, 0, 0},     // color
-            {0, -1, 0},    // normal
-            {1, 1, VOXEL_TEX_DIRT} // texCoord
+            {-L, -L, +L},              // position
+            {0, 0, 0},                 // color
+            {0, -1, 0},                // normal
+            {1, 1, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {-L, +L, +L},  // position
-            {0, 0, 0},     // color
-            {0, 0, 1},     // normal
-            {0, 0, -1}     // texCoord
+            {-L, +L, +L},              // position
+            {0, 0, 0},                 // color
+            {0, 0, 1},                 // normal
+            {0, 0, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {+L, -L, -L},  // position
-            {0, 0, 0},     // color
-            {0, 0, -1},    // normal
-            {1, 1, -1}     // texCoord
+            {+L, -L, -L},              // position
+            {0, 0, 0},                 // color
+            {0, 0, -1},                // normal
+            {1, 1, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {+L, -L, +L},  // position
-            {0, 0, 0},     // color
-            {1, 0, 0},     // normal
-            {1, 1, -1}     // texCoord
+            {+L, -L, +L},              // position
+            {0, 0, 0},                 // color
+            {1, 0, 0},                 // normal
+            {1, 1, VOXEL_TEX_DIRT}     // texCoord
         },
         {
-            {-L, +L, -L},  // position
-            {0, 0, 0},     // color
-            {-1, 0, 0},    // normal
-            {0, 0, -1}     // texCoord
+            {-L, +L, -L},              // position
+            {0, 0, 0},                 // color
+            {-1, 0, 0},                // normal
+            {0, 0, VOXEL_TEX_DIRT}     // texCoord
         }
     }
 };
@@ -191,18 +191,12 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
     assert(vertexList);
     assert(voxelData);
 
-    GLfloat page = VOXEL_TEX_DIRT;
-
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
 
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
         if([voxelData cubeAtPoint:GSIntegerVector3_Add(chunkLocalPos, offsetForFace[i])]) {
             continue;
-        }
-
-        if(i == FACE_TOP) {
-            page = VOXEL_TEX_SIDE;
         }
 
         for(size_t j=0; j<4; ++j)
@@ -213,10 +207,6 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
             v.position[0] += pos.v[0];
             v.position[1] += pos.v[1];
             v.position[2] += pos.v[2];
-
-            // select the texture
-            // TODO: grass spread should be handled somewhere else. Maybe in GSTerrain?
-            v.texCoord[2] = (v.texCoord[2]<0) ? page : v.texCoord[2];
 
             [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
         }
