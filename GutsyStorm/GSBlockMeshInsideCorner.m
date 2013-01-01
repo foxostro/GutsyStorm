@@ -1,8 +1,8 @@
 //
-//  GSBlockMeshRamp.m
+//  GSBlockMeshInsideCorner.m
 //  GutsyStorm
 //
-//  Created by Andrew Fox on 12/27/12.
+//  Created by Andrew Fox on 12/31/12.
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
@@ -12,29 +12,29 @@
 #import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"
-#import "GSBlockMeshRamp.h"
+#import "GSBlockMeshInsideCorner.h"
 
 const static GLfloat L = 0.5f; // half the length of a block along one side
 
-const static struct vertex meshRamp[] =
+const static struct vertex mesh[] =
 {
     // Top (ramp surface)
     {
-        {-L, -L, -L},           // position
+        {-L, +L, -L},           // position
         {0, 0, 0},              // color
-        {0, 0, -1},             // normal
+        {0, 1, 0},              // normal
         {1, 1, VOXEL_TEX_GRASS} // texCoord
     },
     {
         {-L, +L, +L},           // position
         {0, 0, 0},              // color
-        {0, +1, 0},             // normal
+        {0, 1, 0},              // normal
         {1, 0, VOXEL_TEX_GRASS} // texCoord
 	},
     {
         {+L, +L, +L},           // position
         {0, 0, 0},              // color
-        {0, +1, 0},             // normal
+        {0, 1, 0},              // normal
         {0, 0, VOXEL_TEX_GRASS} // texCoord
 	},
     {
@@ -70,86 +70,112 @@ const static struct vertex meshRamp[] =
         {1, 1, VOXEL_TEX_DIRT} // texCoord
 	},
 
-    // Back
+    // Side A (a triangle)
     {
-        {-L, -L, +L},          // position
+        {+L, +L, +L},          // position
         {0, 0, 0},             // color
-        {0, 0, +1},            // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
+        {1, 0, 0},             // normal
+        {1, 0, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {+L, -L, +L},          // position
         {0, 0, 0},             // color
-        {0, 0, +1},            // normal
+        {1, 0, 0},             // normal
         {1, 1, VOXEL_TEX_DIRT} // texCoord
 	},
     {
-        {+L, +L, +L},          // position
+        {+L, -L, -L},          // position
         {0, 0, 0},             // color
-        {0, 0, +1},            // normal
+        {1, 0, 0},             // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {+L, -L, -L},          // position
+        {0, 0, 0},             // color
+        {1, 0, 0},             // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+
+    // Side B (a triangle)
+    {
+        {+L, -L, -L},          // position
+        {0, 0, 0},             // color
+        {-1, 0, 0},            // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {+L, -L, -L},          // position
+        {0, 0, 0},             // color
+        {-1, 0, 0},            // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, -L, -L},          // position
+        {0, 0, 0},             // color
+        {-1, 0, 0},            // normal
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, +L, -L},          // position
+        {0, 0, 0},             // color
+        {-1, 0, 0},            // normal
         {1, 0, VOXEL_TEX_DIRT} // texCoord
+	},
+
+    // Side C (a full square)
+    {
+        {-L, +L, -L},          // position
+        {0, 0, 0},             // color
+        {-1, 0, 0},            // normal
+        {1, 0, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, -L, -L},          // position
+        {0, 0, 0},             // color
+        {-1, 0, 0},            // normal
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {-1, 0, 0},            // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {-L, +L, +L},          // position
         {0, 0, 0},             // color
-        {0, 0, +1},            // normal
+        {-1, 0, 0},            // normal
         {0, 0, VOXEL_TEX_DIRT} // texCoord
 	},
 
-    // Side A
+    // Side D (a full square)
     {
-        {+L, +L, +L},          // position
-        {0, 0, 0},             // color
-        {1, 0, 0},             // normal
-        {1, 0, VOXEL_TEX_DIRT} // texCoord
-	},
-    {
-        {+L, -L, +L},          // position
-        {0, 0, 0},             // color
-        {1, 0, 0},             // normal
-        {1, 1, VOXEL_TEX_DIRT} // texCoord
-	},
-    {
-        {+L, -L, -L},          // position
-        {0, 0, 0},             // color
-        {1, 0, 0},             // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
-	},
-    {
-        {+L, -L, -L},          // position
-        {0, 0, 0},             // color
-        {1, 0, 0},             // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
-	},
-
-    // Side B
-    {
-        {-L, -L, -L},          // position
+        {-L, +L, +L},          // position
         {0, 0, 0},             // color
         {-1, 0, 0},            // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
-	},
-    {
-        {-L, -L, -L},          // position
-        {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
+        {0, 0, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {-L, -L, +L},          // position
         {0, 0, 0},             // color
         {-1, 0, 0},            // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {+L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {-1, 0, 0},            // normal
         {1, 1, VOXEL_TEX_DIRT} // texCoord
 	},
     {
-        {-L, +L, +L},          // position
+        {+L, +L, +L},          // position
         {0, 0, 0},             // color
         {-1, 0, 0},            // normal
         {1, 0, VOXEL_TEX_DIRT} // texCoord
 	},
 };
 
-@implementation GSBlockMeshRamp
+@implementation GSBlockMeshInsideCorner
 
 - (id)init
 {
@@ -174,14 +200,14 @@ const static struct vertex meshRamp[] =
     voxel_dir_t dir = [centerVoxels voxelAtLocalPosition:chunkLocalPos].dir;
     GLKQuaternion quat = quaternionForDirection(dir);
 
-    const size_t numVerts = sizeof(meshRamp) / sizeof(meshRamp[0]);
+    const size_t numVerts = sizeof(mesh) / sizeof(mesh[0]);
     assert(numVerts % 4 == 0);
-    
+
     for(size_t i = 0; i < numVerts; ++i)
     {
-        struct vertex v = meshRamp[i];
+        struct vertex v = mesh[i];
 
-        // rotate the ramp
+        // rotate the mesh
         GLKVector3 vertexPos = GLKVector3Make(v.position[0], v.position[1], v.position[2]);
         vertexPos = GLKQuaternionRotateVector3(quat, vertexPos);
         v.position[0] = vertexPos.v[0] + pos.v[0];

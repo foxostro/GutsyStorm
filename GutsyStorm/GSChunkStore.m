@@ -37,7 +37,7 @@ struct PostProcessingRule
 
 struct PostProcessingRule rules[] =
 {
-    // Ramps
+    // Ramp pieces
     {
         " # "
         "..."
@@ -78,6 +78,62 @@ struct PostProcessingRule rules[] =
             .type = VOXEL_TYPE_RAMP
         }
     },
+
+    // Inside corner pieces
+    {
+        "## "
+        "#.."
+        " . ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_NORTH,
+            .type = VOXEL_TYPE_CORNER_INSIDE
+        }
+    },
+    {
+        " ##"
+        "..#"
+        " . ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_EAST,
+            .type = VOXEL_TYPE_CORNER_INSIDE
+        }
+    },
+    {
+        " . "
+        "..#"
+        " ##",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_SOUTH,
+            .type = VOXEL_TYPE_CORNER_INSIDE
+        }
+    },
+    {
+        " . "
+        "#.."
+        "## ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_WEST,
+            .type = VOXEL_TYPE_CORNER_INSIDE
+        }
+    },
+
+#if 0
+    // Outside corner pieces
+    {
+        "#. "
+        ".. "
+        "   ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_NORTH,
+            .type = VOXEL_TYPE_CORNER_OUTSIDE
+        }
+    },
+#endif
 };
 
 static BOOL

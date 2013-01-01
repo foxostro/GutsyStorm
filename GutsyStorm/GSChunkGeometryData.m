@@ -14,6 +14,7 @@
 #import "Voxel.h"
 #import "GSBlockMeshCube.h"
 #import "GSBlockMeshRamp.h"
+#import "GSBlockMeshInsideCorner.h"
 #import "GSBlockMeshEmpty.h"
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
@@ -61,11 +62,11 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 @synthesize dirty;
 
 
-
 + (id <GSBlockMesh>)sharedMeshFactoryWithBlockType:(voxel_type_t)type
 {
     static GSBlockMeshCube *cube;
     static GSBlockMeshRamp *ramp;
+    static GSBlockMeshInsideCorner *cornerInside;
     static GSBlockMeshEmpty *empty;
 
     static dispatch_once_t onceToken;
@@ -73,6 +74,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
         cube = [[GSBlockMeshCube alloc] init];
         ramp = [[GSBlockMeshRamp alloc] init];
         empty = [[GSBlockMeshEmpty alloc] init];
+        cornerInside = [[GSBlockMeshInsideCorner alloc] init];
     });
 
     switch(type)
@@ -84,6 +86,8 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
             return ramp;
 
         case VOXEL_TYPE_CORNER_INSIDE:
+            return cornerInside;
+            
         case VOXEL_TYPE_CORNER_OUTSIDE:
         case VOXEL_TYPE_EMPTY:
         default:
