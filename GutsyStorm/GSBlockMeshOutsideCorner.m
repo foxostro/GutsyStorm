@@ -44,7 +44,83 @@ const static struct vertex mesh[] =
         {0, 0, VOXEL_TEX_GRASS} // texCoord
 	},
 
-    // TODO: need the side faces for this mesh
+    // Bottom
+    {
+        {+L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {0, 0, -1},            // normal
+        {0, 0, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {+L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {0, 0, -1},            // normal
+        {0, 0, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {0, +1, 0},            // normal
+        {1, 0, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, -L, -L},          // position
+        {0, 0, 0},             // color
+        {0, 0, -1},            // normal
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
+    },
+
+    // Side A (a triangle)
+    {
+        {-L, -L, -L},          // position
+        {0, 0, 0},             // color
+        {1, 0, 0},             // normal
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, -L, -L},          // position
+        {0, 0, 0},             // color
+        {1, 0, 0},             // normal
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {1, 0, 0},             // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, +L, +L},          // position
+        {0, 0, 0},             // color
+        {1, 0, 0},             // normal
+        {0, 0, VOXEL_TEX_DIRT} // texCoord
+	},
+
+    // Side B (a triangle)
+    {
+        {-L, +L, +L},          // position
+        {0, 0, 0},             // color
+        {0, 0, -1},            // normal
+        {0, 0, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {-L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {0, 0, -1},            // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {+L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {0, 0, -1},            // normal
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {+L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {0, 0, -1},            // normal
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
+	},
 };
 
 @implementation GSBlockMeshOutsideCorner
