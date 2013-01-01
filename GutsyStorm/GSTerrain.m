@@ -117,10 +117,8 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         voxel_t block;
         
         bzero(&block, sizeof(voxel_t));
-        block.outside = NO; // outside-ness value will be recalculated later
         block.opaque = YES;
         block.dir = VOXEL_DIR_NORTH;
-        block.tex = 0;
         block.type = VOXEL_TYPE_CUBE;
         
         [chunkStore placeBlockAtPoint:cursor.cursorPlacePos block:block];
@@ -134,10 +132,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         voxel_t block;
         
         bzero(&block, sizeof(voxel_t));
-        block.outside = NO; // outside-ness value will be recalculated later
-        block.opaque = NO;
         block.dir = VOXEL_DIR_NORTH;
-        block.tex = 0;
         block.type = VOXEL_TYPE_EMPTY;
         
         [chunkStore placeBlockAtPoint:cursor.cursorPos block:block];

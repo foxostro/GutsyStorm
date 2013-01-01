@@ -1,5 +1,5 @@
 //
-//  GSGridNeighbors.m
+//  GSNeighborhood.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/11/12.
