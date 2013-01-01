@@ -63,7 +63,8 @@ typedef enum
     VOXEL_DIR_NORTH=0, // ( 0, 0, +1)
     VOXEL_DIR_EAST,    // (+1, 0,  0)
     VOXEL_DIR_SOUTH,   // ( 0, 0, -1)
-    VOXEL_DIR_WEST     // (-1, 0,  0)
+    VOXEL_DIR_WEST,    // (-1, 0,  0)
+    NUM_VOXEL_DIRECTIONS
 } voxel_dir_t;
 
 _Static_assert(0 == (int)VOXEL_DIR_NORTH, "The ordering of voxel_dir_t matters.");
@@ -91,27 +92,35 @@ typedef enum
 {
     VOXEL_TEX_GRASS=0,
     VOXEL_TEX_DIRT,
-    VOXEL_TEX_SIDE
+    VOXEL_TEX_SIDE,
+    NUM_VOXEL_TEXTURES
 } voxel_tex_t;
 
 
 typedef struct
 {
     /* Cache the results of the calculation of whether this vertex is outside or inside. */
-    BOOL outside;
+    uint8_t outside:1;
 
     /* Indicates the voxel transmits light as if it were air. (used by the lighting engine) */
-    BOOL opaque;
+    uint8_t opaque:1;
 
-    /* The direction of the voxel. Affects the orientation of the mesh and traversibility. */
-    uint8_t dir;
+    /* Indicates the voxel piece is upside down. */
+    uint8_t upsideDown:1; // TODO: implement upside down voxel pieces to smooth the underside of ledges.
+
+    /* The direction of the voxel. (rotation around the Y-axis) Affects the orientation of the mesh and traversibility. */
+    uint8_t dir:2;
 
     /* The voxel type affects the mesh which is used when drawing it. */
-    uint8_t type;
+    uint8_t type:3;
 
     /* Voxel texture. This is used as an index into the terrain texture array. */
-    uint8_t tex;
+    uint8_t tex:2;
 } voxel_t;
+
+_Static_assert(NUM_VOXEL_DIRECTIONS <= (1<<2), "NUM_VOXEL_DIRECTIONS must be able to work with a 2-bit `dir' field.");
+_Static_assert(NUM_VOXEL_TYPES <= (1<<3),      "NUM_VOXEL_TYPES must be able to work with a 3-bit `type' field.");
+_Static_assert(NUM_VOXEL_TEXTURES <= (1<<2),   "NUM_VOXEL_TEXTURES must be able to work with a 2-bit `tex' field.");
 
 
 typedef enum
