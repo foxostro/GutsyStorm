@@ -75,10 +75,16 @@ const static struct vertex mesh[] =
         {+L, +L, +L},          // position
         {0, 0, 0},             // color
         {1, 0, 0},             // normal
-        {1, 0, VOXEL_TEX_DIRT} // texCoord
+        {0, 0, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {+L, -L, +L},          // position
+        {0, 0, 0},             // color
+        {1, 0, 0},             // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
+	},
+    {
+        {+L, -L, -L},          // position
         {0, 0, 0},             // color
         {1, 0, 0},             // normal
         {1, 1, VOXEL_TEX_DIRT} // texCoord
@@ -87,39 +93,33 @@ const static struct vertex mesh[] =
         {+L, -L, -L},          // position
         {0, 0, 0},             // color
         {1, 0, 0},             // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
-	},
-    {
-        {+L, -L, -L},          // position
-        {0, 0, 0},             // color
-        {1, 0, 0},             // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
 	},
 
     // Side B (a triangle)
     {
         {+L, -L, -L},          // position
         {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
+        {0, 0, -1},            // normal
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {+L, -L, -L},          // position
         {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
-        {0, 1, VOXEL_TEX_DIRT} // texCoord
+        {0, 0, -1},            // normal
+        {1, 1, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {-L, -L, -L},          // position
         {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
-        {1, 1, VOXEL_TEX_DIRT} // texCoord
+        {0, 0, -1},            // normal
+        {0, 1, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {-L, +L, -L},          // position
         {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
-        {1, 0, VOXEL_TEX_DIRT} // texCoord
+        {0, 0, -1},            // normal
+        {0, 0, VOXEL_TEX_DIRT} // texCoord
 	},
 
     // Side C (a full square)
@@ -152,25 +152,25 @@ const static struct vertex mesh[] =
     {
         {-L, +L, +L},          // position
         {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
+        {0, 0, +1},            // normal
         {0, 0, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {-L, -L, +L},          // position
         {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
+        {0, 0, +1},            // normal
         {0, 1, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {+L, -L, +L},          // position
         {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
+        {0, 0, +1},            // normal
         {1, 1, VOXEL_TEX_DIRT} // texCoord
 	},
     {
         {+L, +L, +L},          // position
         {0, 0, 0},             // color
-        {-1, 0, 0},            // normal
+        {0, 0, +1},            // normal
         {1, 0, VOXEL_TEX_DIRT} // texCoord
 	},
 };

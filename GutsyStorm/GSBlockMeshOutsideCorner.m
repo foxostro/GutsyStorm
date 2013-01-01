@@ -34,14 +34,14 @@ const static struct vertex mesh[] =
     {
         {+L, -L, +L},           // position
         {0, 0, 0},              // color
-        {0, 0, +1},             // normal
+        {0, 0, -1},             // normal
         {0, 0, VOXEL_TEX_GRASS} // texCoord
 	},
     {
-        {0, -L, 0},             // position
+        {+L, -L, +L},           // position
         {0, 0, 0},              // color
         {0, 0, -1},             // normal
-        {0, 1, VOXEL_TEX_GRASS} // texCoord
+        {0, 0, VOXEL_TEX_GRASS} // texCoord
 	},
 
     // TODO: need the side faces for this mesh
