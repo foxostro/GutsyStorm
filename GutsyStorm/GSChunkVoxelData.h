@@ -16,6 +16,7 @@
 
 
 typedef void (^terrain_generator_t)(GLKVector3, voxel_t*);
+typedef void (^terrain_post_processor_t)(voxel_t *voxelsIn, voxel_t *voxelsOut, GSIntegerVector3 minP, GSIntegerVector3 maxP);
 
 
 @interface GSChunkVoxelData : GSChunkData
@@ -48,7 +49,8 @@ typedef void (^terrain_generator_t)(GLKVector3, voxel_t*);
             folder:(NSURL *)folder
     groupForSaving:(dispatch_group_t)groupForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-         generator:(terrain_generator_t)callback;
+         generator:(terrain_generator_t)generator
+     postProcessor:(terrain_post_processor_t)postProcessor;
 
 // Must call after modifying voxel data and while still holding the lock on "lockVoxelData".
 - (void)voxelDataWasModified;

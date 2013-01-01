@@ -18,6 +18,178 @@
 static float groundGradient(float terrainHeight, GLKVector3 p);
 static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 p, voxel_t *outVoxel);
 
+struct PostProcessingRule
+{
+    /* Diagram shows the 9 voxel types at and around the block which matches this replacement rule.
+     * So, if all surrounding voxel types match the diagram then this rule applies to that block.
+     *
+     * ' ' --> "Don't Care." The voxel type doesn't matter for this position.
+     * '.' --> VOXEL_TYPE_EMPTY
+     * '#' --> VOXEL_TYPE_CUBE
+     *
+     * North is at the top of the diagram.
+     */
+    char diagram[9];
+
+    /* This voxel replaces the original one in th chunk. */
+    voxel_t replacement;
+};
+
+struct PostProcessingRule rules[] =
+{
+    // Ramps
+    {
+        " # "
+        "..."
+        " . ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_NORTH,
+            .type = VOXEL_TYPE_RAMP
+        }
+    },
+    {
+        " . "
+        "..#"
+        " . ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_EAST,
+            .type = VOXEL_TYPE_RAMP
+        }
+    },
+    {
+        " . "
+        "..."
+        " # ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_SOUTH,
+            .type = VOXEL_TYPE_RAMP
+        }
+    },
+    {
+        " . "
+        "#.."
+        " . ",
+        {
+            .opaque = NO,
+            .dir = VOXEL_DIR_WEST,
+            .type = VOXEL_TYPE_RAMP
+        }
+    },
+};
+
+static BOOL
+typeMatchesCharacter(voxel_type_t type, char c)
+{
+    // All voxel types match the space character.
+    if(c == ' ') {
+        return YES;
+    }
+
+    switch(c)
+    {
+        case '.':
+            return type == VOXEL_TYPE_EMPTY;
+
+        case '#':
+            return type == VOXEL_TYPE_CUBE;
+    }
+
+    return NO;
+}
+
+static BOOL
+cellPositionMatchesRule(struct PostProcessingRule *rule, GSIntegerVector3 clp,
+                        voxel_t *voxels, GSIntegerVector3 minP, GSIntegerVector3 maxP)
+{
+    assert(rule);
+    assert(clp.x >= 0 && clp.x < CHUNK_SIZE_X);
+    assert(clp.y >= 0 && clp.y < CHUNK_SIZE_Y);
+    assert(clp.z >= 0 && clp.z < CHUNK_SIZE_Z);
+
+    for(ssize_t x=-1; x<=1; ++x)
+    {
+        for(ssize_t z=-1; z<=1; ++z)
+        {
+            if(x==0 && z==0) { // (0,0) refers to the target block, so the value in the diagram doesn't matter.
+                continue;
+            }
+
+            GSIntegerVector3 p = GSIntegerVector3_Make(x+clp.x, clp.y, z+clp.z);
+            voxel_type_t type = voxels[INDEX_BOX(p, minP, maxP)].type;
+            ssize_t idx = 3*(-z+1) + (x+1);
+            assert(idx >= 0 && idx < 9);
+            char c = rule->diagram[idx];
+
+            if(!typeMatchesCharacter(type, c)) {
+                return NO;
+            }
+        }
+    }
+
+    return YES;
+}
+
+static struct PostProcessingRule *
+findRuleForCellPosition(size_t numRules, struct PostProcessingRule *rules,
+                        GSIntegerVector3 clp,
+                        voxel_t *voxels, GSIntegerVector3 minP, GSIntegerVector3 maxP)
+{
+    assert(rules);
+
+    for(size_t i=0; i<numRules; ++i)
+    {
+        if(cellPositionMatchesRule(&rules[i], clp, voxels, minP, maxP)) {
+            return &rules[i];
+        }
+    }
+
+    return NULL;
+}
+
+static void
+postProcessVoxels(size_t numRules, struct PostProcessingRule *rules,
+                  voxel_t *voxelsIn, voxel_t *voxelsOut,
+                  GSIntegerVector3 minP, GSIntegerVector3 maxP)
+{
+    assert(rules);
+    assert(voxelsIn);
+    assert(voxelsOut);
+
+    GSIntegerVector3 p = {0};
+
+    // Copy all voxels directly and then, below, replace a few according to the processing rules.
+    const size_t numVoxels = (maxP.x-minP.x) * (maxP.y-minP.y) * (maxP.z-minP.z);
+    memcpy(voxelsOut, voxelsIn, numVoxels * sizeof(voxel_t));
+
+    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+    {
+        // Find a voxel which is empty and is directly above a cube voxel.
+        p.y = 0;
+        voxel_type_t prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
+        for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
+        {
+            const size_t idx = INDEX_BOX(p, minP, maxP);
+            voxel_t *voxel = &voxelsIn[idx];
+
+            if(voxel->type == VOXEL_TYPE_EMPTY && prevType == VOXEL_TYPE_CUBE) {
+                // Find and apply the first post-processing rule which matches this position.
+                struct PostProcessingRule *rule = findRuleForCellPosition(numRules, rules, p, voxelsIn, minP, maxP);
+                if(rule) {
+                    voxel_t replacement = rule->replacement;
+                    replacement.tex = voxel->tex;
+                    replacement.outside = voxel->outside;
+                    voxelsOut[idx] = replacement;
+                }
+            }
+            
+            prevType = voxel->type;
+        }
+    }
+}
+
 
 @interface GSChunkStore (Private)
 
@@ -29,6 +201,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p;
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk;
+- (id)newChunkWithMinimumCorner:(GLKVector3)minP;
 
 @end
 
@@ -471,15 +644,10 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
-    GSChunkVoxelData *v = [gridVoxelData objectAtPoint:p objectFactory:^id(GLKVector3 minP) {
-        return [[[GSChunkVoxelData alloc] initWithMinP:minP
-                                                folder:folder
-                                        groupForSaving:groupForSaving
-                                        chunkTaskQueue:chunkTaskQueue
-                                             generator:^(GLKVector3 a, voxel_t *voxel) {
-                                                 generateTerrainVoxel(seed, terrainHeight, a, voxel);
-                                             }] autorelease];
-    }];
+    GSChunkVoxelData *v = [gridVoxelData objectAtPoint:p
+                                         objectFactory:^id(GLKVector3 minP) {
+                                             return [self newChunkWithMinimumCorner:minP];
+                                         }];
     
     return v;
 }
@@ -494,15 +662,11 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     assert(chunk);
 
-    success = [gridVoxelData tryToGetObjectAtPoint:p object:&v objectFactory:^id(GLKVector3 minP) {
-        return [[[GSChunkVoxelData alloc] initWithMinP:minP
-                                                folder:folder
-                                        groupForSaving:groupForSaving
-                                        chunkTaskQueue:chunkTaskQueue
-                                             generator:^(GLKVector3 a, voxel_t *voxel) {
-                                                 generateTerrainVoxel(seed, terrainHeight, a, voxel);
-                                             }] autorelease];
-    }];
+    success = [gridVoxelData tryToGetObjectAtPoint:p
+                                            object:&v
+                                     objectFactory:^id(GLKVector3 minP) {
+                                         return [self newChunkWithMinimumCorner:minP];
+                                     }];
 
     if(success) {
         *chunk = v;
@@ -580,6 +744,26 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
         OSAtomicCompareAndSwapIntBarrier(0, 1, &needsChunkVisibilityUpdate);
     }
+}
+
+- (id)newChunkWithMinimumCorner:(GLKVector3)minP
+{
+    terrain_generator_t generator = ^(GLKVector3 a, voxel_t *voxel) {
+        generateTerrainVoxel(seed, terrainHeight, a, voxel);
+    };
+
+    terrain_post_processor_t postProcessor = ^(voxel_t *voxelsIn, voxel_t *voxelsOut,
+                                               GSIntegerVector3 minP, GSIntegerVector3 maxP) {
+        const size_t numRules = sizeof(rules) / sizeof(rules[0]);
+        postProcessVoxels(numRules, rules, voxelsIn, voxelsOut, minP, maxP);
+    };
+
+    return [[[GSChunkVoxelData alloc] initWithMinP:minP
+                                            folder:folder
+                                    groupForSaving:groupForSaving
+                                    chunkTaskQueue:chunkTaskQueue
+                                         generator:generator
+                                     postProcessor:postProcessor] autorelease];
 }
 
 @end

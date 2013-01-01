@@ -20,10 +20,13 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (void)allocateVoxelData;
 - (NSError *)loadVoxelDataFromFile:(NSURL *)url;
 - (void)recalcOutsideVoxelsNoLock;
-- (void)generateVoxelDataWithCallback:(terrain_generator_t)callback;
+- (void)generateVoxelDataWithGenerator:(terrain_generator_t)generator
+                         postProcessor:(terrain_post_processor_t)postProcessor;
 - (void)saveVoxelDataToFile;
 - (void)saveSunlightDataToFile;
-- (void)loadOrGenerateVoxelData:(terrain_generator_t)callback completionHandler:(void (^)(void))completionHandler;
+- (void)loadOrGenerateVoxelData:(terrain_generator_t)generator
+                  postProcessor:(terrain_post_processor_t)postProcessor
+              completionHandler:(void (^)(void))completionHandler;
 - (void)tryToLoadSunlightData;
 
 @end
@@ -52,7 +55,8 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
             folder:(NSURL *)_folder
     groupForSaving:(dispatch_group_t)_groupForSaving
     chunkTaskQueue:(dispatch_queue_t)_chunkTaskQueue
-         generator:(terrain_generator_t)callback
+         generator:(terrain_generator_t)generator
+     postProcessor:(terrain_post_processor_t)postProcessor
 {
     self = [super initWithMinP:_minP];
     if (self) {
@@ -84,7 +88,9 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
             [self tryToLoadSunlightData];
             OSAtomicCompareAndSwapIntBarrier(1, 0, &updateForSunlightInFlight); // reset
             
-            [self loadOrGenerateVoxelData:callback completionHandler:^{
+            [self loadOrGenerateVoxelData:generator
+                            postProcessor:postProcessor
+                        completionHandler:^{
                 [self recalcOutsideVoxelsNoLock];
                 [lockVoxelData unlockForWriting];
                 // We don't need to call -voxelDataWasModified in the special case of initialization.
@@ -434,62 +440,39 @@ cleanup1:
  *
  * Assumes the caller already holds "lockVoxelData" for writing.
  */
-- (void)generateVoxelDataWithCallback:(terrain_generator_t)generator
+- (void)generateVoxelDataWithGenerator:(terrain_generator_t)generator
+                         postProcessor:(terrain_post_processor_t)postProcessor
 {
-    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-
-    voxel_t *temp = calloc((CHUNK_SIZE_X+2) * CHUNK_SIZE_Y * (CHUNK_SIZE_Z+2), sizeof(voxel_t));
-    
     GSIntegerVector3 p, a, b;
     a = GSIntegerVector3_Make(-1, 0, -1);
     b = GSIntegerVector3_Make(chunkSize.x+1, chunkSize.y, chunkSize.z+1);
+
+    const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
+    voxel_t *rawVoxels = calloc(count, sizeof(voxel_t));
+    voxel_t *processedVoxels = calloc(count, sizeof(voxel_t));
 
     // First, generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.
     FOR_BOX(p, a, b)
     {
-        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), minP), &temp[INDEX_BOX(p, a, b)]);
+        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), minP), &rawVoxels[INDEX_BOX(p, a, b)]);
     }
 
-    // Post-process the voxels: add ramps to ledges.
-    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
-    {
-        // Find a voxel which is empty and is directly above a cube voxel.
-        p.y = 0;
-        voxel_type_t prevType = [self voxelAtLocalPosition:p].type;
-        for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
-        {
-            voxel_t *voxel = &temp[INDEX_BOX(p, a, b)];
-            voxel_type_t type = voxel->type;
-
-            if(voxel->type == VOXEL_TYPE_EMPTY && prevType == VOXEL_TYPE_CUBE) {
-                for(voxel_dir_t dir=0; dir<4; ++dir)
-                {
-                    GSIntegerVector3 testPos = GSIntegerVector3_Add(p, integerVectorForDirection(dir));
-                    if(temp[INDEX_BOX(testPos, a, b)].type == VOXEL_TYPE_CUBE) {
-                        voxel->type = VOXEL_TYPE_RAMP;
-                        voxel->dir = dir;
-                        voxel->opaque = NO; // Ramps are made transparent to help the lighting engine on slopes.
-                    }
-                }
-            }
-            
-            prevType = type;
-        }
-    }
-    
-    // TODO: inside corners, outside corners, and ramps on the underside of ledges
+    // Post-process the voxels to add ramps, &c.
+    postProcessor(rawVoxels, processedVoxels, a, b);
 
     // Copy the voxels for the chunk to their final destination.
     FOR_BOX(p, ivecZero, chunkSize)
     {
-        voxelData[INDEX_BOX(p, ivecZero, chunkSize)] = temp[INDEX_BOX(p, a, b)];
+        voxelData[INDEX_BOX(p, ivecZero, chunkSize)] = processedVoxels[INDEX_BOX(p, a, b)];
     }
 
-    free(temp);
+    // Clean up
+    free(rawVoxels);
+    rawVoxels = NULL;
 
-    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished generating chunk voxel data. It took %.3fs", timeEnd - timeStart);
+    free(processedVoxels);
+    processedVoxels = NULL;
 }
 
 
@@ -519,14 +502,17 @@ cleanup1:
 }
 
 
-- (void)loadOrGenerateVoxelData:(terrain_generator_t)callback completionHandler:(void (^)(void))completionHandler
+- (void)loadOrGenerateVoxelData:(terrain_generator_t)generator
+                  postProcessor:(terrain_post_processor_t)postProcessor
+              completionHandler:(void (^)(void))completionHandler
 {
     NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP] relativeToURL:folder];
     NSError *error = [self loadVoxelDataFromFile:url];
     
     if(error) {
         if((error.code == GSInvalidChunkDataOnDiskError) || (error.code == GSFileNotFoundError)) {
-            [self generateVoxelDataWithCallback:callback];
+            [self generateVoxelDataWithGenerator:generator
+                                   postProcessor:postProcessor];
 
             dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
             dispatch_group_async(groupForSaving, queue, ^{
