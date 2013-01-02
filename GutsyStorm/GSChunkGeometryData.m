@@ -294,6 +294,8 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     // Iterate over all voxels in the chunk and generate geometry.
     FOR_BOX(pos, minP, maxP)
     {
+        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
         GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
         GSChunkVoxelData *centerVoxels = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
         voxel_type_t type = [centerVoxels voxelAtLocalPosition:chunkLocalPos].type;
@@ -303,6 +305,8 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
                                                vertexList:vertices
                                                 voxelData:neighborhood
                                                      minP:minP];
+        
+        [pool release];
     }
     
     numChunkVerts = (GLsizei)[vertices count];
