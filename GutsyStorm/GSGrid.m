@@ -103,52 +103,15 @@
     free(oldBuckets);
 }
 
-- (id)objectAtPoint:(GLKVector3)p objectFactory:(id (^)(GLKVector3 minP))factory
+- (BOOL)objectAtPoint:(GLKVector3)p
+             blocking:(BOOL)blocking
+               object:(id *)object objectFactory:(id (^)(GLKVector3 minP))factory
 {
-    [lockTheTableItself lockForReading]; // The only writer is -resizeTable, so lock contention will be low, hopefully.
-    
-    float load = 0;
-    id anObject = nil;
-    GLKVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
-    NSUInteger hash = GLKVector3Hash(minP);
-    NSUInteger idxBucket = hash % numBuckets;
-    NSUInteger idxLock = hash % numLocks;
-    NSLock *lock = locks[idxLock];
-    NSMutableArray *bucket = buckets[idxBucket];
-    
-    [lock lock];
-    
-    for(GSChunkData *item in bucket)
-    {
-        if(GLKVector3AllEqualToVector3(item.minP, minP)) {
-            anObject = item;
-        }
-    }
-    
-    if(!anObject) {
-        anObject = factory(minP);
-        assert(anObject);
-        [bucket addObject:anObject];
-        OSAtomicIncrement32Barrier(&n);
-        load = (float)n / numBuckets;
-    }
-    
-    [lock unlock];
-    [lockTheTableItself unlockForReading];
-    
-    if(load > loadLevelToTriggerResize) {
-        [self resizeTable];
-    }
-    
-    return anObject;
-}
-
-- (BOOL)tryToGetObjectAtPoint:(GLKVector3)p object:(id *)object objectFactory:(id (^)(GLKVector3 minP))factory
-{
-    // XXX: try to refactor to consolidate this and the objectAtPoint method.
     assert(object);
 
-    if(![lockTheTableItself tryLockForReading]) {
+    if(blocking) {
+        [lockTheTableItself lockForReading];
+    } else if(![lockTheTableItself tryLockForReading]) {
         return NO;
     }
 
@@ -161,7 +124,9 @@
     NSLock *lock = locks[idxLock];
     NSMutableArray *bucket = buckets[idxBucket];
 
-    if(![lock tryLock]) {
+    if(blocking) {
+        [lock lock];
+    } else if(![lock tryLock]) {
         [lockTheTableItself unlockForReading];
         return NO;
     }
@@ -190,6 +155,24 @@
 
     *object = anObject;
     return YES;
+}
+
+- (id)objectAtPoint:(GLKVector3)p objectFactory:(id (^)(GLKVector3 minP))factory
+{
+    id anObject = nil;
+    [self objectAtPoint:p
+               blocking:YES
+                 object:&anObject
+          objectFactory:factory];
+    return anObject;
+}
+
+- (BOOL)tryToGetObjectAtPoint:(GLKVector3)p object:(id *)object objectFactory:(id (^)(GLKVector3 minP))factory
+{
+    return [self objectAtPoint:p
+                      blocking:NO
+                        object:object
+                 objectFactory:factory];
 }
 
 @end
