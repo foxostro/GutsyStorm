@@ -8,11 +8,6 @@
 
 #import <Foundation/Foundation.h>
 
-@interface GSBlockMeshOutsideCorner : NSObject <GSBlockMesh>
-
-- (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
-                                      vertexList:(NSMutableArray *)vertexList
-                                       voxelData:(GSNeighborhood *)voxelData
-                                            minP:(GLKVector3)minP;
+@interface GSBlockMeshOutsideCorner : GSBlockMeshMesh <GSBlockMesh>
 
 @end

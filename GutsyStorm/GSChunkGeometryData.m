@@ -12,6 +12,8 @@
 #import "GSChunkStore.h"
 #import "GSVertex.h"
 #import "Voxel.h"
+#import "GSBlockMesh.h"
+#import "GSBlockMeshMesh.h"
 #import "GSBlockMeshCube.h"
 #import "GSBlockMeshRamp.h"
 #import "GSBlockMeshInsideCorner.h"
