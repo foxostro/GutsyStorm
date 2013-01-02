@@ -16,6 +16,8 @@
 
 - (void)copyVertices:(const struct vertex*)mesh count:(NSUInteger)count;
 
+- (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat;
+
 - (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
                                       vertexList:(NSMutableArray *)vertexList
                                        voxelData:(GSNeighborhood *)voxelData

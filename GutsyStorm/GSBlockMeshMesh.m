@@ -41,6 +41,23 @@
     vertices = memcpy(malloc(len), mesh, len);
 }
 
+- (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat
+{
+    GLKVector3 vertexPos, normal;
+
+    vertexPos = GLKVector3Make(v->position[0], v->position[1], v->position[2]);
+    vertexPos = GLKQuaternionRotateVector3(*quat, vertexPos);
+    v->position[0] = vertexPos.v[0];
+    v->position[1] = vertexPos.v[1];
+    v->position[2] = vertexPos.v[2];
+
+    normal = GLKVector3Make(v->normal[0], v->normal[1], v->normal[2]);
+    normal = GLKQuaternionRotateVector3(*quat, normal);
+    v->normal[0] = normal.v[0];
+    v->normal[1] = normal.v[1];
+    v->normal[2] = normal.v[2];
+}
+
 - (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
                                       vertexList:(NSMutableArray *)vertexList
                                        voxelData:(GSNeighborhood *)voxelData
@@ -52,28 +69,25 @@
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSChunkVoxelData *centerVoxels = [voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     voxel_t voxel = [centerVoxels voxelAtLocalPosition:chunkLocalPos];
-    GLKQuaternion quat = quaternionForDirection(voxel.dir);
+    GLKQuaternion quatY = quaternionForDirection(voxel.dir);
+    GLKQuaternion quatZ = GLKQuaternionMakeWithAngleAndAxis(M_PI, 1, 0, 0);
 
     assert(numVertices % 4 == 0);
 
     for(size_t i = 0; i < numVertices; ++i)
     {
         struct vertex v = vertices[i];
-
-        // rotate the mesh
-        GLKVector3 vertexPos = GLKVector3Make(v.position[0], v.position[1], v.position[2]);
-        vertexPos = GLKQuaternionRotateVector3(quat, vertexPos);
-        v.position[0] = vertexPos.v[0] + pos.v[0];
-        v.position[1] = vertexPos.v[1] + pos.v[1];
-        v.position[2] = vertexPos.v[2] + pos.v[2];
-
-        // rotate the normal too
-        GLKVector3 normal = GLKVector3Make(v.normal[0], v.normal[1], v.normal[2]);
-        normal = GLKQuaternionRotateVector3(quat, normal);
-        v.normal[0] = normal.v[0];
-        v.normal[1] = normal.v[1];
-        v.normal[2] = normal.v[2];
-
+        
+        if(voxel.upsideDown) {
+            [self rotateVertex:&v quaternion:&quatZ];
+        }
+        
+        [self rotateVertex:&v quaternion:&quatY];
+        
+        v.position[0] += pos.v[0];
+        v.position[1] += pos.v[1];
+        v.position[2] += pos.v[2];
+        
         [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
     }
 }
