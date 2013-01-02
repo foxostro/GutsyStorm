@@ -92,6 +92,8 @@
             n++;
         }
     }
+
+    [lockTheTableItself unlockForWriting];
     
     // Free the old set of buckets.
     for(NSUInteger i=0; i<oldNumBuckets; ++i)
@@ -99,8 +101,6 @@
         [oldBuckets[i] release];
     }
     free(oldBuckets);
-    
-    [lockTheTableItself unlockForWriting];
 }
 
 - (id)objectAtPoint:(GLKVector3)p objectFactory:(id (^)(GLKVector3 minP))factory
