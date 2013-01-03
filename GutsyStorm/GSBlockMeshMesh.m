@@ -88,7 +88,10 @@
         v.position[1] += pos.v[1];
         v.position[2] += pos.v[2];
 
-        v.texCoord[2] = (voxel.exposedToAirOnTop) ? VOXEL_TEX_GRASS : VOXEL_TEX_DIRT;
+        // TODO: cubes which are exposed to air on top should also use the SIDE texture.
+        if(!voxel.exposedToAirOnTop && (v.texCoord[2] == VOXEL_TEX_GRASS || v.texCoord[2] == VOXEL_TEX_SIDE)) {
+            v.texCoord[2] = VOXEL_TEX_DIRT;
+        }
         
         [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
     }

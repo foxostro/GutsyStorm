@@ -408,41 +408,39 @@ cleanup1:
 // Assumes the caller is already holding "lockVoxelData".
 - (void)recalcOutsideVoxelsNoLock
 {
+    GSIntegerVector3 p;
+
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
-    for(ssize_t x = 0; x < CHUNK_SIZE_X; ++x)
+    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
     {
-        for(ssize_t z = 0; z < CHUNK_SIZE_Z; ++z)
+        // Get the y value of the highest non-empty voxel in the chunk.
+        ssize_t heightOfHighestVoxel;
+        for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
-            // Get the y value of the highest non-empty voxel in the chunk.
-            ssize_t heightOfHighestVoxel;
-            for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
-            {
-                voxel_t *voxel = [self pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(x, heightOfHighestVoxel, z)];
-                
-                if(voxel->opaque) {
-                    break;
-                }
-            }
+            voxel_t *voxel = [self pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(p.x, heightOfHighestVoxel, p.z)];
             
-            for(ssize_t y = 0; y < CHUNK_SIZE_Y; ++y)
-            {
-                [self pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(x, y, z)]->outside = (y >= heightOfHighestVoxel);
+            if(voxel->opaque) {
+                break;
             }
+        }
+        
+        for(p.y = 0; p.y < chunkSize.y; ++p.y)
+        {
+            [self pointerToVoxelAtLocalPosition:p]->outside = (p.y >= heightOfHighestVoxel);
         }
     }
 
     // Determine voxels in the chunk which are exposed to air on top.
-    GSIntegerVector3 p;
     FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
     {
         // Find a voxel which is empty and is directly above a cube voxel.
-        p.y = 0;
+        p.y = CHUNK_SIZE_Y-1;
         voxel_type_t prevType = [self pointerToVoxelAtLocalPosition:p]->type;
-        for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
+        for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
         {
             voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
-            voxel->exposedToAirOnTop = (voxel->type == VOXEL_TYPE_EMPTY && prevType == VOXEL_TYPE_EMPTY);
+            voxel->exposedToAirOnTop = voxel->exposedToAirOnTop || (voxel->type==VOXEL_TYPE_EMPTY && prevType==VOXEL_TYPE_EMPTY);
             prevType = voxel->type;
         }
     }

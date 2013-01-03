@@ -412,6 +412,11 @@ static void postProcessingInnerLoop(GSIntegerVector3 maxP, GSIntegerVector3 minP
                                     voxel_t *voxelsIn, voxel_t *voxelsOut,
                                     struct PostProcessingRuleSet *ruleSet, voxel_type_t *prevType_p)
 {
+    assert(voxelsIn);
+    assert(voxelsOut);
+    assert(ruleSet);
+    assert(prevType_p);
+
     const size_t idx = INDEX_BOX(p, minP, maxP);
     voxel_t *voxel = &voxelsIn[idx];
     
@@ -422,7 +427,7 @@ static void postProcessingInnerLoop(GSIntegerVector3 maxP, GSIntegerVector3 minP
             voxel_t replacement = rule->replacement;
             replacement.tex = voxel->tex;
             replacement.outside = voxel->outside;
-            replacement.exposedToAirOnTop = YES;
+            replacement.exposedToAirOnTop = !ruleSet->upsideDown;
             replacement.upsideDown = ruleSet->upsideDown;
             voxelsOut[idx] = replacement;
         }
