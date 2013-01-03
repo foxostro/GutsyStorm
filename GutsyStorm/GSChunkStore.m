@@ -46,6 +46,9 @@ struct PostProcessingRuleSet
 
     /* The rules only apply to empty blocks placed on top of blocks of the type specified by `appliesAboveBlockType'. */
     voxel_type_t appliesAboveBlockType;
+
+    /* If YES then search from the bottom of the chunk to the top, on the undersides of ledges and stuff. */
+    BOOL upsideDown;
 };
 
 static struct PostProcessingRule replacementRulesA[] =
@@ -308,14 +311,28 @@ static struct PostProcessingRule replacementRulesB[] =
 static struct PostProcessingRuleSet replacementRuleSets[] =
 {
     {
-        ARRAY_LEN(replacementRulesA),
-        replacementRulesA,
-        VOXEL_TYPE_CUBE
+        .count = ARRAY_LEN(replacementRulesA),
+        .rules = replacementRulesA,
+        .appliesAboveBlockType = VOXEL_TYPE_CUBE,
+        .upsideDown = NO
     },
     {
-        ARRAY_LEN(replacementRulesB),
-        replacementRulesB,
-        VOXEL_TYPE_CORNER_INSIDE
+        .count = ARRAY_LEN(replacementRulesB),
+        .rules = replacementRulesB,
+        .appliesAboveBlockType = VOXEL_TYPE_CORNER_INSIDE,
+        .upsideDown = NO
+    },
+    {
+        .count = ARRAY_LEN(replacementRulesA),
+        .rules = replacementRulesA,
+        .appliesAboveBlockType = VOXEL_TYPE_CUBE,
+        .upsideDown = YES
+    },
+    {
+        .count = ARRAY_LEN(replacementRulesB),
+        .rules = replacementRulesB,
+        .appliesAboveBlockType = VOXEL_TYPE_CORNER_INSIDE,
+        .upsideDown = YES
     },
 };
 
@@ -391,6 +408,29 @@ findRuleForCellPosition(size_t numRules, struct PostProcessingRule *rules,
     return NULL;
 }
 
+static void postProcessingInnerLoop(GSIntegerVector3 maxP, GSIntegerVector3 minP, GSIntegerVector3 p,
+                                    voxel_t *voxelsIn, voxel_t *voxelsOut,
+                                    struct PostProcessingRuleSet *ruleSet, voxel_type_t *prevType_p)
+{
+    const size_t idx = INDEX_BOX(p, minP, maxP);
+    voxel_t *voxel = &voxelsIn[idx];
+    
+    if(voxel->type == VOXEL_TYPE_EMPTY && *prevType_p == ruleSet->appliesAboveBlockType) {
+        // Find and apply the first post-processing rule which matches this position.
+        struct PostProcessingRule *rule = findRuleForCellPosition(ruleSet->count, ruleSet->rules, p, voxelsIn, minP, maxP);
+        if(rule) {
+            voxel_t replacement = rule->replacement;
+            replacement.tex = voxel->tex;
+            replacement.outside = voxel->outside;
+            replacement.exposedToAirOnTop = YES;
+            replacement.upsideDown = ruleSet->upsideDown;
+            voxelsOut[idx] = replacement;
+        }
+    }
+    
+    *prevType_p = voxel->type;
+}
+
 static void
 postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
                   voxel_t *voxelsIn, voxel_t *voxelsOut,
@@ -408,26 +448,22 @@ postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
 
     FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
     {
-        // Find a voxel which is empty and is directly above a cube voxel.
-        p.y = 0;
-        voxel_type_t prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
-        for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
-        {
-            const size_t idx = INDEX_BOX(p, minP, maxP);
-            voxel_t *voxel = &voxelsIn[idx];
-
-            if(voxel->type == VOXEL_TYPE_EMPTY && prevType == ruleSet->appliesAboveBlockType) {
-                // Find and apply the first post-processing rule which matches this position.
-                struct PostProcessingRule *rule = findRuleForCellPosition(ruleSet->count, ruleSet->rules, p, voxelsIn, minP, maxP);
-                if(rule) {
-                    voxel_t replacement = rule->replacement;
-                    replacement.tex = voxel->tex;
-                    replacement.outside = voxel->outside;
-                    voxelsOut[idx] = replacement;
-                }
+        if(ruleSet->upsideDown) {
+            // Find a voxel which is empty and is directly below a cube voxel.
+            p.y = CHUNK_SIZE_Y-1;
+            voxel_type_t prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
+            for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
+            {
+                postProcessingInnerLoop(maxP, minP, p, voxelsIn, voxelsOut, ruleSet, &prevType);
             }
-            
-            prevType = voxel->type;
+        } else {
+            // Find a voxel which is empty and is directly above a cube voxel.
+            p.y = 0;
+            voxel_type_t prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
+            for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
+            {
+                postProcessingInnerLoop(maxP, minP, p, voxelsIn, voxelsOut, ruleSet, &prevType);
+            }
         }
     }
 }
@@ -559,6 +595,8 @@ postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
 - (void)drawActiveChunks
 {
     [terrainShader bind];
+
+    glDisable(GL_CULL_FACE);
     
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
@@ -584,6 +622,8 @@ postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
+
+    glEnable(GL_CULL_FACE);
     
     [terrainShader unbind];
 }
@@ -996,14 +1036,18 @@ postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
 
     terrain_post_processor_t postProcessor = ^ voxel_t * (size_t count, voxel_t *voxelsIn,
                                                           GSIntegerVector3 minP, GSIntegerVector3 maxP) {
-        voxel_t *temp = calloc(count, sizeof(voxel_t));
+        voxel_t *temp1 = calloc(count, sizeof(voxel_t));
+        voxel_t *temp2 = calloc(count, sizeof(voxel_t));
         voxel_t *voxelsOut = calloc(count, sizeof(voxel_t));
 
-        _Static_assert(2 == ARRAY_LEN(replacementRuleSets), "only expecting two rule sets in total");
-        postProcessVoxels(&replacementRuleSets[0], voxelsIn, temp, minP, maxP);
-        postProcessVoxels(&replacementRuleSets[1], temp, voxelsOut, minP, maxP);
+        _Static_assert(4 == ARRAY_LEN(replacementRuleSets), "only expecting two rule sets in total");
+        postProcessVoxels(&replacementRuleSets[0], voxelsIn, temp1, minP, maxP);
+        postProcessVoxels(&replacementRuleSets[1], temp1, temp2, minP, maxP);
+        postProcessVoxels(&replacementRuleSets[2], temp2, temp1, minP, maxP);
+        postProcessVoxels(&replacementRuleSets[3], temp1, voxelsOut, minP, maxP);
 
-        free(temp);
+        free(temp1);
+        free(temp2);
 
         return voxelsOut;
     };
@@ -1100,6 +1144,7 @@ static void generateTerrainVoxel(unsigned seed, float terrainHeight, GLKVector3 
     
     outVoxel->dir = VOXEL_DIR_NORTH;
     outVoxel->outside = NO; // calculated later
+    outVoxel->exposedToAirOnTop = NO; // calculated later
     outVoxel->opaque = groundLayer || floatingMountain;
     outVoxel->tex = 0;
     outVoxel->type = (groundLayer || floatingMountain) ? VOXEL_TYPE_CUBE : VOXEL_TYPE_EMPTY;

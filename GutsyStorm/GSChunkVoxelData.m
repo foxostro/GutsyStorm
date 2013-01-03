@@ -431,6 +431,21 @@ cleanup1:
             }
         }
     }
+
+    // Determine voxels in the chunk which are exposed to air on top.
+    GSIntegerVector3 p;
+    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+    {
+        // Find a voxel which is empty and is directly above a cube voxel.
+        p.y = 0;
+        voxel_type_t prevType = [self pointerToVoxelAtLocalPosition:p]->type;
+        for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
+        {
+            voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
+            voxel->exposedToAirOnTop = (voxel->type == VOXEL_TYPE_EMPTY && prevType == VOXEL_TYPE_EMPTY);
+            prevType = voxel->type;
+        }
+    }
 }
 
 

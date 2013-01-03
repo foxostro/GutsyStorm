@@ -70,23 +70,25 @@
     GSChunkVoxelData *centerVoxels = [voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     voxel_t voxel = [centerVoxels voxelAtLocalPosition:chunkLocalPos];
     GLKQuaternion quatY = quaternionForDirection(voxel.dir);
-    GLKQuaternion quatZ = GLKQuaternionMakeWithAngleAndAxis(M_PI, 1, 0, 0);
 
     assert(numVertices % 4 == 0);
 
     for(size_t i = 0; i < numVertices; ++i)
     {
         struct vertex v = vertices[i];
-        
+
         if(voxel.upsideDown) {
-            [self rotateVertex:&v quaternion:&quatZ];
+            v.position[1] *= -1;
+            v.normal[1] *= -1;
         }
-        
+
         [self rotateVertex:&v quaternion:&quatY];
-        
+
         v.position[0] += pos.v[0];
         v.position[1] += pos.v[1];
         v.position[2] += pos.v[2];
+
+        v.texCoord[2] = (voxel.exposedToAirOnTop) ? VOXEL_TEX_GRASS : VOXEL_TEX_DIRT;
         
         [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
     }
