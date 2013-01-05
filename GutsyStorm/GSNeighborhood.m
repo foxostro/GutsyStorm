@@ -7,8 +7,8 @@
 //
 
 #import <GLKit/GLKMath.h>
-#import "GSNeighborhood.h"
 #import "Voxel.h"
+#import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"
 
@@ -216,19 +216,32 @@
 }
 
 
-- (BOOL)cubeAtPoint:(GSIntegerVector3)p
+- (voxel_t)voxelAtPoint:(GSIntegerVector3)p
 {
+    // XXX: the voxels used for above/below the world must be updated when voxel def changes
     // Assumes each chunk spans the entire vertical extent of the world.
     
     if(p.y < 0) {
-        return YES; // Space below the world is always full (of solid cubes).
+        // Space below the world is always made of solid cubes.
+        return (voxel_t){.outside=NO,
+                         .exposedToAirOnTop=NO,
+                         .opaque=YES,
+                         .upsideDown=NO,
+                         .dir=VOXEL_DIR_NORTH,
+                         .type=VOXEL_TYPE_CUBE,
+                         .tex=VOXEL_TEX_DIRT};
+    } else if(p.y >= CHUNK_SIZE_Y) {
+        // Space above the world is always empty.
+        return (voxel_t){.outside=YES,
+                         .exposedToAirOnTop=YES,
+                         .opaque=NO,
+                         .upsideDown=NO,
+                         .dir=VOXEL_DIR_NORTH,
+                         .type=VOXEL_TYPE_EMPTY,
+                         .tex=0};
+    } else {
+        return [[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p];
     }
-    
-    if(p.y >= CHUNK_SIZE_Y) {
-        return NO; // Space above the world is always empty.
-    }
-    
-    return [[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p].type == VOXEL_TYPE_CUBE;
 }
 
 

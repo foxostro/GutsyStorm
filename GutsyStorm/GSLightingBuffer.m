@@ -7,6 +7,7 @@
 //
 
 #import <GLKit/GLKMath.h>
+#import "Voxel.h"
 #import "GSLightingBuffer.h"
 #import "GSChunkVoxelData.h"
 

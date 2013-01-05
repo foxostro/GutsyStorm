@@ -7,9 +7,9 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "Voxel.h"
 #import "GSReaderWriterLock.h"
 #import "GSNeighborhood.h"
-#import "Voxel.h"
 
 @class GSChunkVoxelData;
 

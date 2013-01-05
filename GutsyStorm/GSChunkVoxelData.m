@@ -440,7 +440,13 @@ cleanup1:
         for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
         {
             voxel_t *voxel = [self pointerToVoxelAtLocalPosition:p];
-            voxel->exposedToAirOnTop = voxel->exposedToAirOnTop || (voxel->type==VOXEL_TYPE_EMPTY && prevType==VOXEL_TYPE_EMPTY);
+
+            // XXX: It would be better to store the relationships between voxel types in some other way. Not here.
+            voxel->exposedToAirOnTop = (voxel->type!=VOXEL_TYPE_EMPTY && prevType==VOXEL_TYPE_EMPTY) ||
+                                       (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
+                                       (voxel->type==VOXEL_TYPE_CORNER_INSIDE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
+                                       (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_RAMP);
+
             prevType = voxel->type;
         }
     }

@@ -49,12 +49,12 @@ typedef enum
  */
 - (GSChunkVoxelData *)neighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP;
 
-/* Returns YES if the specified block in the neighborhood is a solid cube.
- * Positions are specified in chunk-local space relative to the
- * center chunk of the neighborhood. Coordinates which exceed the bounds of the center chunk refer to its neighbors.
+/* Returns a copy of the voxel at the the specified position in the neighborhood.
+ * Positions are specified in chunk-local space relative to the center chunk of the neighborhood.
+ * Coordinates which exceed the bounds of the center chunk refer to its neighbors.
  * Assumes the caller is already holding "lockVoxelData" on all chunks in the neighborhood.
  */
-- (BOOL)cubeAtPoint:(GSIntegerVector3)p;
+- (voxel_t)voxelAtPoint:(GSIntegerVector3)p;
 
 /* Returns the lighting value at the specified block position for the specified lighting buffer.
  * Assumes the caller is already holding the lock on this buffer on all neighbors.
