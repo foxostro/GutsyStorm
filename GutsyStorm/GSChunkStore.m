@@ -1045,11 +1045,15 @@ postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
         voxel_t *temp2 = calloc(count, sizeof(voxel_t));
         voxel_t *voxelsOut = calloc(count, sizeof(voxel_t));
 
-        _Static_assert(4 == ARRAY_LEN(replacementRuleSets), "only expecting two rule sets in total");
-        postProcessVoxels(&replacementRuleSets[0], voxelsIn, temp1, minP, maxP);
-        postProcessVoxels(&replacementRuleSets[1], temp1, temp2, minP, maxP);
-        postProcessVoxels(&replacementRuleSets[2], temp2, temp1, minP, maxP);
-        postProcessVoxels(&replacementRuleSets[3], temp1, voxelsOut, minP, maxP);
+        memcpy(temp1, voxelsIn, count * sizeof(voxel_t));
+
+        for(size_t i=0; i<ARRAY_LEN(replacementRuleSets); ++i)
+        {
+            postProcessVoxels(&replacementRuleSets[i], temp1, temp2, minP, maxP);
+            SWAP(temp1, temp2);
+        }
+
+        SWAP(voxelsOut, temp1);
 
         free(temp1);
         free(temp2);
