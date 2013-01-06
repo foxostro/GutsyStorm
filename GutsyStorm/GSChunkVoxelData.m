@@ -467,29 +467,25 @@ cleanup1:
     b = GSIntegerVector3_Make(chunkSize.x+1, chunkSize.y, chunkSize.z+1);
 
     const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
-    voxel_t *rawVoxels = calloc(count, sizeof(voxel_t));
+    voxel_t *voxels = calloc(count, sizeof(voxel_t));
 
     // First, generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.
     FOR_BOX(p, a, b)
     {
-        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), minP), &rawVoxels[INDEX_BOX(p, a, b)]);
+        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), minP), &voxels[INDEX_BOX(p, a, b)]);
     }
 
     // Post-process the voxels to add ramps, &c.
-    voxel_t *processedVoxels = postProcessor(count, rawVoxels, a, b);
-
-    free(rawVoxels);
-    rawVoxels = NULL;
+    postProcessor(count, voxels, a, b);
 
     // Copy the voxels for the chunk to their final destination.
     FOR_BOX(p, ivecZero, chunkSize)
     {
-        voxelData[INDEX_BOX(p, ivecZero, chunkSize)] = processedVoxels[INDEX_BOX(p, a, b)];
+        voxelData[INDEX_BOX(p, ivecZero, chunkSize)] = voxels[INDEX_BOX(p, a, b)];
     }
 
-    free(processedVoxels);
-    processedVoxels = NULL;
+    free(voxels);
 }
 
 

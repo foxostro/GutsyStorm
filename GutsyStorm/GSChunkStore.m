@@ -1039,26 +1039,31 @@ postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
         generateTerrainVoxel(seed, terrainHeight, a, voxel);
     };
 
-    terrain_post_processor_t postProcessor = ^ voxel_t * (size_t count, voxel_t *voxelsIn,
-                                                          GSIntegerVector3 minP, GSIntegerVector3 maxP) {
-        voxel_t *temp1 = calloc(count, sizeof(voxel_t));
-        voxel_t *temp2 = calloc(count, sizeof(voxel_t));
-        voxel_t *voxelsOut = calloc(count, sizeof(voxel_t));
+    terrain_post_processor_t postProcessor = ^(size_t count, voxel_t *voxels, GSIntegerVector3 minP, GSIntegerVector3 maxP) {
+        _Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
 
-        memcpy(temp1, voxelsIn, count * sizeof(voxel_t));
+        voxel_t *temp1 = malloc(count * sizeof(voxel_t));
+        if(!temp1) {
+            [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp1."];
+        }
 
-        for(size_t i=0; i<ARRAY_LEN(replacementRuleSets); ++i)
+        voxel_t *temp2 = malloc(count * sizeof(voxel_t));
+        if(!temp2) {
+            [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp2."];
+        }
+
+        postProcessVoxels(&replacementRuleSets[0], voxels, temp1, minP, maxP);
+
+        for(size_t i=1; i<ARRAY_LEN(replacementRuleSets); ++i)
         {
             postProcessVoxels(&replacementRuleSets[i], temp1, temp2, minP, maxP);
             SWAP(temp1, temp2);
         }
 
-        SWAP(voxelsOut, temp1);
+        memcpy(voxels, temp1, count * sizeof(voxel_t));
 
         free(temp1);
         free(temp2);
-
-        return voxelsOut;
     };
 
     return [[GSChunkVoxelData alloc] initWithMinP:minP
