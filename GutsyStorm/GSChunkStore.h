@@ -6,15 +6,12 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
-#import <Cocoa/Cocoa.h>
-#import "GSRay.h"
 #import "GSChunkVoxelData.h"
-#import "GSChunkGeometryData.h"
-#import "GSCamera.h"
-#import "GSShader.h"
-#import "GSActiveRegion.h"
-#import "GSGrid.h"
 
+@class GSGrid;
+@class GSCamera;
+@class GSShader;
+@class GSActiveRegion;
 
 @interface GSChunkStore : NSObject
 {
@@ -26,13 +23,14 @@
     
     NSLock *lock;
     NSUInteger numVBOGenerationsAllowedPerFrame;
-    float terrainHeight;
-    unsigned seed;
     GSCamera *camera;
     chunk_id_t oldCenterChunkID;
     NSURL *folder;
     GSShader *terrainShader;
     NSOpenGLContext *glContext;
+
+    terrain_generator_t generator;
+    terrain_post_processor_t postProcessor;
 
     GSActiveRegion *activeRegion;
     GLKVector3 activeRegionExtent; // The active region is specified relative to the camera position.
@@ -43,10 +41,12 @@
     int32_t activeRegionNeedsUpdate;
 }
 
-- (id)initWithSeed:(unsigned)_seed
-            camera:(GSCamera *)_camera
-     terrainShader:(GSShader *)_terrainShader
-         glContext:(NSOpenGLContext *)_glContext;
+- (id)initWithSeed:(NSUInteger)seed
+            camera:(GSCamera *)camera
+     terrainShader:(GSShader *)terrainShader
+         glContext:(NSOpenGLContext *)glContext
+         generator:(terrain_generator_t)generator
+     postProcessor:(terrain_post_processor_t)postProcessor;
 
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.

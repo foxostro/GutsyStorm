@@ -8,6 +8,7 @@
 
 #import <GLKit/GLKMath.h>
 #import "Voxel.h"
+#import "GSRay.h"
 #import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"

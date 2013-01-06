@@ -8,8 +8,9 @@
 
 #import <GLKit/GLKMath.h>
 #import "GSChunkVoxelData.h"
-#import "GSChunkStore.h"
+#import "GSRay.h"
 #import "GSBoxedVector.h"
+#import "GSChunkStore.h"
 
 static const GSIntegerVector3 combinedMinP = {-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z};
 static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CHUNK_SIZE_Z};

@@ -13,9 +13,9 @@
     void *context;
 }
 
-- (id)initWithSeed:(unsigned)seed;
+- (id)initWithSeed:(NSUInteger)seed;
 - (float)noiseAtPoint:(GLKVector3)p;
-- (float)noiseAtPoint:(GLKVector3)p numOctaves:(unsigned)numOctaves;
+- (float)noiseAtPoint:(GLKVector3)p numOctaves:(NSUInteger)numOctaves;
 - (float)noiseAtPointWithFourOctaves:(GLKVector3)p;
 
 @end

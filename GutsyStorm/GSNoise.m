@@ -13,12 +13,14 @@
 
 @implementation GSNoise
 
-- (id)initWithSeed:(unsigned)seed
+- (id)initWithSeed:(NSUInteger)seed
 {
     self = [super init];
     if (self) {
         // Initialization code here.
-        context = FeepingCreature_CreateNoiseContext(&seed);
+        assert(seed < UINT_MAX);
+        unsigned s = (unsigned)seed;
+        context = FeepingCreature_CreateNoiseContext(&s);
     }
     
     return self;
@@ -38,12 +40,12 @@
 }
 
 
-- (float)noiseAtPoint:(GLKVector3)p numOctaves:(unsigned)numOctaves
+- (float)noiseAtPoint:(GLKVector3)p numOctaves:(NSUInteger)numOctaves
 {
     const float persistence = 0.5;
     float noise = 0.0;
     
-    for(unsigned octave = 0; octave < numOctaves; ++octave)
+    for(NSUInteger octave = 0; octave < numOctaves; ++octave)
     {
         float frequency = pow(2, octave);
         float amplitude = pow(persistence, octave+1);

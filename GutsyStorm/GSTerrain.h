@@ -6,11 +6,10 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
-#import "GSTextureArray.h"
-#import "Voxel.h"
-#import "GSChunkStore.h"
-#import "GSTerrainCursor.h"
+@class GSCamera;
+@class GSChunkStore;
+@class GSTerrainCursor;
+@class GSTextureArray;
 
 @interface GSTerrain : NSObject
 {
@@ -18,13 +17,12 @@
     GSTextureArray *textureArray;
     GSChunkStore *chunkStore;
     GSTerrainCursor *cursor;
-    
     float maxPlaceDistance;
 }
 
-- (id)initWithSeed:(unsigned)_seed
-            camera:(GSCamera *)_camera
-         glContext:(NSOpenGLContext *)_glContext;
+- (id)initWithSeed:(NSUInteger)seed
+            camera:(GSCamera *)camera
+         glContext:(NSOpenGLContext *)glContext;
 
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.
