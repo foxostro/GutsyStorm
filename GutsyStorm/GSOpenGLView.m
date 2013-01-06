@@ -429,7 +429,14 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                       void *displayLinkContext)
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    CVReturn result = [(GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
+    CVReturn result;
+
+#if __has_feature(objc_arc)
+    result = [(__bridge GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
+#else
+    result = [(GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
+#endif
+
     [pool release];
     return result;
 }
