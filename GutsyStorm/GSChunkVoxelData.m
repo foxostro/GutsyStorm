@@ -29,6 +29,9 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
                   postProcessor:(terrain_post_processor_t)postProcessor
               completionHandler:(void (^)(void))completionHandler;
 - (void)tryToLoadSunlightData;
+- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
+                                        tier:(unsigned)tier
+                           completionHandler:(void (^)(void))completionHandler;
 
 @end
 
@@ -304,49 +307,10 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     }
 }
 
-- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler
+- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
+                           completionHandler:(void (^)(void))completionHandler
 {
-    BOOL success = NO;
-    __block voxel_t *buf = NULL;
-    
-    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateForSunlightInFlight)) {
-        DebugLog(@"Can't update sunlight: already in-flight.");
-        return NO; // an update is already in flight, so bail out now
-    }
-    
-    if(![_sunlight.lockLightingBuffer tryLockForWriting]) {
-        DebugLog(@"Can't update sunlight: sunlight buffer is busy."); // This failure really shouldn't happen much...
-        success = NO;
-        goto cleanup1;
-    }
-    
-    // Try to copy the entire neighborhood's voxel data into one large buffer.
-    if(![neighborhood tryReaderAccessToVoxelDataUsingBlock:^{ buf = [self newVoxelBufferWithNeighborhood:neighborhood]; }]) {
-        DebugLog(@"Can't update sunlight: voxel data buffers are busy.");
-        success = NO;
-        goto cleanup2;
-    }
-    
-    // Actually generate sunlight data.
-    [self fillSunlightBufferUsingCombinedVoxelData:buf];
-    
-    _dirtySunlight = NO;
-    success = YES;
-    
-    // Spin off a task to save sunlight data to disk.
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-    dispatch_group_async(_groupForSaving, queue, ^{
-        [self saveSunlightDataToFile];
-    });
-    
-    completionHandler(); // Only call the completion handler if the update was successful.
-    
-cleanup2:
-    [_sunlight.lockLightingBuffer unlockForWriting];
-cleanup1:
-    OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
-    free(buf);
-    return success;
+    return [self tryToRebuildSunlightWithNeighborhood:neighborhood tier:0 completionHandler:completionHandler];
 }
 
 @end
@@ -530,6 +494,94 @@ cleanup1:
     [_sunlight tryToLoadFromFile:url completionHandler:^{
         _dirtySunlight = NO;
     }];
+}
+
+/* Try to immediately update sunlight using voxel data for the local neighborhood. If it is not possible to immediately take all
+ * the locks on necessary resources then this method aborts the update and returns NO. If it is able to complete the update
+ * successfully then it returns YES and marks this GSChunkVoxelData as being clean. (dirtySunlight=NO)
+ * If the update was able to complete succesfully then the completionHandler block is called.
+ *
+ * There are several levels of locks which are taken recursively. The level of recursion is indicated using the `tier' parameter.
+ * The top-level caller should always call with tier==0.
+ */
+- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
+                                        tier:(unsigned)tier
+                           completionHandler:(void (^)(void))completionHandler
+{
+    assert(neighborhood);
+    assert(tier < 3);
+
+    switch(tier)
+    {
+        case 0:
+        {
+            BOOL success = NO;
+
+            if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateForSunlightInFlight)) {
+                DebugLog(@"Can't update sunlight: already in-flight.");
+            } else {
+                success = [self tryToRebuildSunlightWithNeighborhood:neighborhood
+                                                                tier:1
+                                                   completionHandler:completionHandler];
+
+                OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
+            }
+
+            return success;
+        }
+            
+        case 1:
+        {
+            BOOL success = NO;
+
+            if(![_sunlight.lockLightingBuffer tryLockForWriting]) {
+                DebugLog(@"Can't update sunlight: sunlight buffer is busy."); // This failure really shouldn't happen much...
+            } else {
+                success = [self tryToRebuildSunlightWithNeighborhood:neighborhood
+                                                                tier:2
+                                                   completionHandler:completionHandler];
+                [_sunlight.lockLightingBuffer unlockForWriting];
+            }
+
+            return success;
+        }
+
+        case 2:
+        {
+            BOOL success = NO;
+
+            // Try to copy the entire neighborhood's voxel data into one large buffer.
+            __block voxel_t *buf = NULL;
+            BOOL copyWasSuccessful = [neighborhood tryReaderAccessToVoxelDataUsingBlock:^{
+                buf = [self newVoxelBufferWithNeighborhood:neighborhood];
+            }];
+
+            if(!copyWasSuccessful) {
+                DebugLog(@"Can't update sunlight: voxel data buffers are busy.");
+            } else {
+                // Actually generate sunlight data.
+                [self fillSunlightBufferUsingCombinedVoxelData:buf];
+
+                _dirtySunlight = NO;
+                success = YES;
+
+                // Spin off a task to save sunlight data to disk.
+                dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+                dispatch_group_async(_groupForSaving, queue, ^{
+                    [self saveSunlightDataToFile];
+                });
+
+                completionHandler(); // Only call the completion handler if the update was successful.
+            }
+
+            free(buf);
+            
+            return success;
+        }
+    }
+    
+    assert(!"shouldn't get here");
+    return NO;
 }
 
 @end
