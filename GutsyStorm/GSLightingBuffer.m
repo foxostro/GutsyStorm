@@ -59,7 +59,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 - (void)dealloc
 {
     free(_lightingBuffer);
-    [GSLightingBuffer release];
+    [_lockLightingBuffer release];
     [super dealloc];
 }
 
