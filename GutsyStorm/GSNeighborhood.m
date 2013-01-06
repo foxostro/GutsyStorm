@@ -16,7 +16,7 @@
 
 @implementation GSNeighborhood
 {
-    GSChunkVoxelData *neighbors[CHUNK_NUM_NEIGHBORS];
+    GSChunkVoxelData *_neighbors[CHUNK_NUM_NEIGHBORS];
 }
 
 + (NSLock *)_sharedVoxelDataLock
@@ -79,7 +79,7 @@
     if (self) {
         for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
         {
-            neighbors[i] = nil;
+            _neighbors[i] = nil;
         }
     }
     
@@ -91,7 +91,7 @@
 {
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        [neighbors[i] release];
+        [_neighbors[i] release];
     }
     
     [super dealloc];
@@ -101,16 +101,16 @@
 - (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx
 {
     NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
-    return neighbors[idx];
+    return _neighbors[idx];
 }
 
 
 - (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor
 {
     NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
-    [neighbors[idx] release];
-    neighbors[idx] = neighbor;
-    [neighbors[idx] retain];
+    [_neighbors[idx] release];
+    _neighbors[idx] = neighbor;
+    [_neighbors[idx] retain];
 }
 
 
@@ -118,7 +118,7 @@
 {
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        block(neighbors[i]);
+        block(_neighbors[i]);
     }
 }
 
@@ -127,7 +127,7 @@
 {
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        block(i, neighbors[i]);
+        block(i, _neighbors[i]);
     }
 }
 
@@ -138,8 +138,8 @@
     
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        if([neighbors[i].lockVoxelData tryLockForReading]) {
-            [locksTaken addObject:neighbors[i].lockVoxelData];
+        if([_neighbors[i].lockVoxelData tryLockForReading]) {
+            [locksTaken addObject:_neighbors[i].lockVoxelData];
         } else {
             // It was not possible to lock all neighbors, so unwind and bail out.
             for(GSReaderWriterLock *lock in locksTaken)

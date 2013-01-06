@@ -53,7 +53,7 @@ static const GLsizei numCubeVerts = 12*3;
 
 @implementation GSCube
 {
-	GLuint vboCubeVerts, vboCubeNorms, vboCubeTexCoords;
+	GLuint _vboCubeVerts, _vboCubeNorms, _vboCubeTexCoords;
 }
 
 - (id)init
@@ -61,9 +61,9 @@ static const GLsizei numCubeVerts = 12*3;
     self = [super init];
     if (self) {
         // Initialization code here.
-        vboCubeVerts = 0;
-        vboCubeNorms = 0;
-        vboCubeTexCoords = 0;
+        _vboCubeVerts = 0;
+        _vboCubeNorms = 0;
+        _vboCubeTexCoords = 0;
         [self generateVBO];
     }
     
@@ -74,8 +74,8 @@ static const GLsizei numCubeVerts = 12*3;
 // Generates the VBO for the cube.
 - (void)generateVBO
 {
-    glGenBuffers(1, &vboCubeVerts);
-    glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
+    glGenBuffers(1, &_vboCubeVerts);
+    glBindBuffer(GL_ARRAY_BUFFER, _vboCubeVerts);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), cubeVerts, GL_STATIC_DRAW);
 }
 
@@ -92,7 +92,7 @@ static const GLsizei numCubeVerts = 12*3;
     glEnable(GL_POLYGON_OFFSET_FILL);
     glEnableClientState(GL_VERTEX_ARRAY);
     
-    glBindBuffer(GL_ARRAY_BUFFER, vboCubeVerts);
+    glBindBuffer(GL_ARRAY_BUFFER, _vboCubeVerts);
     glVertexPointer(3, GL_FLOAT, 0, 0);
     
     glDrawArrays(GL_QUADS, 0, numCubeVerts);
@@ -109,9 +109,9 @@ static const GLsizei numCubeVerts = 12*3;
 - (void)dealloc
 {
     // Can't reference array from within a block so use some temporary variables.
-    GLuint buffer1 = vboCubeVerts;
-    GLuint buffer2 = vboCubeNorms;
-    GLuint buffer3 = vboCubeTexCoords;
+    GLuint buffer1 = _vboCubeVerts;
+    GLuint buffer2 = _vboCubeNorms;
+    GLuint buffer3 = _vboCubeTexCoords;
     
     dispatch_async(dispatch_get_main_queue(), ^{
         glDeleteBuffers(1, &buffer1);

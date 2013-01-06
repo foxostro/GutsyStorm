@@ -31,8 +31,8 @@ extern int checkGLErrors(void);
 
 @implementation GSShader
 {
-    GLuint handle;
-    BOOL linked;
+    GLuint _handle;
+    BOOL _linked;
 }
 
 - (id)initWithVertexShaderSource:(NSString *)vert
@@ -41,8 +41,8 @@ extern int checkGLErrors(void);
     self = [super init];
     if (self) {
         // Initialization code here.
-        handle = glCreateProgram();
-        linked = NO;
+        _handle = glCreateProgram();
+        _linked = NO;
         
         [self createShaderWithSource:vert type:GL_VERTEX_SHADER];
         [self createShaderWithSource:frag type:GL_FRAGMENT_SHADER];
@@ -55,7 +55,7 @@ extern int checkGLErrors(void);
 
 - (void)bind
 {
-    glUseProgram(handle);
+    glUseProgram(_handle);
 }
 
 - (void)unbind
@@ -66,7 +66,7 @@ extern int checkGLErrors(void);
 - (void)bindUniformWithNSString:(NSString *)name val:(GLint)val
 {
     const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
-    glUniform1i(glGetUniformLocation(handle, nameCStr), val);
+    glUniform1i(glGetUniformLocation(_handle, nameCStr), val);
     assert(checkGLErrors() == 0);
 }
 
@@ -178,7 +178,7 @@ extern int checkGLErrors(void);
     const GLchar *src = [sourceString cStringUsingEncoding:NSMacOSRomanStringEncoding];
     
     GLuint shader = glCreateShader(type);
-    glAttachShader(handle, shader);
+    glAttachShader(_handle, shader);
     glShaderSource(shader, 1, &src, NULL);
     glCompileShader(shader);
     
@@ -187,8 +187,8 @@ extern int checkGLErrors(void);
 
 - (void)link
 {
-    glLinkProgram(handle);
-    linked = [self wasProgramLinkSuccessful:handle];
+    glLinkProgram(_handle);
+    _linked = [self wasProgramLinkSuccessful:_handle];
 }
 
 @end

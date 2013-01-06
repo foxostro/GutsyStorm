@@ -354,11 +354,11 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 @implementation GSTerrain
 {
-    GSCamera *camera;
-    GSTextureArray *textureArray;
-    GSChunkStore *chunkStore;
-    GSTerrainCursor *cursor;
-    float maxPlaceDistance;
+    GSCamera *_camera;
+    GSTextureArray *_textureArray;
+    GSChunkStore *_chunkStore;
+    GSTerrainCursor *_cursor;
+    float _maxPlaceDistance;
 }
 
 - (NSString *)newShaderSourceStringFromFileAt:(NSString *)path
@@ -376,13 +376,13 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 }
 
 - (id)initWithSeed:(NSUInteger)seed
-            camera:(GSCamera *)_camera
-         glContext:(NSOpenGLContext *)_glContext
+            camera:(GSCamera *)cam
+         glContext:(NSOpenGLContext *)context
 {
     self = [super init];
     if(self) {
-        camera = _camera;
-        [camera retain];
+        _camera = cam;
+        [_camera retain];
         
         assert(checkGLErrors() == 0);
         
@@ -402,7 +402,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         
         assert(checkGLErrors() == 0);
         
-        textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
+        _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
                                                                   pathForResource:@"terrain"
                                                                   ofType:@"png"]
                                                      numTextures:3];
@@ -439,28 +439,28 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             free(temp2);
         };
         
-        chunkStore = [[GSChunkStore alloc] initWithSeed:seed
-                                                 camera:_camera
+        _chunkStore = [[GSChunkStore alloc] initWithSeed:seed
+                                                 camera:cam
                                             terrainShader:terrainShader
-                                                glContext:_glContext
+                                                glContext:context
                                                 generator:generator
                                             postProcessor:postProcessor];
         
         [terrainShader release];
         
-        cursor = [[GSTerrainCursor alloc] init];
+        _cursor = [[GSTerrainCursor alloc] init];
         
-        maxPlaceDistance = 6.0; // XXX: make this configurable
+        _maxPlaceDistance = 6.0; // XXX: make this configurable
     }
     return self;
 }
 
 - (void)dealloc
 {
-    [camera release];
-    [chunkStore release];
-    [textureArray release];
-    [cursor release];
+    [_camera release];
+    [_chunkStore release];
+    [_textureArray release];
+    [_cursor release];
     [super dealloc];
 }
 
@@ -468,10 +468,10 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 {
     static const float edgeOffset = 1e-4;
     glDepthRange(edgeOffset, 1.0); // Use glDepthRange so the block cursor is properly offset from the block itself.
-    [textureArray bind];
-    [chunkStore drawActiveChunks];
-    [textureArray unbind];
-    [cursor drawWithEdgeOffset:edgeOffset];
+    [_textureArray bind];
+    [_chunkStore drawActiveChunks];
+    [_textureArray unbind];
+    [_cursor drawWithEdgeOffset:edgeOffset];
     glDepthRange(0.0, 1.0);
 }
 
@@ -483,17 +483,17 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         [self recalcCursorPosition];
     }
     
-    [chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
+    [_chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
 }
 
 - (void)sync
 {
-    [chunkStore waitForSaveToFinish];
+    [_chunkStore waitForSaveToFinish];
 }
 
 - (void)placeBlockUnderCrosshairs
 {
-    if(cursor.cursorIsActive) {
+    if(_cursor.cursorIsActive) {
         voxel_t block;
         
         bzero(&block, sizeof(voxel_t));
@@ -501,36 +501,36 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_CUBE;
         
-        [chunkStore placeBlockAtPoint:cursor.cursorPlacePos block:block];
+        [_chunkStore placeBlockAtPoint:_cursor.cursorPlacePos block:block];
         [self recalcCursorPosition];
     }
 }
 
 - (void)removeBlockUnderCrosshairs
 {
-    if(cursor.cursorIsActive) {
+    if(_cursor.cursorIsActive) {
         voxel_t block;
         
         bzero(&block, sizeof(voxel_t));
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_EMPTY;
         
-        [chunkStore placeBlockAtPoint:cursor.cursorPos block:block];
+        [_chunkStore placeBlockAtPoint:_cursor.cursorPos block:block];
         [self recalcCursorPosition];
     }
 }
 
 - (void)recalcCursorPosition
 {
-    GSRay ray = GSRay_Make(camera.cameraEye, GLKQuaternionRotateVector3(camera.cameraRot, GLKVector3Make(0, 0, -1)));
+    GSRay ray = GSRay_Make(_camera.cameraEye, GLKQuaternionRotateVector3(_camera.cameraRot, GLKVector3Make(0, 0, -1)));
     __block BOOL cursorIsActive = NO;
     __block GLKVector3 prev = ray.origin;
     __block GLKVector3 cursorPos;
     
-    [chunkStore enumerateVoxelsOnRay:ray maxDepth:maxPlaceDistance withBlock:^(GLKVector3 p, BOOL *stop, BOOL *fail) {
+    [_chunkStore enumerateVoxelsOnRay:ray maxDepth:_maxPlaceDistance withBlock:^(GLKVector3 p, BOOL *stop, BOOL *fail) {
         voxel_t voxel;
 
-        if(![chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {
+        if(![_chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {
             *fail = YES; // Stops enumerations with un-successful condition
         }
         
@@ -543,9 +543,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         }
     }];
 
-    cursor.cursorIsActive = cursorIsActive;
-    cursor.cursorPos = cursorPos;
-    cursor.cursorPlacePos = prev;
+    _cursor.cursorIsActive = cursorIsActive;
+    _cursor.cursorPos = cursorPos;
+    _cursor.cursorPlacePos = prev;
 }
 
 @end

@@ -13,7 +13,7 @@
 
 @implementation GSNoise
 {
-    void *context;
+    void *_context;
 }
 
 - (id)initWithSeed:(NSUInteger)seed
@@ -23,7 +23,7 @@
         // Initialization code here.
         assert(seed < UINT_MAX);
         unsigned s = (unsigned)seed;
-        context = FeepingCreature_CreateNoiseContext(&s);
+        _context = FeepingCreature_CreateNoiseContext(&s);
     }
     
     return self;
@@ -32,14 +32,14 @@
 
 - (void)dealloc
 {
-    FeepingCreature_DestroyNoiseContext(context);
+    FeepingCreature_DestroyNoiseContext(_context);
     [super dealloc];
 }
 
 
 - (float)noiseAtPoint:(GLKVector3)p
 {
-    return FeepingCreature_noise3(p, context);
+    return FeepingCreature_noise3(p, _context);
 }
 
 
@@ -52,7 +52,7 @@
     {
         float frequency = pow(2, octave);
         float amplitude = pow(persistence, octave+1);
-        noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, frequency), context) * amplitude;
+        noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, frequency), _context) * amplitude;
     }
     
     return noise;
@@ -63,10 +63,10 @@
 {
     float noise;
     
-    noise =  FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 1.0f), context) * 0.5000f;
-    noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 2.0f), context) * 0.2500f;
-    noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 4.0f), context) * 0.1250f;
-    noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 8.0f), context) * 0.0625f;
+    noise =  FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 1.0f), _context) * 0.5000f;
+    noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 2.0f), _context) * 0.2500f;
+    noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 4.0f), _context) * 0.1250f;
+    noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 8.0f), _context) * 0.0625f;
     
     return noise;
 }

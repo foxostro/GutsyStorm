@@ -33,30 +33,30 @@
 
 @implementation GSChunkStore
 {
-    GSGrid *gridVoxelData;
-    GSGrid *gridGeometryData;
+    GSGrid *_gridVoxelData;
+    GSGrid *_gridGeometryData;
 
-    dispatch_group_t groupForSaving;
-    dispatch_queue_t chunkTaskQueue;
+    dispatch_group_t _groupForSaving;
+    dispatch_queue_t _chunkTaskQueue;
 
-    NSLock *lock;
-    NSUInteger numVBOGenerationsAllowedPerFrame;
-    GSCamera *camera;
-    chunk_id_t oldCenterChunkID;
-    NSURL *folder;
-    GSShader *terrainShader;
-    NSOpenGLContext *glContext;
+    NSLock *_lock;
+    NSUInteger _numVBOGenerationsAllowedPerFrame;
+    GSCamera *_camera;
+    chunk_id_t _oldCenterChunkID;
+    NSURL *_folder;
+    GSShader *_terrainShader;
+    NSOpenGLContext *_glContext;
 
-    terrain_generator_t generator;
-    terrain_post_processor_t postProcessor;
+    terrain_generator_t _generator;
+    terrain_post_processor_t _postProcessor;
 
-    GSActiveRegion *activeRegion;
-    GLKVector3 activeRegionExtent; // The active region is specified relative to the camera position.
-    int needsChunkVisibilityUpdate;
+    GSActiveRegion *_activeRegion;
+    GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
+    int _needsChunkVisibilityUpdate;
 
-    float timeUntilNextPeriodicChunkUpdate;
-    float timeBetweenPerioducChunkUpdates;
-    int32_t activeRegionNeedsUpdate;
+    float _timeUntilNextPeriodicChunkUpdate;
+    float _timeBetweenPerioducChunkUpdates;
+    int32_t _activeRegionNeedsUpdate;
 }
 
 + (void)initialize
@@ -78,60 +78,60 @@
 
 
 - (id)initWithSeed:(NSUInteger)seed
-            camera:(GSCamera *)_camera
-       terrainShader:(GSShader *)_terrainShader
-           glContext:(NSOpenGLContext *)_glContext
-           generator:(terrain_generator_t)_generator
-       postProcessor:(terrain_post_processor_t)_postProcessor
+            camera:(GSCamera *)cam
+       terrainShader:(GSShader *)shader
+           glContext:(NSOpenGLContext *)context
+           generator:(terrain_generator_t)generatorCallback
+       postProcessor:(terrain_post_processor_t)postProcessorCallback
 {
     self = [super init];
     if (self) {
-        folder = [GSChunkStore newWorldSaveFolderURLWithSeed:seed];
-        groupForSaving = dispatch_group_create();
+        _folder = [GSChunkStore newWorldSaveFolderURLWithSeed:seed];
+        _groupForSaving = dispatch_group_create();
         
-        camera = _camera;
-        [camera retain];
-        oldCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[camera cameraEye]]];
-        [oldCenterChunkID retain];
+        _camera = cam;
+        [_camera retain];
+        _oldCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[_camera cameraEye]]];
+        [_oldCenterChunkID retain];
         
-        terrainShader = _terrainShader;
-        [terrainShader retain];
+        _terrainShader = shader;
+        [_terrainShader retain];
         
-        glContext = _glContext;
-        [glContext retain];
+        _glContext = context;
+        [_glContext retain];
         
-        lock = [[NSLock alloc] init];
+        _lock = [[NSLock alloc] init];
         
-        timeUntilNextPeriodicChunkUpdate = 0.0;
-        timeBetweenPerioducChunkUpdates = 1.0;
-        activeRegionNeedsUpdate = 0;
+        _timeUntilNextPeriodicChunkUpdate = 0.0;
+        _timeBetweenPerioducChunkUpdates = 1.0;
+        _activeRegionNeedsUpdate = 0;
 
-        generator = [_generator copy];
-        postProcessor = [_postProcessor copy];
+        _generator = [generatorCallback copy];
+        _postProcessor = [postProcessorCallback copy];
         
         /* VBO generation must be performed on the main thread.
          * To preserve responsiveness, limit the number of VBOs we create per frame.
          */
         NSInteger n = [[NSUserDefaults standardUserDefaults] integerForKey:@"NumVBOGenerationsAllowedPerFrame"];
         assert(n > 0 && n < INT_MAX);
-        numVBOGenerationsAllowedPerFrame = (int)n;
+        _numVBOGenerationsAllowedPerFrame = (int)n;
         
-        chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
+        _chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
         
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         
         size_t areaXZ = (w/CHUNK_SIZE_X) * (w/CHUNK_SIZE_Z);
-        gridGeometryData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
-        gridVoxelData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
+        _gridGeometryData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
+        _gridVoxelData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
         
         // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
-        activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
-        activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:activeRegionExtent];
-        [activeRegion updateWithSorting:YES camera:camera chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
+        _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
+        _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent];
+        [_activeRegion updateWithSorting:YES camera:_camera chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
             return [self chunkGeometryAtPoint:p];
         }];
-        needsChunkVisibilityUpdate = 1;
+        _needsChunkVisibilityUpdate = 1;
     }
     
     return self;
@@ -140,30 +140,30 @@
 
 - (void)waitForSaveToFinish
 {
-    [lock lock];
+    [_lock lock];
     NSLog(@"Waiting for all chunk-saving tasks to complete.");
-    dispatch_group_wait(groupForSaving, DISPATCH_TIME_FOREVER); // wait for save operations to complete
+    dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER); // wait for save operations to complete
     NSLog(@"All chunks have been saved.");
-    [lock unlock];
+    [_lock unlock];
 }
 
 
 - (void)dealloc
 {
     [self waitForSaveToFinish];
-    dispatch_release(groupForSaving);
+    dispatch_release(_groupForSaving);
     
-    [gridVoxelData release];
-    [gridGeometryData release];
-    [camera release];
-    [folder release];
-    [terrainShader release];
-    [glContext release];
-    [lock release];
-    [activeRegion release];
-    [generator release];
-    [postProcessor release];
-    dispatch_release(chunkTaskQueue);
+    [_gridVoxelData release];
+    [_gridGeometryData release];
+    [_camera release];
+    [_folder release];
+    [_terrainShader release];
+    [_glContext release];
+    [_lock release];
+    [_activeRegion release];
+    [_generator release];
+    [_postProcessor release];
+    dispatch_release(_chunkTaskQueue);
     
     [super dealloc];
 }
@@ -171,7 +171,7 @@
 
 - (void)drawActiveChunks
 {
-    [terrainShader bind];
+    [_terrainShader bind];
 
     glDisable(GL_CULL_FACE);
     
@@ -183,12 +183,12 @@
     glTranslatef(0.5, 0.5, 0.5);
     
     // Update chunk visibility flags now. We've been told it's necessary.
-    if(OSAtomicCompareAndSwapIntBarrier(1, 0, &needsChunkVisibilityUpdate)) {
+    if(OSAtomicCompareAndSwapIntBarrier(1, 0, &_needsChunkVisibilityUpdate)) {
         [self updateChunkVisibilityForActiveRegion];
     }
 
-    __block NSUInteger numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
-    [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
+    __block NSUInteger numVBOGenerationsRemaining = _numVBOGenerationsAllowedPerFrame;
+    [_activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
         assert(chunk);
         if(chunk.visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
             numVBOGenerationsRemaining--;
@@ -202,7 +202,7 @@
 
     glEnable(GL_CULL_FACE);
     
-    [terrainShader unbind];
+    [_terrainShader unbind];
 }
 
 
@@ -214,7 +214,7 @@
 
         // Avoid blocking to take the lock in GSGrid.
         if([self tryToGetChunkVoxelsAtPoint:p chunk:&voxels]) {
-            dispatch_async(chunkTaskQueue, ^{
+            dispatch_async(_chunkTaskQueue, ^{
                 if(!voxels.dirtySunlight) {
                     return;
                 }
@@ -233,7 +233,7 @@
         }
     };
     
-    [activeRegion enumeratePointsInActiveRegionNearCamera:camera usingBlock:b];
+    [_activeRegion enumeratePointsInActiveRegionNearCamera:_camera usingBlock:b];
 }
 
 
@@ -241,7 +241,7 @@
 - (void)tryToUpdateDirtyGeometry
 {
     void (^b)(GSChunkGeometryData *) = ^(GSChunkGeometryData *geometry) {
-        dispatch_async(chunkTaskQueue, ^{
+        dispatch_async(_chunkTaskQueue, ^{
             if(!geometry.dirty) {
                 return;
             }
@@ -255,28 +255,28 @@
         });
     };
     
-    [activeRegion enumerateActiveChunkWithBlock:b];
+    [_activeRegion enumerateActiveChunkWithBlock:b];
 }
 
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    timeUntilNextPeriodicChunkUpdate -= dt;
-    if(timeUntilNextPeriodicChunkUpdate < 0) {
-        timeBetweenPerioducChunkUpdates = timeBetweenPerioducChunkUpdates;
+    _timeUntilNextPeriodicChunkUpdate -= dt;
+    if(_timeUntilNextPeriodicChunkUpdate < 0) {
+        _timeBetweenPerioducChunkUpdates = _timeBetweenPerioducChunkUpdates;
         
-        dispatch_async(chunkTaskQueue, ^{
+        dispatch_async(_chunkTaskQueue, ^{
             [self tryToUpdateDirtySunlight];
             [self tryToUpdateDirtyGeometry];
         
-            if(OSAtomicCompareAndSwap32Barrier(1, 0, &activeRegionNeedsUpdate)) {
+            if(OSAtomicCompareAndSwap32Barrier(1, 0, &_activeRegionNeedsUpdate)) {
                 [self updateActiveChunksWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)];
             }
         });
     }
     
     if((flags & CAMERA_MOVED) || (flags & CAMERA_TURNED)) {
-        OSAtomicCompareAndSwap32Barrier(0, 1, &activeRegionNeedsUpdate);
+        OSAtomicCompareAndSwap32Barrier(0, 1, &_activeRegionNeedsUpdate);
     }
 }
 
@@ -401,7 +401,7 @@
     // which voxel boundary is nearest) and walk that way.
     for(int i = 0; i < maxDepth; i++)
     {
-        if(y >= activeRegionExtent.y || y < 0) {
+        if(y >= _activeRegionExtent.y || y < 0) {
             return YES; // The vertical extent of the world is limited.
         }
         
@@ -485,13 +485,13 @@
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
-    GSChunkGeometryData *g = [gridGeometryData objectAtPoint:p objectFactory:^id(GLKVector3 minP) {
+    GSChunkGeometryData *g = [_gridGeometryData objectAtPoint:p objectFactory:^id(GLKVector3 minP) {
         // Chunk geometry will be generated later and is only marked "dirty" for now.
         return [[[GSChunkGeometryData alloc] initWithMinP:minP
-                                                   folder:folder
-                                           groupForSaving:groupForSaving
-                                           chunkTaskQueue:chunkTaskQueue
-                                                glContext:glContext] autorelease];
+                                                   folder:_folder
+                                           groupForSaving:_groupForSaving
+                                           chunkTaskQueue:_chunkTaskQueue
+                                                glContext:_glContext] autorelease];
     }];
     
     return g;
@@ -503,7 +503,7 @@
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
-    GSChunkVoxelData *v = [gridVoxelData objectAtPoint:p
+    GSChunkVoxelData *v = [_gridVoxelData objectAtPoint:p
                                          objectFactory:^id(GLKVector3 minP) {
                                              return [[self newChunkWithMinimumCorner:minP] autorelease];
                                          }];
@@ -521,7 +521,7 @@
     assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     assert(chunk);
 
-    success = [gridVoxelData tryToGetObjectAtPoint:p
+    success = [_gridVoxelData tryToGetObjectAtPoint:p
                                             object:&v
                                      objectFactory:^id(GLKVector3 minP) {
                                          return [[self newChunkWithMinimumCorner:minP] autorelease];
@@ -567,9 +567,9 @@
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
 
-    GSFrustum *frustum = [camera frustum];
+    GSFrustum *frustum = [_camera frustum];
     
-    [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
+    [_activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
         // XXX: the GSChunkGeometryData could do this calculation itself...
         if(geometry) {
             geometry.visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry.corners]);
@@ -586,34 +586,34 @@
     // If the camera moved then recalculate the set of active chunks.
     if(flags & CAMERA_MOVED) {
         // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
-        chunk_id_t newCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[camera cameraEye]]];
+        chunk_id_t newCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[_camera cameraEye]]];
         
-        if(![oldCenterChunkID isEqual:newCenterChunkID]) {
-            [activeRegion updateWithSorting:NO camera:camera chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
+        if(![_oldCenterChunkID isEqual:newCenterChunkID]) {
+            [_activeRegion updateWithSorting:NO camera:_camera chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
                 return [self chunkGeometryAtPoint:p];
             }];
 
             // Now save this chunk ID for comparison next update.
-            [oldCenterChunkID release];
-            oldCenterChunkID = newCenterChunkID;
-            [oldCenterChunkID retain];
+            [_oldCenterChunkID release];
+            _oldCenterChunkID = newCenterChunkID;
+            [_oldCenterChunkID retain];
         }
     }
     
     // If the camera moved or turned then recalculate chunk visibility.
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        OSAtomicCompareAndSwapIntBarrier(0, 1, &needsChunkVisibilityUpdate);
+        OSAtomicCompareAndSwapIntBarrier(0, 1, &_needsChunkVisibilityUpdate);
     }
 }
 
 - (id)newChunkWithMinimumCorner:(GLKVector3)minP
 {
     return [[GSChunkVoxelData alloc] initWithMinP:minP
-                                           folder:folder
-                                   groupForSaving:groupForSaving
-                                   chunkTaskQueue:chunkTaskQueue
-                                        generator:generator
-                                    postProcessor:postProcessor];
+                                           folder:_folder
+                                   groupForSaving:_groupForSaving
+                                   chunkTaskQueue:_chunkTaskQueue
+                                        generator:_generator
+                                    postProcessor:_postProcessor];
 }
 
 @end

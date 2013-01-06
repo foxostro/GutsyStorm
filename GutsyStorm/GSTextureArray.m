@@ -12,8 +12,8 @@ extern int checkGLErrors(void);
 
 @implementation GSTextureArray
 {
-    GLuint handle;
-    NSRect bounds;
+    GLuint _handle;
+    NSRect _bounds;
 }
 
 - (id)initWithImagePath:(NSString *)path
@@ -23,19 +23,19 @@ extern int checkGLErrors(void);
     if (self) {
         // Initialization code here.
         NSBitmapImageRep *bitmap = [NSBitmapImageRep imageRepWithContentsOfFile:path];
-        bounds = NSMakeRect(0, 0, [bitmap size].width, [bitmap size].height / numTextures);
+        _bounds = NSMakeRect(0, 0, [bitmap size].width, [bitmap size].height / numTextures);
         
         GLenum format = [bitmap hasAlpha] ? GL_RGBA : GL_RGB;
         
-        glGenTextures(1, &handle);        
-        glBindTexture(GL_TEXTURE_2D_ARRAY_EXT, handle);
+        glGenTextures(1, &_handle);        
+        glBindTexture(GL_TEXTURE_2D_ARRAY_EXT, _handle);
         glTexParameterf(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameterf(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
         glTexParameteri(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         
         glTexImage3D(GL_TEXTURE_2D_ARRAY_EXT, 0, format,
-                     bounds.size.width, bounds.size.height, numTextures,
+                     _bounds.size.width, _bounds.size.height, numTextures,
                      0, GL_RGBA, GL_UNSIGNED_BYTE, [bitmap bitmapData]);
         
         glGenerateMipmap(GL_TEXTURE_2D_ARRAY_EXT);
@@ -47,7 +47,7 @@ extern int checkGLErrors(void);
 
 - (void)bind
 {
-    glBindTexture(GL_TEXTURE_2D_ARRAY_EXT, handle);
+    glBindTexture(GL_TEXTURE_2D_ARRAY_EXT, _handle);
 }
 
 - (void)unbind
@@ -57,7 +57,7 @@ extern int checkGLErrors(void);
 
 - (void)dealloc
 {
-    glDeleteTextures(1, &handle);
+    glDeleteTextures(1, &_handle);
     [super dealloc];
 }
 

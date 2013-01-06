@@ -13,16 +13,16 @@
 
 @implementation GSGrid
 {
-    GSReaderWriterLock *lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
+    GSReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
 
-    NSUInteger numBuckets;
-    NSMutableArray **buckets;
+    NSUInteger _numBuckets;
+    NSMutableArray **_buckets;
 
-    NSUInteger numLocks;
-    NSLock **locks;
+    NSUInteger _numLocks;
+    NSLock **_locks;
 
-    int32_t n;
-    float loadLevelToTriggerResize;
+    int32_t _n;
+    float _loadLevelToTriggerResize;
 }
 
 - (id)init
@@ -34,25 +34,25 @@
 {
     self = [super init];
     if (self) {
-        numLocks = [[NSProcessInfo processInfo] processorCount] * 64;
+        _numLocks = [[NSProcessInfo processInfo] processorCount] * 64;
         const size_t k = 6; // Experimentation shows this is the minimum to avoid a table resize during app launch.
-        numBuckets = k * areaXZ;
-        n = 0;
-        loadLevelToTriggerResize = 0.80;
+        _numBuckets = k * areaXZ;
+        _n = 0;
+        _loadLevelToTriggerResize = 0.80;
         
-        buckets = malloc(numBuckets * sizeof(NSMutableArray *));
-        for(NSUInteger i=0; i<numBuckets; ++i)
+        _buckets = malloc(_numBuckets * sizeof(NSMutableArray *));
+        for(NSUInteger i=0; i<_numBuckets; ++i)
         {
-            buckets[i] = [[NSMutableArray alloc] init];
+            _buckets[i] = [[NSMutableArray alloc] init];
         }
         
-        locks = malloc(numLocks * sizeof(NSLock *));
-        for(NSUInteger i=0; i<numLocks; ++i)
+        _locks = malloc(_numLocks * sizeof(NSLock *));
+        for(NSUInteger i=0; i<_numLocks; ++i)
         {
-            locks[i] = [[NSLock alloc] init];
+            _locks[i] = [[NSLock alloc] init];
         }
         
-        lockTheTableItself = [[GSReaderWriterLock alloc] init];
+        _lockTheTableItself = [[GSReaderWriterLock alloc] init];
     }
     
     return self;
@@ -60,38 +60,38 @@
 
 - (void)dealloc
 {
-    for(NSUInteger i=0; i<numBuckets; ++i)
+    for(NSUInteger i=0; i<_numBuckets; ++i)
     {
-        [buckets[i] release];
+        [_buckets[i] release];
     }
-    free(buckets);
+    free(_buckets);
     
-    for(NSUInteger i=0; i<numLocks; ++i)
+    for(NSUInteger i=0; i<_numLocks; ++i)
     {
-        [locks[i] release];
+        [_locks[i] release];
     }
-    free(locks);
+    free(_locks);
     
-    [lockTheTableItself release];
+    [_lockTheTableItself release];
     
     [super dealloc];
 }
 
 - (void)resizeTable
 {
-    [lockTheTableItself lockForWriting];
+    [_lockTheTableItself lockForWriting];
     
-    n = 0;
+    _n = 0;
     
-    NSUInteger oldNumBuckets = numBuckets;
-    NSMutableArray **oldBuckets = buckets;
+    NSUInteger oldNumBuckets = _numBuckets;
+    NSMutableArray **oldBuckets = _buckets;
     
     // Allocate memory for a new set of buckets.
-    numBuckets *= 2;
-    buckets = malloc(numBuckets * sizeof(NSMutableArray *));
-    for(NSUInteger i=0; i<numBuckets; ++i)
+    _numBuckets *= 2;
+    _buckets = malloc(_numBuckets * sizeof(NSMutableArray *));
+    for(NSUInteger i=0; i<_numBuckets; ++i)
     {
-        buckets[i] = [[NSMutableArray alloc] init];
+        _buckets[i] = [[NSMutableArray alloc] init];
     }
     
     // Insert each object into the new hash table.
@@ -100,12 +100,12 @@
         for(GSChunkData *item in oldBuckets[i])
         {
             NSUInteger hash = GLKVector3Hash(item.minP);
-            [buckets[hash % numBuckets] addObject:item];
-            n++;
+            [_buckets[hash % _numBuckets] addObject:item];
+            _n++;
         }
     }
 
-    [lockTheTableItself unlockForWriting];
+    [_lockTheTableItself unlockForWriting];
     
     // Free the old set of buckets.
     for(NSUInteger i=0; i<oldNumBuckets; ++i)
@@ -122,8 +122,8 @@
     assert(object);
 
     if(blocking) {
-        [lockTheTableItself lockForReading];
-    } else if(![lockTheTableItself tryLockForReading]) {
+        [_lockTheTableItself lockForReading];
+    } else if(![_lockTheTableItself tryLockForReading]) {
         return NO;
     }
 
@@ -131,15 +131,15 @@
     id anObject = nil;
     GLKVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
     NSUInteger hash = GLKVector3Hash(minP);
-    NSUInteger idxBucket = hash % numBuckets;
-    NSUInteger idxLock = hash % numLocks;
-    NSLock *lock = locks[idxLock];
-    NSMutableArray *bucket = buckets[idxBucket];
+    NSUInteger idxBucket = hash % _numBuckets;
+    NSUInteger idxLock = hash % _numLocks;
+    NSLock *lock = _locks[idxLock];
+    NSMutableArray *bucket = _buckets[idxBucket];
 
     if(blocking) {
         [lock lock];
     } else if(![lock tryLock]) {
-        [lockTheTableItself unlockForReading];
+        [_lockTheTableItself unlockForReading];
         return NO;
     }
 
@@ -154,14 +154,14 @@
         anObject = factory(minP);
         assert(anObject);
         [bucket addObject:anObject];
-        OSAtomicIncrement32Barrier(&n);
-        load = (float)n / numBuckets;
+        OSAtomicIncrement32Barrier(&_n);
+        load = (float)_n / _numBuckets;
     }
 
     [lock unlock];
-    [lockTheTableItself unlockForReading];
+    [_lockTheTableItself unlockForReading];
 
-    if(load > loadLevelToTriggerResize) {
+    if(load > _loadLevelToTriggerResize) {
         [self resizeTable];
     }
 

@@ -14,12 +14,12 @@
 
 @implementation GSActiveRegion
 {
-    GLKVector3 activeRegionExtent; // The active region is specified relative to the camera position.
-    GSChunkGeometryData **activeChunks;
-    NSLock *lock;
+    GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
+    GSChunkGeometryData **_activeChunks;
+    NSLock *_lock;
 }
 
-- (id)initWithActiveRegionExtent:(GLKVector3)_activeRegionExtent
+- (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
 {
     self = [super init];
     if (self) {
@@ -27,19 +27,19 @@
         assert(fmodf(_activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(_activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
         
-        activeRegionExtent = _activeRegionExtent;
+        _activeRegionExtent = activeRegionExtent;
         
-        _maxActiveChunks = (2*activeRegionExtent.x/CHUNK_SIZE_X)
-                         * (activeRegionExtent.y/CHUNK_SIZE_Y)
-                         * (2*activeRegionExtent.z/CHUNK_SIZE_Z);
+        _maxActiveChunks = (2*_activeRegionExtent.x/CHUNK_SIZE_X)
+                         * (_activeRegionExtent.y/CHUNK_SIZE_Y)
+                         * (2*_activeRegionExtent.z/CHUNK_SIZE_Z);
         
-        activeChunks = calloc(_maxActiveChunks, sizeof(GSChunkGeometryData *));
+        _activeChunks = calloc(_maxActiveChunks, sizeof(GSChunkGeometryData *));
         
-        if(!activeChunks) {
+        if(!_activeChunks) {
             [NSException raise:@"Out of Memory" format:@"Out of memory allocating activeChunk."];
         }
         
-        lock = [[NSLock alloc] init];
+        _lock = [[NSLock alloc] init];
     }
     
     return self;
@@ -49,8 +49,8 @@
 - (void)dealloc
 {
     [self _removeAllActiveChunks];
-    free(activeChunks);
-    [lock release];
+    free(_activeChunks);
+    [_lock release];
     
     [super dealloc];
 }
@@ -60,7 +60,7 @@
 {
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
-        GSChunkGeometryData *chunk = activeChunks[i];
+        GSChunkGeometryData *chunk = _activeChunks[i];
         if(chunk) {
             block(chunk);
         }
@@ -78,15 +78,15 @@
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp buffer."];
     }
     
-    [lock lock];
-    memcpy(temp, activeChunks, len);
+    [_lock lock];
+    memcpy(temp, _activeChunks, len);
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
         if(temp[i]) {
             [temp[i] retain];
         }
     }
-    [lock unlock];
+    [_lock unlock];
     
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
@@ -104,8 +104,8 @@
 {
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
-        [activeChunks[i] release];
-        activeChunks[i] = nil;
+        [_activeChunks[i] release];
+        _activeChunks[i] = nil;
     }
 }
 
@@ -116,7 +116,7 @@
     assert(idx < maxActiveChunks);
     
     [chunk retain];
-    activeChunks[idx] = chunk;
+    _activeChunks[idx] = chunk;
 }
 
 
@@ -155,9 +155,9 @@
 - (void)enumeratePointsInActiveRegionNearCamera:(GSCamera *)camera usingBlock:(void (^)(GLKVector3))myBlock
 {
     const GLKVector3 center = [camera cameraEye];
-    const ssize_t activeRegionExtentX = activeRegionExtent.x/CHUNK_SIZE_X;
-    const ssize_t activeRegionExtentZ = activeRegionExtent.z/CHUNK_SIZE_Z;
-    const ssize_t activeRegionSizeY = activeRegionExtent.y/CHUNK_SIZE_Y;
+    const ssize_t activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
+    const ssize_t activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
+    const ssize_t activeRegionSizeY = _activeRegionExtent.y/CHUNK_SIZE_Y;
     
     GSIntegerVector3 p, minP, maxP;
     
@@ -186,7 +186,7 @@
                    camera:(GSCamera *)camera
             chunkProducer:(GSChunkGeometryData * (^)(GLKVector3 p))chunkProducer
 {
-    [lock lock];
+    [_lock lock];
     NSMutableArray *retainChunkTemporarily = [[NSMutableArray alloc] initWithCapacity:_maxActiveChunks];
     [self _enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
         [retainChunkTemporarily addObject:geometry];
@@ -224,7 +224,7 @@
     }
     
     [retainChunkTemporarily release];
-    [lock unlock];
+    [_lock unlock];
 }
 
 @end

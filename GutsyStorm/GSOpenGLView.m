@@ -26,20 +26,20 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 @implementation GSOpenGLView
 {
-    NSTimer *updateTimer;
-    CFAbsoluteTime prevFrameTime, lastRenderTime;
-    CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
-    size_t numFramesSinceLastFpsLabelUpdate;
-    NSMutableDictionary *keysDown;
-    int32_t mouseDeltaX, mouseDeltaY;
-    float mouseSensitivity;
-    GSCamera *camera;
-    GLString *fpsStringTex;
-    NSMutableDictionary *stringAttribs; // attributes for string textures
-    GSTerrain *terrain;
-    BOOL spaceBarDebounce;
-    BOOL bKeyDebounce;
-    CVDisplayLinkRef displayLink;
+    NSTimer *_updateTimer;
+    CFAbsoluteTime _prevFrameTime, _lastRenderTime;
+    CFAbsoluteTime _lastFpsLabelUpdateTime, _fpsLabelUpdateInterval;
+    size_t _numFramesSinceLastFpsLabelUpdate;
+    NSMutableDictionary *_keysDown;
+    int32_t _mouseDeltaX, _mouseDeltaY;
+    float _mouseSensitivity;
+    GSCamera *_camera;
+    GLString *_fpsStringTex;
+    NSMutableDictionary *_stringAttribs; // attributes for string textures
+    GSTerrain *_terrain;
+    BOOL _spaceBarDebounce;
+    BOOL _bKeyDebounce;
+    CVDisplayLinkRef _displayLink;
 }
 
 // Enables vertical sync for drawing to limit FPS to the screen's refresh rate.
@@ -54,12 +54,12 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     // init fonts for use with strings
     NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
-    stringAttribs = [[NSMutableDictionary dictionary] retain];
-    stringAttribs[NSFontAttributeName] = font;
-    stringAttribs[NSForegroundColorAttributeName] = [NSColor whiteColor];
+    _stringAttribs = [[NSMutableDictionary dictionary] retain];
+    _stringAttribs[NSFontAttributeName] = font;
+    _stringAttribs[NSForegroundColorAttributeName] = [NSColor whiteColor];
     
-    fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
-                                      withAttributes:stringAttribs
+    _fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
+                                      withAttributes:_stringAttribs
                                        withTextColor:[NSColor whiteColor]
                                         withBoxColor:[NSColor colorWithDeviceRed:0.3f
                                                                            green:0.3f
@@ -125,30 +125,30 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     [self buildFontsAndStrings];
     
-    terrain = [[GSTerrain alloc] initWithSeed:0
-                                       camera:camera
+    _terrain = [[GSTerrain alloc] initWithSeed:0
+                                       camera:_camera
                                     glContext:[self openGLContext]];
     
     GSAppDelegate *appDelegate = [[NSApplication sharedApplication] delegate];
-    appDelegate.terrain = terrain;
+    appDelegate.terrain = _terrain;
     
     [self enableVSync];
     
     assert(checkGLErrors() == 0);
     
     // Create a display link capable of being used with all active displays
-    CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
+    CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
     
     // Set the renderer output callback function
-    CVDisplayLinkSetOutputCallback(displayLink, &MyDisplayLinkCallback, (void *)self);
+    CVDisplayLinkSetOutputCallback(_displayLink, &MyDisplayLinkCallback, (void *)self);
     
     // Set the display link for the current renderer
     CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
     CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
-    CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, cglContext, cglPixelFormat);
+    CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
     
     // Activate the display link
-    CVDisplayLinkStart(displayLink);
+    CVDisplayLinkStart(_displayLink);
 }
 
 
@@ -156,9 +156,9 @@ BOOL checkForOpenGLExtension(NSString *extension);
 - (void)resetMouseInputSettings
 {
     // Reset mouse input mechanism for camera.
-    mouseSensitivity = 500;
-    mouseDeltaX = 0;
-    mouseDeltaY = 0;
+    _mouseSensitivity = 500;
+    _mouseDeltaX = 0;
+    _mouseDeltaY = 0;
     [self setMouseAtCenter];
 }
 
@@ -167,17 +167,17 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     [self  setWantsBestResolutionOpenGLSurface:YES];
     
-    prevFrameTime = lastRenderTime = lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
-    fpsLabelUpdateInterval = 0.3;
-    numFramesSinceLastFpsLabelUpdate = 0;
-    keysDown = [[NSMutableDictionary alloc] init];
-    terrain = nil;
-    spaceBarDebounce = NO;
-    bKeyDebounce = NO;
+    _prevFrameTime = _lastRenderTime = _lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
+    _fpsLabelUpdateInterval = 0.3;
+    _numFramesSinceLastFpsLabelUpdate = 0;
+    _keysDown = [[NSMutableDictionary alloc] init];
+    _terrain = nil;
+    _spaceBarDebounce = NO;
+    _bKeyDebounce = NO;
     
-    camera = [[GSCamera alloc] init];
-    [camera moveToPosition:GLKVector3Make(85.1, 16.1, 140.1)];
-    [camera updateCameraLookVectors];
+    _camera = [[GSCamera alloc] init];
+    [_camera moveToPosition:GLKVector3Make(85.1, 16.1, 140.1)];
+    [_camera updateCameraLookVectors];
     [self resetMouseInputSettings];
     
     // Register with window to accept user input.
@@ -185,13 +185,13 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [[self window] setAcceptsMouseMovedEvents: YES];
     
     // Register a timer to drive the game loop.
-    updateTimer = [NSTimer timerWithTimeInterval:1.0 / 30.0
+    _updateTimer = [NSTimer timerWithTimeInterval:1.0 / 30.0
                                           target:self
                                         selector:@selector(timerFired:)
                                         userInfo:nil
                                          repeats:YES];
                    
-    [[NSRunLoop currentRunLoop] addTimer:updateTimer 
+    [[NSRunLoop currentRunLoop] addTimer:_updateTimer 
                                  forMode:NSDefaultRunLoopMode];
 }
 
@@ -206,12 +206,12 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     static BOOL first = YES;
     
-    CGGetLastMouseDelta(&mouseDeltaX, &mouseDeltaY);
+    CGGetLastMouseDelta(&_mouseDeltaX, &_mouseDeltaY);
     
     if(first) {
         first = NO;
-        mouseDeltaX = 0;
-        mouseDeltaY = 0;
+        _mouseDeltaX = 0;
+        _mouseDeltaY = 0;
     }
     
     [self setMouseAtCenter];
@@ -232,14 +232,14 @@ BOOL checkForOpenGLExtension(NSString *extension);
 - (void)keyDown:(NSEvent *)theEvent
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    keysDown[@(key)] = @YES;
+    _keysDown[@(key)] = @YES;
 }
 
 
 - (void)keyUp:(NSEvent *)theEvent
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    keysDown[@(key)] = @NO;
+    _keysDown[@(key)] = @NO;
 }
 
 
@@ -256,7 +256,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     gluPerspective(fov, r.size.width/r.size.height, nearD, farD);
     glMatrixMode(GL_MODELVIEW);
     
-    [camera reshapeWithBounds:r fov:fov nearD:nearD farD:farD];
+    [_camera reshapeWithBounds:r fov:fov nearD:nearD farD:farD];
     
     assert(checkGLErrors() == 0);
 }
@@ -267,33 +267,33 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     unsigned cameraModifiedFlags;
     
-    cameraModifiedFlags = [camera handleUserInputForFlyingCameraWithDeltaTime:dt
-                                                                   keysDown:keysDown
-                                                                mouseDeltaX:mouseDeltaX
-                                                                mouseDeltaY:mouseDeltaY
-                                                           mouseSensitivity:mouseSensitivity];
+    cameraModifiedFlags = [_camera handleUserInputForFlyingCameraWithDeltaTime:dt
+                                                                   keysDown:_keysDown
+                                                                mouseDeltaX:_mouseDeltaX
+                                                                mouseDeltaY:_mouseDeltaY
+                                                           mouseSensitivity:_mouseSensitivity];
     
-    if([keysDown[@(' ')] boolValue]) {
-        if(!spaceBarDebounce) {
-            spaceBarDebounce = YES;
-            [terrain placeBlockUnderCrosshairs];
+    if([_keysDown[@(' ')] boolValue]) {
+        if(!_spaceBarDebounce) {
+            _spaceBarDebounce = YES;
+            [_terrain placeBlockUnderCrosshairs];
         }
     } else {
-        spaceBarDebounce = NO;
+        _spaceBarDebounce = NO;
     }
     
-    if([keysDown[@('b')] boolValue]) {
-        if(!bKeyDebounce) {
-            bKeyDebounce = YES;
-            [terrain removeBlockUnderCrosshairs];
+    if([_keysDown[@('b')] boolValue]) {
+        if(!_bKeyDebounce) {
+            _bKeyDebounce = YES;
+            [_terrain removeBlockUnderCrosshairs];
         }
     } else {
-        bKeyDebounce = NO;
+        _bKeyDebounce = NO;
     }
     
     // Reset for the next update
-    mouseDeltaX = 0;
-    mouseDeltaY = 0;
+    _mouseDeltaX = 0;
+    _mouseDeltaY = 0;
     
     return cameraModifiedFlags;
 }
@@ -303,16 +303,16 @@ BOOL checkForOpenGLExtension(NSString *extension);
 - (void)timerFired:(id)sender
 {
     CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
-    float dt = (float)(frameTime - prevFrameTime);
+    float dt = (float)(frameTime - _prevFrameTime);
     unsigned cameraModifiedFlags = 0;
     
     // Handle user input and update the camera if it was modified.
     cameraModifiedFlags = [self handleUserInput:dt];
     
     // Allow the chunkStore to update every frame.
-    [terrain updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
+    [_terrain updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
     
-    prevFrameTime = frameTime;
+    _prevFrameTime = frameTime;
 }
 
 
@@ -348,7 +348,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     // Draw the FPS counter.
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    [fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f)];
+    [_fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f)];
     
     // reset orginal martices
     glPopMatrix(); // GL_MODELVIEW
@@ -377,10 +377,10 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glPushMatrix();
     glLoadIdentity();
     
-    [camera submitCameraTransform];
+    [_camera submitCameraTransform];
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 
-    [terrain draw];
+    [_terrain draw];
     
     glPopMatrix(); // camera transform
     
@@ -391,16 +391,16 @@ BOOL checkForOpenGLExtension(NSString *extension);
     CFAbsoluteTime time = CFAbsoluteTimeGetCurrent();
     
     // Update the FPS label every so often.
-    if(time - lastFpsLabelUpdateTime > fpsLabelUpdateInterval) {
-        float fps = numFramesSinceLastFpsLabelUpdate / (time - lastFpsLabelUpdateTime);
-        lastFpsLabelUpdateTime = time;
-        numFramesSinceLastFpsLabelUpdate = 0;
+    if(time - _lastFpsLabelUpdateTime > _fpsLabelUpdateInterval) {
+        float fps = _numFramesSinceLastFpsLabelUpdate / (time - _lastFpsLabelUpdateTime);
+        _lastFpsLabelUpdateTime = time;
+        _numFramesSinceLastFpsLabelUpdate = 0;
         NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
-        [fpsStringTex setString:label withAttributes:stringAttribs];
+        [_fpsStringTex setString:label withAttributes:_stringAttribs];
     }
     
-    lastRenderTime = time;
-    numFramesSinceLastFpsLabelUpdate++;
+    _lastRenderTime = time;
+    _numFramesSinceLastFpsLabelUpdate++;
 
     CGLUnlockContext((CGLContextObj)[currentContext CGLContextObj]);
     return kCVReturnSuccess;
@@ -409,11 +409,11 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)dealloc
 {
-    CVDisplayLinkStop(displayLink);
-    CVDisplayLinkRelease(displayLink);
-    [keysDown release];
-    [camera release];
-    [terrain release];
+    CVDisplayLinkStop(_displayLink);
+    CVDisplayLinkRelease(_displayLink);
+    [_keysDown release];
+    [_camera release];
+    [_terrain release];
     [super dealloc];
 }
 
