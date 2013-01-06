@@ -14,24 +14,17 @@
 #import "GSChunkStore.h"
 
 
+@interface GSNeighborhood (Private)
+
++ (NSLock *)sharedVoxelDataLock;
+
+@end
+
+
 @implementation GSNeighborhood
 {
     GSChunkVoxelData *_neighbors[CHUNK_NUM_NEIGHBORS];
 }
-
-+ (NSLock *)_sharedVoxelDataLock
-{
-    static dispatch_once_t onceToken;
-    static NSLock *a = nil;
-    
-    dispatch_once(&onceToken, ^{
-        a = [[NSLock alloc] init];
-        [a setName:@"GSNeighborhood._sharedVoxelDataLock"];
-    });
-    
-    return a;
-}
-
 
 + (GLKVector3)offsetForNeighborIndex:(neighbor_index_t)idx
 {
@@ -72,7 +65,6 @@
     return GLKVector3Make(0, 0, 0);
 }
 
-
 - (id)init
 {
     self = [super init];
@@ -86,7 +78,6 @@
     return self;
 }
 
-
 - (void)dealloc
 {
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
@@ -97,13 +88,11 @@
     [super dealloc];
 }
 
-
 - (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx
 {
     NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
     return _neighbors[idx];
 }
-
 
 - (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor
 {
@@ -113,7 +102,6 @@
     [_neighbors[idx] retain];
 }
 
-
 - (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block
 {
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
@@ -122,7 +110,6 @@
     }
 }
 
-
 - (void)enumerateNeighborsWithBlock2:(void (^)(neighbor_index_t, GSChunkVoxelData*))block
 {
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
@@ -130,7 +117,6 @@
         block(i, _neighbors[i]);
     }
 }
-
 
 - (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
@@ -163,14 +149,13 @@
     return YES;
 }
 
-
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    [[GSNeighborhood _sharedVoxelDataLock] lock];
+    [[GSNeighborhood sharedVoxelDataLock] lock];
     [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
         [neighbor.lockVoxelData lockForReading];
     }];
-    [[GSNeighborhood _sharedVoxelDataLock] unlock];
+    [[GSNeighborhood sharedVoxelDataLock] unlock];
     
     block();
     
@@ -178,7 +163,6 @@
         [neighbor.lockVoxelData unlockForReading];
     }];
 }
-
 
 - (GSChunkVoxelData *)neighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP
 {
@@ -219,7 +203,6 @@
     }
 }
 
-
 - (voxel_t)voxelAtPoint:(GSIntegerVector3)p
 {
     /* NOTE:
@@ -250,7 +233,6 @@
     }
 }
 
-
 - (uint8_t)lightAtPoint:(GSIntegerVector3)p getter:(GSLightingBuffer* (^)(GSChunkVoxelData *c))getter
 {
     // Assumes each chunk spans the entire vertical extent of the world.
@@ -271,6 +253,24 @@
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
     
     return lightLevel;
+}
+
+@end
+
+
+@implementation GSNeighborhood (Private)
+
++ (NSLock *)sharedVoxelDataLock
+{
+    static dispatch_once_t onceToken;
+    static NSLock *a = nil;
+
+    dispatch_once(&onceToken, ^{
+        a = [[NSLock alloc] init];
+        [a setName:@"GSNeighborhood.sharedVoxelDataLock"];
+    });
+
+    return a;
 }
 
 @end
