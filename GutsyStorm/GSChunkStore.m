@@ -80,8 +80,8 @@
         timeBetweenPerioducChunkUpdates = 1.0;
         activeRegionNeedsUpdate = 0;
 
-        generator = Block_copy(_generator);
-        postProcessor = Block_copy(_postProcessor);
+        generator = [_generator copy];
+        postProcessor = [_postProcessor copy];
         
         /* VBO generation must be performed on the main thread.
          * To preserve responsiveness, limit the number of VBOs we create per frame.
