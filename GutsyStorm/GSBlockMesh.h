@@ -8,7 +8,7 @@
 
 @class GSNeighborhood;
 
-@protocol GSBlockMesh <NSObject>
+@protocol GSBlockGeometryGenerating <NSObject>
 
 /* Generates geometry for the block at the specified position. For each new vertex, this method
  * adds a vertex to vertsBuffer.

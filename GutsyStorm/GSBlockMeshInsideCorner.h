@@ -8,6 +8,6 @@
 
 #import <Foundation/Foundation.h>
 
-@interface GSBlockMeshInsideCorner : GSBlockMeshMesh <GSBlockMesh>
+@interface GSBlockMeshInsideCorner : GSBlockMeshMesh <GSBlockGeometryGenerating>
 
 @end

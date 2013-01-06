@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
-@interface GSBlockMeshMesh : NSObject <GSBlockMesh>
+@interface GSBlockMeshMesh : NSObject <GSBlockGeometryGenerating>
 
 - (void)copyVertices:(const struct vertex*)mesh count:(NSUInteger)count;
 

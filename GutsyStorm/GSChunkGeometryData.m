@@ -80,9 +80,9 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     NSOpenGLContext *_glContext;
 }
 
-+ (id <GSBlockMesh>)sharedMeshFactoryWithBlockType:(voxel_type_t)type
++ (id <GSBlockGeometryGenerating>)sharedMeshFactoryWithBlockType:(voxel_type_t)type
 {
-    static id<GSBlockMesh> factories[NUM_VOXEL_TYPES];
+    static id<GSBlockGeometryGenerating> factories[NUM_VOXEL_TYPES];
     static dispatch_once_t onceToken;
     
     dispatch_once(&onceToken, ^{
@@ -318,7 +318,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
         GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
         GSChunkVoxelData *centerVoxels = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
         voxel_type_t type = [centerVoxels voxelAtLocalPosition:chunkLocalPos].type;
-        id <GSBlockMesh> factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
+        id <GSBlockGeometryGenerating> factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
 
         [factory generateGeometryForSingleBlockAtPosition:pos
                                                vertexList:vertices

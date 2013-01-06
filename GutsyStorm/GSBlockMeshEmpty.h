@@ -8,7 +8,7 @@
 
 #import "GSBlockMesh.h"
 
-@interface GSBlockMeshEmpty : NSObject <GSBlockMesh>
+@interface GSBlockMeshEmpty : NSObject <GSBlockGeometryGenerating>
 
 - (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
                                       vertexList:(NSMutableArray *)vertexList
