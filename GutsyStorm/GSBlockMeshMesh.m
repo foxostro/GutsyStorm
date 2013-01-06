@@ -35,10 +35,17 @@
 
 - (void)copyVertices:(const struct vertex*)mesh count:(NSUInteger)count
 {
+    assert(count>0);
     numVertices = count;
     assert(numVertices % 4 == 0);
     const size_t len = sizeof(struct vertex) * numVertices;
-    vertices = memcpy(malloc(len), mesh, len);
+
+    vertices = malloc(len);
+    if(!vertices) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating vertices."];
+    }
+
+    memcpy(vertices, mesh, len);
 }
 
 - (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat
