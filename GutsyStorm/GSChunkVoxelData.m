@@ -127,7 +127,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)p
 {
-    assert(voxelData);
+    assert(_voxelData);
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
     assert(p.y >= 0 && p.y < CHUNK_SIZE_Y);
     assert(p.z >= 0 && p.z < CHUNK_SIZE_Z);

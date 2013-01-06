@@ -113,7 +113,7 @@
 - (void)_setActiveChunk:(GSChunkGeometryData *)chunk atIndex:(NSUInteger)idx
 {
     assert(chunk);
-    assert(idx < maxActiveChunks);
+    assert(idx < _maxActiveChunks);
     
     [chunk retain];
     _activeChunks[idx] = chunk;
@@ -211,7 +211,7 @@
             [self _setActiveChunk:chunkProducer([b vectorValue]) atIndex:i];
             i++;
         }
-        assert(i == maxActiveChunks);
+        assert(i == _maxActiveChunks);
         
         [unsortedChunks release];
     } else {
@@ -220,7 +220,7 @@
             [self _setActiveChunk:chunkProducer(p) atIndex:i];
             i++;
         }];
-        assert(i == maxActiveChunks);
+        assert(i == _maxActiveChunks);
     }
     
     [retainChunkTemporarily release];

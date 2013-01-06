@@ -55,6 +55,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 - (void)saveGeometryDataToFile;
 - (NSError *)fillGeometryBuffersUsingDataRepr:(NSData *)data;
 - (BOOL)tryToLoadGeometryFromFile;
+- (BOOL)tryToLoadGeometryFromFileWithTier:(unsigned)tier;
 
 @end
 
@@ -329,7 +330,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     }
     
     _numChunkVerts = (GLsizei)[vertices count];
-    assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
+    assert(_numChunkVerts % 4 == 0); // chunk geometry is all done with quads
 
     // Take the vertices array and generate raw buffers for OpenGL to consume.
     _vertsBuffer = allocateVertexMemory(_numChunkVerts);
@@ -431,47 +432,74 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 
 - (BOOL)tryToLoadGeometryFromFile
 {
-    BOOL success = NO;
-    
-    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateInFlight)) {
-        DebugLog(@"Can't load geometry: update already in-flight.");
-        success = NO;
-        goto cleanup1;
-    }
-    
-    if(![_lockGeometry tryLock]) {
-        DebugLog(@"Can't load geometry: lockGeometry is already taken.");
-        success = NO;
-        goto cleanup2;
-    }
-    
-    NSString *path = [GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP];
-    NSURL *url = [NSURL URLWithString:path relativeToURL:_folder];
-    
-    if(NO == [url checkResourceIsReachableAndReturnError:NULL]) {
-        DebugLog(@"Can't load geometry: file not present.");
-        success = NO;
-        goto cleanup3;
-    }
-    
-    NSError *error = [self fillGeometryBuffersUsingDataRepr:[NSData dataWithContentsOfURL:url]];
-    if(nil != error) {
-        DebugLog(@"Can't load geometry: %@", error.localizedDescription);
-        success = NO;
-        goto cleanup3;
-    }
-    
-    // Success!
-    _needsVBORegeneration = YES;
-    _dirty = NO;
-    success = YES;
+    return [self tryToLoadGeometryFromFileWithTier:0];
+}
 
-cleanup3:
-    [_lockGeometry unlockWithCondition:success?READY:!READY];
-cleanup2:
-    OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
-cleanup1:
-    return success;
+/* Tries to load the geometry from file. Returns YES on success and NO on failure.
+ * There are several levels of locks which are taken recursively. The `tier' parameter indicates the level of recursion.
+ * The top-level caller should always call with tier==0.
+ */
+- (BOOL)tryToLoadGeometryFromFileWithTier:(unsigned)tier
+{
+    assert(tier < 3);
+
+    switch(tier)
+    {
+        case 0:
+        {
+            BOOL success = NO;
+
+            if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateInFlight)) {
+                DebugLog(@"Can't load geometry: update already in-flight.");
+            } else {
+                success = [self tryToLoadGeometryFromFileWithTier:1];
+                OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
+            }
+
+            return success;
+        }
+
+        case 1:
+        {
+            BOOL success = NO;
+
+            if(![_lockGeometry tryLock]) {
+                DebugLog(@"Can't load geometry: lockGeometry is already taken.");
+            } else {
+                success = [self tryToLoadGeometryFromFileWithTier:2];
+                [_lockGeometry unlockWithCondition:(success ? READY : !READY)];
+            }
+            
+            return success;
+        }
+
+        case 2:
+        {
+            BOOL success = NO;
+
+            NSString *path = [GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP];
+            NSURL *url = [NSURL URLWithString:path relativeToURL:_folder];
+
+            if(NO == [url checkResourceIsReachableAndReturnError:NULL]) {
+                DebugLog(@"Can't load geometry: file not present.");
+            } else {
+                NSError *error = [self fillGeometryBuffersUsingDataRepr:[NSData dataWithContentsOfURL:url]];
+                if(nil != error) {
+                    DebugLog(@"Can't load geometry: %@", error.localizedDescription);
+                } else {
+                    // Success!
+                    _needsVBORegeneration = YES;
+                    _dirty = NO;
+                    success = YES;
+                }
+            }
+            
+            return success;
+        }
+    }
+
+    assert(!"shouldn't get here");
+    return NO;
 }
 
 @end

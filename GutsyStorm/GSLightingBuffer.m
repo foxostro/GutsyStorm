@@ -65,7 +65,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 
 - (uint8_t)lightAtPoint:(GSIntegerVector3)chunkLocalPos
 {
-    assert(lightingBuffer);
+    assert(_lightingBuffer);
     
     GSIntegerVector3 p = GSIntegerVector3_Add(chunkLocalPos, _offsetFromChunkLocalSpace);
     
@@ -85,7 +85,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     float light;
     int i;
 
-    assert(lightingBuffer);
+    assert(_lightingBuffer);
 
     samplingPoints(count, sample, normal);
 

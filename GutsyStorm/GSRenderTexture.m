@@ -99,7 +99,7 @@
 
 - (void)startRender
 {
-    assert(!isCubeMap);
+    assert(!_isCubeMap);
     glGetIntegerv(GL_VIEWPORT, _originalViewport);
     glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
     glGenerateMipmap(GL_TEXTURE_2D); // generate all mipmaps now
@@ -108,7 +108,7 @@
 
 - (void)startRenderForCubeFace:(unsigned)face
 {
-    assert(isCubeMap);
+    assert(_isCubeMap);
     assert(face >= 0 && face <= 5);
     
     glGetIntegerv(GL_VIEWPORT, _originalViewport);

@@ -483,7 +483,7 @@
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p
 {
     assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
     GSChunkGeometryData *g = [_gridGeometryData objectAtPoint:p objectFactory:^id(GLKVector3 minP) {
         // Chunk geometry will be generated later and is only marked "dirty" for now.
@@ -501,7 +501,7 @@
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p
 {
     assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
     GSChunkVoxelData *v = [_gridVoxelData objectAtPoint:p
                                          objectFactory:^id(GLKVector3 minP) {
@@ -518,7 +518,7 @@
     GSChunkVoxelData *v;
 
     assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     assert(chunk);
 
     success = [_gridVoxelData tryToGetObjectAtPoint:p
