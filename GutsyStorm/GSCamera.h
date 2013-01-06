@@ -12,15 +12,7 @@
 #define CAMERA_MOVED  (1)
 #define CAMERA_TURNED (2)
 
-
 @interface GSCamera : NSObject
-{
-    float ceilingHeight;
-    float cameraSpeed, cameraRotSpeed;
-    GLKQuaternion cameraRot;
-    GLKVector3 cameraEye, cameraCenter, cameraUp;
-    GSFrustum *frustum;
-}
 
 @property (readonly, nonatomic) GLKVector3 cameraEye;
 @property (readonly, nonatomic) GLKVector3 cameraCenter;

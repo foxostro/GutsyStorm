@@ -45,7 +45,6 @@ typedef GLint index_t;
 // Make sure the number of indices can be stored in the type used for the shared index buffer.
 static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different value when index_t is GLushort.
 
-
 @interface GSChunkGeometryData (Private)
 
 + (index_t *)sharedIndexBuffer;
@@ -59,11 +58,27 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 
 @end
 
-
 @implementation GSChunkGeometryData
+{
+    /* There are two copies of the index buffer so that one can be used for
+     * drawing the chunk while geometry generation is in progress. This
+     * removes the need to have any locking surrounding access to data
+     * related to VBO drawing.
+     */
 
-@synthesize dirty;
+    BOOL _needsVBORegeneration;
+    GLsizei _numIndicesForDrawing;
+    GLuint _vbo;
 
+    NSConditionLock *_lockGeometry;
+    GLsizei _numChunkVerts;
+    struct vertex *_vertsBuffer;
+    int _updateInFlight;
+
+    NSURL *_folder;
+    dispatch_group_t _groupForSaving;
+    NSOpenGLContext *_glContext;
+}
 
 + (id <GSBlockMesh>)sharedMeshFactoryWithBlockType:(voxel_type_t)type
 {
@@ -87,56 +102,59 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     return factories[type];
 }
 
-
 + (NSString *)fileNameForGeometryDataFromMinP:(GLKVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.geometry.dat", minP.x, minP.y, minP.z];
 }
 
-
-- (id)initWithMinP:(GLKVector3)_minP
-            folder:(NSURL *)_folder
-    groupForSaving:(dispatch_group_t)_groupForSaving
+- (id)initWithMinP:(GLKVector3)minP
+            folder:(NSURL *)fldr
+    groupForSaving:(dispatch_group_t)grpForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-         glContext:(NSOpenGLContext *)_glContext
+         glContext:(NSOpenGLContext *)context
 {
-    self = [super initWithMinP:_minP];
+    self = [super initWithMinP:minP];
     if (self) {
-        glContext = _glContext;
-        [glContext retain];
+        _glContext = context;
+        [_glContext retain];
         
-        folder = _folder;
-        [folder retain];
+        _folder = fldr;
+        [_folder retain];
         
-        groupForSaving = _groupForSaving;
-        dispatch_retain(groupForSaving);
+        _groupForSaving = grpForSaving;
+        dispatch_retain(_groupForSaving);
         
         // Geometry for the chunk is protected by lockGeometry and is generated asynchronously.
-        lockGeometry = [[NSConditionLock alloc] init];
-        [lockGeometry setName:@"GSChunkGeometryData.lockGeometry"];
-        vertsBuffer = NULL;
-        numChunkVerts = 0;
-        dirty = YES;
-        updateInFlight = 0;
+        _lockGeometry = [[NSConditionLock alloc] init];
+        [_lockGeometry setName:@"GSChunkGeometryData.lockGeometry"];
+        _vertsBuffer = NULL;
+        _numChunkVerts = 0;
+        _dirty = YES;
+        _updateInFlight = 0;
         
         /* VBO data is not lock protected and is either exclusively accessed on the main thread
          * or is updated in ways that do not require locking for atomicity.
          */
-        vbo = 0;
-        numIndicesForDrawing = 0;
-        needsVBORegeneration = NO;
+        _vbo = 0;
+        _numIndicesForDrawing = 0;
+        _needsVBORegeneration = NO;
         
         // Frustum-Box testing requires the corners of the cube, so pre-calculate them here.
-        corners[0] = minP;
-        corners[1] = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, 0,            0));
-        corners[2] = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
-        corners[3] = GLKVector3Add(minP, GLKVector3Make(0,            0,            CHUNK_SIZE_Z));
-        corners[4] = GLKVector3Add(minP, GLKVector3Make(0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-        corners[5] = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-        corners[6] = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
-        corners[7] = GLKVector3Add(minP, GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
+        _corners = malloc(sizeof(GLKVector3) * 8);
+        if(!_corners) {
+            [NSException raise:@"Out of Memory" format:@"Out of memory allocating _corners."];
+        }
+
+        _corners[0] = self.minP;
+        _corners[1] = GLKVector3Add(_corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            0));
+        _corners[2] = GLKVector3Add(_corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
+        _corners[3] = GLKVector3Add(_corners[0], GLKVector3Make(0,            0,            CHUNK_SIZE_Z));
+        _corners[4] = GLKVector3Add(_corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        _corners[5] = GLKVector3Add(_corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        _corners[6] = GLKVector3Add(_corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
+        _corners[7] = GLKVector3Add(_corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
         
-        visible = NO;
+        _visible = NO;
         
         // Try to load geometry from file so we have something to show before regeneration finishes.
         [self tryToLoadGeometryFromFile];
@@ -145,12 +163,11 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     return self;
 }
 
-
 - (BOOL)tryToUpdateWithVoxelData:(GSNeighborhood *)neighborhood
 {
     __block BOOL success = NO;
     
-    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &updateInFlight)) {
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateInFlight)) {
         DebugLog(@"Can't update geometry: already in-flight.");
         return NO; // an update is already in flight, so bail out now
     }
@@ -164,13 +181,13 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
         }];
         
         if(anyNeighborHasDirtySunlight) {
-            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
             DebugLog(@"Can't update geometry: a neighbor has dirty sunlight data.");
             return;
         }
         
-        if(![lockGeometry tryLock]) {
-            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+        if(![_lockGeometry tryLock]) {
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
             DebugLog(@"Can't update geometry: lockGeometry is already taken.");
             return;
         }
@@ -184,74 +201,72 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
             
             // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
             // Updating a boolean should be atomic on x86_64 and i386;
-            needsVBORegeneration = YES;
+            _needsVBORegeneration = YES;
             
             // Cache geometry buffers on disk for next time.
             [self saveGeometryDataToFile];
             
-            dirty = NO;
-            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
-            [lockGeometry unlockWithCondition:READY];
+            _dirty = NO;
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
+            [_lockGeometry unlockWithCondition:READY];
             success = YES;
         } else {
-            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
-            [lockGeometry unlockWithCondition:!READY];
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
+            [_lockGeometry unlockWithCondition:!READY];
             DebugLog(@"Can't update geometry: sunlight buffer is busy.");
         }
     };
     
     if(![neighborhood tryReaderAccessToVoxelDataUsingBlock:b]) {
-        OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+        OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
         DebugLog(@"Can't update geometry: voxel data buffers are busy.");
     }
     
     return success;
 }
 
-
 // Returns YES if VBOs were generated.
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration
 {
     BOOL didGenerateVBOs = NO;
     
-    if(allowVBOGeneration && needsVBORegeneration && [lockGeometry tryLockWhenCondition:READY]) {
-        if(!vbo) {
-            glGenBuffers(1, &vbo);
+    if(allowVBOGeneration && _needsVBORegeneration && [_lockGeometry tryLockWhenCondition:READY]) {
+        if(!_vbo) {
+            glGenBuffers(1, &_vbo);
         }
         
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, numChunkVerts * sizeof(struct vertex), vertsBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+        glBufferData(GL_ARRAY_BUFFER, _numChunkVerts * sizeof(struct vertex), _vertsBuffer, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
-        numIndicesForDrawing = numChunkVerts;
-        needsVBORegeneration = NO; // reset
+        _numIndicesForDrawing = _numChunkVerts;
+        _needsVBORegeneration = NO; // reset
         didGenerateVBOs = YES;
         
-        [lockGeometry unlock];
+        [_lockGeometry unlock];
     }
     
-    drawChunkVBO(numIndicesForDrawing, vbo);
+    drawChunkVBO(_numIndicesForDrawing, _vbo);
 
     return didGenerateVBOs;
 }
 
-
 - (void)dealloc
 {
     dispatch_async(dispatch_get_main_queue(), ^{
-        syncDestroySingleVBO(glContext, vbo);
+        syncDestroySingleVBO(_glContext, _vbo);
     });
     
     [self destroyGeometry];
-    [lockGeometry release];
-    [glContext release];
-    [folder release];
-    dispatch_release(groupForSaving);
+    [_lockGeometry release];
+    [_glContext release];
+    [_folder release];
+    dispatch_release(_groupForSaving);
+    free(_corners);
     [super dealloc];
 }
 
 @end
-
 
 @implementation GSChunkGeometryData (Private)
 
@@ -290,6 +305,9 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 
     assert(neighborhood);
 
+    GLKVector3 minP = self.minP;
+    GLKVector3 maxP = self.maxP;
+
     vertices = [[NSMutableArray alloc] init];
 
     // Iterate over all voxels in the chunk and generate geometry.
@@ -310,34 +328,32 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
         [pool release];
     }
     
-    numChunkVerts = (GLsizei)[vertices count];
+    _numChunkVerts = (GLsizei)[vertices count];
     assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
 
     // Take the vertices array and generate raw buffers for OpenGL to consume.
-    vertsBuffer = allocateVertexMemory(numChunkVerts);
-    for(GLsizei i=0; i<numChunkVerts; ++i)
+    _vertsBuffer = allocateVertexMemory(_numChunkVerts);
+    for(GLsizei i=0; i<_numChunkVerts; ++i)
     {
-        GSVertex *v = [vertices objectAtIndex:i];
-        vertsBuffer[i] = v.v;
+        GSVertex *v = vertices[i];
+        _vertsBuffer[i] = v.v;
     }
 
     [vertices release];
 
     // Iterate over all vertices and calculate lighting.
-    applyLightToVertices(numChunkVerts, vertsBuffer,
+    applyLightToVertices(_numChunkVerts, _vertsBuffer,
                          [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER].sunlight,
                          minP);
 }
 
-
 // Assumes the caller is already holding "lockGeometry".
 - (void)destroyGeometry
 {
-    free(vertsBuffer);
-    vertsBuffer = NULL;
-    numChunkVerts = 0;
+    free(_vertsBuffer);
+    _vertsBuffer = NULL;
+    _numChunkVerts = 0;
 }
-
 
 // Assumes the caller is already holding "lockGeometry".
 - (NSData *)dataRepr
@@ -348,25 +364,23 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     header.w = CHUNK_SIZE_X;
     header.h = CHUNK_SIZE_Y;
     header.d = CHUNK_SIZE_Z;
-    header.numChunkVerts = numChunkVerts;
-    header.len = numChunkVerts * sizeof(struct vertex);
+    header.numChunkVerts = _numChunkVerts;
+    header.len = _numChunkVerts * sizeof(struct vertex);
     
     [data appendBytes:&header length:sizeof(header)];
-    [data appendBytes:vertsBuffer length:header.len];
+    [data appendBytes:_vertsBuffer length:header.len];
     
     return data;
 }
 
-
 // Assumes the caller is already holding "lockGeometry".
 - (void)saveGeometryDataToFile
 {
-    NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:minP]
-                        relativeToURL:folder];
+    NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP]
+                        relativeToURL:_folder];
     
     [[self dataRepr] writeToURL:url atomically:YES];
 }
-
 
 // Assumes the caller is already holding "lockGeometry".
 - (NSError *)fillGeometryBuffersUsingDataRepr:(NSData *)data
@@ -408,32 +422,31 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
                                userInfo:@{NSLocalizedFailureReasonErrorKey:@"Geometry data length is not as unexpected."}];
     }
     
-    numChunkVerts = header.numChunkVerts;
-    vertsBuffer = allocateVertexMemory(numChunkVerts);
-    [data getBytes:vertsBuffer range:NSMakeRange(sizeof(struct chunk_geometry_header), header.len)];
+    _numChunkVerts = header.numChunkVerts;
+    _vertsBuffer = allocateVertexMemory(_numChunkVerts);
+    [data getBytes:_vertsBuffer range:NSMakeRange(sizeof(struct chunk_geometry_header), header.len)];
     
     return nil; // Success!
 }
-
 
 - (BOOL)tryToLoadGeometryFromFile
 {
     BOOL success = NO;
     
-    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &updateInFlight)) {
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateInFlight)) {
         DebugLog(@"Can't load geometry: update already in-flight.");
         success = NO;
         goto cleanup1;
     }
     
-    if(![lockGeometry tryLock]) {
+    if(![_lockGeometry tryLock]) {
         DebugLog(@"Can't load geometry: lockGeometry is already taken.");
         success = NO;
         goto cleanup2;
     }
     
-    NSString *path = [GSChunkGeometryData fileNameForGeometryDataFromMinP:minP];
-    NSURL *url = [NSURL URLWithString:path relativeToURL:folder];
+    NSString *path = [GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP];
+    NSURL *url = [NSURL URLWithString:path relativeToURL:_folder];
     
     if(NO == [url checkResourceIsReachableAndReturnError:NULL]) {
         DebugLog(@"Can't load geometry: file not present.");
@@ -449,20 +462,19 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     }
     
     // Success!
-    needsVBORegeneration = YES;
-    dirty = NO;
+    _needsVBORegeneration = YES;
+    _dirty = NO;
     success = YES;
 
 cleanup3:
-    [lockGeometry unlockWithCondition:success?READY:!READY];
+    [_lockGeometry unlockWithCondition:success?READY:!READY];
 cleanup2:
-    OSAtomicCompareAndSwapIntBarrier(1, 0, &updateInFlight); // reset
+    OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
 cleanup1:
     return success;
 }
 
 @end
-
 
 static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo)
 {
@@ -514,7 +526,6 @@ static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo)
     assert(checkGLErrors() == 0);
 }
 
-
 static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo)
 {
     assert(context);
@@ -525,7 +536,6 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo)
         CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
     }
 }
-
 
 // Allocate a buffer for use in geometry generation and VBOs.
 static void * allocateVertexMemory(size_t numVerts)
@@ -539,7 +549,6 @@ static void * allocateVertexMemory(size_t numVerts)
     
     return buffer;
 }
-
 
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct vertex *vertsBuffer,

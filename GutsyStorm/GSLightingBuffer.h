@@ -15,13 +15,6 @@
 
 // A chunk-sized buffer of lighting values. For example, the lighting contribution, per block, of direct sunlight.
 @interface GSLightingBuffer : NSObject
-{
- @public
-    GSReaderWriterLock *lockLightingBuffer;
-    uint8_t *lightingBuffer;
-    GSIntegerVector3 dimensions;
-    GSIntegerVector3 offsetFromChunkLocalSpace;
-}
 
 @property (readonly, nonatomic) GSReaderWriterLock *lockLightingBuffer;
 @property (readonly, nonatomic) uint8_t *lightingBuffer;

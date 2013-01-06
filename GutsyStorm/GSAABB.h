@@ -9,9 +9,6 @@
 #import <Foundation/Foundation.h>
 
 @interface GSAABB : NSObject
-{
-    GLKVector3 mins, maxs;
-}
 
 @property (assign, nonatomic) GLKVector3 mins;
 @property (assign, nonatomic) GLKVector3 maxs;

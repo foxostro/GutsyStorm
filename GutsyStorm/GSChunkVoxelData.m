@@ -34,66 +34,65 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 
 
 @implementation GSChunkVoxelData
-
-@synthesize voxelData;
-@synthesize sunlight;
-@synthesize lockVoxelData;
-@synthesize dirtySunlight;
+{
+    NSURL *_folder;
+    dispatch_group_t _groupForSaving;
+    dispatch_queue_t _chunkTaskQueue;
+    int _updateForSunlightInFlight;
+}
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GLKVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
 }
 
-
 + (NSString *)fileNameForSunlightDataFromMinP:(GLKVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.sunlight.dat", minP.x, minP.y, minP.z];
 }
 
-
-- (id)initWithMinP:(GLKVector3)_minP
-            folder:(NSURL *)_folder
-    groupForSaving:(dispatch_group_t)_groupForSaving
-    chunkTaskQueue:(dispatch_queue_t)_chunkTaskQueue
+- (id)initWithMinP:(GLKVector3)minP
+            folder:(NSURL *)folder
+    groupForSaving:(dispatch_group_t)groupForSaving
+    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
          generator:(terrain_generator_t)generator
      postProcessor:(terrain_post_processor_t)postProcessor
 {
-    self = [super initWithMinP:_minP];
+    self = [super initWithMinP:minP];
     if (self) {
         assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
         
-        groupForSaving = _groupForSaving; // dispatch group used for tasks related to saving chunks to disk
-        dispatch_retain(groupForSaving);
+        _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
+        dispatch_retain(_groupForSaving);
         
-        chunkTaskQueue = _chunkTaskQueue; // dispatch queue used for chunk background work
+        _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
         dispatch_retain(_chunkTaskQueue);
         
-        folder = _folder;
-        [folder retain];
+        _folder = folder;
+        [_folder retain];
         
-        lockVoxelData = [[GSReaderWriterLock alloc] init];
-        [lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
-        voxelData = NULL;
+        _lockVoxelData = [[GSReaderWriterLock alloc] init];
+        [_lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
+        _voxelData = NULL;
         
-        sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(3*CHUNK_SIZE_X,CHUNK_SIZE_Y,3*CHUNK_SIZE_Z)];
-        dirtySunlight = YES;
+        _sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(3*CHUNK_SIZE_X,CHUNK_SIZE_Y,3*CHUNK_SIZE_Z)];
+        _dirtySunlight = YES;
         
         // The initial loading from disk preceeds all attempts to generate new sunlight data.
-        OSAtomicCompareAndSwapIntBarrier(0, 1, &updateForSunlightInFlight);
+        OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateForSunlightInFlight);
         
         // Fire off asynchronous task to load or generate voxel data.
-        dispatch_async(chunkTaskQueue, ^{
+        dispatch_async(_chunkTaskQueue, ^{
             [self allocateVoxelData];
             
             [self tryToLoadSunlightData];
-            OSAtomicCompareAndSwapIntBarrier(1, 0, &updateForSunlightInFlight); // reset
+            OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
             
             [self loadOrGenerateVoxelData:generator
                             postProcessor:postProcessor
                         completionHandler:^{
                 [self recalcOutsideVoxelsNoLock];
-                [lockVoxelData unlockForWriting];
+                [_lockVoxelData unlockForWriting];
                 // We don't need to call -voxelDataWasModified in the special case of initialization.
             }];
         });
@@ -102,28 +101,25 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     return self;
 }
 
-
 - (void)dealloc
 {
-    dispatch_release(groupForSaving);
-    dispatch_release(chunkTaskQueue);
-    [folder release];
+    dispatch_release(_groupForSaving);
+    dispatch_release(_chunkTaskQueue);
+    [_folder release];
     
     [self destroyVoxelData];
-    [lockVoxelData release];
+    [_lockVoxelData release];
     
-    [sunlight release];
+    [_sunlight release];
     
     [super dealloc];
 }
-
 
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)p
 {
     return *[self pointerToVoxelAtLocalPosition:p];
 }
-
 
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)p
@@ -136,55 +132,50 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     size_t idx = INDEX_BOX(p, ivecZero, chunkSize);
     assert(idx >= 0 && idx < (CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z));
     
-    return &voxelData[idx];
+    return &_voxelData[idx];
 }
-
 
 - (void)voxelDataWasModified
 {
     [self recalcOutsideVoxelsNoLock];
     
     // Caller must make sure to update sunlight later...
-    dirtySunlight = YES;
+    _dirtySunlight = YES;
     
     // Spin off a task to save the chunk.
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-    dispatch_group_async(groupForSaving, queue, ^{
-        [lockVoxelData lockForReading];
+    dispatch_group_async(_groupForSaving, queue, ^{
+        [_lockVoxelData lockForReading];
         [self saveVoxelDataToFile];
-        [lockVoxelData unlockForReading];
+        [_lockVoxelData unlockForReading];
     });
 }
 
-
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    [lockVoxelData lockForReading];
+    [_lockVoxelData lockForReading];
     block();
-    [lockVoxelData unlockForReading];
+    [_lockVoxelData unlockForReading];
 }
-
 
 - (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    if(![lockVoxelData tryLockForReading]) {
+    if(![_lockVoxelData tryLockForReading]) {
         return NO;
     } else {
         block();
-        [lockVoxelData unlockForReading];
+        [_lockVoxelData unlockForReading];
         return YES;
     }
 }
 
-
 - (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block
 {
-    [lockVoxelData lockForWriting];
+    [_lockVoxelData lockForWriting];
     block();
     [self voxelDataWasModified];
-    [lockVoxelData unlockForWriting];
+    [_lockVoxelData unlockForWriting];
 }
-
 
 /* Copy the voxel data for the neighborhood into a new buffer and return the buffer. If the method would block when taking the
  * locks on the neighborhood then instead return NULL. The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y
@@ -240,7 +231,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     return combinedVoxelData;
 }
 
-
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p
                          lightLevel:(int)lightLevel
                   combinedVoxelData:(voxel_t *)combinedVoxelData
@@ -270,7 +260,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     return NO;
 }
 
-
 /* Generate and return  sunlight data for this chunk from the specified voxel data buffer. The voxel data buffer must be
  * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local neighborhood.
  * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight values for the
@@ -281,7 +270,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 {
     GSIntegerVector3 p;
     
-    uint8_t *combinedSunlightData = sunlight.lightingBuffer;
+    uint8_t *combinedSunlightData = _sunlight.lightingBuffer;
     
     FOR_BOX(p, combinedMinP, combinedMaxP)
     {
@@ -315,18 +304,17 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     }
 }
 
-
 - (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler
 {
     BOOL success = NO;
     __block voxel_t *buf = NULL;
     
-    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &updateForSunlightInFlight)) {
+    if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateForSunlightInFlight)) {
         DebugLog(@"Can't update sunlight: already in-flight.");
         return NO; // an update is already in flight, so bail out now
     }
     
-    if(![sunlight.lockLightingBuffer tryLockForWriting]) {
+    if(![_sunlight.lockLightingBuffer tryLockForWriting]) {
         DebugLog(@"Can't update sunlight: sunlight buffer is busy."); // This failure really shouldn't happen much...
         success = NO;
         goto cleanup1;
@@ -342,27 +330,26 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     // Actually generate sunlight data.
     [self fillSunlightBufferUsingCombinedVoxelData:buf];
     
-    dirtySunlight = NO;
+    _dirtySunlight = NO;
     success = YES;
     
     // Spin off a task to save sunlight data to disk.
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-    dispatch_group_async(groupForSaving, queue, ^{
+    dispatch_group_async(_groupForSaving, queue, ^{
         [self saveSunlightDataToFile];
     });
     
     completionHandler(); // Only call the completion handler if the update was successful.
     
 cleanup2:
-    [sunlight.lockLightingBuffer unlockForWriting];
+    [_sunlight.lockLightingBuffer unlockForWriting];
 cleanup1:
-    OSAtomicCompareAndSwapIntBarrier(1, 0, &updateForSunlightInFlight); // reset
+    OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
     free(buf);
     return success;
 }
 
 @end
-
 
 @implementation GSChunkVoxelData (Private)
 
@@ -371,40 +358,36 @@ cleanup1:
 {
     const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
     
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP]
-                        relativeToURL:folder];
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP]
+                        relativeToURL:_folder];
     
-    [[NSData dataWithBytes:voxelData length:len] writeToURL:url atomically:YES];
+    [[NSData dataWithBytes:_voxelData length:len] writeToURL:url atomically:YES];
 }
-
 
 - (void)saveSunlightDataToFile
 {
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:minP]
-                        relativeToURL:folder];
-    [sunlight saveToFile:url];
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
+                        relativeToURL:_folder];
+    [_sunlight saveToFile:url];
 }
-
 
 // Assumes the caller is already holding "lockVoxelData".
 - (void)allocateVoxelData
 {
     [self destroyVoxelData];
     
-    voxelData = malloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t));
-    if(!voxelData) {
+    _voxelData = malloc(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t));
+    if(!_voxelData) {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for chunk's voxelData"];
     }
 }
 
-
 // Assumes the caller is already holding "lockVoxelData".
 - (void)destroyVoxelData
 {
-    free(voxelData);
-    voxelData = NULL;
+    free(_voxelData);
+    _voxelData = NULL;
 }
-
 
 // Assumes the caller is already holding "lockVoxelData".
 - (void)recalcOutsideVoxelsNoLock
@@ -453,7 +436,6 @@ cleanup1:
     }
 }
 
-
 /* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is translated so
  * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
  * the chunk is equal to maxP-minP. Ditto for the other major axii.
@@ -474,7 +456,7 @@ cleanup1:
     // Note that whether the block is outside or not is calculated later.
     FOR_BOX(p, a, b)
     {
-        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), minP), &voxels[INDEX_BOX(p, a, b)]);
+        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), self.minP), &voxels[INDEX_BOX(p, a, b)]);
     }
 
     // Post-process the voxels to add ramps, &c.
@@ -483,12 +465,11 @@ cleanup1:
     // Copy the voxels for the chunk to their final destination.
     FOR_BOX(p, ivecZero, chunkSize)
     {
-        voxelData[INDEX_BOX(p, ivecZero, chunkSize)] = voxels[INDEX_BOX(p, a, b)];
+        _voxelData[INDEX_BOX(p, ivecZero, chunkSize)] = voxels[INDEX_BOX(p, a, b)];
     }
 
     free(voxels);
 }
-
 
 // Attempt to load chunk data from file asynchronously.
 - (NSError *)loadVoxelDataFromFile:(NSURL *)url
@@ -509,18 +490,17 @@ cleanup1:
                                    code:GSInvalidChunkDataOnDiskError
                                userInfo:@{NSLocalizedFailureReasonErrorKey:@"Voxel data file is of unexpected length."}];
     }
-    [data getBytes:voxelData length:len];
+    [data getBytes:_voxelData length:len];
     [data release];
     
     return nil;
 }
 
-
 - (void)loadOrGenerateVoxelData:(terrain_generator_t)generator
                   postProcessor:(terrain_post_processor_t)postProcessor
               completionHandler:(void (^)(void))completionHandler
 {
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:minP] relativeToURL:folder];
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP] relativeToURL:_folder];
     NSError *error = [self loadVoxelDataFromFile:url];
     
     if(error) {
@@ -529,10 +509,10 @@ cleanup1:
                                    postProcessor:postProcessor];
 
             dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-            dispatch_group_async(groupForSaving, queue, ^{
-                [lockVoxelData lockForReading];
+            dispatch_group_async(_groupForSaving, queue, ^{
+                [_lockVoxelData lockForReading];
                 [self saveVoxelDataToFile];
-                [lockVoxelData unlockForReading];
+                [_lockVoxelData unlockForReading];
             });
         } else {
             [NSException raise:@"Runtime Error" format:@"Error %ld: %@", (long)error.code, error.localizedDescription];
@@ -542,14 +522,13 @@ cleanup1:
     completionHandler();
 }
 
-
 - (void)tryToLoadSunlightData
 {
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:minP]
-                        relativeToURL:folder];
+    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
+                        relativeToURL:_folder];
     
-    [sunlight tryToLoadFromFile:url completionHandler:^{
-        dirtySunlight = NO;
+    [_sunlight tryToLoadFromFile:url completionHandler:^{
+        _dirtySunlight = NO;
     }];
 }
 

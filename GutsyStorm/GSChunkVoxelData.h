@@ -20,18 +20,6 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
 
 
 @interface GSChunkVoxelData : GSChunkData
-{
-    NSURL *folder;
-    dispatch_group_t groupForSaving;
-    dispatch_queue_t chunkTaskQueue;
-    
-    GSReaderWriterLock *lockVoxelData;
-    voxel_t *voxelData; // the voxels that make up the chunk
-    
-    GSLightingBuffer *sunlight; // lighting contributions from sunlight
-    BOOL dirtySunlight;
-    int updateForSunlightInFlight;
-}
 
 @property (readonly, nonatomic) voxel_t *voxelData;
 @property (readonly, nonatomic) GSLightingBuffer *sunlight;

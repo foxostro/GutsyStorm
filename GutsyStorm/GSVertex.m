@@ -17,15 +17,13 @@
 
 @implementation GSVertex
 
-@synthesize v;
-
 - (id)initWithVertex:(struct vertex *)pv
 {
     assert(pv);
     
     self = [super init];
     if (self) {
-        v = *pv;
+        _v = *pv;
     }
 
     return self;

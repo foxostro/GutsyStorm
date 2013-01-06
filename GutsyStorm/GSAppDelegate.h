@@ -12,9 +12,7 @@
 
 @interface GSAppDelegate : NSObject <NSApplicationDelegate>
 {
-    NSWindow *window;
-    GSTerrain *terrain;
-    CVDisplayLinkRef displayLink;
+    CVDisplayLinkRef _displayLink;
 }
 
 @property (assign) IBOutlet NSWindow *window;

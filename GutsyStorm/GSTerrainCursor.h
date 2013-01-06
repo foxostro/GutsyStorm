@@ -12,12 +12,6 @@
 #import "GSCube.h"
 
 @interface GSTerrainCursor : NSObject
-{
-    BOOL cursorIsActive;
-    GLKVector3 cursorPos;
-    GLKVector3 cursorPlacePos;
-    GSCube *cursor;
-}
 
 @property (assign) BOOL cursorIsActive;
 @property (assign) GLKVector3 cursorPos;

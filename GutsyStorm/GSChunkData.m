@@ -24,10 +24,6 @@ const GSIntegerVector3 offsetForFace[FACE_NUM_FACES] =
 
 @implementation GSChunkData
 
-@synthesize minP;
-@synthesize maxP;
-@synthesize centerP;
-
 + (GLKVector3)minCornerForChunkAtPoint:(GLKVector3)p
 {
     return GLKVector3Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
@@ -47,14 +43,14 @@ const GSIntegerVector3 offsetForFace[FACE_NUM_FACES] =
     return [[[GSBoxedVector alloc] initWithVector:minP] autorelease];
 }
 
-- (id)initWithMinP:(GLKVector3)_minP
+- (id)initWithMinP:(GLKVector3)minP
 {
     self = [super init];
     if (self) {
         // Initialization code here.
-        minP = _minP;
-        maxP = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-        centerP = GLKVector3MultiplyScalar(GLKVector3Add(minP, maxP), 0.5);
+        _minP = minP;
+        _maxP = GLKVector3Add(_minP, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        _centerP = GLKVector3MultiplyScalar(GLKVector3Add(_minP, _maxP), 0.5);
     }
     
     return self;

@@ -39,8 +39,8 @@ BOOL checkForOpenGLExtension(NSString *extension);
     // init fonts for use with strings
     NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
     stringAttribs = [[NSMutableDictionary dictionary] retain];
-    [stringAttribs setObject:font forKey:NSFontAttributeName];
-    [stringAttribs setObject:[NSColor whiteColor] forKey:NSForegroundColorAttributeName];
+    stringAttribs[NSFontAttributeName] = font;
+    stringAttribs[NSForegroundColorAttributeName] = [NSColor whiteColor];
     
     fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
                                       withAttributes:stringAttribs
@@ -216,14 +216,14 @@ BOOL checkForOpenGLExtension(NSString *extension);
 - (void)keyDown:(NSEvent *)theEvent
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    [keysDown setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInt:key]];
+    keysDown[@(key)] = @YES;
 }
 
 
 - (void)keyUp:(NSEvent *)theEvent
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    [keysDown setObject:[NSNumber numberWithBool:NO] forKey:[NSNumber numberWithInt:key]];
+    keysDown[@(key)] = @NO;
 }
 
 
@@ -257,7 +257,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
                                                                 mouseDeltaY:mouseDeltaY
                                                            mouseSensitivity:mouseSensitivity];
     
-    if([[keysDown objectForKey:[NSNumber numberWithInt:' ']] boolValue]) {
+    if([keysDown[@(' ')] boolValue]) {
         if(!spaceBarDebounce) {
             spaceBarDebounce = YES;
             [terrain placeBlockUnderCrosshairs];
@@ -266,7 +266,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
         spaceBarDebounce = NO;
     }
     
-    if([[keysDown objectForKey:[NSNumber numberWithInt:'b']] boolValue]) {
+    if([keysDown[@('b')] boolValue]) {
         if(!bKeyDebounce) {
             bKeyDebounce = YES;
             [terrain removeBlockUnderCrosshairs];

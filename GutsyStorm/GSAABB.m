@@ -12,9 +12,6 @@
 
 @implementation GSAABB
 
-@synthesize mins;
-@synthesize maxs;
-
 
 - (id)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts
 {
@@ -23,18 +20,18 @@
         // Initialization code here.
         assert(numVerts > 0);
         
-        mins = vertices[0];
-        maxs = vertices[0];
+        _mins = vertices[0];
+        _maxs = vertices[0];
         
         for(size_t i = 1; i < numVerts; ++i)
         {
-            mins.x = MIN(vertices[i].x, mins.x);
-            mins.y = MIN(vertices[i].y, mins.y);
-            mins.z = MIN(vertices[i].z, mins.z);
+            _mins.x = MIN(vertices[i].x, _mins.x);
+            _mins.y = MIN(vertices[i].y, _mins.y);
+            _mins.z = MIN(vertices[i].z, _mins.z);
             
-            maxs.x = MAX(vertices[i].x, maxs.x);
-            maxs.y = MAX(vertices[i].y, maxs.y);
-            maxs.z = MAX(vertices[i].z, maxs.z);
+            _maxs.x = MAX(vertices[i].x, _maxs.x);
+            _maxs.y = MAX(vertices[i].y, _maxs.y);
+            _maxs.z = MAX(vertices[i].z, _maxs.z);
         }
     }
     
@@ -53,22 +50,22 @@
 {
     switch(i)
     {
-    case 0: return GLKVector3Make(mins.x, mins.y, mins.z);
-    case 1: return GLKVector3Make(mins.x, mins.y, maxs.z);
-    case 2: return GLKVector3Make(maxs.x, mins.y, mins.z);
-    case 3: return GLKVector3Make(maxs.x, mins.y, maxs.z);
+    case 0: return GLKVector3Make(_mins.x, _mins.y, _mins.z);
+    case 1: return GLKVector3Make(_mins.x, _mins.y, _maxs.z);
+    case 2: return GLKVector3Make(_maxs.x, _mins.y, _mins.z);
+    case 3: return GLKVector3Make(_maxs.x, _mins.y, _maxs.z);
             
-    case 4: return GLKVector3Make(mins.x, maxs.y, mins.z);
-    case 5: return GLKVector3Make(mins.x, maxs.y, maxs.z);
-    case 6: return GLKVector3Make(maxs.x, maxs.y, mins.z);
-    case 7: return GLKVector3Make(maxs.x, maxs.y, maxs.z);
+    case 4: return GLKVector3Make(_mins.x, _maxs.y, _mins.z);
+    case 5: return GLKVector3Make(_mins.x, _maxs.y, _maxs.z);
+    case 6: return GLKVector3Make(_maxs.x, _maxs.y, _mins.z);
+    case 7: return GLKVector3Make(_maxs.x, _maxs.y, _maxs.z);
             
     default:
         [NSException raise:@"Bad index" format:@"Bad index in -getVertex:"];
         break;        
     }
     
-    return mins; // never reached
+    return _mins; // never reached
 }
 
 @end

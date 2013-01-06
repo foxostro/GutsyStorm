@@ -38,12 +38,12 @@
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     
     if(![defaults objectForKey:@"ActiveRegionExtent"]) {
-        NSDictionary *values = [NSDictionary dictionaryWithObjectsAndKeys:@"256", @"ActiveRegionExtent", nil];
+        NSDictionary *values = @{@"ActiveRegionExtent": @"256"};
         [[NSUserDefaults standardUserDefaults] registerDefaults:values];
     }
     
     if(![defaults objectForKey:@"NumVBOGenerationsAllowedPerFrame"]) {
-        NSDictionary *values = [NSDictionary dictionaryWithObjectsAndKeys:@"64", @"NumVBOGenerationsAllowedPerFrame", nil];
+        NSDictionary *values = @{@"NumVBOGenerationsAllowedPerFrame": @"64"};
         [[NSUserDefaults standardUserDefaults] registerDefaults:values];
     }
     
@@ -164,7 +164,7 @@
     __block NSUInteger numVBOGenerationsRemaining = numVBOGenerationsAllowedPerFrame;
     [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
         assert(chunk);
-        if(chunk->visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
+        if(chunk.visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
             numVBOGenerationsRemaining--;
         };
     }];
@@ -513,7 +513,7 @@
 + (NSURL *)newWorldSaveFolderURLWithSeed:(NSUInteger)seed
 {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
-    NSString *folder = ([paths count] > 0) ? [paths objectAtIndex:0] : NSTemporaryDirectory();
+    NSString *folder = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
     
     folder = [folder stringByAppendingPathComponent:@"GutsyStorm"];
     folder = [folder stringByAppendingPathComponent:@"save"];
@@ -544,8 +544,9 @@
     GSFrustum *frustum = [camera frustum];
     
     [activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
+        // XXX: the GSChunkGeometryData could do this calculation itself...
         if(geometry) {
-            geometry->visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry->corners]);
+            geometry.visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry.corners]);
         }
     }];
     

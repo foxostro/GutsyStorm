@@ -11,41 +11,39 @@
 #import "GSLightingBuffer.h"
 #import "GSChunkVoxelData.h"
 
-#define BUFFER_SIZE_IN_BYTES (dimensions.x * dimensions.y * dimensions.z * sizeof(uint8_t))
+#define BUFFER_SIZE_IN_BYTES (_dimensions.x * _dimensions.y * _dimensions.z * sizeof(uint8_t))
 
 // Columns in the y-axis are contiguous in memory.
-#define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*dimensions.y*dimensions.z) + ((p.z)*dimensions.y) + (p.y)))
+#define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*_dimensions.y*_dimensions.z) + ((p.z)*_dimensions.y) + (p.y)))
 
 static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
 
-
 @implementation GSLightingBuffer
+{
+    GSIntegerVector3 _offsetFromChunkLocalSpace;
+}
 
-@synthesize lockLightingBuffer;
-@synthesize lightingBuffer;
-@synthesize dimensions;
-
-- (id)initWithDimensions:(GSIntegerVector3)_dimensions
+- (id)initWithDimensions:(GSIntegerVector3)dim
 {
     self = [super init];
     if (self) {
-        assert(_dimensions.x >= CHUNK_SIZE_X);
-        assert(_dimensions.y >= CHUNK_SIZE_Y);
-        assert(_dimensions.z >= CHUNK_SIZE_Z);
+        assert(dim.x >= CHUNK_SIZE_X);
+        assert(dim.y >= CHUNK_SIZE_Y);
+        assert(dim.z >= CHUNK_SIZE_Z);
         
-        dimensions = _dimensions;
+        _dimensions = dim;
         
-        offsetFromChunkLocalSpace = GSIntegerVector3_Make((dimensions.x - CHUNK_SIZE_X) / 2,
-                                                          (dimensions.y - CHUNK_SIZE_Y) / 2,
-                                                          (dimensions.z - CHUNK_SIZE_Z) / 2);
+        _offsetFromChunkLocalSpace = GSIntegerVector3_Make((_dimensions.x - CHUNK_SIZE_X) / 2,
+                                                          (_dimensions.y - CHUNK_SIZE_Y) / 2,
+                                                          (_dimensions.z - CHUNK_SIZE_Z) / 2);
         
-        lightingBuffer = malloc(BUFFER_SIZE_IN_BYTES);
+        _lightingBuffer = malloc(BUFFER_SIZE_IN_BYTES);
         
-        if(!lightingBuffer) {
+        if(!_lightingBuffer) {
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
         }
         
-        lockLightingBuffer = [[GSReaderWriterLock alloc] init];
+        _lockLightingBuffer = [[GSReaderWriterLock alloc] init];
         
         [self clear];
     }
@@ -60,8 +58,8 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 
 - (void)dealloc
 {
-    free(lightingBuffer);
-    [lockLightingBuffer release];
+    free(_lightingBuffer);
+    [GSLightingBuffer release];
     [super dealloc];
 }
 
@@ -69,10 +67,10 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 {
     assert(lightingBuffer);
     
-    GSIntegerVector3 p = GSIntegerVector3_Add(chunkLocalPos, offsetFromChunkLocalSpace);
+    GSIntegerVector3 p = GSIntegerVector3_Add(chunkLocalPos, _offsetFromChunkLocalSpace);
     
-    if(p.x >= 0 && p.x < dimensions.x && p.y >= 0 && p.y < dimensions.y && p.z >= 0 && p.z < dimensions.z) {
-        return lightingBuffer[INDEX_INTO_LIGHTING_BUFFER(p)];
+    if(p.x >= 0 && p.x < _dimensions.x && p.y >= 0 && p.y < _dimensions.y && p.z >= 0 && p.z < _dimensions.z) {
+        return _lightingBuffer[INDEX_INTO_LIGHTING_BUFFER(p)];
     } else {
         return 0;
     }
@@ -109,47 +107,43 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 
 - (void)readerAccessToBufferUsingBlock:(void (^)(void))block
 {
-    [lockLightingBuffer lockForReading];
+    [_lockLightingBuffer lockForReading];
     block();
-    [lockLightingBuffer unlockForReading];
+    [_lockLightingBuffer unlockForReading];
 }
 
 
 - (void)writerAccessToBufferUsingBlock:(void (^)(void))block
 {
-    [lockLightingBuffer lockForWriting];
+    [_lockLightingBuffer lockForWriting];
     block();
-    [lockLightingBuffer unlockForWriting];
+    [_lockLightingBuffer unlockForWriting];
 }
 
 - (void)clear
 {
-    bzero(lightingBuffer, BUFFER_SIZE_IN_BYTES);
+    bzero(_lightingBuffer, BUFFER_SIZE_IN_BYTES);
 }
 
 - (void)saveToFile:(NSURL *)url
 {
-    const size_t len = dimensions.x * dimensions.y * dimensions.z * sizeof(uint8_t);
-    
-    [lockLightingBuffer lockForReading];
-    [[NSData dataWithBytes:lightingBuffer length:len] writeToURL:url atomically:YES];
-    [lockLightingBuffer unlockForReading];
+    [_lockLightingBuffer lockForReading];
+    [[NSData dataWithBytes:_lightingBuffer length:BUFFER_SIZE_IN_BYTES] writeToURL:url atomically:YES];
+    [_lockLightingBuffer unlockForReading];
 }
 
 - (BOOL)tryToLoadFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler
 {
     BOOL success = NO;
     
-    [lockLightingBuffer lockForWriting];
+    [_lockLightingBuffer lockForWriting];
     
     // If the file does not exist then do nothing.
     if([url checkResourceIsReachableAndReturnError:NULL]) {
-        const size_t len = dimensions.x * dimensions.y * dimensions.z * sizeof(uint8_t);
-        
         // Read the contents of the file into "sunlight.lightingBuffer".
         NSData *data = [[NSData alloc] initWithContentsOfURL:url];
-        if([data length] == len) {
-            [data getBytes:lightingBuffer length:len];
+        if([data length] == BUFFER_SIZE_IN_BYTES) {
+            [data getBytes:_lightingBuffer length:BUFFER_SIZE_IN_BYTES];
             success = YES;
         }
         [data release];
@@ -159,7 +153,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         completionHandler();
     }
     
-    [lockLightingBuffer unlockForWriting];
+    [_lockLightingBuffer unlockForWriting];
     
     return success;
 }

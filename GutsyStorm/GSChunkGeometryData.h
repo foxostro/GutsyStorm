@@ -20,33 +20,10 @@
 
 
 @interface GSChunkGeometryData : GSChunkData
-{
-    /* There are two copies of the index buffer so that one can be used for
-     * drawing the chunk while geometry generation is in progress. This
-     * removes the need to have any locking surrounding access to data
-     * related to VBO drawing.
-     */
-    
-    BOOL needsVBORegeneration;
-    GLsizei numIndicesForDrawing;
-    GLuint vbo;
-    
-    NSConditionLock *lockGeometry;
-    GLsizei numChunkVerts;
-    struct vertex *vertsBuffer;
-    BOOL dirty;
-    int updateInFlight;
-    
-    NSURL *folder;
-    dispatch_group_t groupForSaving;
-    NSOpenGLContext *glContext;
-    
- @public
-    GLKVector3 corners[8];
-    BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
-}
 
 @property (assign) BOOL dirty;
+@property (assign) BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
+@property (assign) GLKVector3 *corners;
 
 /* Returns the shared block mesh factory for the specified voxel type. */
 + (id <GSBlockMesh>)sharedMeshFactoryWithBlockType:(voxel_type_t)type;

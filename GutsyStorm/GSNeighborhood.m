@@ -219,8 +219,10 @@
 
 - (voxel_t)voxelAtPoint:(GSIntegerVector3)p
 {
-    // XXX: the voxels used for above/below the world must be updated when voxel def changes
-    // Assumes each chunk spans the entire vertical extent of the world.
+    /* NOTE:
+     *   - The voxels used for above/below the world must be updated when voxel def changes
+     *   - Assumes each chunk spans the entire vertical extent of the world.
+     */
     
     if(p.y < 0) {
         // Space below the world is always made of solid cubes.

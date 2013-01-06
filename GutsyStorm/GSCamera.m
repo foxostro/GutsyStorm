@@ -14,13 +14,11 @@
 #import "Voxel.h"
 
 @implementation GSCamera
-
-@synthesize cameraEye;
-@synthesize cameraCenter;
-@synthesize cameraUp;
-@synthesize cameraRot;
-@synthesize frustum;
-
+{
+    float _ceilingHeight;
+    float _cameraSpeed;
+    float _cameraRotSpeed;
+}
 
 - (id)init
 {
@@ -29,52 +27,47 @@
         // Initialization code here.
         [self resetCamera];
         
-        frustum = [[GSFrustum alloc] init];
-        [frustum setCamInternalsWithAngle:60.0 ratio:640.0/480.0 nearD:0.1 farD:1000.0]; // TODO: Set for real later on.
-        [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
+        _frustum = [[GSFrustum alloc] init];
+        [_frustum setCamInternalsWithAngle:60.0 ratio:640.0/480.0 nearD:0.1 farD:1000.0]; // TODO: Set for real later on.
+        [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
     }
     
     return self;
 }
 
-
 - (void)dealloc
 {
-    [frustum release];
+    [_frustum release];
     [super dealloc];
 }
-
 
 // Submits the camera transformation to OpenGL.
 - (void)submitCameraTransform
 {
-    gluLookAt(cameraEye.x,    cameraEye.y,    cameraEye.z,
-              cameraCenter.x, cameraCenter.y, cameraCenter.z,
-              cameraUp.x,     cameraUp.y,     cameraUp.z);
+    gluLookAt(_cameraEye.x,    _cameraEye.y,    _cameraEye.z,
+              _cameraCenter.x, _cameraCenter.y, _cameraCenter.z,
+              _cameraUp.x,     _cameraUp.y,     _cameraUp.z);
 }
-
 
 // Updated the camera look vectors.
 - (void)updateCameraLookVectors
 {
-    cameraCenter = GLKVector3Add(cameraEye, GLKVector3Normalize(GLKQuaternionRotateVector3(cameraRot, GLKVector3Make(0,0,-1))));
-    cameraUp = GLKVector3Normalize(GLKQuaternionRotateVector3(cameraRot, GLKVector3Make(0,1,0)));
+    _cameraCenter = GLKVector3Add(_cameraEye, GLKVector3Normalize(GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(0,0,-1))));
+    _cameraUp = GLKVector3Normalize(GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(0,1,0)));
 }
-
 
 // Set the default camera and reset camera properties.
 - (void)resetCamera
 {    
-    ceilingHeight = CHUNK_SIZE_Y;
-    cameraSpeed = 10.0;
-    cameraRotSpeed = 1.0;
-    cameraEye = GLKVector3Make(0.0f, 0.0f, 0.0f);
-    cameraCenter = GLKVector3Make(0.0f, 0.0f, -1.0f);
-    cameraUp = GLKVector3Make(0.0f, 1.0f, 0.0f);
-    cameraRot = GLKQuaternionMakeWithAngleAndAxis(0, 0, 1, 0);
+    _ceilingHeight = CHUNK_SIZE_Y;
+    _cameraSpeed = 10.0;
+    _cameraRotSpeed = 1.0;
+    _cameraEye = GLKVector3Make(0.0f, 0.0f, 0.0f);
+    _cameraCenter = GLKVector3Make(0.0f, 0.0f, -1.0f);
+    _cameraUp = GLKVector3Make(0.0f, 1.0f, 0.0f);
+    _cameraRot = GLKQuaternionMakeWithAngleAndAxis(0, 0, 1, 0);
     [self updateCameraLookVectors];
 }
-
 
 // Handles user input to control a flying camera.
 - (unsigned)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
@@ -87,43 +80,43 @@
     
     [keysDown retain];
 
-    if([[keysDown objectForKey:[NSNumber numberWithInt:'w']] boolValue]) {
-        GLKVector3 velocity = GLKQuaternionRotateVector3(cameraRot, GLKVector3Make(0, 0, -cameraSpeed*dt));
-        cameraEye = GLKVector3Add(cameraEye, velocity);
+    if([keysDown[@('w')] boolValue]) {
+        GLKVector3 velocity = GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(0, 0, -_cameraSpeed*dt));
+        _cameraEye = GLKVector3Add(_cameraEye, velocity);
         cameraModifiedFlags |= CAMERA_MOVED;
-    } else if([[keysDown objectForKey:[NSNumber numberWithInt:'s']] boolValue]) {
-        GLKVector3 velocity = GLKQuaternionRotateVector3(cameraRot, GLKVector3Make(0, 0, cameraSpeed*dt));
-        cameraEye = GLKVector3Add(cameraEye, velocity);
-        cameraModifiedFlags |= CAMERA_MOVED;
-    }
-
-    if([[keysDown objectForKey:[NSNumber numberWithInt:'a']] boolValue]) {
-        GLKVector3 velocity = GLKQuaternionRotateVector3(cameraRot, GLKVector3Make(-cameraSpeed*dt, 0, 0));
-        cameraEye = GLKVector3Add(cameraEye, velocity);
-        cameraModifiedFlags |= CAMERA_MOVED;
-    } else if([[keysDown objectForKey:[NSNumber numberWithInt:'d']] boolValue]) {
-        GLKVector3 velocity = GLKQuaternionRotateVector3(cameraRot, GLKVector3Make(cameraSpeed*dt, 0, 0));
-        cameraEye = GLKVector3Add(cameraEye, velocity);
+    } else if([keysDown[@('s')] boolValue]) {
+        GLKVector3 velocity = GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(0, 0, _cameraSpeed*dt));
+        _cameraEye = GLKVector3Add(_cameraEye, velocity);
         cameraModifiedFlags |= CAMERA_MOVED;
     }
 
-    if([[keysDown objectForKey:[NSNumber numberWithInt:'j']] boolValue]) {
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(cameraRotSpeed*dt, 0, 1, 0);
-        cameraRot = GLKQuaternionMultiply(deltaRot, cameraRot);
+    if([keysDown[@('a')] boolValue]) {
+        GLKVector3 velocity = GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(-_cameraSpeed*dt, 0, 0));
+        _cameraEye = GLKVector3Add(_cameraEye, velocity);
+        cameraModifiedFlags |= CAMERA_MOVED;
+    } else if([keysDown[@('d')] boolValue]) {
+        GLKVector3 velocity = GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(_cameraSpeed*dt, 0, 0));
+        _cameraEye = GLKVector3Add(_cameraEye, velocity);
+        cameraModifiedFlags |= CAMERA_MOVED;
+    }
+
+    if([keysDown[@('j')] boolValue]) {
+        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(_cameraRotSpeed*dt, 0, 1, 0);
+        _cameraRot = GLKQuaternionMultiply(deltaRot, _cameraRot);
         cameraModifiedFlags |= CAMERA_TURNED;
-    } else if([[keysDown objectForKey:[NSNumber numberWithInt:'l']] boolValue]) {
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(-cameraRotSpeed*dt, 0, 1, 0);
-        cameraRot = GLKQuaternionMultiply(deltaRot, cameraRot);
+    } else if([keysDown[@('l')] boolValue]) {
+        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(-_cameraRotSpeed*dt, 0, 1, 0);
+        _cameraRot = GLKQuaternionMultiply(deltaRot, _cameraRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     }
 
-    if([[keysDown objectForKey:[NSNumber numberWithInt:'i']] boolValue]) {
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(-cameraRotSpeed*dt, 1, 0, 0);
-        cameraRot = GLKQuaternionMultiply(cameraRot, deltaRot);
+    if([keysDown[@('i')] boolValue]) {
+        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(-_cameraRotSpeed*dt, 1, 0, 0);
+        _cameraRot = GLKQuaternionMultiply(_cameraRot, deltaRot);
         cameraModifiedFlags |= CAMERA_TURNED;
-    } else if([[keysDown objectForKey:[NSNumber numberWithInt:'k']] boolValue]) {
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(cameraRotSpeed*dt, 1, 0, 0);
-        cameraRot = GLKQuaternionMultiply(cameraRot, deltaRot);
+    } else if([keysDown[@('k')] boolValue]) {
+        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(_cameraRotSpeed*dt, 1, 0, 0);
+        _cameraRot = GLKQuaternionMultiply(_cameraRot, deltaRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     }
 
@@ -131,7 +124,7 @@
         float mouseDirectionX = -mouseDeltaX/mouseSensitivity/dt;
         float angle = mouseDirectionX*dt;
         GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(angle, 0, 1, 0);
-        cameraRot = GLKQuaternionMultiply(deltaRot, cameraRot);
+        _cameraRot = GLKQuaternionMultiply(deltaRot, _cameraRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     }
 
@@ -139,45 +132,42 @@
         float mouseDirectionY = -mouseDeltaY/mouseSensitivity/dt;
         float angle = mouseDirectionY*dt;
         GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(angle, 1, 0, 0);
-        cameraRot = GLKQuaternionMultiply(cameraRot, deltaRot);
+        _cameraRot = GLKQuaternionMultiply(_cameraRot, deltaRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     }
 
     [keysDown release];
 
     if(cameraModifiedFlags) {
-        cameraEye.y = MIN(cameraEye.y, ceilingHeight);
-        cameraEye.y = MAX(cameraEye.y, 0.0);
+        _cameraEye.y = MIN(_cameraEye.y, _ceilingHeight);
+        _cameraEye.y = MAX(_cameraEye.y, 0.0);
         
         [self updateCameraLookVectors];
-        [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
+        [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
     }
     
     return cameraModifiedFlags;
 }
 
-
 - (void)moveToPosition:(GLKVector3)p
 {
-    cameraEye = p;
+    _cameraEye = p;
     [self updateCameraLookVectors];
-    [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
+    [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
 }
-
 
 - (void)reshapeWithBounds:(NSRect)bounds fov:(float)fov nearD:(float)nearD farD:(float)farD
 {
     const float ratio = bounds.size.width / bounds.size.height;
-    [frustum setCamInternalsWithAngle:fov ratio:ratio nearD:nearD farD:farD];
-    [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
+    [_frustum setCamInternalsWithAngle:fov ratio:ratio nearD:nearD farD:farD];
+    [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
 }
-
 
 - (void)setCameraRot:(GLKQuaternion)rot
 {
-    cameraRot = rot;
+    _cameraRot = rot;
     [self updateCameraLookVectors];
-    [frustum setCamDefWithCameraEye:cameraEye cameraCenter:cameraCenter cameraUp:cameraUp];
+    [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
 }
 
 @end

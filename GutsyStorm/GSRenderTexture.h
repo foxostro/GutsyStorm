@@ -17,16 +17,6 @@
 
 
 @interface GSRenderTexture : NSObject
-{
-    GLuint texID;
-    GLuint fbo;
-    GLuint depthBuffer;
-    GLuint width;
-    GLuint height;
-    int originalViewport[4];
-    NSRect dimensions;
-    BOOL isCubeMap;
-}
 
 @property (assign, nonatomic) NSRect dimensions;
 @property (readonly, nonatomic) BOOL isCubeMap;

@@ -21,11 +21,6 @@ typedef id chunk_id_t;
 
 
 @interface GSChunkData : NSObject
-{
-    GLKVector3 minP;
-    GLKVector3 maxP;
-    GLKVector3 centerP;
-}
 
 @property (readonly, nonatomic) GLKVector3 minP;
 @property (readonly, nonatomic) GLKVector3 maxP;

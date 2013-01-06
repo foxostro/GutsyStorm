@@ -10,36 +10,35 @@
 #import "GSTerrainCursor.h"
 
 @implementation GSTerrainCursor
-
-@synthesize cursorIsActive;
-@synthesize cursorPos;
-@synthesize cursorPlacePos;
+{
+    GSCube *_cursor;
+}
 
 - (id)init
 {
     self = [super init];
     if(self) {
-        cursorIsActive = NO;
-        cursorPos = cursorPlacePos = GLKVector3Make(0, 0, 0);
-        cursor = [[GSCube alloc] init];
-        [cursor generateVBO];
+        _cursorIsActive = NO;
+        _cursorPos = _cursorPlacePos = GLKVector3Make(0, 0, 0);
+        _cursor = [[GSCube alloc] init];
+        [_cursor generateVBO];
     }
     return self;
 }
 
 - (void)dealloc
 {
-    [cursor release];
+    [_cursor release];
     [super dealloc];
 }
 
 - (void)drawWithEdgeOffset:(GLfloat)edgeOffset
 {
-    if(cursorIsActive) {
+    if(_cursorIsActive) {
         glDepthRange(0.0, 1.0 - edgeOffset);
         glPushMatrix();
-        glTranslatef(cursorPos.x, cursorPos.y, cursorPos.z);
-        [cursor draw];
+        glTranslatef(_cursorPos.x, _cursorPos.y, _cursorPos.z);
+        [_cursor draw];
         glPopMatrix();
     }
 }

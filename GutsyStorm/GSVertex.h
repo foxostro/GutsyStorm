@@ -18,9 +18,6 @@ struct vertex
 };
 
 @interface GSVertex : NSObject
-{
-    struct vertex v;
-}
 
 @property (assign, nonatomic) struct vertex v;
 

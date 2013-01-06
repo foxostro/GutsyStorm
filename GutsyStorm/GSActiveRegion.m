@@ -14,8 +14,6 @@
 
 @implementation GSActiveRegion
 
-@synthesize maxActiveChunks;
-
 - (id)initWithActiveRegionExtent:(GLKVector3)_activeRegionExtent
 {
     self = [super init];
@@ -26,11 +24,11 @@
         
         activeRegionExtent = _activeRegionExtent;
         
-        maxActiveChunks = (2*activeRegionExtent.x/CHUNK_SIZE_X)
-                        * (activeRegionExtent.y/CHUNK_SIZE_Y)
-                        * (2*activeRegionExtent.z/CHUNK_SIZE_Z);
+        _maxActiveChunks = (2*activeRegionExtent.x/CHUNK_SIZE_X)
+                         * (activeRegionExtent.y/CHUNK_SIZE_Y)
+                         * (2*activeRegionExtent.z/CHUNK_SIZE_Z);
         
-        activeChunks = calloc(maxActiveChunks, sizeof(GSChunkGeometryData *));
+        activeChunks = calloc(_maxActiveChunks, sizeof(GSChunkGeometryData *));
         
         if(!activeChunks) {
             [NSException raise:@"Out of Memory" format:@"Out of memory allocating activeChunk."];
@@ -55,7 +53,7 @@
 
 - (void)_enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block
 {
-    for(NSUInteger i = 0; i < maxActiveChunks; ++i)
+    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
         GSChunkGeometryData *chunk = activeChunks[i];
         if(chunk) {
@@ -67,7 +65,7 @@
 
 - (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block
 {
-    const size_t len = maxActiveChunks * sizeof(GSChunkGeometryData *);
+    const size_t len = _maxActiveChunks * sizeof(GSChunkGeometryData *);
     
     // Copy active region blocks so we don't have to hold the lock while running the block over and over again.
     GSChunkGeometryData **temp = malloc(len);
@@ -77,7 +75,7 @@
     
     [lock lock];
     memcpy(temp, activeChunks, len);
-    for(NSUInteger i = 0; i < maxActiveChunks; ++i)
+    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
         if(temp[i]) {
             [temp[i] retain];
@@ -85,7 +83,7 @@
     }
     [lock unlock];
     
-    for(NSUInteger i = 0; i < maxActiveChunks; ++i)
+    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
         if(temp[i]) {
             block(temp[i]);
@@ -99,7 +97,7 @@
 
 - (void)_removeAllActiveChunks
 {
-    for(NSUInteger i = 0; i < maxActiveChunks; ++i)
+    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
         [activeChunks[i] release];
         activeChunks[i] = nil;
@@ -128,7 +126,7 @@
         GLKVector3 centerB = GLKVector3MultiplyScalar(GLKVector3Add([chunkB minP], [chunkB maxP]), 0.5);
         float distA = GLKVector3Length(GLKVector3Subtract(centerA, cameraEye));
         float distB = GLKVector3Length(GLKVector3Subtract(centerB, cameraEye));;
-        return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
+        return [@(distA) compare:@(distB)];
     }];
     
     return sortedChunks;
@@ -144,7 +142,7 @@
         GLKVector3 centerB = [(GSBoxedVector *)b vectorValue];
         float distA = GLKVector3Length(GLKVector3Subtract(centerA, center));
         float distB = GLKVector3Length(GLKVector3Subtract(centerB, center));
-        return [[NSNumber numberWithFloat:distA] compare:[NSNumber numberWithFloat:distB]];
+        return [@(distA) compare:@(distB)];
     }];
 }
 
@@ -184,7 +182,7 @@
             chunkProducer:(GSChunkGeometryData * (^)(GLKVector3 p))chunkProducer
 {
     [lock lock];
-    NSMutableArray *retainChunkTemporarily = [[NSMutableArray alloc] initWithCapacity:maxActiveChunks];
+    NSMutableArray *retainChunkTemporarily = [[NSMutableArray alloc] initWithCapacity:_maxActiveChunks];
     [self _enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
         [retainChunkTemporarily addObject:geometry];
     }];
