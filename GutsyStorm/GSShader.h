@@ -11,18 +11,11 @@
 #import <OpenGL/OpenGL.h>
 
 @interface GSShader : NSObject
-{
-    GLuint handle;
-    BOOL linked;
-}
 
 - (id)initWithVertexShaderSource:(NSString *)vert
             fragmentShaderSource:(NSString *)frag;
-
 - (void)bind;
-
 - (void)unbind;
-
 - (void)bindUniformWithNSString:(NSString *)name val:(GLint)val;
 
 @end

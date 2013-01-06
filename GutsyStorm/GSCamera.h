@@ -20,7 +20,6 @@
 @property (readonly, nonatomic) GLKQuaternion cameraRot;
 @property (retain) GSFrustum *frustum;
 
-
 - (void)updateCameraLookVectors;
 - (void)resetCamera;
 - (void)submitCameraTransform;

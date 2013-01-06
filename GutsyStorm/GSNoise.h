@@ -9,9 +9,6 @@
 #import <Foundation/Foundation.h>
 
 @interface GSNoise : NSObject
-{
-    void *context;
-}
 
 - (id)initWithSeed:(NSUInteger)seed;
 - (float)noiseAtPoint:(GLKVector3)p;

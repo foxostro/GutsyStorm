@@ -12,6 +12,18 @@
 #import "GSChunkData.h"
 
 @implementation GSGrid
+{
+    GSReaderWriterLock *lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
+
+    NSUInteger numBuckets;
+    NSMutableArray **buckets;
+
+    NSUInteger numLocks;
+    NSLock **locks;
+
+    int32_t n;
+    float loadLevelToTriggerResize;
+}
 
 - (id)init
 {

@@ -12,13 +12,6 @@
 @class GSTextureArray;
 
 @interface GSTerrain : NSObject
-{
-    GSCamera *camera;
-    GSTextureArray *textureArray;
-    GSChunkStore *chunkStore;
-    GSTerrainCursor *cursor;
-    float maxPlaceDistance;
-}
 
 - (id)initWithSeed:(NSUInteger)seed
             camera:(GSCamera *)camera

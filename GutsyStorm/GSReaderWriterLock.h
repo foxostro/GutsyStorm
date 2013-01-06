@@ -10,11 +10,6 @@
 #import <dispatch/dispatch.h>
 
 @interface GSReaderWriterLock : NSObject
-{
-    dispatch_semaphore_t mutex;
-    dispatch_semaphore_t writing;
-    unsigned readcount;
-}
 
 - (BOOL)tryLockForReading;
 - (void)lockForReading;

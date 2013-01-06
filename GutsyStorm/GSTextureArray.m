@@ -11,6 +11,10 @@
 extern int checkGLErrors(void);
 
 @implementation GSTextureArray
+{
+    GLuint handle;
+    NSRect bounds;
+}
 
 - (id)initWithImagePath:(NSString *)path
             numTextures:(GLuint)numTextures
@@ -41,18 +45,15 @@ extern int checkGLErrors(void);
     return self;
 }
 
-
 - (void)bind
 {
     glBindTexture(GL_TEXTURE_2D_ARRAY_EXT, handle);
 }
 
-
 - (void)unbind
 {
     glBindTexture(GL_TEXTURE_2D_ARRAY_EXT, 0);
 }
-
 
 - (void)dealloc
 {

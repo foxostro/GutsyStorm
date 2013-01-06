@@ -13,22 +13,6 @@
 #import "GSTerrain.h"
 
 @interface GSOpenGLView : NSOpenGLView
-{
-    NSTimer *updateTimer;
-    CFAbsoluteTime prevFrameTime, lastRenderTime;
-    CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
-    size_t numFramesSinceLastFpsLabelUpdate;
-    NSMutableDictionary *keysDown;
-    int32_t mouseDeltaX, mouseDeltaY;
-    float mouseSensitivity;
-    GSCamera *camera;
-    GLString *fpsStringTex;
-    NSMutableDictionary *stringAttribs; // attributes for string textures
-    GSTerrain *terrain;
-    BOOL spaceBarDebounce;
-    BOOL bKeyDebounce;
-    CVDisplayLinkRef displayLink;
-}
 
 - (void)drawHUD;
 - (void)setMouseAtCenter;

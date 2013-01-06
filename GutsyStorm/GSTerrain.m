@@ -353,6 +353,13 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 
 @implementation GSTerrain
+{
+    GSCamera *camera;
+    GSTextureArray *textureArray;
+    GSChunkStore *chunkStore;
+    GSTerrainCursor *cursor;
+    float maxPlaceDistance;
+}
 
 - (NSString *)newShaderSourceStringFromFileAt:(NSString *)path
 {

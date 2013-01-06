@@ -15,6 +15,10 @@
 #import "GSBlockMeshMesh.h"
 
 @implementation GSBlockMeshMesh
+{
+    size_t numVertices;
+    struct vertex *vertices;
+}
 
 - (id)init
 {

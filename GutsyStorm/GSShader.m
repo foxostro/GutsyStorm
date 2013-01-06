@@ -30,6 +30,10 @@ extern int checkGLErrors(void);
 
 
 @implementation GSShader
+{
+    GLuint handle;
+    BOOL linked;
+}
 
 - (id)initWithVertexShaderSource:(NSString *)vert
             fragmentShaderSource:(NSString *)frag;
@@ -49,18 +53,15 @@ extern int checkGLErrors(void);
     return self;
 }
 
-
 - (void)bind
 {
     glUseProgram(handle);
 }
 
-
 - (void)unbind
 {
     glUseProgram(0);
 }
-
 
 - (void)bindUniformWithNSString:(NSString *)name val:(GLint)val
 {
@@ -100,7 +101,6 @@ extern int checkGLErrors(void);
     return src;
 }
 
-
 - (NSString *)shaderInfoLog:(GLuint)shader
 {
     GLint errorLogLen = 0;
@@ -121,7 +121,6 @@ extern int checkGLErrors(void);
     
     return infoLogStr;
 }
-
 
 - (NSString *)programInfoLog:(GLuint)program
 {
@@ -144,7 +143,6 @@ extern int checkGLErrors(void);
     return infoLogStr;
 }
 
-
 - (BOOL)wasShaderCompileSuccessful:(GLuint)shader
 {
     GLint status = 0;
@@ -159,7 +157,6 @@ extern int checkGLErrors(void);
         return YES;
     }
 }
-
 
 - (BOOL)wasProgramLinkSuccessful:(GLuint)program
 {
@@ -176,9 +173,7 @@ extern int checkGLErrors(void);
     }
 }
 
-
-- (void)createShaderWithSource:(NSString *)sourceString
-type:(GLenum)type
+- (void)createShaderWithSource:(NSString *)sourceString type:(GLenum)type
 {
     const GLchar *src = [sourceString cStringUsingEncoding:NSMacOSRomanStringEncoding];
     
@@ -189,7 +184,6 @@ type:(GLenum)type
     
     [self wasShaderCompileSuccessful:shader];
 }
-
 
 - (void)link
 {

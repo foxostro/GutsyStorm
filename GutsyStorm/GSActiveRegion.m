@@ -13,6 +13,11 @@
 #import "GSCamera.h"
 
 @implementation GSActiveRegion
+{
+    GLKVector3 activeRegionExtent; // The active region is specified relative to the camera position.
+    GSChunkGeometryData **activeChunks;
+    NSLock *lock;
+}
 
 - (id)initWithActiveRegionExtent:(GLKVector3)_activeRegionExtent
 {

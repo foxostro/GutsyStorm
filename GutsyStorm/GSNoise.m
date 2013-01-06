@@ -12,6 +12,9 @@
 
 
 @implementation GSNoise
+{
+    void *context;
+}
 
 - (id)initWithSeed:(NSUInteger)seed
 {

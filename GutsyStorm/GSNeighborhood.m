@@ -15,6 +15,9 @@
 
 
 @implementation GSNeighborhood
+{
+    GSChunkVoxelData *neighbors[CHUNK_NUM_NEIGHBORS];
+}
 
 + (NSLock *)_sharedVoxelDataLock
 {

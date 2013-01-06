@@ -52,6 +52,9 @@ static const GLsizei numCubeVerts = 12*3;
 
 
 @implementation GSCube
+{
+	GLuint vboCubeVerts, vboCubeNorms, vboCubeTexCoords;
+}
 
 - (id)init
 {

@@ -31,9 +31,6 @@ typedef enum
 
 
 @interface GSNeighborhood : NSObject
-{
-    GSChunkVoxelData *neighbors[CHUNK_NUM_NEIGHBORS];
-}
 
 + (NSLock *)_sharedVoxelDataLock;
 + (GLKVector3)offsetForNeighborIndex:(neighbor_index_t)idx;

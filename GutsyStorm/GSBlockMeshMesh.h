@@ -9,10 +9,6 @@
 #import <Foundation/Foundation.h>
 
 @interface GSBlockMeshMesh : NSObject <GSBlockMesh>
-{
-    size_t numVertices;
-    struct vertex *vertices;
-}
 
 - (void)copyVertices:(const struct vertex*)mesh count:(NSUInteger)count;
 

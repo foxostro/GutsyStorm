@@ -25,6 +25,22 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 
 @implementation GSOpenGLView
+{
+    NSTimer *updateTimer;
+    CFAbsoluteTime prevFrameTime, lastRenderTime;
+    CFAbsoluteTime lastFpsLabelUpdateTime, fpsLabelUpdateInterval;
+    size_t numFramesSinceLastFpsLabelUpdate;
+    NSMutableDictionary *keysDown;
+    int32_t mouseDeltaX, mouseDeltaY;
+    float mouseSensitivity;
+    GSCamera *camera;
+    GLString *fpsStringTex;
+    NSMutableDictionary *stringAttribs; // attributes for string textures
+    GSTerrain *terrain;
+    BOOL spaceBarDebounce;
+    BOOL bKeyDebounce;
+    CVDisplayLinkRef displayLink;
+}
 
 // Enables vertical sync for drawing to limit FPS to the screen's refresh rate.
 - (void)enableVSync

@@ -98,6 +98,23 @@
 // GLString follows
 
 @implementation GLString
+{
+    CGLContextObj cgl_ctx; // current context at time of texture creation
+    GLuint texName;
+    NSSize texSize;
+
+    NSAttributedString * string;
+    NSColor * textColor; // default is opaque white
+    NSColor * boxColor; // default transparent or none
+    NSColor * borderColor; // default transparent or none
+    BOOL staticFrame; // default in NO
+    BOOL antialias;    // default to YES
+    NSSize marginSize; // offset or frame size, default is 4 width 2 height
+    NSSize frameSize; // offset or frame size, default is 4 width 2 height
+    float    cRadius; // Corner radius, if 0 just a rectangle. Defaults to 4.0f
+
+    BOOL requiresUpdate;
+}
 
 #pragma mark -
 #pragma mark Deallocs

@@ -10,6 +10,9 @@
 #import "GSAppDelegate.h"
 
 @implementation GSAppDelegate
+{
+    CVDisplayLinkRef _displayLink;
+}
 
 - (id)init
 {

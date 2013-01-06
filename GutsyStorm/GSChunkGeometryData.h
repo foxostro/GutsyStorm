@@ -15,7 +15,6 @@
 #import "GSBlockMesh.h"
 
 
-@class GSChunkVoxelData;
 @class GSNeighborhood;
 
 

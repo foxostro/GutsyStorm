@@ -11,15 +11,9 @@
 #import <OpenGL/OpenGL.h>
 
 @interface GSTextureArray : NSObject
-{
-    GLuint handle;
-    NSRect bounds;
-}
 
 - (id)initWithImagePath:(NSString *)path numTextures:(GLuint)numTextures;
-
 - (void)bind;
-
 - (void)unbind;
 
 @end

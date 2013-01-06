@@ -60,23 +60,7 @@
 - (void)appendBezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius;
 @end
 
-@interface GLString : NSObject {
-    CGLContextObj cgl_ctx; // current context at time of texture creation
-    GLuint texName;
-    NSSize texSize;
-    
-    NSAttributedString * string;
-    NSColor * textColor; // default is opaque white
-    NSColor * boxColor; // default transparent or none
-    NSColor * borderColor; // default transparent or none
-    BOOL staticFrame; // default in NO
-    BOOL antialias;    // default to YES
-    NSSize marginSize; // offset or frame size, default is 4 width 2 height
-    NSSize frameSize; // offset or frame size, default is 4 width 2 height
-    float    cRadius; // Corner radius, if 0 just a rectangle. Defaults to 4.0f
-    
-    BOOL requiresUpdate;
-}
+@interface GLString : NSObject
 
 // this API requires a current rendering context and all operations will be performed in regards to thar context
 // the same context should be current for all method calls for a particular object instance

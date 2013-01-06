@@ -8,38 +8,10 @@
 
 #import "GSChunkVoxelData.h"
 
-@class GSGrid;
 @class GSCamera;
 @class GSShader;
-@class GSActiveRegion;
 
 @interface GSChunkStore : NSObject
-{
-    GSGrid *gridVoxelData;
-    GSGrid *gridGeometryData;
-    
-    dispatch_group_t groupForSaving;
-    dispatch_queue_t chunkTaskQueue;
-    
-    NSLock *lock;
-    NSUInteger numVBOGenerationsAllowedPerFrame;
-    GSCamera *camera;
-    chunk_id_t oldCenterChunkID;
-    NSURL *folder;
-    GSShader *terrainShader;
-    NSOpenGLContext *glContext;
-
-    terrain_generator_t generator;
-    terrain_post_processor_t postProcessor;
-
-    GSActiveRegion *activeRegion;
-    GLKVector3 activeRegionExtent; // The active region is specified relative to the camera position.
-    int needsChunkVisibilityUpdate;
-    
-    float timeUntilNextPeriodicChunkUpdate;
-    float timeBetweenPerioducChunkUpdates;
-    int32_t activeRegionNeedsUpdate;
-}
 
 - (id)initWithSeed:(NSUInteger)seed
             camera:(GSCamera *)camera

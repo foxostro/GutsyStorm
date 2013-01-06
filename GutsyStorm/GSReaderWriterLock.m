@@ -9,6 +9,12 @@
 #import "GSReaderWriterLock.h"
 
 @implementation GSReaderWriterLock
+{
+    dispatch_semaphore_t mutex;
+    dispatch_semaphore_t writing;
+    unsigned readcount;
+}
+
 
 - (id)init
 {

@@ -12,11 +12,6 @@
 @class GSCamera;
 
 @interface GSActiveRegion : NSObject
-{
-    GLKVector3 activeRegionExtent; // The active region is specified relative to the camera position.
-    GSChunkGeometryData **activeChunks;
-    NSLock *lock;
-}
 
 @property (readonly, nonatomic) NSUInteger maxActiveChunks;
 

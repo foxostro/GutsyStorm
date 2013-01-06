@@ -11,9 +11,6 @@
 #import <OpenGL/OpenGL.h>
 
 @interface GSCube : NSObject
-{
-	GLuint vboCubeVerts, vboCubeNorms, vboCubeTexCoords;
-}
 
 - (void)draw;
 - (void)generateVBO;
