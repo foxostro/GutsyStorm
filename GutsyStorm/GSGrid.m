@@ -16,10 +16,10 @@
     GSReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
 
     NSUInteger _numBuckets;
-    NSMutableArray **_buckets;
+    NSMutableArray * __strong *_buckets;
 
     NSUInteger _numLocks;
-    NSLock **_locks;
+    NSLock * __strong *_locks;
 
     int32_t _n;
     float _loadLevelToTriggerResize;
@@ -40,13 +40,13 @@
         _n = 0;
         _loadLevelToTriggerResize = 0.80;
         
-        _buckets = malloc(_numBuckets * sizeof(NSMutableArray *));
+        _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
         for(NSUInteger i=0; i<_numBuckets; ++i)
         {
             _buckets[i] = [[NSMutableArray alloc] init];
         }
         
-        _locks = malloc(_numLocks * sizeof(NSLock *));
+        _locks = (NSLock * __strong *)calloc(_numLocks, sizeof(NSLock *));
         for(NSUInteger i=0; i<_numLocks; ++i)
         {
             _locks[i] = [[NSLock alloc] init];
@@ -63,12 +63,14 @@
     for(NSUInteger i=0; i<_numBuckets; ++i)
     {
         [_buckets[i] release];
+        _buckets[i] = nil;
     }
     free(_buckets);
     
     for(NSUInteger i=0; i<_numLocks; ++i)
     {
         [_locks[i] release];
+        _locks[i] = nil;
     }
     free(_locks);
     
@@ -84,11 +86,11 @@
     _n = 0;
     
     NSUInteger oldNumBuckets = _numBuckets;
-    NSMutableArray **oldBuckets = _buckets;
+    NSMutableArray * __strong *oldBuckets = _buckets;
     
     // Allocate memory for a new set of buckets.
     _numBuckets *= 2;
-    _buckets = malloc(_numBuckets * sizeof(NSMutableArray *));
+    _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
     for(NSUInteger i=0; i<_numBuckets; ++i)
     {
         _buckets[i] = [[NSMutableArray alloc] init];
@@ -111,6 +113,7 @@
     for(NSUInteger i=0; i<oldNumBuckets; ++i)
     {
         [oldBuckets[i] release];
+        oldBuckets[i] = nil;
     }
     free(oldBuckets);
 }
