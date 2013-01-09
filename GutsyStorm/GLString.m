@@ -131,11 +131,6 @@
 - (void) dealloc
 {
     [self deleteTexture];
-    [_textColor release];
-    [_boxColor release];
-    [_borderColor release];
-    [_string release];
-    [super dealloc];
 }
 
 #pragma mark -
@@ -151,11 +146,7 @@
         _texName = 0;
         _texSize.width = 0.0f;
         _texSize.height = 0.0f;
-        [attributedString retain];
         _string = attributedString;
-        [text retain];
-        [box retain];
-        [border retain];
         _textColor = text;
         _boxColor = box;
         _borderColor = border;
@@ -173,7 +164,7 @@
 
 - (id) initWithString:(NSString *)aString withAttributes:(NSDictionary *)attribs withTextColor:(NSColor *)text withBoxColor:(NSColor *)box withBorderColor:(NSColor *)border
 {
-    return [self initWithAttributedString:[[[NSAttributedString alloc] initWithString:aString attributes:attribs] autorelease] withTextColor:text withBoxColor:box withBorderColor:border];
+    return [self initWithAttributedString:[[NSAttributedString alloc] initWithString:aString attributes:attribs] withTextColor:text withBoxColor:box withBorderColor:border];
 }
 
 // basic methods that pick up defaults
@@ -184,7 +175,7 @@
 
 - (id) initWithString:(NSString *)aString withAttributes:(NSDictionary *)attribs
 {
-    return [self initWithAttributedString:[[[NSAttributedString alloc] initWithString:aString attributes:attribs] autorelease] withTextColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:1.0f] withBoxColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f] withBorderColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f]];
+    return [self initWithAttributedString:[[NSAttributedString alloc] initWithString:aString attributes:attribs] withTextColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:1.0f] withBoxColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f] withBorderColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f]];
 }
 
 - (void) genTexture; // generates the texture without drawing texture to current context
@@ -242,9 +233,6 @@
     } else
         NSLog (@"StringTexture -genTexture: Failure to get current OpenGL context\n");
     
-    [bitmap release];
-    [image release];
-    
     _requiresUpdate = NO;
 }
 
@@ -265,8 +253,6 @@
 
 - (void) setTextColor:(NSColor *)color // set default text color
 {
-    [color retain];
-    [_textColor release];
     _textColor = color;
     _requiresUpdate = YES;
 }
@@ -280,8 +266,6 @@
 
 - (void) setBoxColor:(NSColor *)color // set default text color
 {
-    [color retain];
-    [_boxColor release];
     _boxColor = color;
     _requiresUpdate = YES;
 }
@@ -295,8 +279,6 @@
 
 - (void) setBorderColor:(NSColor *)color // set default text color
 {
-    [color retain];
-    [_borderColor release];
     _borderColor = color;
     _requiresUpdate = YES;
 }
@@ -375,8 +357,6 @@
 
 - (void) setString:(NSAttributedString *)attributedString // set string after initial creation
 {
-    [attributedString retain];
-    [_string release];
     _string = attributedString;
     if (NO == _staticFrame) { // ensure dynamic frame sizes will be recalculated
         _frameSize.width = 0.0f;
@@ -387,7 +367,7 @@
 
 - (void) setString:(NSString *)aString withAttributes:(NSDictionary *)attribs; // set string after initial creation
 {
-    [self setString:[[[NSAttributedString alloc] initWithString:aString attributes:attribs] autorelease]];
+    [self setString:[[NSAttributedString alloc] initWithString:aString attributes:attribs]];
 }
 
 

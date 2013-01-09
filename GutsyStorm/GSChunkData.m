@@ -40,7 +40,7 @@ const GSIntegerVector3 offsetForFace[FACE_NUM_FACES] =
 
 + (chunk_id_t)chunkIDWithChunkMinCorner:(GLKVector3)minP
 {
-    return [[[GSBoxedVector alloc] initWithVector:minP] autorelease];
+    return [[GSBoxedVector alloc] initWithVector:minP];
 }
 
 - (id)initWithMinP:(GLKVector3)minP

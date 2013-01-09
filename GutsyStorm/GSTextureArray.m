@@ -58,7 +58,6 @@ extern int checkGLErrors(void);
 - (void)dealloc
 {
     glDeleteTextures(1, &_handle);
-    [super dealloc];
 }
 
 @end

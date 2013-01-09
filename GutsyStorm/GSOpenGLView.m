@@ -54,7 +54,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     // init fonts for use with strings
     NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
-    _stringAttribs = [[NSMutableDictionary dictionary] retain];
+    _stringAttribs = [NSMutableDictionary dictionary];
     _stringAttribs[NSFontAttributeName] = font;
     _stringAttribs[NSForegroundColorAttributeName] = [NSColor whiteColor];
     
@@ -140,7 +140,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
     
     // Set the renderer output callback function
-    CVDisplayLinkSetOutputCallback(_displayLink, &MyDisplayLinkCallback, (void *)self);
+    CVDisplayLinkSetOutputCallback(_displayLink, &MyDisplayLinkCallback, (__bridge void *)self);
     
     // Set the display link for the current renderer
     CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
@@ -411,10 +411,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
 {
     CVDisplayLinkStop(_displayLink);
     CVDisplayLinkRelease(_displayLink);
-    [_keysDown release];
-    [_camera release];
-    [_terrain release];
-    [super dealloc];
 }
 
 @end
@@ -428,17 +424,9 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                       CVOptionFlags *flagsOut,
                                       void *displayLinkContext)
 {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    CVReturn result;
-
-#if __has_feature(objc_arc)
-    result = [(__bridge GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
-#else
-    result = [(GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
-#endif
-
-    [pool release];
-    return result;
+    @autoreleasepool {
+        return [(__bridge GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
+    }
 }
 
 

@@ -27,9 +27,7 @@
 
 - (void)dealloc
 {
-    [_terrain release];
     CVDisplayLinkRelease(_displayLink);
-    [super dealloc];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification

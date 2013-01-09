@@ -34,7 +34,6 @@
 - (void)dealloc
 {
     free(vertices);
-    [super dealloc];
 }
 
 - (void)copyVertices:(const struct vertex*)mesh count:(NSUInteger)count
@@ -104,7 +103,7 @@
             v.texCoord[2] = VOXEL_TEX_DIRT;
         }
         
-        [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
+        [vertexList addObject:[[GSVertex alloc] initWithVertex:&v]];
     }
 }
 

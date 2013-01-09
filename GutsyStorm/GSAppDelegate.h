@@ -12,8 +12,8 @@
 
 @interface GSAppDelegate : NSObject <NSApplicationDelegate>
 
-@property (assign) IBOutlet NSWindow *window;
-@property (retain) GSTerrain *terrain;
+@property (weak) IBOutlet NSWindow *window;
+@property (strong) GSTerrain *terrain;
 @property (assign, getter = displayLink, setter = setDisplayLink:) CVDisplayLinkRef displayLink;
 
 - (CVDisplayLinkRef)displayLink;

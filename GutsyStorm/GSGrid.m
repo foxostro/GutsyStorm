@@ -62,21 +62,15 @@
 {
     for(NSUInteger i=0; i<_numBuckets; ++i)
     {
-        [_buckets[i] release];
         _buckets[i] = nil;
     }
     free(_buckets);
     
     for(NSUInteger i=0; i<_numLocks; ++i)
     {
-        [_locks[i] release];
         _locks[i] = nil;
     }
     free(_locks);
-    
-    [_lockTheTableItself release];
-    
-    [super dealloc];
 }
 
 - (void)resizeTable
@@ -112,7 +106,6 @@
     // Free the old set of buckets.
     for(NSUInteger i=0; i<oldNumBuckets; ++i)
     {
-        [oldBuckets[i] release];
         oldBuckets[i] = nil;
     }
     free(oldBuckets);

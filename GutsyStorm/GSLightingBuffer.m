@@ -59,8 +59,6 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 - (void)dealloc
 {
     free(_lightingBuffer);
-    [_lockLightingBuffer release];
-    [super dealloc];
 }
 
 - (uint8_t)lightAtPoint:(GSIntegerVector3)chunkLocalPos
@@ -146,7 +144,6 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
             [data getBytes:_lightingBuffer length:BUFFER_SIZE_IN_BYTES];
             success = YES;
         }
-        [data release];
     }
     
     if(success) {

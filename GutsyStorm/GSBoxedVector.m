@@ -24,13 +24,13 @@ static const float EPS = 1e-5;
 
 + (GSBoxedVector *)boxedVectorWithVector:(GLKVector3)vector
 {
-    return [[[GSBoxedVector alloc] initWithVector:vector] autorelease];
+    return [[GSBoxedVector alloc] initWithVector:vector];
 }
 
 
 + (GSBoxedVector *)boxedVectorWithIntegerVector:(GSIntegerVector3)vector
 {
-    return [[[GSBoxedVector alloc] initWithIntegerVector:vector] autorelease];
+    return [[GSBoxedVector alloc] initWithIntegerVector:vector];
 }
 
 
@@ -110,7 +110,6 @@ static const float EPS = 1e-5;
 
 - (id)copyWithZone:(NSZone *)zone
 {
-    [self retain];
     return self;
 }
 

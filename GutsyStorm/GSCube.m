@@ -118,8 +118,6 @@ static const GLsizei numCubeVerts = 12*3;
         glDeleteBuffers(1, &buffer2);
         glDeleteBuffers(1, &buffer3);
     });
-    
-    [super dealloc];
 }
 
 @end

@@ -72,7 +72,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         dispatch_retain(_chunkTaskQueue);
         
         _folder = folder;
-        [_folder retain];
         
         _lockVoxelData = [[GSReaderWriterLock alloc] init];
         [_lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
@@ -108,14 +107,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 {
     dispatch_release(_groupForSaving);
     dispatch_release(_chunkTaskQueue);
-    [_folder release];
-    
     [self destroyVoxelData];
-    [_lockVoxelData release];
-    
-    [_sunlight release];
-    
-    [super dealloc];
 }
 
 // Assumes the caller is already holding "lockVoxelData".
@@ -449,13 +441,11 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     // Read the contents of the file into "voxelData".
     NSData *data = [[NSData alloc] initWithContentsOfURL:url];
     if([data length] != len) {
-        [data release];
         return [NSError errorWithDomain:GSErrorDomain
                                    code:GSInvalidChunkDataOnDiskError
                                userInfo:@{NSLocalizedFailureReasonErrorKey:@"Voxel data file is of unexpected length."}];
     }
     [data getBytes:_voxelData length:len];
-    [data release];
     
     return nil;
 }

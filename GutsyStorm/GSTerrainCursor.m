@@ -26,12 +26,6 @@
     return self;
 }
 
-- (void)dealloc
-{
-    [_cursor release];
-    [super dealloc];
-}
-
 - (void)drawWithEdgeOffset:(GLfloat)edgeOffset
 {
     if(_cursorIsActive) {

@@ -35,12 +35,6 @@
     return self;
 }
 
-- (void)dealloc
-{
-    [_frustum release];
-    [super dealloc];
-}
-
 // Submits the camera transformation to OpenGL.
 - (void)submitCameraTransform
 {
@@ -77,8 +71,6 @@
                                        mouseSensitivity:(float)mouseSensitivity
 {
     unsigned cameraModifiedFlags = 0;
-    
-    [keysDown retain];
 
     if([keysDown[@('w')] boolValue]) {
         GLKVector3 velocity = GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(0, 0, -_cameraSpeed*dt));
@@ -135,8 +127,6 @@
         _cameraRot = GLKQuaternionMultiply(_cameraRot, deltaRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     }
-
-    [keysDown release];
 
     if(cameraModifiedFlags) {
         _cameraEye.y = MIN(_cameraEye.y, _ceilingHeight);

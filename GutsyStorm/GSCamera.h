@@ -18,7 +18,7 @@
 @property (readonly, nonatomic) GLKVector3 cameraCenter;
 @property (readonly, nonatomic) GLKVector3 cameraUp;
 @property (readonly, nonatomic) GLKQuaternion cameraRot;
-@property (retain) GSFrustum *frustum;
+@property (strong) GSFrustum *frustum;
 
 - (void)updateCameraLookVectors;
 - (void)resetCamera;

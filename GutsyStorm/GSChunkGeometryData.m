@@ -117,10 +117,8 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     self = [super initWithMinP:minP];
     if (self) {
         _glContext = context;
-        [_glContext retain];
         
         _folder = fldr;
-        [_folder retain];
         
         _groupForSaving = grpForSaving;
         dispatch_retain(_groupForSaving);
@@ -259,12 +257,8 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     });
     
     [self destroyGeometry];
-    [_lockGeometry release];
-    [_glContext release];
-    [_folder release];
     dispatch_release(_groupForSaving);
     free(_corners);
-    [super dealloc];
 }
 
 @end
@@ -314,19 +308,19 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     // Iterate over all voxels in the chunk and generate geometry.
     FOR_BOX(pos, minP, maxP)
     {
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+        @autoreleasepool {
 
-        GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
-        GSChunkVoxelData *centerVoxels = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-        voxel_type_t type = [centerVoxels voxelAtLocalPosition:chunkLocalPos].type;
-        id <GSBlockGeometryGenerating> factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
+            GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
+            GSChunkVoxelData *centerVoxels = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+            voxel_type_t type = [centerVoxels voxelAtLocalPosition:chunkLocalPos].type;
+            id <GSBlockGeometryGenerating> factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
 
-        [factory generateGeometryForSingleBlockAtPosition:pos
-                                               vertexList:vertices
-                                                voxelData:neighborhood
-                                                     minP:minP];
+            [factory generateGeometryForSingleBlockAtPosition:pos
+                                                   vertexList:vertices
+                                                    voxelData:neighborhood
+                                                         minP:minP];
         
-        [pool release];
+        }
     }
     
     _numChunkVerts = (GLsizei)[vertices count];
@@ -339,8 +333,6 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
         GSVertex *v = vertices[i];
         _vertsBuffer[i] = v.v;
     }
-
-    [vertices release];
 
     // Iterate over all vertices and calculate lighting.
     applyLightToVertices(_numChunkVerts, _vertsBuffer,
@@ -359,7 +351,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 // Assumes the caller is already holding "lockGeometry".
 - (NSData *)dataRepr
 {
-    NSMutableData *data = [[[NSMutableData alloc] init] autorelease];
+    NSMutableData *data = [[NSMutableData alloc] init];
     
     struct chunk_geometry_header header;
     header.w = CHUNK_SIZE_X;

@@ -50,9 +50,6 @@
 {
     [self _removeAllActiveChunks];
     free(_activeChunks);
-    [_lock release];
-    
-    [super dealloc];
 }
 
 
@@ -82,7 +79,6 @@
     {
         if(_activeChunks[i]) {
             temp[i] = _activeChunks[i];
-            [temp[i] retain];
         }
     }
     [_lock unlock];
@@ -91,7 +87,6 @@
     {
         if(temp[i]) {
             block(temp[i]);
-            [temp[i] release];
         }
     }
     
@@ -103,7 +98,6 @@
 {
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
-        [_activeChunks[i] release];
         _activeChunks[i] = nil;
     }
 }
@@ -114,7 +108,6 @@
     assert(chunk);
     assert(idx < _maxActiveChunks);
     
-    [chunk retain];
     _activeChunks[idx] = chunk;
 }
 
@@ -212,7 +205,6 @@
         }
         assert(i == _maxActiveChunks);
         
-        [unsortedChunks release];
     } else {
         __block NSUInteger i = 0;
         [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GLKVector3 p) {
@@ -222,7 +214,6 @@
         assert(i == _maxActiveChunks);
     }
     
-    [retainChunkTemporarily release];
     [_lock unlock];
 }
 

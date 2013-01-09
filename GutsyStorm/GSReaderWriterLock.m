@@ -34,7 +34,6 @@
 {
     dispatch_release(_mutex);
     dispatch_release(_writing);
-    [super dealloc];
 }
 
 

@@ -82,10 +82,8 @@
 {
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        [_neighbors[i] release];
+        _neighbors[i] = nil;
     }
-    
-    [super dealloc];
 }
 
 - (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx
@@ -97,9 +95,7 @@
 - (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor
 {
     NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
-    [_neighbors[idx] release];
     _neighbors[idx] = neighbor;
-    [_neighbors[idx] retain];
 }
 
 - (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block
@@ -133,12 +129,9 @@
                 [lock unlockForReading];
             }
             
-            [locksTaken release];
-            
             return NO;
         }
     }
-    [locksTaken release];
     
     block();
     

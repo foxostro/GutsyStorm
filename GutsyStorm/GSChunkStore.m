@@ -88,24 +88,14 @@
     if (self) {
         _folder = [GSChunkStore newWorldSaveFolderURLWithSeed:seed];
         _groupForSaving = dispatch_group_create();
-        
         _camera = cam;
-        [_camera retain];
         _oldCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[_camera cameraEye]]];
-        [_oldCenterChunkID retain];
-        
         _terrainShader = shader;
-        [_terrainShader retain];
-        
         _glContext = context;
-        [_glContext retain];
-        
         _lock = [[NSLock alloc] init];
-        
         _timeUntilNextPeriodicChunkUpdate = 0.0;
         _timeBetweenPerioducChunkUpdates = 1.0;
         _activeRegionNeedsUpdate = 0;
-
         _generator = [generatorCallback copy];
         _postProcessor = [postProcessorCallback copy];
         
@@ -152,20 +142,7 @@
 {
     [self waitForSaveToFinish];
     dispatch_release(_groupForSaving);
-    
-    [_gridVoxelData release];
-    [_gridGeometryData release];
-    [_camera release];
-    [_folder release];
-    [_terrainShader release];
-    [_glContext release];
-    [_lock release];
-    [_activeRegion release];
-    [_generator release];
-    [_postProcessor release];
     dispatch_release(_chunkTaskQueue);
-    
-    [super dealloc];
 }
 
 
@@ -443,7 +420,7 @@
 
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p
 {
-    GSNeighborhood *neighborhood = [[[GSNeighborhood alloc] init] autorelease];
+    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
     
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
@@ -461,7 +438,7 @@
 {
     assert(outNeighborhood);
 
-    GSNeighborhood *neighborhood = [[[GSNeighborhood alloc] init] autorelease];
+    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
 
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
@@ -487,11 +464,11 @@
     
     GSChunkGeometryData *g = [_gridGeometryData objectAtPoint:p objectFactory:^id(GLKVector3 minP) {
         // Chunk geometry will be generated later and is only marked "dirty" for now.
-        return [[[GSChunkGeometryData alloc] initWithMinP:minP
+        return [[GSChunkGeometryData alloc] initWithMinP:minP
                                                    folder:_folder
                                            groupForSaving:_groupForSaving
                                            chunkTaskQueue:_chunkTaskQueue
-                                                glContext:_glContext] autorelease];
+                                                glContext:_glContext];
     }];
     
     return g;
@@ -505,7 +482,7 @@
     
     GSChunkVoxelData *v = [_gridVoxelData objectAtPoint:p
                                          objectFactory:^id(GLKVector3 minP) {
-                                             return [[self newChunkWithMinimumCorner:minP] autorelease];
+                                             return [self newChunkWithMinimumCorner:minP];
                                          }];
     
     return v;
@@ -524,7 +501,7 @@
     success = [_gridVoxelData tryToGetObjectAtPoint:p
                                             object:&v
                                      objectFactory:^id(GLKVector3 minP) {
-                                         return [[self newChunkWithMinimumCorner:minP] autorelease];
+                                         return [self newChunkWithMinimumCorner:minP];
                                      }];
 
     if(success) {
@@ -594,9 +571,7 @@
             }];
 
             // Now save this chunk ID for comparison next update.
-            [_oldCenterChunkID release];
             _oldCenterChunkID = newCenterChunkID;
-            [_oldCenterChunkID retain];
         }
     }
     

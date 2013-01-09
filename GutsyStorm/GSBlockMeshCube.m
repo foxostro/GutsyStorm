@@ -213,7 +213,7 @@ const static struct vertex meshCube[4][FACE_NUM_FACES] =
                     v.texCoord[2] = VOXEL_TEX_DIRT;
                 }
 
-                [vertexList addObject:[[[GSVertex alloc] initWithVertex:&v] autorelease]];
+                [vertexList addObject:[[GSVertex alloc] initWithVertex:&v]];
             }
         }
     }

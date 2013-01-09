@@ -382,7 +382,6 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     self = [super init];
     if(self) {
         _camera = cam;
-        [_camera retain];
         
         assert(checkGLErrors() == 0);
         
@@ -393,9 +392,6 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         NSString *fragSrc = [self newShaderSourceStringFromFileAt:fragFn];
         
         GSShader *terrainShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
-        
-        [fragSrc release];
-        [vertSrc release];
         
         [terrainShader bind];
         [terrainShader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
@@ -446,22 +442,11 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                 generator:generator
                                             postProcessor:postProcessor];
         
-        [terrainShader release];
-        
         _cursor = [[GSTerrainCursor alloc] init];
         
         _maxPlaceDistance = 6.0; // XXX: make this configurable
     }
     return self;
-}
-
-- (void)dealloc
-{
-    [_camera release];
-    [_chunkStore release];
-    [_textureArray release];
-    [_cursor release];
-    [super dealloc];
 }
 
 - (void)draw
