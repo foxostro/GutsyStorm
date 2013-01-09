@@ -15,7 +15,7 @@
 @implementation GSActiveRegion
 {
     GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
-    GSChunkGeometryData **_activeChunks;
+    GSChunkGeometryData * __strong *_activeChunks;
     NSLock *_lock;
 }
 
@@ -33,7 +33,7 @@
                          * (_activeRegionExtent.y/CHUNK_SIZE_Y)
                          * (2*_activeRegionExtent.z/CHUNK_SIZE_Z);
         
-        _activeChunks = calloc(_maxActiveChunks, sizeof(GSChunkGeometryData *));
+        _activeChunks = (GSChunkGeometryData * __strong *)calloc(_maxActiveChunks, sizeof(GSChunkGeometryData *));
         
         if(!_activeChunks) {
             [NSException raise:@"Out of Memory" format:@"Out of memory allocating activeChunk."];
@@ -70,19 +70,18 @@
 
 - (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block
 {
-    const size_t len = _maxActiveChunks * sizeof(GSChunkGeometryData *);
-    
     // Copy active region blocks so we don't have to hold the lock while running the block over and over again.
-    GSChunkGeometryData **temp = malloc(len);
+    GSChunkGeometryData * __strong *temp = (GSChunkGeometryData * __strong *)calloc(_maxActiveChunks,
+                                                                                    sizeof(GSChunkGeometryData *));
     if(!temp) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp buffer."];
     }
     
     [_lock lock];
-    memcpy(temp, _activeChunks, len);
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
-        if(temp[i]) {
+        if(_activeChunks[i]) {
+            temp[i] = _activeChunks[i];
             [temp[i] retain];
         }
     }
