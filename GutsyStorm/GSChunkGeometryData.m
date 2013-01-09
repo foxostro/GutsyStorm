@@ -45,7 +45,7 @@ typedef GLint index_t;
 // Make sure the number of indices can be stored in the type used for the shared index buffer.
 static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different value when index_t is GLushort.
 
-@interface GSChunkGeometryData (Private)
+@interface GSChunkGeometryData ()
 
 + (index_t *)sharedIndexBuffer;
 
@@ -260,10 +260,6 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     dispatch_release(_groupForSaving);
     free(_corners);
 }
-
-@end
-
-@implementation GSChunkGeometryData (Private)
 
 + (index_t *)sharedIndexBuffer
 {

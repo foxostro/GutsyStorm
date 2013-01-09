@@ -14,7 +14,7 @@
 #import "GSChunkStore.h"
 
 
-@interface GSNeighborhood (Private)
+@interface GSNeighborhood ()
 
 + (NSLock *)sharedVoxelDataLock;
 
@@ -247,11 +247,6 @@
     
     return lightLevel;
 }
-
-@end
-
-
-@implementation GSNeighborhood (Private)
 
 + (NSLock *)sharedVoxelDataLock
 {

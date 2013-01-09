@@ -12,6 +12,15 @@
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
 
+@interface GSActiveRegion ()
+
+- (void)unsafelyEnumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block;
+- (void)removeAllActiveChunks;
+- (void)setActiveChunk:(GSChunkGeometryData *)chunk atIndex:(NSUInteger)idx;
+
+@end
+
+
 @implementation GSActiveRegion
 {
     GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
@@ -48,12 +57,12 @@
 
 - (void)dealloc
 {
-    [self _removeAllActiveChunks];
+    [self removeAllActiveChunks];
     free(_activeChunks);
 }
 
 
-- (void)_enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block
+- (void)unsafelyEnumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block
 {
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
@@ -94,7 +103,7 @@
 }
 
 
-- (void)_removeAllActiveChunks
+- (void)removeAllActiveChunks
 {
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
@@ -103,7 +112,7 @@
 }
 
 
-- (void)_setActiveChunk:(GSChunkGeometryData *)chunk atIndex:(NSUInteger)idx
+- (void)setActiveChunk:(GSChunkGeometryData *)chunk atIndex:(NSUInteger)idx
 {
     assert(chunk);
     assert(idx < _maxActiveChunks);
@@ -180,11 +189,11 @@
 {
     [_lock lock];
     NSMutableArray *retainChunkTemporarily = [[NSMutableArray alloc] initWithCapacity:_maxActiveChunks];
-    [self _enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
+    [self unsafelyEnumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
         [retainChunkTemporarily addObject:geometry];
     }];
     
-    [self _removeAllActiveChunks];
+    [self removeAllActiveChunks];
     
     if(sorted) {
         NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
@@ -200,7 +209,7 @@
         NSUInteger i = 0;
         for(GSBoxedVector *b in sortedChunks)
         {
-            [self _setActiveChunk:chunkProducer([b vectorValue]) atIndex:i];
+            [self setActiveChunk:chunkProducer([b vectorValue]) atIndex:i];
             i++;
         }
         assert(i == _maxActiveChunks);
@@ -208,7 +217,7 @@
     } else {
         __block NSUInteger i = 0;
         [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GLKVector3 p) {
-            [self _setActiveChunk:chunkProducer(p) atIndex:i];
+            [self setActiveChunk:chunkProducer(p) atIndex:i];
             i++;
         }];
         assert(i == _maxActiveChunks);

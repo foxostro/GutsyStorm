@@ -16,7 +16,7 @@
 #import "GSChunkStore.h"
 
 
-@interface GSChunkStore (Private)
+@interface GSChunkStore ()
 
 + (NSURL *)newWorldSaveFolderURLWithSeed:(NSUInteger)seed;
 - (void)updateChunkVisibilityForActiveRegion;
@@ -413,10 +413,6 @@
     return YES;
 }
 
-@end
-
-
-@implementation GSChunkStore (Private)
 
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p
 {

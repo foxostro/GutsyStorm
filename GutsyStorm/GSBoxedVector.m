@@ -13,7 +13,7 @@
 static const float EPS = 1e-5;
 
 
-@interface GSBoxedVector (Private)
+@interface GSBoxedVector ()
 
 - (NSUInteger)computeHash;
 
@@ -112,11 +112,6 @@ static const float EPS = 1e-5;
 {
     return self;
 }
-
-@end
-
-
-@implementation GSBoxedVector (Private)
 
 - (NSUInteger)computeHash
 {

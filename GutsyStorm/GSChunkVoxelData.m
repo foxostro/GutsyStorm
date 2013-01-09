@@ -15,7 +15,7 @@
 static const GSIntegerVector3 combinedMinP = {-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z};
 static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CHUNK_SIZE_Z};
 
-@interface GSChunkVoxelData (Private)
+@interface GSChunkVoxelData ()
 
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
@@ -304,10 +304,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 {
     return [self tryToRebuildSunlightWithNeighborhood:neighborhood tier:0 completionHandler:completionHandler];
 }
-
-@end
-
-@implementation GSChunkVoxelData (Private)
 
 // Assumes the caller is already holding "lockVoxelData" for reading.
 - (void)saveVoxelDataToFile

@@ -13,7 +13,7 @@
 extern int checkGLErrors(void);
 
 
-@interface GSShader (Private)
+@interface GSShader ()
 
 - (const GLchar **)buildSourceStringsArray:(NSString *)source
                                     length:(GLsizei *)length;
@@ -69,11 +69,6 @@ extern int checkGLErrors(void);
     glUniform1i(glGetUniformLocation(_handle, nameCStr), val);
     assert(checkGLErrors() == 0);
 }
-
-@end
-
-
-@implementation GSShader (Private)
 
 /* For OpenGL, build a C array where each element is a line (string) in the shader source.
  * Caller must free the returned array. Strings in the array will be autoreleased.
