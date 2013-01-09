@@ -10,10 +10,6 @@
 #import "GSIntegerVector3.h"
 
 @interface GSBoxedVector : NSObject
-{
-    GLKVector3 vector;
-    NSUInteger cachedHash;
-}
 
 + (GSBoxedVector *)boxedVectorWithVector:(GLKVector3)vector;
 + (GSBoxedVector *)boxedVectorWithIntegerVector:(GSIntegerVector3)vector;

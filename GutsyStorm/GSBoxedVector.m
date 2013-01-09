@@ -21,6 +21,10 @@ static const float EPS = 1e-5;
 
 
 @implementation GSBoxedVector
+{
+    GLKVector3 _vector;
+    NSUInteger _cachedHash;
+}
 
 + (GSBoxedVector *)boxedVectorWithVector:(GLKVector3)vector
 {
@@ -37,8 +41,8 @@ static const float EPS = 1e-5;
     self = [super init];
     if (self) {
         // Initialization code here.
-        vector = v;
-        cachedHash = [self computeHash];
+        _vector = v;
+        _cachedHash = [self computeHash];
     }
     
     return self;
@@ -48,8 +52,8 @@ static const float EPS = 1e-5;
 {
     self = [super init];
     if (self) {
-        vector = GLKVector3Make(v.x, v.y, v.z);
-        cachedHash = [self computeHash];
+        _vector = GLKVector3Make(v.x, v.y, v.z);
+        _cachedHash = [self computeHash];
     }
     
     return self;
@@ -57,12 +61,12 @@ static const float EPS = 1e-5;
 
 - (GLKVector3)vectorValue
 {
-    return vector;
+    return _vector;
 }
 
 - (GSIntegerVector3)integerVectorValue
 {
-    return GSIntegerVector3_Make(vector.x, vector.y, vector.z);
+    return GSIntegerVector3_Make(_vector.x, _vector.y, _vector.z);
 }
 
 - (BOOL)isEqual:(id)other
@@ -86,17 +90,17 @@ static const float EPS = 1e-5;
     
     GLKVector3 vector2 = [otherVector vectorValue];
     
-    return GLKVector3AllEqualToVector3(vector, vector2);
+    return GLKVector3AllEqualToVector3(_vector, vector2);
 }
 
 - (NSUInteger)hash
 {
-    return cachedHash;
+    return _cachedHash;
 }
 
 - (NSString *)toString
 {
-    return [NSString stringWithFormat:@"%f_%f_%f", vector.x, vector.y, vector.z];
+    return [NSString stringWithFormat:@"%f_%f_%f", _vector.x, _vector.y, _vector.z];
 }
 
 - (id)copyWithZone:(NSZone *)zone
@@ -106,7 +110,7 @@ static const float EPS = 1e-5;
 
 - (NSUInteger)computeHash
 {
-    return GLKVector3Hash(vector);
+    return GLKVector3Hash(_vector);
 }
 
 @end

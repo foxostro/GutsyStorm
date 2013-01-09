@@ -16,16 +16,16 @@
 
 @implementation GSBlockMeshMesh
 {
-    size_t numVertices;
-    struct vertex *vertices;
+    size_t _numVertices;
+    struct vertex *_vertices;
 }
 
 - (id)init
 {
     self = [super init];
     if (self) {
-        numVertices = 0;
-        vertices = NULL;
+        _numVertices = 0;
+        _vertices = NULL;
     }
 
     return self;
@@ -33,22 +33,22 @@
 
 - (void)dealloc
 {
-    free(vertices);
+    free(_vertices);
 }
 
 - (void)copyVertices:(const struct vertex*)mesh count:(NSUInteger)count
 {
     assert(count>0);
-    numVertices = count;
+    _numVertices = count;
     assert(numVertices % 4 == 0);
-    const size_t len = sizeof(struct vertex) * numVertices;
+    const size_t len = sizeof(struct vertex) * _numVertices;
 
-    vertices = malloc(len);
-    if(!vertices) {
+    _vertices = malloc(len);
+    if(!_vertices) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating vertices."];
     }
 
-    memcpy(vertices, mesh, len);
+    memcpy(_vertices, mesh, len);
 }
 
 - (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat
@@ -83,9 +83,9 @@
 
     assert(numVertices % 4 == 0);
 
-    for(size_t i = 0; i < numVertices; ++i)
+    for(size_t i = 0; i < _numVertices; ++i)
     {
-        struct vertex v = vertices[i];
+        struct vertex v = _vertices[i];
 
         if(voxel.upsideDown) {
             v.position[1] *= -1;
