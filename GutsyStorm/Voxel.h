@@ -137,5 +137,4 @@ typedef enum
     FACE_NUM_FACES
 } face_t;
 
-
 #endif

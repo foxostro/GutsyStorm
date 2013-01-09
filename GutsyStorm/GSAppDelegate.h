@@ -9,7 +9,6 @@
 #import <Cocoa/Cocoa.h>
 #import "GSTerrain.h"
 
-
 @interface GSAppDelegate : NSObject <NSApplicationDelegate>
 
 @property (weak) IBOutlet NSWindow *window;

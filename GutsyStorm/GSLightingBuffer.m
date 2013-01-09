@@ -110,7 +110,6 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     [_lockLightingBuffer unlockForReading];
 }
 
-
 - (void)writerAccessToBufferUsingBlock:(void (^)(void))block
 {
     [_lockLightingBuffer lockForWriting];
@@ -156,6 +155,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 }
 
 @end
+
 
 static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 n)
 {

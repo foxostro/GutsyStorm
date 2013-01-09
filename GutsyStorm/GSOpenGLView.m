@@ -49,7 +49,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
 }
 
-
 - (void)buildFontsAndStrings
 {
     // init fonts for use with strings
@@ -71,7 +70,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
                                                                            alpha:1.0f]];
 
 }
-
 
 - (void)prepareOpenGL
 {
@@ -151,7 +149,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     CVDisplayLinkStart(_displayLink);
 }
 
-
 // Reset mouse input mechanism for camera.
 - (void)resetMouseInputSettings
 {
@@ -161,7 +158,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     _mouseDeltaY = 0;
     [self setMouseAtCenter];
 }
-
 
 - (void)awakeFromNib
 {
@@ -195,12 +191,10 @@ BOOL checkForOpenGLExtension(NSString *extension);
                                  forMode:NSDefaultRunLoopMode];
 }
 
-
 - (BOOL)acceptsFirstResponder
 {
     return YES;
 }
-
 
 - (void)mouseMoved:(NSEvent *)theEvent
 {
@@ -217,7 +211,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     [self setMouseAtCenter];
 }
 
-
 // Reset mouse to the center of the view so it can't leave the window.
 - (void)setMouseAtCenter
 {
@@ -228,20 +221,17 @@ BOOL checkForOpenGLExtension(NSString *extension);
     CGWarpMouseCursorPosition(viewCenter);
 }
 
-
 - (void)keyDown:(NSEvent *)theEvent
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     _keysDown[@(key)] = @YES;
 }
 
-
 - (void)keyUp:(NSEvent *)theEvent
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     _keysDown[@(key)] = @NO;
 }
-
 
 - (void)reshape
 {
@@ -260,7 +250,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     assert(checkGLErrors() == 0);
 }
-
 
 // Handle user input and update the camera if it was modified.
 - (unsigned)handleUserInput:(float)dt
@@ -298,7 +287,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     return cameraModifiedFlags;
 }
 
-
 // Timer callback method
 - (void)timerFired:(id)sender
 {
@@ -314,7 +302,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     
     _prevFrameTime = frameTime;
 }
-
 
 // Draws the HUD UI.
 - (void)drawHUD
@@ -362,7 +349,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glEnable(GL_DEPTH_TEST);
 }
 
-
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime
 {
     static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
@@ -406,7 +392,6 @@ BOOL checkForOpenGLExtension(NSString *extension);
     return kCVReturnSuccess;
 }
 
-
 - (void)dealloc
 {
     CVDisplayLinkStop(_displayLink);
@@ -429,7 +414,6 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
     }
 }
 
-
 // Returns YES if the given OpenGL extension is supported on this machine.
 BOOL checkForOpenGLExtension(NSString *extension)
 {
@@ -446,7 +430,6 @@ BOOL checkForOpenGLExtension(NSString *extension)
     
     return NO;
 }
-
 
 // Checks for OpenGL errors and logs any that it find. Returns the number of errors.
 int checkGLErrors(void)

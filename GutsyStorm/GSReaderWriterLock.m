@@ -15,7 +15,6 @@
     unsigned _readcount;
 }
 
-
 - (id)init
 {
     self = [super init];
@@ -29,13 +28,11 @@
     return self;
 }
 
-
 - (void)dealloc
 {
     dispatch_release(_mutex);
     dispatch_release(_writing);
 }
-
 
 - (BOOL)tryLockForReading
 {
@@ -60,7 +57,6 @@
     return success;
 }
 
-
 - (void)lockForReading
 {
     dispatch_semaphore_wait(_mutex, DISPATCH_TIME_FOREVER);
@@ -73,7 +69,6 @@
     
     dispatch_semaphore_signal(_mutex);
 }
-
 
 - (void)unlockForReading
 {
@@ -88,18 +83,15 @@
     dispatch_semaphore_signal(_mutex);    
 }
 
-
 - (BOOL)tryLockForWriting
 {
     return 0 == dispatch_semaphore_wait(_writing, DISPATCH_TIME_NOW);
 }
 
-
 - (void)lockForWriting
 {
     dispatch_semaphore_wait(_writing, DISPATCH_TIME_FOREVER);
 }
-
 
 - (void)unlockForWriting
 {

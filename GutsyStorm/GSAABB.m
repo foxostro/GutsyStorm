@@ -12,7 +12,6 @@
 
 @implementation GSAABB
 
-
 - (id)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts
 {
     self = [super init];
@@ -38,13 +37,11 @@
     return self;
 }
 
-
 - (id)initWithMinP:(GLKVector3)minP maxP:(GLKVector3)maxP
 {
     GLKVector3 verts[2] = {minP, maxP};
     return [self initWithVerts:verts numVerts:2];
 }
-
 
 - (GLKVector3)getVertex:(size_t)i
 {

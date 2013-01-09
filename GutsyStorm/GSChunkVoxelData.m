@@ -15,6 +15,7 @@
 static const GSIntegerVector3 combinedMinP = {-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z};
 static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CHUNK_SIZE_Z};
 
+
 @interface GSChunkVoxelData ()
 
 - (void)destroyVoxelData;

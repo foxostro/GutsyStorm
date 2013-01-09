@@ -27,12 +27,10 @@ static const float EPS = 1e-5;
     return [[GSBoxedVector alloc] initWithVector:vector];
 }
 
-
 + (GSBoxedVector *)boxedVectorWithIntegerVector:(GSIntegerVector3)vector
 {
     return [[GSBoxedVector alloc] initWithIntegerVector:vector];
 }
-
 
 - (id)initWithVector:(GLKVector3)v
 {
@@ -46,7 +44,6 @@ static const float EPS = 1e-5;
     return self;
 }
 
-
 - (id)initWithIntegerVector:(GSIntegerVector3)v
 {
     self = [super init];
@@ -58,18 +55,15 @@ static const float EPS = 1e-5;
     return self;
 }
 
-
 - (GLKVector3)vectorValue
 {
     return vector;
 }
 
-
 - (GSIntegerVector3)integerVectorValue
 {
     return GSIntegerVector3_Make(vector.x, vector.y, vector.z);
 }
-
 
 - (BOOL)isEqual:(id)other
 {
@@ -84,7 +78,6 @@ static const float EPS = 1e-5;
     return [self isEqualToVector:other];
 }
 
-
 - (BOOL)isEqualToVector:(GSBoxedVector *)otherVector
 {
     if(self == otherVector) {
@@ -96,12 +89,10 @@ static const float EPS = 1e-5;
     return GLKVector3AllEqualToVector3(vector, vector2);
 }
 
-
 - (NSUInteger)hash
 {
     return cachedHash;
 }
-
 
 - (NSString *)toString
 {

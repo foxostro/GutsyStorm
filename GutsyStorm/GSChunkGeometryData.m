@@ -45,6 +45,7 @@ typedef GLint index_t;
 // Make sure the number of indices can be stored in the type used for the shared index buffer.
 static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different value when index_t is GLushort.
 
+
 @interface GSChunkGeometryData ()
 
 + (index_t *)sharedIndexBuffer;
@@ -58,6 +59,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 - (BOOL)tryToLoadGeometryFromFileWithTier:(unsigned)tier;
 
 @end
+
 
 @implementation GSChunkGeometryData
 {
@@ -491,6 +493,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 }
 
 @end
+
 
 static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo)
 {

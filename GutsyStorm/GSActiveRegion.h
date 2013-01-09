@@ -11,6 +11,7 @@
 
 @class GSCamera;
 
+
 @interface GSActiveRegion : NSObject
 
 @property (readonly, nonatomic) NSUInteger maxActiveChunks;

@@ -22,6 +22,7 @@ const GSIntegerVector3 offsetForFace[FACE_NUM_FACES] =
     {-1, 0, 0}
 };
 
+
 @implementation GSChunkData
 
 + (GLKVector3)minCornerForChunkAtPoint:(GLKVector3)p

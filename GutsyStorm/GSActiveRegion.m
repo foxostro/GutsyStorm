@@ -54,13 +54,11 @@
     return self;
 }
 
-
 - (void)dealloc
 {
     [self removeAllActiveChunks];
     free(_activeChunks);
 }
-
 
 - (void)unsafelyEnumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block
 {
@@ -72,7 +70,6 @@
         }
     }
 }
-
 
 - (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block
 {
@@ -102,7 +99,6 @@
     free(temp);
 }
 
-
 - (void)removeAllActiveChunks
 {
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
@@ -111,7 +107,6 @@
     }
 }
 
-
 - (void)setActiveChunk:(GSChunkGeometryData *)chunk atIndex:(NSUInteger)idx
 {
     assert(chunk);
@@ -119,7 +114,6 @@
     
     _activeChunks[idx] = chunk;
 }
-
 
 - (NSArray *)chunksListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedChunks
 {
@@ -138,7 +132,6 @@
     return sortedChunks;
 }
 
-
 - (NSArray *)pointsListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedPoints
 {
     GLKVector3 center = [camera cameraEye];
@@ -151,7 +144,6 @@
         return [@(distA) compare:@(distB)];
     }];
 }
-
 
 - (void)enumeratePointsInActiveRegionNearCamera:(GSCamera *)camera usingBlock:(void (^)(GLKVector3))myBlock
 {
@@ -181,7 +173,6 @@
         myBlock(p2);
     }
 }
-
 
 - (void)updateWithSorting:(BOOL)sorted
                    camera:(GSCamera *)camera

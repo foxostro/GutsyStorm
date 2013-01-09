@@ -17,6 +17,7 @@ struct vertex
     GLshort texCoord[3];
 };
 
+
 @interface GSVertex : NSObject
 
 @property (assign, nonatomic) struct vertex v;

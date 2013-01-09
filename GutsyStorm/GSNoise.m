@@ -29,18 +29,15 @@
     return self;
 }
 
-
 - (void)dealloc
 {
     FeepingCreature_DestroyNoiseContext(_context);
 }
 
-
 - (float)noiseAtPoint:(GLKVector3)p
 {
     return FeepingCreature_noise3(p, _context);
 }
-
 
 - (float)noiseAtPoint:(GLKVector3)p numOctaves:(NSUInteger)numOctaves
 {
@@ -57,7 +54,6 @@
     return noise;
 }
 
-
 - (float)noiseAtPointWithFourOctaves:(GLKVector3)p
 {
     float noise;
@@ -69,6 +65,5 @@
     
     return noise;
 }
-
 
 @end

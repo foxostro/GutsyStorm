@@ -76,7 +76,6 @@
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
-
 - (id)initWithSeed:(NSUInteger)seed
             camera:(GSCamera *)cam
        terrainShader:(GSShader *)shader
@@ -127,7 +126,6 @@
     return self;
 }
 
-
 - (void)waitForSaveToFinish
 {
     [_lock lock];
@@ -137,14 +135,12 @@
     [_lock unlock];
 }
 
-
 - (void)dealloc
 {
     [self waitForSaveToFinish];
     dispatch_release(_groupForSaving);
     dispatch_release(_chunkTaskQueue);
 }
-
 
 - (void)drawActiveChunks
 {
@@ -182,7 +178,6 @@
     [_terrainShader unbind];
 }
 
-
 // Try to update asynchronously dirty chunk sunlight. Skip any that would block due to lock contention.
 - (void)tryToUpdateDirtySunlight
 {
@@ -213,7 +208,6 @@
     [_activeRegion enumeratePointsInActiveRegionNearCamera:_camera usingBlock:b];
 }
 
-
 // Try to asynchronously update dirty chunk geometry. Skip any that would block due to lock contention.
 - (void)tryToUpdateDirtyGeometry
 {
@@ -234,7 +228,6 @@
     
     [_activeRegion enumerateActiveChunkWithBlock:b];
 }
-
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
@@ -257,7 +250,6 @@
     }
 }
 
-
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)newBlock
 {
     GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
@@ -277,7 +269,6 @@
         [self chunkGeometryAtPoint:voxels.centerP].dirty = YES;
     }];
 }
-
 
 - (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel
 {
@@ -302,7 +293,6 @@
     return YES;
 }
 
-
 - (voxel_t)voxelAtPoint:(GLKVector3)pos
 {
     __block voxel_t block;
@@ -316,7 +306,6 @@
     
     return block;
 }
-
 
 - (BOOL)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop, BOOL *fail))block
 {
@@ -413,7 +402,6 @@
     return YES;
 }
 
-
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p
 {
     GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
@@ -427,7 +415,6 @@
     
     return neighborhood;
 }
-
 
 - (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p
                        neighborhood:(GSNeighborhood **)outNeighborhood
@@ -452,7 +439,6 @@
     return YES;
 }
 
-
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p
 {
     assert(p.y >= 0); // world does not extend below y=0
@@ -470,7 +456,6 @@
     return g;
 }
 
-
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p
 {
     assert(p.y >= 0); // world does not extend below y=0
@@ -483,7 +468,6 @@
     
     return v;
 }
-
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk
 {
@@ -507,7 +491,6 @@
         return NO;
     }
 }
-
 
 + (NSURL *)newWorldSaveFolderURLWithSeed:(NSUInteger)seed
 {
@@ -535,7 +518,6 @@
     return url;
 }
 
-
 - (void)updateChunkVisibilityForActiveRegion
 {
     //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
@@ -552,7 +534,6 @@
     //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
     //NSLog(@"Finished chunk visibility checks. It took %.3fs", timeEnd - timeStart);
 }
-
 
 - (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags
 {
