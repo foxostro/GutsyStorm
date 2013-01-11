@@ -72,10 +72,22 @@
     }
 }
 
+- (void)drawWithVBOGenerationLimit:(NSUInteger)limit
+{
+    // Unsafe enumeration should be okay here. Worst case: we draw the wrong thing.
+    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
+    {
+        if([_activeChunks[i] drawGeneratingVBOsIfNecessary:(limit>0)]) {
+            limit = (limit>0) ? (limit-1) : 0;
+        };
+    }
+}
+
 - (void)updateVisibilityWithCameraFrustum:(GSFrustum *)frustum
 {
     assert(frustum);
-    
+
+    // Unsafe enumeration should be okay here. Worst case: we update visibility on the wrong thing.
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
         if(_activeChunks[i]) {
@@ -96,19 +108,16 @@
     [_lock lock];
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
-        if(_activeChunks[i]) {
-            temp[i] = _activeChunks[i];
-        }
+        temp[i] = _activeChunks[i];
     }
     [_lock unlock];
     
+    [self unsafelyEnumerateActiveChunkWithBlock:block];
+    
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
-        if(temp[i]) {
-            block(temp[i]);
-        }
+        temp[i] = nil; // explicitly drop the reference for ARC
     }
-    
     free(temp);
 }
 

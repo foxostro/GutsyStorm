@@ -19,6 +19,7 @@
 
 - (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent;
 - (void)updateVisibilityWithCameraFrustum:(GSFrustum *)frustum;
+- (void)drawWithVBOGenerationLimit:(NSUInteger)limit;
 - (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block;
 - (NSArray *)pointsListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedPoints;
 - (NSArray *)chunksListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedChunks;

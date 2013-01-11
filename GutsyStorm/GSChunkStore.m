@@ -152,14 +152,8 @@
     glEnableClientState(GL_COLOR_ARRAY);
     
     glTranslatef(0.5, 0.5, 0.5);
-
-    __block NSUInteger numVBOGenerationsRemaining = _numVBOGenerationsAllowedPerFrame;
-    [_activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
-        assert(chunk);
-        if([chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
-            numVBOGenerationsRemaining--;
-        };
-    }];
+    
+    [_activeRegion drawWithVBOGenerationLimit:_numVBOGenerationsAllowedPerFrame];
     
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
