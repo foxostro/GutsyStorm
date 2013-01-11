@@ -8,6 +8,7 @@
 
 #import <GLKit/GLKMath.h>
 #import "GSActiveRegion.h"
+#import "GSFrustum.h"
 #import "Voxel.h"
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
@@ -67,6 +68,18 @@
         GSChunkGeometryData *chunk = _activeChunks[i];
         if(chunk) {
             block(chunk);
+        }
+    }
+}
+
+- (void)updateVisibilityWithCameraFrustum:(GSFrustum *)frustum
+{
+    assert(frustum);
+    
+    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
+    {
+        if(_activeChunks[i]) {
+            _activeChunks[i].visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:_activeChunks[i].corners]);
         }
     }
 }

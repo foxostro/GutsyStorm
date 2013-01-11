@@ -229,6 +229,10 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 // Returns YES if VBOs were generated.
 - (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration
 {
+    if(!_visible) {
+        return NO;
+    }
+
     BOOL didGenerateVBOs = NO;
     
     if(allowVBOGeneration && _needsVBORegeneration && [_lockGeometry tryLockWhenCondition:READY]) {

@@ -19,7 +19,6 @@
 @interface GSChunkStore ()
 
 + (NSURL *)newWorldSaveFolderURLWithSeed:(NSUInteger)seed;
-- (void)updateChunkVisibilityForActiveRegion;
 - (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
 - (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p neighborhood:(GSNeighborhood **)neighborhood;
@@ -52,7 +51,6 @@
 
     GSActiveRegion *_activeRegion;
     GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
-    int _needsChunkVisibilityUpdate;
 
     float _timeUntilNextPeriodicChunkUpdate;
     float _timeBetweenPerioducChunkUpdates;
@@ -120,7 +118,7 @@
         [_activeRegion updateWithSorting:YES camera:_camera chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
             return [self chunkGeometryAtPoint:p];
         }];
-        _needsChunkVisibilityUpdate = 1;
+        [_activeRegion updateVisibilityWithCameraFrustum:_camera.frustum];
     }
     
     return self;
@@ -154,16 +152,11 @@
     glEnableClientState(GL_COLOR_ARRAY);
     
     glTranslatef(0.5, 0.5, 0.5);
-    
-    // Update chunk visibility flags now. We've been told it's necessary.
-    if(OSAtomicCompareAndSwapIntBarrier(1, 0, &_needsChunkVisibilityUpdate)) {
-        [self updateChunkVisibilityForActiveRegion];
-    }
 
     __block NSUInteger numVBOGenerationsRemaining = _numVBOGenerationsAllowedPerFrame;
     [_activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *chunk) {
         assert(chunk);
-        if(chunk.visible && [chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
+        if([chunk drawGeneratingVBOsIfNecessary:(numVBOGenerationsRemaining>0)]) {
             numVBOGenerationsRemaining--;
         };
     }];
@@ -518,23 +511,6 @@
     return url;
 }
 
-- (void)updateChunkVisibilityForActiveRegion
-{
-    //CFAbsoluteTime timeStart = CFAbsoluteTimeGetCurrent();
-
-    GSFrustum *frustum = [_camera frustum];
-    
-    [_activeRegion enumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
-        // XXX: the GSChunkGeometryData could do this calculation itself...
-        if(geometry) {
-            geometry.visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:geometry.corners]);
-        }
-    }];
-    
-    //CFAbsoluteTime timeEnd = CFAbsoluteTimeGetCurrent();
-    //NSLog(@"Finished chunk visibility checks. It took %.3fs", timeEnd - timeStart);
-}
-
 - (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags
 {
     // If the camera moved then recalculate the set of active chunks.
@@ -554,7 +530,7 @@
     
     // If the camera moved or turned then recalculate chunk visibility.
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        OSAtomicCompareAndSwapIntBarrier(0, 1, &_needsChunkVisibilityUpdate);
+        [_activeRegion updateVisibilityWithCameraFrustum:_camera.frustum];
     }
 }
 

@@ -22,9 +22,6 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 
-static const float EPSILON = 1e-8;
-
-
 GSRay GSRay_Make(GLKVector3 origin, GLKVector3 direction)
 {
     GSRay ray;
@@ -38,7 +35,7 @@ int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GLKVector3 *intersectionPoin
 {
     float denominator = GLKVector3DotProduct(ray.direction, plane.n);
     
-    if(fabsf(denominator) < EPSILON) {
+    if(fabsf(denominator) < FLT_EPSILON) {
         // Ray is parallel to the plane. So, it intersections at the origin.
         if(intersectionPointOut) {
             *intersectionPointOut = ray.origin;
