@@ -6,13 +6,8 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
-#import "GSBlockMesh.h"
+#import <Foundation/Foundation.h>
 
-@interface GSBlockMeshCube : NSObject <GSBlockGeometryGenerating>
-
-- (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
-                                      vertexList:(NSMutableArray *)vertexList
-                                       voxelData:(GSNeighborhood *)voxelData
-                                            minP:(GLKVector3)minP;
+@interface GSBlockMeshCube : GSBlockMeshMesh <GSBlockGeometryGenerating>
 
 @end

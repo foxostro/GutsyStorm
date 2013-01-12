@@ -66,9 +66,11 @@
 
     for(GSFace *face in _faces)
     {
+        voxel_dir_t faceDir = voxel.upsideDown ? face.reversedCorrespondingCubeFace : face.correspondingCubeFace;
+        
         // Omit the face if the face is eligible for such omission and is adjacent to a cube block.
         if(face.eligibleForOmission &&
-           [voxelData voxelAtPoint:GSIntegerVector3_Add(chunkLocalPos, offsetForFace[voxel.dir])].type == VOXEL_TYPE_CUBE) {
+           [voxelData voxelAtPoint:GSIntegerVector3_Add(chunkLocalPos, offsetForFace[faceDir])].type == VOXEL_TYPE_CUBE) {
             continue;
         }
 
