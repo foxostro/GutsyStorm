@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
-@interface GSBlockMeshMesh : NSObject
+@interface GSBlockMesh : NSObject
 
 - (void)setFaces:(NSArray *)faces;
 

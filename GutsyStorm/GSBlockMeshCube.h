@@ -8,6 +8,6 @@
 
 #import <Foundation/Foundation.h>
 
-@interface GSBlockMeshCube : GSBlockMeshMesh
+@interface GSBlockMeshCube : GSBlockMesh
 
 @end

@@ -13,10 +13,10 @@
 #import "GSNeighborhood.h"
 #import "GSChunkData.h"
 #import "GSChunkVoxelData.h"
-#import "GSBlockMeshMesh.h"
+#import "GSBlockMesh.h"
 
 
-@interface GSBlockMeshMesh ()
+@interface GSBlockMesh ()
 
 - (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat;
 - (NSArray *)transformVerticesForFace:(GSFace *)face upsideDown:(BOOL)upsideDown quatY_p:(GLKQuaternion *)quatY_p;
@@ -26,7 +26,7 @@
 @end
 
 
-@implementation GSBlockMeshMesh
+@implementation GSBlockMesh
 {
     NSArray *_faces[2][NUM_VOXEL_DIRECTIONS];
 }
