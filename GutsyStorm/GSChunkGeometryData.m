@@ -19,7 +19,6 @@
 #import "GSBlockMeshRamp.h"
 #import "GSBlockMeshInsideCorner.h"
 #import "GSBlockMeshOutsideCorner.h"
-#import "GSBlockMeshEmpty.h"
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
 
@@ -89,11 +88,9 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     static dispatch_once_t onceToken;
     
     dispatch_once(&onceToken, ^{
-        GSBlockMeshEmpty *empty = [[GSBlockMeshEmpty alloc] init];
-
         for(voxel_type_t i=0; i<NUM_VOXEL_TYPES; ++i)
         {
-            factories[i] = empty;
+            factories[i] = nil;
         }
         
         factories[VOXEL_TYPE_CUBE]           = [[GSBlockMeshCube alloc] init];
@@ -310,18 +307,18 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     // Iterate over all voxels in the chunk and generate geometry.
     FOR_BOX(pos, minP, maxP)
     {
-        @autoreleasepool {
-
+        @autoreleasepool
+        {
             GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
-            GSChunkVoxelData *centerVoxels = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-            voxel_type_t type = [centerVoxels voxelAtLocalPosition:chunkLocalPos].type;
-            id <GSBlockGeometryGenerating> factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
+            voxel_type_t type = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos].type;
 
-            [factory generateGeometryForSingleBlockAtPosition:pos
-                                                   vertexList:vertices
-                                                    voxelData:neighborhood
-                                                         minP:minP];
-        
+            if(type != VOXEL_TYPE_EMPTY) {
+                id <GSBlockGeometryGenerating> factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
+                [factory generateGeometryForSingleBlockAtPosition:pos
+                                                       vertexList:vertices
+                                                        voxelData:neighborhood
+                                                             minP:minP];
+            }
         }
     }
     
