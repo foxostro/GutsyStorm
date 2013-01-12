@@ -12,10 +12,10 @@
 #import "GSChunkData.h"
 #import "GSVertex.h"
 #import "Voxel.h"
-#import "GSBlockMesh.h"
 
 
 @class GSNeighborhood;
+@class GSBlockMeshMesh;
 
 
 @interface GSChunkGeometryData : GSChunkData
@@ -25,7 +25,7 @@
 @property (assign) GLKVector3 *corners;
 
 /* Returns the shared block mesh factory for the specified voxel type. */
-+ (id <GSBlockGeometryGenerating>)sharedMeshFactoryWithBlockType:(voxel_type_t)type;
++ (GSBlockMeshMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type;
 
 - (id)initWithMinP:(GLKVector3)minP
             folder:(NSURL *)folder

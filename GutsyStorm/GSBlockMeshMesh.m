@@ -13,7 +13,6 @@
 #import "GSNeighborhood.h"
 #import "GSChunkData.h"
 #import "GSChunkVoxelData.h"
-#import "GSBlockMesh.h"
 #import "GSBlockMeshMesh.h"
 
 

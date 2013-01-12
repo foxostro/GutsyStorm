@@ -13,7 +13,6 @@
 #import "GSChunkStore.h"
 #import "GSVertex.h"
 #import "Voxel.h"
-#import "GSBlockMesh.h"
 #import "GSBlockMeshMesh.h"
 #import "GSBlockMeshCube.h"
 #import "GSBlockMeshRamp.h"
@@ -82,17 +81,12 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     NSOpenGLContext *_glContext;
 }
 
-+ (id <GSBlockGeometryGenerating>)sharedMeshFactoryWithBlockType:(voxel_type_t)type
++ (GSBlockMeshMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type
 {
-    static id<GSBlockGeometryGenerating> factories[NUM_VOXEL_TYPES];
+    static GSBlockMeshMesh *factories[NUM_VOXEL_TYPES] = {nil};
     static dispatch_once_t onceToken;
     
     dispatch_once(&onceToken, ^{
-        for(voxel_type_t i=0; i<NUM_VOXEL_TYPES; ++i)
-        {
-            factories[i] = nil;
-        }
-        
         factories[VOXEL_TYPE_CUBE]           = [[GSBlockMeshCube alloc] init];
         factories[VOXEL_TYPE_RAMP]           = [[GSBlockMeshRamp alloc] init];
         factories[VOXEL_TYPE_CORNER_INSIDE]  = [[GSBlockMeshInsideCorner alloc] init];
@@ -313,7 +307,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
             voxel_type_t type = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos].type;
 
             if(type != VOXEL_TYPE_EMPTY) {
-                id <GSBlockGeometryGenerating> factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
+                GSBlockMeshMesh *factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
                 [factory generateGeometryForSingleBlockAtPosition:pos
                                                        vertexList:vertices
                                                         voxelData:neighborhood
