@@ -8,6 +8,7 @@
 
 #import <GLKit/GLKMath.h>
 #import "GSVertex.h"
+#import "GSFace.h"
 #import "Voxel.h"
 #import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
@@ -18,6 +19,7 @@
 {
     size_t _numVertices;
     struct vertex *_vertices;
+    struct vertex *_upsideDownVertices;
 }
 
 - (id)init
@@ -26,6 +28,7 @@
     if (self) {
         _numVertices = 0;
         _vertices = NULL;
+        _upsideDownVertices = NULL;
     }
 
     return self;
@@ -34,21 +37,38 @@
 - (void)dealloc
 {
     free(_vertices);
+    free(_upsideDownVertices);
 }
 
-- (void)copyVertices:(const struct vertex*)mesh count:(NSUInteger)count
+- (void)setFaces:(NSArray *)faces
 {
-    assert(count>0);
-    _numVertices = count;
-    assert(numVertices % 4 == 0);
-    const size_t len = sizeof(struct vertex) * _numVertices;
+    assert(faces);
+    
+    _numVertices = 4 * [faces count];
 
-    _vertices = malloc(len);
-    if(!_vertices) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating vertices."];
+    assert(_numVertices>0);
+    assert(_numVertices % 4 == 0);
+    
+    struct vertex *vertices = _vertices = calloc(_numVertices, sizeof(struct vertex));
+    struct vertex *upsideDownVertices = _upsideDownVertices = calloc(_numVertices, sizeof(struct vertex));
+
+    for(GSFace *face in faces)
+    {
+        assert(4 == [face.vertexList count]);
+        for(GSVertex *vertex in face.vertexList)
+        {
+            *vertices++ = vertex.v;
+        }
+
+        assert(4 == [face.reversedVertexList count]);
+        for(GSVertex *vertex in face.reversedVertexList)
+        {
+            struct vertex v = vertex.v;
+            v.position[1] *= -1;
+            v.normal[1] *= -1;
+            *upsideDownVertices++ = v;
+        }
     }
-
-    memcpy(_vertices, mesh, len);
 }
 
 - (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat
@@ -85,11 +105,12 @@
 
     for(size_t i = 0; i < _numVertices; ++i)
     {
-        struct vertex v = _vertices[i];
+        struct vertex v;
 
         if(voxel.upsideDown) {
-            v.position[1] *= -1;
-            v.normal[1] *= -1;
+            v = _upsideDownVertices[i];
+        } else {
+            v = _vertices[i];
         }
 
         [self rotateVertex:&v quaternion:&quatY];

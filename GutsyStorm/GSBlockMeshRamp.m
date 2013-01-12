@@ -8,6 +8,7 @@
 
 #import <GLKit/GLKMath.h>
 #import "GSVertex.h"
+#import "GSFace.h"
 #import "Voxel.h"
 #import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
@@ -23,140 +24,78 @@
     if (self) {
         const static GLfloat L = 0.5f; // half the length of a block along one side
 
-        const static struct vertex _mesh[] =
-        {
-            // Top (ramp surface)
-            {
-                {-L, -L, -L},           // position
-                {0, 0, 0},              // color
-                {0, 0, -1},             // normal
-                {1, 1, VOXEL_TEX_GRASS} // texCoord
-            },
-            {
-                {-L, +L, +L},           // position
-                {0, 0, 0},              // color
-                {0, +1, 0},             // normal
-                {1, 0, VOXEL_TEX_GRASS} // texCoord
-            },
-            {
-                {+L, +L, +L},           // position
-                {0, 0, 0},              // color
-                {0, +1, 0},             // normal
-                {0, 0, VOXEL_TEX_GRASS} // texCoord
-            },
-            {
-                {+L, -L, -L},           // position
-                {0, 0, 0},              // color
-                {0, 0, -1},             // normal
-                {0, 1, VOXEL_TEX_GRASS} // texCoord
-            },
+        [self setFaces:@[
+         // Top (ramp surface)
+         [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(-L, -L, -L)
+                                                          normal:GSIntegerVector3_Make(0, 0, -1)
+                                                        texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_GRASS)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, +L)
+                                                           normal:GSIntegerVector3_Make(0, +1, 0)
+                                                        texCoord:GSIntegerVector3_Make(1, 0, VOXEL_TEX_GRASS)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(+L, +L, +L)
+                                                          normal:GSIntegerVector3_Make(0, +1, 0)
+                                                        texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_GRASS)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, -L)
+                                                          normal:GSIntegerVector3_Make(0, 0, -1)
+                                                        texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_GRASS)]]],
 
-            // Bottom
-            {
-                {-L, -L, -L},          // position
-                {0, 0, 0},             // color
-                {0, -1, 0},            // normal
-                {1, 0, VOXEL_TEX_DIRT} // texCoord
-            },
-            {
-                {+L, -L, -L},          // position
-                {0, 0, 0},             // color
-                {0, -1, 0},            // normal
-                {0, 0, VOXEL_TEX_DIRT} // texCoord
-            },
-            {
-                {+L, -L, +L},          // position
-                {0, 0, 0},             // color
-                {0, -1, 0},            // normal
-                {0, 1, VOXEL_TEX_DIRT} // texCoord
-            },
-            {
-                {-L, -L, +L},          // position
-                {0, 0, 0},             // color
-                {0, -1, 0},            // normal
-                {1, 1, VOXEL_TEX_DIRT} // texCoord
-            },
+         // Bottom
+         [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(-L, -L, -L)
+                                                          normal:GSIntegerVector3_Make(0, -1, 0)
+                                                        texCoord:GSIntegerVector3_Make(1, 0, VOXEL_TEX_DIRT)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, -L)
+                                                           normal:GSIntegerVector3_Make(0, -1, 0)
+                                                        texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_DIRT)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, +L)
+                                                          normal:GSIntegerVector3_Make(0, -1, 0)
+                                                        texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_DIRT)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(-L, -L, +L)
+                                                          normal:GSIntegerVector3_Make(0, -1, 0)
+                                                        texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_DIRT)]]],
 
-            // Back
-            {
-                {-L, -L, +L},          // position
-                {0, 0, 0},             // color
-                {0, 0, +1},            // normal
-                {0, 1, VOXEL_TEX_SIDE} // texCoord
-            },
-            {
-                {+L, -L, +L},          // position
-                {0, 0, 0},             // color
-                {0, 0, +1},            // normal
-                {1, 1, VOXEL_TEX_SIDE} // texCoord
-            },
-            {
-                {+L, +L, +L},          // position
-                {0, 0, 0},             // color
-                {0, 0, +1},            // normal
-                {1, 0, VOXEL_TEX_SIDE} // texCoord
-            },
-            {
-                {-L, +L, +L},          // position
-                {0, 0, 0},             // color
-                {0, 0, +1},            // normal
-                {0, 0, VOXEL_TEX_SIDE} // texCoord
-            },
+         // Back
+         [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(-L, -L, +L)
+                                                          normal:GSIntegerVector3_Make(0, 0, +1)
+                                                        texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_SIDE)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, +L)
+                                                           normal:GSIntegerVector3_Make(0, 0, +1)
+                                                        texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_SIDE)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(+L, +L, +L)
+                                                          normal:GSIntegerVector3_Make(0, 0, +1)
+                                                        texCoord:GSIntegerVector3_Make(1, 0, VOXEL_TEX_SIDE)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, +L)
+                                                          normal:GSIntegerVector3_Make(0, 0, +1)
+                                                        texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_SIDE)]]],
 
-            // Side A
-            {
-                {+L, +L, +L},          // position
-                {0, 0, 0},             // color
-                {1, 0, 0},             // normal
-                {1, 0, VOXEL_TEX_SIDE} // texCoord
-            },
-            {
-                {+L, -L, +L},          // position
-                {0, 0, 0},             // color
-                {1, 0, 0},             // normal
-                {1, 1, VOXEL_TEX_SIDE} // texCoord
-            },
-            {
-                {+L, -L, -L},          // position
-                {0, 0, 0},             // color
-                {1, 0, 0},             // normal
-                {0, 1, VOXEL_TEX_SIDE} // texCoord
-            },
-            {
-                {+L, -L, -L},          // position
-                {0, 0, 0},             // color
-                {1, 0, 0},             // normal
-                {0, 1, VOXEL_TEX_SIDE} // texCoord
-            },
-            
-            // Side B
-            {
-                {-L, -L, -L},          // position
-                {0, 0, 0},             // color
-                {-1, 0, 0},            // normal
-                {0, 1, VOXEL_TEX_SIDE} // texCoord
-            },
-            {
-                {-L, -L, -L},          // position
-                {0, 0, 0},             // color
-                {-1, 0, 0},            // normal
-                {0, 1, VOXEL_TEX_SIDE} // texCoord
-            },
-            {
-                {-L, -L, +L},          // position
-                {0, 0, 0},             // color
-                {-1, 0, 0},            // normal
-                {1, 1, VOXEL_TEX_SIDE} // texCoord
-            },
-            {
-                {-L, +L, +L},          // position
-                {0, 0, 0},             // color
-                {-1, 0, 0},            // normal
-                {1, 0, VOXEL_TEX_SIDE} // texCoord
-            },
-        };
+         // Side A
+         [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(+L, +L, +L)
+                                                          normal:GSIntegerVector3_Make(1, 0, 0)
+                                                        texCoord:GSIntegerVector3_Make(1, 0, VOXEL_TEX_SIDE)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, +L)
+                                                           normal:GSIntegerVector3_Make(1, 0, 0)
+                                                        texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_SIDE)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, -L)
+                                                          normal:GSIntegerVector3_Make(1, 0, 0)
+                                                        texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_SIDE)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, -L)
+                                                          normal:GSIntegerVector3_Make(1, 0, 0)
+                                                        texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_SIDE)]]],
 
-        [self copyVertices:_mesh count:(sizeof(_mesh)/sizeof(_mesh[0]))];
+         // Side B
+         [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(-L, -L, -L)
+                                                          normal:GSIntegerVector3_Make(-1, 0, 0)
+                                                        texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_SIDE)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(-L, -L, -L)
+                                                           normal:GSIntegerVector3_Make(-1, 0, 0)
+                                                        texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_SIDE)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(-L, -L, +L)
+                                                          normal:GSIntegerVector3_Make(-1, 0, 0)
+                                                        texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_SIDE)],
+                                    [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, +L)
+                                                          normal:GSIntegerVector3_Make(-1, 0, 0)
+                                                        texCoord:GSIntegerVector3_Make(1, 0, VOXEL_TEX_SIDE)]]],
+
+         ]];
     }
 
     return self;

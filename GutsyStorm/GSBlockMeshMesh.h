@@ -10,7 +10,7 @@
 
 @interface GSBlockMeshMesh : NSObject <GSBlockGeometryGenerating>
 
-- (void)copyVertices:(const struct vertex*)mesh count:(NSUInteger)count;
+- (void)setFaces:(NSArray *)faces;
 
 - (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat;
 

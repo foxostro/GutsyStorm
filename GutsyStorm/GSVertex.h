@@ -22,6 +22,14 @@ struct vertex
 
 @property (assign, nonatomic) struct vertex v;
 
++ (GSVertex *)vertexWithPosition:(GLKVector3)position
+                          normal:(GSIntegerVector3)normal
+                        texCoord:(GSIntegerVector3)texCoord;
+
 - (id)initWithVertex:(struct vertex *)pv;
+
+- (id)initWithPosition:(GLKVector3)position
+                normal:(GSIntegerVector3)normal
+              texCoord:(GSIntegerVector3)texCoord;
 
 @end
