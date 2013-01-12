@@ -15,20 +15,25 @@
 #import "GSBlockMesh.h"
 #import "GSBlockMeshMesh.h"
 
+@interface GSBlockMeshMesh ()
+
+- (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat;
+
+@end
+
+
 @implementation GSBlockMeshMesh
 {
     size_t _numVertices;
-    struct vertex *_vertices;
-    struct vertex *_upsideDownVertices;
+    struct vertex *_vertices[NUM_VOXEL_DIRECTIONS];
+    struct vertex *_upsideDownVertices[NUM_VOXEL_DIRECTIONS];
 }
 
 - (id)init
 {
     self = [super init];
     if (self) {
-        _numVertices = 0;
-        _vertices = NULL;
-        _upsideDownVertices = NULL;
+        // nothing to do here
     }
 
     return self;
@@ -36,38 +41,10 @@
 
 - (void)dealloc
 {
-    free(_vertices);
-    free(_upsideDownVertices);
-}
-
-- (void)setFaces:(NSArray *)faces
-{
-    assert(faces);
-    
-    _numVertices = 4 * [faces count];
-
-    assert(_numVertices>0);
-    assert(_numVertices % 4 == 0);
-    
-    struct vertex *vertices = _vertices = calloc(_numVertices, sizeof(struct vertex));
-    struct vertex *upsideDownVertices = _upsideDownVertices = calloc(_numVertices, sizeof(struct vertex));
-
-    for(GSFace *face in faces)
+    for(voxel_dir_t dir = 0; dir < NUM_VOXEL_DIRECTIONS; ++dir)
     {
-        assert(4 == [face.vertexList count]);
-        for(GSVertex *vertex in face.vertexList)
-        {
-            *vertices++ = vertex.v;
-        }
-
-        assert(4 == [face.reversedVertexList count]);
-        for(GSVertex *vertex in face.reversedVertexList)
-        {
-            struct vertex v = vertex.v;
-            v.position[1] *= -1;
-            v.normal[1] *= -1;
-            *upsideDownVertices++ = v;
-        }
+        free(_vertices[dir]);
+        free(_upsideDownVertices[dir]);
     }
 }
 
@@ -88,6 +65,44 @@
     v->normal[2] = normal.v[2];
 }
 
+- (void)setFaces:(NSArray *)faces
+{
+    assert(faces);
+    
+    _numVertices = 4 * [faces count];
+
+    assert(_numVertices>0);
+    assert(_numVertices % 4 == 0);
+
+    for(voxel_dir_t dir = 0; dir < NUM_VOXEL_DIRECTIONS; ++dir)
+    {
+        GLKQuaternion quatY = quaternionForDirection(dir);
+        struct vertex *vertices = _vertices[dir] = calloc(_numVertices, sizeof(struct vertex));
+        struct vertex *upsideDownVertices = _upsideDownVertices[dir] = calloc(_numVertices, sizeof(struct vertex));
+
+        for(GSFace *face in faces)
+        {
+            assert(4 == [face.vertexList count]);
+            for(GSVertex *vertex in face.vertexList)
+            {
+                struct vertex v = vertex.v;
+                [self rotateVertex:&v quaternion:&quatY];
+                *vertices++ = v;
+            }
+
+            assert(4 == [face.reversedVertexList count]);
+            for(GSVertex *vertex in face.reversedVertexList)
+            {
+                struct vertex v = vertex.v;
+                v.position[1] *= -1;
+                v.normal[1] *= -1;
+                [self rotateVertex:&v quaternion:&quatY];
+                *upsideDownVertices++ = v;
+            }
+        }
+    }
+}
+
 - (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
                                       vertexList:(NSMutableArray *)vertexList
                                        voxelData:(GSNeighborhood *)voxelData
@@ -99,27 +114,19 @@
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSChunkVoxelData *centerVoxels = [voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     voxel_t voxel = [centerVoxels voxelAtLocalPosition:chunkLocalPos];
-    GLKQuaternion quatY = quaternionForDirection(voxel.dir);
+    struct vertex *vertices = (voxel.upsideDown ? _upsideDownVertices : _vertices)[voxel.dir];
 
+    assert(vertices);
     assert(numVertices % 4 == 0);
 
     for(size_t i = 0; i < _numVertices; ++i)
     {
-        struct vertex v;
-
-        if(voxel.upsideDown) {
-            v = _upsideDownVertices[i];
-        } else {
-            v = _vertices[i];
-        }
-
-        [self rotateVertex:&v quaternion:&quatY];
+        struct vertex v = vertices[i];
 
         v.position[0] += pos.v[0];
         v.position[1] += pos.v[1];
         v.position[2] += pos.v[2];
 
-        // TODO: cubes which are exposed to air on top should also use the SIDE texture.
         if(!voxel.exposedToAirOnTop && (v.texCoord[2] == VOXEL_TEX_GRASS || v.texCoord[2] == VOXEL_TEX_SIDE)) {
             v.texCoord[2] = VOXEL_TEX_DIRT;
         }

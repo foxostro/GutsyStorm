@@ -12,8 +12,6 @@
 
 - (void)setFaces:(NSArray *)faces;
 
-- (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat;
-
 - (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
                                       vertexList:(NSMutableArray *)vertexList
                                        voxelData:(GSNeighborhood *)voxelData
