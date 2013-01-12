@@ -32,4 +32,6 @@ struct vertex
                 normal:(GSIntegerVector3)normal
               texCoord:(GSIntegerVector3)texCoord;
 
+- (GLKVector3)position;
+
 @end

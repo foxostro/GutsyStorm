@@ -37,21 +37,23 @@
                                                            texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_GRASS)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, +L)
                                                              normal:GSIntegerVector3_Make(0, 0, -1)
-                                                           texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_GRASS)]]],
+                                                           texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_GRASS)]]
+               correspondingCubeFace:FACE_TOP],
 
             // Bottom
             [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(+L, -L, +L)
-                                                             normal:GSIntegerVector3_Make(0, 0, -1)
+                                                             normal:GSIntegerVector3_Make(0, -1, 0)
                                                            texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_DIRT)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, +L)
-                                                             normal:GSIntegerVector3_Make(0, 0, -1)
+                                                             normal:GSIntegerVector3_Make(0, -1, 0)
                                                            texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_DIRT)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(-L, -L, +L)
-                                                             normal:GSIntegerVector3_Make(0, +1, 0)
+                                                             normal:GSIntegerVector3_Make(0, -1, 0)
                                                            texCoord:GSIntegerVector3_Make(1, 0, VOXEL_TEX_DIRT)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(-L, -L, -L)
-                                                             normal:GSIntegerVector3_Make(0, 0, -1)
-                                                           texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_DIRT)]]],
+                                                             normal:GSIntegerVector3_Make(0, -1, 0)
+                                                           texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_DIRT)]]
+               correspondingCubeFace:FACE_BOTTOM],
 
             // Side A (a triangle)
             [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(-L, -L, -L)
@@ -65,7 +67,8 @@
                                                            texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_SIDE)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, +L)
                                                              normal:GSIntegerVector3_Make(1, 0, 0)
-                                                           texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_SIDE)]]],
+                                                           texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_SIDE)]]
+               correspondingCubeFace:FACE_RIGHT],
 
             // Side B (a triangle)
             [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(-L, +L, +L)
@@ -79,7 +82,8 @@
                                                            texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_SIDE)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, +L)
                                                              normal:GSIntegerVector3_Make(0, 0, -1)
-                                                           texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_SIDE)]]]
+                                                           texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_SIDE)]]
+               correspondingCubeFace:FACE_FRONT]
          ]];
     }
     

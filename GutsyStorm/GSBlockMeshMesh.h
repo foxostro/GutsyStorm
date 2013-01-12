@@ -10,7 +10,7 @@
 
 @interface GSBlockMeshMesh : NSObject <GSBlockGeometryGenerating>
 
-- (void)setFaces:(NSArray *)faces;
+@property (copy) NSArray *faces;
 
 - (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
                                       vertexList:(NSMutableArray *)vertexList

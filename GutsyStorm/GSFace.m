@@ -6,16 +6,39 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKMath.h>
 #import "GSFace.h"
+#import "GSVertex.h"
 
 @implementation GSFace
 
-+ (GSFace *)faceWithVertices:(NSArray *)vertices
++ (GSFace *)faceWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face
 {
-    return [[GSFace alloc] initWithVertices:vertices];
+    return [[GSFace alloc] initWithVertices:vertices correspondingCubeFace:face];
 }
 
-- (id)initWithVertices:(NSArray *)vertices
+- (BOOL)determineEligibilityForOmission:(NSArray *)vertices
+{
+    assert(([vertices count] == 4) && "Only Quadrilaterals are supported at the moment.");
+
+    // The face is eligible for omission if it fits exactly into a cube face. (i.e. unit area)
+    GLKVector3 a = [((GSVertex *)[vertices objectAtIndex:0]) position];
+    GLKVector3 b = [((GSVertex *)[vertices objectAtIndex:1]) position];
+    GLKVector3 c = [((GSVertex *)[vertices objectAtIndex:2]) position];
+    GLKVector3 d = [((GSVertex *)[vertices objectAtIndex:3]) position];
+    
+    GLKVector3 ba = GLKVector3Subtract(b, a);
+    GLKVector3 bc = GLKVector3Subtract(b, c);
+    float area1 = GLKVector3Length(GLKVector3CrossProduct(ba, bc));
+    
+    GLKVector3 da = GLKVector3Subtract(d, a);
+    GLKVector3 dc = GLKVector3Subtract(d, c);
+    float area2 = GLKVector3Length(GLKVector3CrossProduct(da, dc));
+    
+    return fabsf(area1+area2-2.0f) < FLT_EPSILON;
+}
+
+- (id)initWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face
 {
     self = [super init];
     if (self) {
@@ -30,6 +53,18 @@
             [reversedVertexList addObject:element];
         }
         _reversedVertexList = reversedVertexList;
+
+        _correspondingCubeFace = face;
+
+        if(face == FACE_TOP) {
+            _reversedCorrespondingCubeFace = FACE_BOTTOM;
+        } else if(face == FACE_BOTTOM) {
+            _reversedCorrespondingCubeFace = FACE_TOP;
+        } else {
+            _reversedCorrespondingCubeFace = face;
+        }
+
+        _eligibleForOmission = [self determineEligibilityForOmission:vertices];
     }
 
     return self;

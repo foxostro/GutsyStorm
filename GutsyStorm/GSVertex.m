@@ -65,4 +65,9 @@
     return self;
 }
 
+- (GLKVector3)position
+{
+    return GLKVector3Make(_v.position[0], _v.position[1], _v.position[2]);
+}
+
 @end

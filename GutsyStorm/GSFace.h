@@ -7,14 +7,18 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "Voxel.h"
 
 @interface GSFace : NSObject
 
+@property (readonly) BOOL eligibleForOmission;
 @property (copy) NSArray *vertexList;
 @property (copy) NSArray *reversedVertexList;
+@property (readonly) face_t correspondingCubeFace;
+@property (readonly) face_t reversedCorrespondingCubeFace;
 
-+ (GSFace *)faceWithVertices:(NSArray *)vertices;
++ (GSFace *)faceWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face;
 
-- (id)initWithVertices:(NSArray *)vertices;
+- (id)initWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face;
 
 @end
