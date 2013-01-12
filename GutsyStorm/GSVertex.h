@@ -26,6 +26,8 @@ struct vertex
                           normal:(GSIntegerVector3)normal
                         texCoord:(GSIntegerVector3)texCoord;
 
++ (GSVertex *)vertexWithVertex:(struct vertex *)pv;
+
 - (id)initWithVertex:(struct vertex *)pv;
 
 - (id)initWithPosition:(GLKVector3)position

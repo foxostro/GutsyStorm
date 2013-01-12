@@ -24,6 +24,11 @@
     return [[GSVertex alloc] initWithPosition:position normal:normal texCoord:texCoord];
 }
 
++ (GSVertex *)vertexWithVertex:(struct vertex *)pv
+{
+    return [[GSVertex alloc] initWithVertex:pv];
+}
+
 - (id)initWithVertex:(struct vertex *)pv
 {
     assert(pv);

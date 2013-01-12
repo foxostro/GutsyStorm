@@ -13,9 +13,7 @@
 
 @property (readonly) BOOL eligibleForOmission;
 @property (copy) NSArray *vertexList;
-@property (copy) NSArray *reversedVertexList;
 @property (readonly) face_t correspondingCubeFace;
-@property (readonly) face_t reversedCorrespondingCubeFace;
 
 + (GSFace *)faceWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face;
 

@@ -43,27 +43,8 @@
     self = [super init];
     if (self) {
         assert(([vertices count] == 4) && "Only Quadrilaterals are supported at the moment.");
-
-        _vertexList = [vertices copy];
-
-        NSMutableArray *reversedVertexList = [NSMutableArray arrayWithCapacity:[_vertexList count]];
-        NSEnumerator *enumerator = [_vertexList reverseObjectEnumerator];
-        for(id element in enumerator)
-        {
-            [reversedVertexList addObject:element];
-        }
-        _reversedVertexList = reversedVertexList;
-
+        _vertexList = vertices;
         _correspondingCubeFace = face;
-
-        if(face == FACE_TOP) {
-            _reversedCorrespondingCubeFace = FACE_BOTTOM;
-        } else if(face == FACE_BOTTOM) {
-            _reversedCorrespondingCubeFace = FACE_TOP;
-        } else {
-            _reversedCorrespondingCubeFace = face;
-        }
-
         _eligibleForOmission = [self determineEligibilityForOmission:vertices];
     }
 
