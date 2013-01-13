@@ -34,8 +34,8 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         _dimensions = dim;
         
         _offsetFromChunkLocalSpace = GSIntegerVector3_Make((_dimensions.x - CHUNK_SIZE_X) / 2,
-                                                          (_dimensions.y - CHUNK_SIZE_Y) / 2,
-                                                          (_dimensions.z - CHUNK_SIZE_Z) / 2);
+                                                           (_dimensions.y - CHUNK_SIZE_Y) / 2,
+                                                           (_dimensions.z - CHUNK_SIZE_Z) / 2);
         
         _lightingBuffer = malloc(BUFFER_SIZE_IN_BYTES);
         

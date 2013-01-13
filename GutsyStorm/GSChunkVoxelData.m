@@ -78,7 +78,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         [_lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         _voxelData = NULL;
         
-        _sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(3*CHUNK_SIZE_X,CHUNK_SIZE_Y,3*CHUNK_SIZE_Z)];
+        _sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(CHUNK_SIZE_X+2,CHUNK_SIZE_Y,CHUNK_SIZE_Z+2)];
         _dirtySunlight = YES;
         
         // The initial loading from disk preceeds all attempts to generate new sunlight data.
@@ -264,10 +264,11 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
  */
 - (void)fillSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
 {
+    uint8_t *combinedSunlightData = malloc((combinedMaxP.x - combinedMinP.x) *
+                                           (combinedMaxP.y - combinedMinP.y) *
+                                           (combinedMaxP.z - combinedMinP.z) * sizeof(uint8_t));
+
     GSIntegerVector3 p;
-    
-    uint8_t *combinedSunlightData = _sunlight.lightingBuffer;
-    
     FOR_BOX(p, combinedMinP, combinedMaxP)
     {
         size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
@@ -276,9 +277,10 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         combinedSunlightData[idx] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
     }
 
-    // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
-    // Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
-    // Set the blocks we find to the next lower light level.
+    /* Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
+     * Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
+     * Set the blocks we find to the next lower light level.
+     */
     for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
     {
         FOR_BOX(p, combinedMinP, combinedMaxP)
@@ -298,6 +300,22 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
             }
         }
     }
+
+    // Copy the combined sunlight data into the sunlight buffer. Discard the non-overlapping region.
+    assert(_sunlight.dimensions.x == CHUNK_SIZE_X+2);
+    assert(_sunlight.dimensions.y == CHUNK_SIZE_Y);
+    assert(_sunlight.dimensions.z == CHUNK_SIZE_Z+2);
+    GSIntegerVector3 offset = GSIntegerVector3_Make(1, 0, 1);
+    GSIntegerVector3 a = GSIntegerVector3_Make(-1, 0, -1);
+    GSIntegerVector3 b = GSIntegerVector3_Make(CHUNK_SIZE_X+1, 0, CHUNK_SIZE_Z+1);
+    FOR_Y_COLUMN_IN_BOX(p, a, b)
+    {
+        size_t src = INDEX_BOX(p, combinedMinP, combinedMaxP);
+        size_t dst = INDEX_BOX(GSIntegerVector3_Add(p, offset), ivecZero, _sunlight.dimensions);
+        memcpy(_sunlight.lightingBuffer+dst, combinedSunlightData+src, CHUNK_SIZE_Y*sizeof(uint8_t));
+    }
+
+    free(combinedSunlightData);
 }
 
 - (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood

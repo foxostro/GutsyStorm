@@ -45,8 +45,6 @@
                 normal:(GSIntegerVector3)normal
               texCoord:(GSIntegerVector3)texCoord
 {
-    assert(pv);
-
     self = [super init];
     if (self) {
         _v.position[0] = position.v[0];
