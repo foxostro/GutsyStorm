@@ -156,8 +156,13 @@
             v.position[1] += pos.v[1];
             v.position[2] += pos.v[2];
 
-            if(!voxel.exposedToAirOnTop && (v.texCoord[2] == VOXEL_TEX_GRASS || v.texCoord[2] == VOXEL_TEX_SIDE)) {
-                v.texCoord[2] = VOXEL_TEX_DIRT;
+            // Grass and dirt are handled specially because it uses two textures and the others use one.
+            if(voxel.tex == VOXEL_TEX_DIRT || voxel.tex == VOXEL_TEX_GRASS) {
+                if(!voxel.exposedToAirOnTop && (v.texCoord[2] == VOXEL_TEX_GRASS || v.texCoord[2] == VOXEL_TEX_SIDE)) {
+                    v.texCoord[2] = VOXEL_TEX_DIRT;
+                }
+            } else {
+                v.texCoord[2] = voxel.tex;
             }
 
             [vertexList addObject:[GSVertex vertexWithVertex:&v]];

@@ -401,7 +401,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
                                                                   pathForResource:@"terrain"
                                                                   ofType:@"png"]
-                                                     numTextures:3];
+                                                     numTextures:4];
 
         terrain_generator_t generator = ^(GLKVector3 a, voxel_t *voxel) {
             const float terrainHeight = 40.0f;
@@ -750,6 +750,6 @@ static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, GLKVector
     outVoxel->outside = NO; // calculated later
     outVoxel->exposedToAirOnTop = NO; // calculated later
     outVoxel->opaque = groundLayer || floatingMountain;
-    outVoxel->tex = 0;
+    outVoxel->tex = VOXEL_TEX_GRASS;
     outVoxel->type = (groundLayer || floatingMountain) ? VOXEL_TYPE_CUBE : VOXEL_TYPE_EMPTY;
 }
