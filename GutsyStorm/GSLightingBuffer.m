@@ -10,6 +10,7 @@
 #import "Voxel.h"
 #import "GSLightingBuffer.h"
 #import "GSChunkVoxelData.h"
+#import "SyscallWrappers.h"
 
 #define BUFFER_SIZE_IN_BYTES (_dimensions.x * _dimensions.y * _dimensions.z * sizeof(uint8_t))
 
@@ -17,6 +18,7 @@
 #define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*_dimensions.y*_dimensions.z) + ((p.z)*_dimensions.y) + (p.y)))
 
 static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
+
 
 @implementation GSLightingBuffer
 {
@@ -122,11 +124,31 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     bzero(_lightingBuffer, BUFFER_SIZE_IN_BYTES);
 }
 
-- (void)saveToFile:(NSURL *)url
+// Assumes the caller has already locked the lighting buffer for reading.
+- (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group
 {
-    [_lockLightingBuffer lockForReading];
-    [[NSData dataWithBytes:_lightingBuffer length:BUFFER_SIZE_IN_BYTES] writeToURL:url atomically:YES];
-    [_lockLightingBuffer unlockForReading];
+    dispatch_group_enter(group);
+
+    dispatch_data_t sunlight = dispatch_data_create(_lightingBuffer, BUFFER_SIZE_IN_BYTES,
+                                                    dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                                                    DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+    
+    dispatch_async(queue, ^{
+        int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+
+        dispatch_write(fd, sunlight, queue, ^(dispatch_data_t data, int error) {
+            if(error) {
+                // TODO: graceful error handling
+                char errorMsg[LINE_MAX];
+                strerror_r(errno, errorMsg, LINE_MAX);
+                [NSException raise:@"POSIX error" format:@"error with write [fd=%d, error=%d] -- %s", fd, error, errorMsg];
+            }
+
+            Close(fd);
+            dispatch_release(sunlight);
+            dispatch_group_leave(group);
+        });
+    });
 }
 
 - (BOOL)tryToLoadFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler

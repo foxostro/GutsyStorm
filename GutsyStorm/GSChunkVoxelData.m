@@ -25,7 +25,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (void)generateVoxelDataWithGenerator:(terrain_generator_t)generator
                          postProcessor:(terrain_post_processor_t)postProcessor;
 - (void)saveVoxelDataToFile;
-- (void)saveSunlightDataToFile;
 - (void)loadOrGenerateVoxelData:(terrain_generator_t)generator
                   postProcessor:(terrain_post_processor_t)postProcessor
               completionHandler:(void (^)(void))completionHandler;
@@ -335,13 +334,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     [[NSData dataWithBytes:_voxelData length:len] writeToURL:url atomically:YES];
 }
 
-- (void)saveSunlightDataToFile
-{
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
-                        relativeToURL:_folder];
-    [_sunlight saveToFile:url];
-}
-
 // Assumes the caller is already holding "lockVoxelData".
 - (void)allocateVoxelData
 {
@@ -571,10 +563,10 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
                 success = YES;
 
                 // Spin off a task to save sunlight data to disk.
-                dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-                dispatch_group_async(_groupForSaving, queue, ^{
-                    [self saveSunlightDataToFile];
-                });
+                [_sunlight saveToFile:[NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
+                                             relativeToURL:_folder]
+                                queue:dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0)
+                                group:_groupForSaving];
 
                 completionHandler(); // Only call the completion handler if the update was successful.
             }

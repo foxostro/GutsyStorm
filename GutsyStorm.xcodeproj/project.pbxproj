@@ -35,6 +35,7 @@
 		AC202CC5151E453E00D91067 /* GSPlane.c in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* GSPlane.c */; };
 		AC2B281816927F6B00BFBF7F /* GSBlockMeshInsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */; };
 		AC2B281C1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281B1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m */; };
+		AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */ = {isa = PBXBuildFile; fileRef = AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */; };
 		AC3767A2163DFB4000BAE03F /* GutsyStormErrorCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A1163DFB4000BAE03F /* GutsyStormErrorCodes.m */; };
 		AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A5163DFD4200BAE03F /* GSTerrain.m */; };
 		AC3767AA163E053400BAE03F /* GSTerrainCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A9163E053400BAE03F /* GSTerrainCursor.m */; };
@@ -113,6 +114,8 @@
 		AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshInsideCorner.m; sourceTree = "<group>"; };
 		AC2B281A1692919D00BFBF7F /* GSBlockMeshOutsideCorner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMeshOutsideCorner.h; sourceTree = "<group>"; };
 		AC2B281B1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshOutsideCorner.m; sourceTree = "<group>"; };
+		AC319A3D16A52E1700F65F11 /* SyscallWrappers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SyscallWrappers.h; sourceTree = "<group>"; };
+		AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SyscallWrappers.m; sourceTree = "<group>"; };
 		AC3767A0163DFB4000BAE03F /* GutsyStormErrorCodes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GutsyStormErrorCodes.h; sourceTree = "<group>"; };
 		AC3767A1163DFB4000BAE03F /* GutsyStormErrorCodes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GutsyStormErrorCodes.m; sourceTree = "<group>"; };
 		AC3767A4163DFD4100BAE03F /* GSTerrain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrain.h; sourceTree = "<group>"; };
@@ -233,6 +236,8 @@
 				4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */,
 				4A95D39D154645920042C081 /* GSReaderWriterLock.h */,
 				4A95D39E154645920042C081 /* GSReaderWriterLock.m */,
+				AC319A3D16A52E1700F65F11 /* SyscallWrappers.h */,
+				AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */,
 				4A2CD00B1513C3FD006C6551 /* MainMenu.xib */,
 				4A2310C8153E1BE000A4EBE6 /* Terrain */,
 				AC202CC7151E57BD00D91067 /* OpenGL Wrapper */,
@@ -451,6 +456,7 @@
 				AC2B281C1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m in Sources */,
 				ACE41C4D1693AE1A003C572B /* GSBlockMesh.m in Sources */,
 				ACC82D2716A1E6C000F56FB8 /* GSFace.m in Sources */,
+				AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

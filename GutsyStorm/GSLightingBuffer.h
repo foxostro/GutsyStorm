@@ -54,8 +54,10 @@
  */
 - (void)clear;
 
-/* Saves the lighting buffer contents to file. */
-- (void)saveToFile:(NSURL *)url;
+/* Saves the lighting buffer contents to file asynchronously on the specified dispatch 
+ * Assumes the caller has already locked the lighting buffer for reading.
+ */
+- (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group;
 
 /* Attempts to load the lighting buffer contents from file.
  * Returns YES if the file was actually loaded.
