@@ -18,6 +18,7 @@
 #import "GSBlockMeshRamp.h"
 #import "GSBlockMeshInsideCorner.h"
 #import "GSBlockMeshOutsideCorner.h"
+#import "SyscallWrappers.h"
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
 
@@ -362,10 +363,32 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 // Assumes the caller is already holding "lockGeometry".
 - (void)saveGeometryDataToFile
 {
-    NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP]
-                        relativeToURL:_folder];
-    
-    [[self dataRepr] writeToURL:url atomically:YES];
+    // Make a copy of the geometry data so we don't have to hold the lock during the entire save operation.
+    NSData *backingData = [self dataRepr];
+    dispatch_data_t geometryData = dispatch_data_create([backingData bytes], [backingData length],
+                                                        dispatch_get_global_queue(0, 0),
+                                                        DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+    dispatch_group_enter(_groupForSaving);
+    dispatch_async(queue, ^{
+        NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP]
+                            relativeToURL:_folder];
+
+        int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+        dispatch_write(fd, geometryData, queue, ^(dispatch_data_t data, int error) {
+            if(error) {
+                // TODO: graceful error handling
+                char errorMsg[LINE_MAX];
+                strerror_r(errno, errorMsg, LINE_MAX);
+                [NSException raise:@"POSIX error" format:@"error with write [fd=%d, error=%d] -- %s", fd, error, errorMsg];
+            }
+
+            Close(fd);
+            dispatch_release(geometryData);
+            dispatch_group_leave(_groupForSaving);
+        });
+    });
 }
 
 // Assumes the caller is already holding "lockGeometry".
