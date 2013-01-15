@@ -59,10 +59,11 @@
  */
 - (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group;
 
-/* Attempts to load the lighting buffer contents from file.
- * Returns YES if the file was actually loaded.
+/* Attempts to asynchronously load the lighting buffer contents from file on the specifed dispatch queue.
  * Runs the completion handler immediately after loading the file and does not run it if the file could not be loaded.
  */
-- (BOOL)tryToLoadFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler;
+- (void)tryToLoadFromFile:(NSURL *)url
+                    queue:(dispatch_queue_t)queue
+        completionHandler:(void (^)(BOOL success))completionHandler;
 
 @end

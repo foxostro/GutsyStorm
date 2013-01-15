@@ -151,29 +151,46 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     });
 }
 
-- (BOOL)tryToLoadFromFile:(NSURL *)url completionHandler:(void (^)(void))completionHandler
+- (void)tryToLoadFromFile:(NSURL *)url
+                    queue:(dispatch_queue_t)queue
+        completionHandler:(void (^)(BOOL success))completionHandler
 {
-    BOOL success = NO;
-    
     [_lockLightingBuffer lockForWriting];
-    
+
     // If the file does not exist then do nothing.
     if([url checkResourceIsReachableAndReturnError:NULL]) {
-        // Read the contents of the file into "sunlight.lightingBuffer".
-        NSData *data = [[NSData alloc] initWithContentsOfURL:url];
-        if([data length] == BUFFER_SIZE_IN_BYTES) {
-            [data getBytes:_lightingBuffer length:BUFFER_SIZE_IN_BYTES];
-            success = YES;
-        }
+        int fd = Open(url, O_RDONLY, 0);
+        dispatch_read(fd, BUFFER_SIZE_IN_BYTES, queue, ^(dispatch_data_t data, int error) {
+            if(error) {
+                // TODO: graceful error handling
+                char errorMsg[LINE_MAX];
+                strerror_r(errno, errorMsg, LINE_MAX);
+                [NSException raise:@"POSIX error" format:@"error with read [fd=%d, error=%d] -- %s", fd, error, errorMsg];
+            }
+
+            Close(fd);
+
+            if(dispatch_data_get_size(data) != BUFFER_SIZE_IN_BYTES) {
+                [NSException raise:@"data error"
+                            format:@"Read %zu bytes from file, but expected %zu.",
+                                        dispatch_data_get_size(data), BUFFER_SIZE_IN_BYTES];
+            }
+
+            // Map the data object to a buffer in memory and copy to our internal lighting buffer.
+            size_t size = 0;
+            const void *buffer = NULL;
+            dispatch_data_t mappedData = dispatch_data_create_map(data, &buffer, &size);
+            assert(BUFFER_SIZE_IN_BYTES == size);
+            memcpy(_lightingBuffer, buffer, BUFFER_SIZE_IN_BYTES);
+            dispatch_release(mappedData);
+
+            completionHandler(YES);
+            [_lockLightingBuffer unlockForWriting];
+        });
+    } else {
+        completionHandler(NO);
+        [_lockLightingBuffer unlockForWriting];
     }
-    
-    if(success) {
-        completionHandler();
-    }
-    
-    [_lockLightingBuffer unlockForWriting];
-    
-    return success;
 }
 
 @end

@@ -28,7 +28,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (void)loadOrGenerateVoxelData:(terrain_generator_t)generator
                   postProcessor:(terrain_post_processor_t)postProcessor
               completionHandler:(void (^)(void))completionHandler;
-- (void)tryToLoadSunlightData;
 - (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
                                         tier:(unsigned)tier
                            completionHandler:(void (^)(void))completionHandler;
@@ -87,9 +86,18 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         dispatch_async(_chunkTaskQueue, ^{
             [self allocateVoxelData];
             
-            [self tryToLoadSunlightData];
-            OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
-            
+            NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
+                                relativeToURL:_folder];
+
+            [_sunlight tryToLoadFromFile:url
+                                   queue:_chunkTaskQueue
+                       completionHandler:^(BOOL success) {
+                           if(success) {
+                               _dirtySunlight = NO;
+                           }
+                           OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
+                       }];
+
             [self loadOrGenerateVoxelData:generator
                             postProcessor:postProcessor
                         completionHandler:^{
@@ -481,16 +489,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     }
 
     completionHandler();
-}
-
-- (void)tryToLoadSunlightData
-{
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
-                        relativeToURL:_folder];
-    
-    [_sunlight tryToLoadFromFile:url completionHandler:^{
-        _dirtySunlight = NO;
-    }];
 }
 
 /* Try to immediately update sunlight using voxel data for the local neighborhood. If it is not possible to immediately take all
