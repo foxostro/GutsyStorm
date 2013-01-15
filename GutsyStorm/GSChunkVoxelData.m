@@ -11,6 +11,7 @@
 #import "GSRay.h"
 #import "GSBoxedVector.h"
 #import "GSChunkStore.h"
+#import "SyscallWrappers.h"
 
 static const GSIntegerVector3 combinedMinP = {-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z};
 static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CHUNK_SIZE_Z};
@@ -141,17 +142,8 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (void)voxelDataWasModified
 {
     [self recalcOutsideVoxelsNoLock];
-    
-    // Caller must make sure to update sunlight later...
-    _dirtySunlight = YES;
-    
-    // Spin off a task to save the chunk.
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-    dispatch_group_async(_groupForSaving, queue, ^{
-        [_lockVoxelData lockForReading];
-        [self saveVoxelDataToFile];
-        [_lockVoxelData unlockForReading];
-    });
+    _dirtySunlight = YES; // Caller must make sure to update sunlight later...
+    [self saveVoxelDataToFile];
 }
 
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
@@ -331,15 +323,37 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     return [self tryToRebuildSunlightWithNeighborhood:neighborhood tier:0 completionHandler:completionHandler];
 }
 
-// Assumes the caller is already holding "lockVoxelData" for reading.
 - (void)saveVoxelDataToFile
 {
-    const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
-    
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP]
-                        relativeToURL:_folder];
-    
-    [[NSData dataWithBytes:_voxelData length:len] writeToURL:url atomically:YES];
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+    dispatch_group_enter(_groupForSaving);
+    dispatch_async(queue, ^{
+        NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP]
+                            relativeToURL:_folder];
+
+        const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
+
+        [_lockVoxelData lockForReading];
+        dispatch_data_t voxelData = dispatch_data_create(_voxelData, len,
+                                                         dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                                                         DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+        [_lockVoxelData unlockForReading];
+
+        int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+
+        dispatch_write(fd, voxelData, queue, ^(dispatch_data_t data, int error) {
+            if(error) {
+                // TODO: graceful error handling
+                char errorMsg[LINE_MAX];
+                strerror_r(errno, errorMsg, LINE_MAX);
+                [NSException raise:@"POSIX error" format:@"error with write [fd=%d, error=%d] -- %s", fd, error, errorMsg];
+            }
+
+            Close(fd);
+            dispatch_release(voxelData);
+            dispatch_group_leave(_groupForSaving);
+        });
+    });
 }
 
 // Assumes the caller is already holding "lockVoxelData".
@@ -476,13 +490,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         if((error.code == GSInvalidChunkDataOnDiskError) || (error.code == GSFileNotFoundError)) {
             [self generateVoxelDataWithGenerator:generator
                                    postProcessor:postProcessor];
-
-            dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-            dispatch_group_async(_groupForSaving, queue, ^{
-                [_lockVoxelData lockForReading];
-                [self saveVoxelDataToFile];
-                [_lockVoxelData unlockForReading];
-            });
+            [self saveVoxelDataToFile];
         } else {
             [NSException raise:@"Runtime Error" format:@"Error %ld: %@", (long)error.code, error.localizedDescription];
         }
