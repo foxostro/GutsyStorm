@@ -21,7 +21,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 
 - (void)destroyVoxelData;
 - (void)allocateVoxelData;
-- (NSError *)loadVoxelDataFromFile:(NSURL *)url;
+- (void)loadVoxelDataFromURL:(NSURL *)url completionHandler:(void (^)(BOOL success, NSError *error))completionHandler;
 - (void)recalcOutsideVoxelsNoLock;
 - (void)generateVoxelDataWithGenerator:(terrain_generator_t)generator
                          postProcessor:(terrain_post_processor_t)postProcessor;
@@ -102,10 +102,9 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
             [self loadOrGenerateVoxelData:generator
                             postProcessor:postProcessor
                         completionHandler:^{
-                [self recalcOutsideVoxelsNoLock];
-                [_lockVoxelData unlockForWriting];
-                // We don't need to call -voxelDataWasModified in the special case of initialization.
-            }];
+                            [_lockVoxelData unlockForWriting];
+                            // We don't need to call -voxelDataWasModified in the special case of initialization.
+                        }];
         });
     }
     
@@ -335,7 +334,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 
         [_lockVoxelData lockForReading];
         dispatch_data_t voxelData = dispatch_data_create(_voxelData, len,
-                                                         dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                                                         dispatch_get_global_queue(0, 0),
                                                          DISPATCH_DATA_DESTRUCTOR_DEFAULT);
         [_lockVoxelData unlockForReading];
 
@@ -456,47 +455,72 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     free(voxels);
 }
 
-// Attempt to load chunk data from file asynchronously.
-- (NSError *)loadVoxelDataFromFile:(NSURL *)url
+// Attempt to asynchronously load voxel data from file.
+- (void)loadVoxelDataFromURL:(NSURL *)url completionHandler:(void (^)(BOOL success, NSError *error))completionHandler
 {
-    const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
-    
     if(![url checkResourceIsReachableAndReturnError:NULL]) {
-        return [NSError errorWithDomain:GSErrorDomain
-                                   code:GSFileNotFoundError
-                               userInfo:@{NSLocalizedFailureReasonErrorKey:@"Voxel data file is not present."}];
+        completionHandler(NO, [NSError errorWithDomain:GSErrorDomain
+                                                  code:GSFileNotFoundError
+                                              userInfo:@{NSLocalizedFailureReasonErrorKey:@"Voxel data file is not present."}]);
+        return;
+
     }
-    
-    // Read the contents of the file into "voxelData".
-    NSData *data = [[NSData alloc] initWithContentsOfURL:url];
-    if([data length] != len) {
-        return [NSError errorWithDomain:GSErrorDomain
-                                   code:GSInvalidChunkDataOnDiskError
-                               userInfo:@{NSLocalizedFailureReasonErrorKey:@"Voxel data file is of unexpected length."}];
-    }
-    [data getBytes:_voxelData length:len];
-    
-    return nil;
+
+    const size_t len = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * sizeof(voxel_t);
+    int fd = Open(url, O_RDONLY, 0);
+    dispatch_read(fd, len, _chunkTaskQueue, ^(dispatch_data_t data, int error) {
+        Close(fd);
+
+        if(error) {
+            completionHandler(NO,
+                              [NSError errorWithDomain:GSErrorDomain
+                                                  code:GSInvalidChunkDataOnDiskError
+                                              userInfo:@{NSLocalizedFailureReasonErrorKey:@"File I/O Error"}]);
+            return;
+        }
+        
+        if(dispatch_data_get_size(data) != len) {
+            completionHandler(NO,
+                              [NSError errorWithDomain:GSErrorDomain
+                                                  code:GSInvalidChunkDataOnDiskError
+                                              userInfo:@{NSLocalizedFailureReasonErrorKey:@"Voxel data file is " \
+                                                                                           "of unexpected length."}]);
+            return;
+        }
+
+        // Map the data object to a buffer in memory and copy to our internal voxel data buffer.
+        size_t size = 0;
+        const void *buffer = NULL;
+        dispatch_data_t mappedData = dispatch_data_create_map(data, &buffer, &size);
+        assert(len == size);
+        memcpy(_voxelData, buffer, len);
+        dispatch_release(mappedData);
+
+        completionHandler(YES, nil);
+    });
 }
 
 - (void)loadOrGenerateVoxelData:(terrain_generator_t)generator
                   postProcessor:(terrain_post_processor_t)postProcessor
               completionHandler:(void (^)(void))completionHandler
 {
-    NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP] relativeToURL:_folder];
-    NSError *error = [self loadVoxelDataFromFile:url];
-    
-    if(error) {
-        if((error.code == GSInvalidChunkDataOnDiskError) || (error.code == GSFileNotFoundError)) {
-            [self generateVoxelDataWithGenerator:generator
-                                   postProcessor:postProcessor];
-            [self saveVoxelDataToFile];
-        } else {
-            [NSException raise:@"Runtime Error" format:@"Error %ld: %@", (long)error.code, error.localizedDescription];
-        }
-    }
+    [self loadVoxelDataFromURL:[NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP]
+                                      relativeToURL:_folder]
+             completionHandler:^(BOOL success, NSError *error) {
+                 if(error) {
+                     if((error.code == GSInvalidChunkDataOnDiskError) || (error.code == GSFileNotFoundError)) {
+                         [self generateVoxelDataWithGenerator:generator
+                                                postProcessor:postProcessor];
+                         [self saveVoxelDataToFile];
+                     } else {
+                         [NSException raise:@"Runtime Error" format:@"Error %ld: %@", (long)error.code, error.localizedDescription];
+                     }
+                 }
 
-    completionHandler();
+                 [self recalcOutsideVoxelsNoLock];
+
+                 completionHandler();
+             }];
 }
 
 /* Try to immediately update sunlight using voxel data for the local neighborhood. If it is not possible to immediately take all
