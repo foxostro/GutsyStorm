@@ -54,8 +54,7 @@
     GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
 
     float _timeUntilNextPeriodicChunkUpdate;
-    float _timeBetweenPerioducChunkUpdates;
-    int32_t _activeRegionNeedsUpdate;
+    float _timeBetweenPeriodicChunkUpdates;
 }
 
 + (void)initialize
@@ -92,8 +91,7 @@
         _glContext = context;
         _lock = [[NSLock alloc] init];
         _timeUntilNextPeriodicChunkUpdate = 0.0;
-        _timeBetweenPerioducChunkUpdates = 1.0;
-        _activeRegionNeedsUpdate = 0;
+        _timeBetweenPeriodicChunkUpdates = 1.0;
         _generator = [generatorCallback copy];
         _postProcessor = [postProcessorCallback copy];
         
@@ -222,21 +220,15 @@
 {
     _timeUntilNextPeriodicChunkUpdate -= dt;
     if(_timeUntilNextPeriodicChunkUpdate < 0) {
-        _timeBetweenPerioducChunkUpdates = _timeBetweenPerioducChunkUpdates;
+        _timeUntilNextPeriodicChunkUpdate = _timeBetweenPeriodicChunkUpdates;
         
         dispatch_async(_chunkTaskQueue, ^{
             [self tryToUpdateDirtySunlight];
             [self tryToUpdateDirtyGeometry];
-        
-            if(OSAtomicCompareAndSwap32Barrier(1, 0, &_activeRegionNeedsUpdate)) {
-                [self updateActiveChunksWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)];
-            }
         });
     }
     
-    if((flags & CAMERA_MOVED) || (flags & CAMERA_TURNED)) {
-        OSAtomicCompareAndSwap32Barrier(0, 1, &_activeRegionNeedsUpdate);
-    }
+    [self updateActiveChunksWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)];
 }
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)newBlock
