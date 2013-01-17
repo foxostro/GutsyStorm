@@ -52,9 +52,6 @@
 
     GSActiveRegion *_activeRegion;
     GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
-
-    float _timeUntilNextPeriodicChunkUpdate;
-    float _timeBetweenPeriodicChunkUpdates;
 }
 
 + (void)initialize
@@ -90,8 +87,6 @@
         _terrainShader = shader;
         _glContext = context;
         _lock = [[NSLock alloc] init];
-        _timeUntilNextPeriodicChunkUpdate = 0.0;
-        _timeBetweenPeriodicChunkUpdates = 1.0;
         _generator = [generatorCallback copy];
         _postProcessor = [postProcessorCallback copy];
         
@@ -218,17 +213,9 @@
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    _timeUntilNextPeriodicChunkUpdate -= dt;
-    if(_timeUntilNextPeriodicChunkUpdate < 0) {
-        _timeUntilNextPeriodicChunkUpdate = _timeBetweenPeriodicChunkUpdates;
-        
-        dispatch_async(_chunkTaskQueue, ^{
-            [self tryToUpdateDirtySunlight];
-            [self tryToUpdateDirtyGeometry];
-        });
-    }
-    
     [self updateActiveChunksWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)];
+    [self tryToUpdateDirtySunlight];
+    [self tryToUpdateDirtyGeometry];
 }
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)newBlock
