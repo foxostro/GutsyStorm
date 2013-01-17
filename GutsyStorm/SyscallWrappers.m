@@ -43,17 +43,9 @@ int Open(NSURL *url, int oflags, mode_t mode)
 
 void Close(int fd)
 {
-    int flags = fcntl(fd, F_GETFL, 0);
-
-    if(flags < 0) {
-        raiseExceptionForPOSIXError(errno, [NSString stringWithFormat:@"error with fcntl(%d, F_GETFL, 0)", fd]);
-    }
-
-    if(!(flags & O_NONBLOCK) && fcntl(fd, F_SETFL, flags|O_NONBLOCK) < 0) {
-        raiseExceptionForPOSIXError(errno, [NSString stringWithFormat:@"error with fcntl(%d, F_SETFL, flags|O_NONBLOCK)", fd]);
-    }
-
-    if(close(fd) < 0) {
-        raiseExceptionForPOSIXError(errno, [NSString stringWithFormat:@"error with close(%d)", fd]);
+    while(close(fd) < 0) {
+        if(errno != EINTR) {
+            raiseExceptionForPOSIXError(errno, [NSString stringWithFormat:@"error with close(%d)", fd]);
+        }
     }
 }
