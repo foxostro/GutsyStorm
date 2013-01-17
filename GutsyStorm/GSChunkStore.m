@@ -37,6 +37,7 @@
 
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _chunkTaskQueue;
+    dispatch_queue_t _queueForSaving;
 
     NSLock *_lock;
     NSUInteger _numVBOGenerationsAllowedPerFrame;
@@ -104,6 +105,10 @@
         _numVBOGenerationsAllowedPerFrame = (int)n;
         
         _chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
+        dispatch_retain(_chunkTaskQueue);
+
+        _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+        dispatch_retain(_queueForSaving);
         
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         
@@ -138,6 +143,7 @@
     [self waitForSaveToFinish];
     dispatch_release(_groupForSaving);
     dispatch_release(_chunkTaskQueue);
+    dispatch_release(_queueForSaving);
 }
 
 - (void)drawActiveChunks
@@ -432,7 +438,7 @@
         return [[GSChunkGeometryData alloc] initWithMinP:minP
                                                    folder:_folder
                                            groupForSaving:_groupForSaving
-                                           chunkTaskQueue:_chunkTaskQueue
+                                          queueForSaving:_queueForSaving
                                                 glContext:_glContext];
     }];
     
@@ -529,6 +535,7 @@
     return [[GSChunkVoxelData alloc] initWithMinP:minP
                                            folder:_folder
                                    groupForSaving:_groupForSaving
+                                   queueForSaving:_queueForSaving
                                    chunkTaskQueue:_chunkTaskQueue
                                         generator:_generator
                                     postProcessor:_postProcessor];

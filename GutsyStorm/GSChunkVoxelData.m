@@ -40,6 +40,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 {
     NSURL *_folder;
     dispatch_group_t _groupForSaving;
+    dispatch_queue_t _queueForSaving;
     dispatch_queue_t _chunkTaskQueue;
     int _updateForSunlightInFlight;
 }
@@ -57,6 +58,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (id)initWithMinP:(GLKVector3)minP
             folder:(NSURL *)folder
     groupForSaving:(dispatch_group_t)groupForSaving
+    queueForSaving:(dispatch_queue_t)queueForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
          generator:(terrain_generator_t)generator
      postProcessor:(terrain_post_processor_t)postProcessor
@@ -70,6 +72,9 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         
         _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
         dispatch_retain(_chunkTaskQueue);
+
+        _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
+        dispatch_retain(_queueForSaving);
         
         _folder = folder;
         
@@ -115,6 +120,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 {
     dispatch_release(_groupForSaving);
     dispatch_release(_chunkTaskQueue);
+    dispatch_release(_queueForSaving);
     [self destroyVoxelData];
 }
 
@@ -324,9 +330,8 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 
 - (void)saveVoxelDataToFile
 {
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
     dispatch_group_enter(_groupForSaving);
-    dispatch_async(queue, ^{
+    dispatch_async(_queueForSaving, ^{
         NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP]
                             relativeToURL:_folder];
 
@@ -340,15 +345,13 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 
         int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 
-        dispatch_write(fd, voxelData, queue, ^(dispatch_data_t data, int error) {
+        dispatch_write(fd, voxelData, _queueForSaving, ^(dispatch_data_t data, int error) {
+            Close(fd);
+
             if(error) {
-                // TODO: graceful error handling
-                char errorMsg[LINE_MAX];
-                strerror_r(errno, errorMsg, LINE_MAX);
-                [NSException raise:@"POSIX error" format:@"error with write [fd=%d, error=%d] -- %s", fd, error, errorMsg];
+                raiseExceptionForPOSIXError(error, [NSString stringWithFormat:@"error with write(fd=%u)", fd]);
             }
 
-            Close(fd);
             dispatch_release(voxelData);
             dispatch_group_leave(_groupForSaving);
         });
@@ -595,7 +598,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
                 // Spin off a task to save sunlight data to disk.
                 [_sunlight saveToFile:[NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
                                              relativeToURL:_folder]
-                                queue:dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0)
+                                queue:_queueForSaving
                                 group:_groupForSaving];
 
                 completionHandler(); // Only call the completion handler if the update was successful.

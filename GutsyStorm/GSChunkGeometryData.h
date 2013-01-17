@@ -30,7 +30,7 @@
 - (id)initWithMinP:(GLKVector3)minP
             folder:(NSURL *)folder
     groupForSaving:(dispatch_group_t)groupForSaving
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+    queueForSaving:(dispatch_queue_t)queueForSaving
          glContext:(NSOpenGLContext *)_glContext;
 
 /* Try to immediately update geometry using voxel data for the local neighborhood. If it is not possible to immediately take all

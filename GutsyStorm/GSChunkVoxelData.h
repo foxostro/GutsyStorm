@@ -36,6 +36,7 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
 - (id)initWithMinP:(GLKVector3)minP
             folder:(NSURL *)folder
     groupForSaving:(dispatch_group_t)groupForSaving
+    queueForSaving:(dispatch_queue_t)queueForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
          generator:(terrain_generator_t)generator
      postProcessor:(terrain_post_processor_t)postProcessor;

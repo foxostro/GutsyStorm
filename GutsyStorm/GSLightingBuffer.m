@@ -137,14 +137,12 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 
         dispatch_write(fd, sunlight, queue, ^(dispatch_data_t data, int error) {
+            Close(fd);
+
             if(error) {
-                // TODO: graceful error handling
-                char errorMsg[LINE_MAX];
-                strerror_r(errno, errorMsg, LINE_MAX);
-                [NSException raise:@"POSIX error" format:@"error with write [fd=%d, error=%d] -- %s", fd, error, errorMsg];
+                raiseExceptionForPOSIXError(error, [NSString stringWithFormat:@"error with write(fd=%u)", fd]);
             }
 
-            Close(fd);
             dispatch_release(sunlight);
             dispatch_group_leave(group);
         });
@@ -161,14 +159,11 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     if([url checkResourceIsReachableAndReturnError:NULL]) {
         int fd = Open(url, O_RDONLY, 0);
         dispatch_read(fd, BUFFER_SIZE_IN_BYTES, queue, ^(dispatch_data_t data, int error) {
-            if(error) {
-                // TODO: graceful error handling
-                char errorMsg[LINE_MAX];
-                strerror_r(errno, errorMsg, LINE_MAX);
-                [NSException raise:@"POSIX error" format:@"error with read [fd=%d, error=%d] -- %s", fd, error, errorMsg];
-            }
-
             Close(fd);
+
+            if(error) {
+                raiseExceptionForPOSIXError(error, [NSString stringWithFormat:@"error with read(fd=%u)", fd]);
+            }
 
             if(dispatch_data_get_size(data) != BUFFER_SIZE_IN_BYTES) {
                 [NSException raise:@"data error"

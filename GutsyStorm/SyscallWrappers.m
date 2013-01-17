@@ -8,6 +8,13 @@
 
 #import "SyscallWrappers.h"
 
+void raiseExceptionForPOSIXError(int error, NSString *desc)
+{
+    char errorMsg[LINE_MAX];
+    strerror_r(error, errorMsg, LINE_MAX);
+    [NSException raise:@"POSIX error" format:@"%@%s", desc, errorMsg];
+}
+
 int Open(NSURL *url, int oflags, mode_t mode)
 {
     assert(url);
@@ -18,42 +25,35 @@ int Open(NSURL *url, int oflags, mode_t mode)
 
     do {
         fd = open(path, oflags, mode);
-        if(fd == -1) {
+        if(fd < 0) {
             switch(errno)
             {
                 case EINTR:
                     break;
 
                 default:
-                {
-                    // TODO: graceful error handling
-                    char errorMsg[LINE_MAX];
-                    strerror_r(errno, errorMsg, LINE_MAX);
-                    [NSException raise:@"POSIX error" format:@"error with open [error=%d] -- %s", errno, errorMsg];
-                } break;
+                    raiseExceptionForPOSIXError(errno, [NSString stringWithFormat:@"error with open(%d)", fd]);
+                    break;
             }
         }
-    } while(fd == -1);
+    } while(fd < 0);
 
     return fd;
 }
 
 void Close(int fd)
 {
-    while(close(fd) == -1)
-    {
-        switch(errno)
-        {
-            case EINTR:
-                break;
+    int flags = fcntl(fd, F_GETFL, 0);
 
-            default:
-            {
-                // TODO: graceful error handling
-                char errorMsg[LINE_MAX];
-                strerror_r(errno, errorMsg, LINE_MAX);
-                [NSException raise:@"POSIX error" format:@"error with close [fd=%d, error=%d] -- %s", fd, errno, errorMsg];
-            } break;
-        }
+    if(flags < 0) {
+        raiseExceptionForPOSIXError(errno, [NSString stringWithFormat:@"error with fcntl(%d, F_GETFL, 0)", fd]);
+    }
+
+    if(!(flags & O_NONBLOCK) && fcntl(fd, F_SETFL, flags|O_NONBLOCK) < 0) {
+        raiseExceptionForPOSIXError(errno, [NSString stringWithFormat:@"error with fcntl(%d, F_SETFL, flags|O_NONBLOCK)", fd]);
+    }
+
+    if(close(fd) < 0) {
+        raiseExceptionForPOSIXError(errno, [NSString stringWithFormat:@"error with close(%d)", fd]);
     }
 }

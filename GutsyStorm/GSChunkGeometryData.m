@@ -79,6 +79,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 
     NSURL *_folder;
     dispatch_group_t _groupForSaving;
+    dispatch_queue_t _queueForSaving;
     NSOpenGLContext *_glContext;
 }
 
@@ -104,8 +105,8 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
 
 - (id)initWithMinP:(GLKVector3)minP
             folder:(NSURL *)fldr
-    groupForSaving:(dispatch_group_t)grpForSaving
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+    groupForSaving:(dispatch_group_t)groupForSaving
+    queueForSaving:(dispatch_queue_t)queueForSaving
          glContext:(NSOpenGLContext *)context
 {
     self = [super initWithMinP:minP];
@@ -114,8 +115,11 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
         
         _folder = fldr;
         
-        _groupForSaving = grpForSaving;
+        _groupForSaving = groupForSaving;
         dispatch_retain(_groupForSaving);
+
+        _queueForSaving = queueForSaving;
+        dispatch_retain(_queueForSaving);
         
         // Geometry for the chunk is protected by lockGeometry and is generated asynchronously.
         _lockGeometry = [[NSConditionLock alloc] init];
@@ -154,6 +158,18 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     }
     
     return self;
+}
+
+- (void)dealloc
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        syncDestroySingleVBO(_glContext, _vbo);
+    });
+
+    [self destroyGeometry];
+    dispatch_release(_groupForSaving);
+    dispatch_release(_queueForSaving);
+    free(_corners);
 }
 
 - (BOOL)tryToUpdateWithVoxelData:(GSNeighborhood *)neighborhood
@@ -246,17 +262,6 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
     drawChunkVBO(_numIndicesForDrawing, _vbo);
 
     return didGenerateVBOs;
-}
-
-- (void)dealloc
-{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        syncDestroySingleVBO(_glContext, _vbo);
-    });
-    
-    [self destroyGeometry];
-    dispatch_release(_groupForSaving);
-    free(_corners);
 }
 
 + (index_t *)sharedIndexBuffer
@@ -369,22 +374,19 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
                                                         dispatch_get_global_queue(0, 0),
                                                         DISPATCH_DATA_DESTRUCTOR_DEFAULT);
 
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
     dispatch_group_enter(_groupForSaving);
-    dispatch_async(queue, ^{
+    dispatch_async(_queueForSaving, ^{
         NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP]
                             relativeToURL:_folder];
 
         int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-        dispatch_write(fd, geometryData, queue, ^(dispatch_data_t data, int error) {
-            if(error) {
-                // TODO: graceful error handling
-                char errorMsg[LINE_MAX];
-                strerror_r(errno, errorMsg, LINE_MAX);
-                [NSException raise:@"POSIX error" format:@"error with write [fd=%d, error=%d] -- %s", fd, error, errorMsg];
-            }
-
+        dispatch_write(fd, geometryData, _queueForSaving, ^(dispatch_data_t data, int error) {
             Close(fd);
+
+            if(error) {
+                raiseExceptionForPOSIXError(error, [NSString stringWithFormat:@"error with write(fd=%u)", fd]);
+            }
+            
             dispatch_release(geometryData);
             dispatch_group_leave(_groupForSaving);
         });
