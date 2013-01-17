@@ -19,7 +19,6 @@
 @interface GSChunkStore ()
 
 + (NSURL *)newWorldSaveFolderURLWithSeed:(NSUInteger)seed;
-- (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags;
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
 - (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p neighborhood:(GSNeighborhood **)neighborhood;
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
@@ -42,7 +41,6 @@
     NSLock *_lock;
     NSUInteger _numVBOGenerationsAllowedPerFrame;
     GSCamera *_camera;
-    chunk_id_t _oldCenterChunkID;
     NSURL *_folder;
     GSShader *_terrainShader;
     NSOpenGLContext *_glContext;
@@ -83,7 +81,6 @@
         _folder = [GSChunkStore newWorldSaveFolderURLWithSeed:seed];
         _groupForSaving = dispatch_group_create();
         _camera = cam;
-        _oldCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[_camera cameraEye]]];
         _terrainShader = shader;
         _glContext = context;
         _lock = [[NSLock alloc] init];
@@ -113,10 +110,11 @@
         // Active region is bounded at y>=0.
         _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
         _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent];
-        [_activeRegion updateWithSorting:YES camera:_camera chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
-            return [self chunkGeometryAtPoint:p];
-        }];
-        [_activeRegion updateVisibilityWithCameraFrustum:_camera.frustum];
+        [_activeRegion updateWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)
+                                              camera:cam
+                                       chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
+                                           return [self chunkGeometryAtPoint:p];
+                                       }];
     }
     
     return self;
@@ -213,7 +211,11 @@
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    [self updateActiveChunksWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)];
+    [_activeRegion updateWithCameraModifiedFlags:flags
+                                          camera:_camera
+                                   chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
+                                       return [self chunkGeometryAtPoint:p];
+                                   }];
     [self tryToUpdateDirtySunlight];
     [self tryToUpdateDirtyGeometry];
 }
@@ -484,29 +486,6 @@
     }
     
     return url;
-}
-
-- (void)updateActiveChunksWithCameraModifiedFlags:(unsigned)flags
-{
-    // If the camera moved then recalculate the set of active chunks.
-    if(flags & CAMERA_MOVED) {
-        // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
-        chunk_id_t newCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[_camera cameraEye]]];
-        
-        if(![_oldCenterChunkID isEqual:newCenterChunkID]) {
-            [_activeRegion updateWithSorting:NO camera:_camera chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
-                return [self chunkGeometryAtPoint:p];
-            }];
-
-            // Now save this chunk ID for comparison next update.
-            _oldCenterChunkID = newCenterChunkID;
-        }
-    }
-    
-    // If the camera moved or turned then recalculate chunk visibility.
-    if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        [_activeRegion updateVisibilityWithCameraFrustum:_camera.frustum];
-    }
 }
 
 - (id)newChunkWithMinimumCorner:(GLKVector3)minP

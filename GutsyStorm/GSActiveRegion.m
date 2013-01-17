@@ -27,6 +27,8 @@
     GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
     GSChunkGeometryData * __strong *_activeChunks;
     NSLock *_lock;
+    chunk_id_t _oldCenterChunkID;
+    NSMutableArray *retainChunkTemporarily;
 }
 
 - (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
@@ -36,13 +38,17 @@
         assert(fmodf(_activeRegionExtent.x, CHUNK_SIZE_X) == 0);
         assert(fmodf(_activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(_activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
-        
+
+        _oldCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:GLKVector3Make(INFINITY, 0, INFINITY)]];
+
         _activeRegionExtent = activeRegionExtent;
         
         _maxActiveChunks = (2*_activeRegionExtent.x/CHUNK_SIZE_X)
                          * (_activeRegionExtent.y/CHUNK_SIZE_Y)
                          * (2*_activeRegionExtent.z/CHUNK_SIZE_Z);
-        
+
+        retainChunkTemporarily = [[NSMutableArray alloc] initWithCapacity:_maxActiveChunks];
+
         _activeChunks = (GSChunkGeometryData * __strong *)calloc(_maxActiveChunks, sizeof(GSChunkGeometryData *));
         
         if(!_activeChunks) {
@@ -74,26 +80,60 @@
 
 - (void)drawWithVBOGenerationLimit:(NSUInteger)limit
 {
-    // Unsafe enumeration should be okay here. Worst case: we draw the wrong thing.
+    [_lock lock];
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
         if([_activeChunks[i] drawGeneratingVBOsIfNecessary:(limit>0)]) {
             limit = (limit>0) ? (limit-1) : 0;
-        };
+        }
     }
+    [_lock unlock];
 }
 
-- (void)updateVisibilityWithCameraFrustum:(GSFrustum *)frustum
+- (void)updateWithCameraModifiedFlags:(unsigned)flags
+                               camera:(GSCamera *)camera
+                        chunkProducer:(GSChunkGeometryData * (^)(GLKVector3 p))chunkProducer
 {
-    assert(frustum);
+    if(!(flags & CAMERA_TURNED) && !(flags & CAMERA_MOVED)) {
+        return;
+    }
 
-    // Unsafe enumeration should be okay here. Worst case: we update visibility on the wrong thing.
+    [_lock lock];
+    
+    // If the camera moved then recalculate the set of active chunks.
+    if(flags & CAMERA_MOVED) {
+        // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
+        chunk_id_t newCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[camera cameraEye]]];
+
+        if(![_oldCenterChunkID isEqual:newCenterChunkID]) {
+            _oldCenterChunkID = newCenterChunkID;
+
+            [self unsafelyEnumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
+                [retainChunkTemporarily addObject:geometry];
+            }];
+    
+            [self removeAllActiveChunks];
+    
+            __block NSUInteger i = 0;
+            [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GLKVector3 p) {
+                [self setActiveChunk:chunkProducer(p) atIndex:i];
+                i++;
+            }];
+            assert(i == _maxActiveChunks);
+            
+            [retainChunkTemporarily removeAllObjects];
+        }
+    }
+
+    GSFrustum *frustum = camera.frustum;
     for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
     {
         if(_activeChunks[i]) {
             _activeChunks[i].visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:_activeChunks[i].corners]);
         }
     }
+
+    [_lock unlock];
 }
 
 - (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block
@@ -194,49 +234,6 @@
         
         myBlock(p2);
     }
-}
-
-- (void)updateWithSorting:(BOOL)sorted
-                   camera:(GSCamera *)camera
-            chunkProducer:(GSChunkGeometryData * (^)(GLKVector3 p))chunkProducer
-{
-    [_lock lock];
-    NSMutableArray *retainChunkTemporarily = [[NSMutableArray alloc] initWithCapacity:_maxActiveChunks];
-    [self unsafelyEnumerateActiveChunkWithBlock:^(GSChunkGeometryData *geometry) {
-        [retainChunkTemporarily addObject:geometry];
-    }];
-    
-    [self removeAllActiveChunks];
-    
-    if(sorted) {
-        NSMutableArray *unsortedChunks = [[NSMutableArray alloc] init];
-        
-        [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GLKVector3 p) {
-            [unsortedChunks addObject:[GSBoxedVector boxedVectorWithVector:p]];
-        }];
-        
-        // Sort by distance from the camera. Near chunks are first.
-        NSArray *sortedChunks = [self pointsListSortedByDistFromCamera:camera unsortedList:unsortedChunks];
-        
-        // Fill the activeChunks array.
-        NSUInteger i = 0;
-        for(GSBoxedVector *b in sortedChunks)
-        {
-            [self setActiveChunk:chunkProducer([b vectorValue]) atIndex:i];
-            i++;
-        }
-        assert(i == _maxActiveChunks);
-        
-    } else {
-        __block NSUInteger i = 0;
-        [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GLKVector3 p) {
-            [self setActiveChunk:chunkProducer(p) atIndex:i];
-            i++;
-        }];
-        assert(i == _maxActiveChunks);
-    }
-    
-    [_lock unlock];
 }
 
 @end
