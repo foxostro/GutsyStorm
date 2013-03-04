@@ -84,12 +84,13 @@
     
     // Allocate memory for a new set of buckets.
     _numBuckets *= 2;
+    assert(_numBuckets>0);
     _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
     for(NSUInteger i=0; i<_numBuckets; ++i)
     {
         _buckets[i] = [[NSMutableArray alloc] init];
     }
-    
+
     // Insert each object into the new hash table.
     for(NSUInteger i=0; i<oldNumBuckets; ++i)
     {
@@ -102,7 +103,7 @@
     }
 
     [_lockTheTableItself unlockForWriting];
-    
+
     // Free the old set of buckets.
     for(NSUInteger i=0; i<oldNumBuckets; ++i)
     {
