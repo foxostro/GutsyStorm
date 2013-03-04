@@ -527,7 +527,7 @@ static void drawChunkVBO(GLsizei numIndicesForDrawing, GLuint vbo)
 
     // TODO: use VAOs
     
-    const index_t const *indices = [GSChunkGeometryData sharedIndexBuffer]; // TODO: index buffer object
+    const index_t * const indices = [GSChunkGeometryData sharedIndexBuffer]; // TODO: index buffer object
     
     assert(checkGLErrors() == 0);
     assert(numIndicesForDrawing < SHARED_INDEX_BUFFER_LEN);
