@@ -21,7 +21,7 @@
 - (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat;
 - (NSArray *)transformVerticesForFace:(GSFace *)face upsideDown:(BOOL)upsideDown quatY_p:(GLKQuaternion *)quatY_p;
 - (NSArray *)transformFaces:(NSArray *)faces direction:(voxel_dir_t)dir upsideDown:(BOOL)upsideDown;
-- (voxel_dir_t)transformCubeFaceEnum:(voxel_dir_t)correspondingCubeFace upsideDown:(BOOL)upsideDown;
+- (face_t)transformCubeFaceEnum:(face_t)correspondingCubeFace upsideDown:(BOOL)upsideDown;
 
 @end
 
@@ -94,7 +94,7 @@
     for(GSFace *face in faces)
     {
         NSArray *transformedVertices = [self transformVerticesForFace:face upsideDown:upsideDown quatY_p:&quatY];
-        voxel_dir_t faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace upsideDown:upsideDown];
+        face_t faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace upsideDown:upsideDown];
         
         [transformedFaces addObject:[GSFace faceWithVertices:transformedVertices correspondingCubeFace:faceDir]];
     }
@@ -102,7 +102,7 @@
     return transformedFaces;
 }
 
-- (voxel_dir_t)transformCubeFaceEnum:(voxel_dir_t)correspondingCubeFace upsideDown:(BOOL)upsideDown
+- (face_t)transformCubeFaceEnum:(face_t)correspondingCubeFace upsideDown:(BOOL)upsideDown
 {
     if(upsideDown) {
         if(correspondingCubeFace == FACE_TOP) {
