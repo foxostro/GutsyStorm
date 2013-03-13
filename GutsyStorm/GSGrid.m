@@ -114,7 +114,8 @@
 
 - (BOOL)objectAtPoint:(GLKVector3)p
              blocking:(BOOL)blocking
-               object:(id *)object objectFactory:(id (^)(GLKVector3 minP))factory
+               object:(id *)object
+        objectFactory:(grid_item_factory_t)factory
 {
     assert(object);
 
@@ -126,7 +127,7 @@
 
     float load = 0;
     id anObject = nil;
-    GLKVector3 minP = [GSChunkData minCornerForChunkAtPoint:p];
+    GLKVector3 minP = MinCornerForChunkAtPoint(p);
     NSUInteger hash = GLKVector3Hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
@@ -166,9 +167,10 @@
     return YES;
 }
 
-- (id)objectAtPoint:(GLKVector3)p objectFactory:(id (^)(GLKVector3 minP))factory
+- (id)objectAtPoint:(GLKVector3)p
+                           objectFactory:(grid_item_factory_t)factory
 {
-    id anObject = nil;
+    NSObject <GSGridItem> *anObject = nil;
     [self objectAtPoint:p
                blocking:YES
                  object:&anObject
@@ -176,7 +178,9 @@
     return anObject;
 }
 
-- (BOOL)tryToGetObjectAtPoint:(GLKVector3)p object:(id *)object objectFactory:(id (^)(GLKVector3 minP))factory
+- (BOOL)tryToGetObjectAtPoint:(GLKVector3)p
+                       object:(id *)object
+                objectFactory:(grid_item_factory_t)factory
 {
     return [self objectAtPoint:p
                       blocking:NO

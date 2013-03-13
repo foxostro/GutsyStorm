@@ -414,14 +414,15 @@
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
-    GSChunkGeometryData *g = [_gridGeometryData objectAtPoint:p objectFactory:^id(GLKVector3 minP) {
-        // Chunk geometry will be generated later and is only marked "dirty" for now.
-        return [[GSChunkGeometryData alloc] initWithMinP:minP
-                                                   folder:_folder
-                                           groupForSaving:_groupForSaving
-                                          queueForSaving:_queueForSaving
-                                                glContext:_glContext];
-    }];
+    GSChunkGeometryData *g = [_gridGeometryData objectAtPoint:p
+                                                objectFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+                                                    // Chunk geometry will be generated later and is only marked "dirty" for now.
+                                                    return [[GSChunkGeometryData alloc] initWithMinP:minP
+                                                                                              folder:_folder
+                                                                                      groupForSaving:_groupForSaving
+                                                                                      queueForSaving:_queueForSaving
+                                                                                           glContext:_glContext];
+                                                }];
     
     return g;
 }
@@ -432,9 +433,9 @@
     assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     
     GSChunkVoxelData *v = [_gridVoxelData objectAtPoint:p
-                                         objectFactory:^id(GLKVector3 minP) {
-                                             return [self newChunkWithMinimumCorner:minP];
-                                         }];
+                                          objectFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+                                              return [self newChunkWithMinimumCorner:minP];
+                                          }];
     
     return v;
 }

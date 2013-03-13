@@ -124,6 +124,8 @@
 		AC3767A9163E053400BAE03F /* GSTerrainCursor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainCursor.m; sourceTree = "<group>"; };
 		AC3EF785161030DD00323C25 /* GSGrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGrid.h; sourceTree = "<group>"; };
 		AC3EF786161030DD00323C25 /* GSGrid.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGrid.m; sourceTree = "<group>"; };
+		AC56651416F03B440041E34F /* GSGridItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridItem.h; sourceTree = "<group>"; };
+		AC56651516F03E040041E34F /* Chunk.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Chunk.h; sourceTree = "<group>"; };
 		AC5B27FE151DC7BA0045B6E4 /* GSNoise.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSNoise.h; sourceTree = "<group>"; };
 		AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSNoise.m; sourceTree = "<group>"; };
 		AC5B2802151E2C1D0045B6E4 /* GSChunkStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkStore.h; sourceTree = "<group>"; };
@@ -169,6 +171,7 @@
 		4A2310C8153E1BE000A4EBE6 /* Terrain */ = {
 			isa = PBXGroup;
 			children = (
+				AC56651516F03E040041E34F /* Chunk.h */,
 				13C8BE181602854300403815 /* Voxel.h */,
 				AC3767A4163DFD4100BAE03F /* GSTerrain.h */,
 				AC3767A5163DFD4200BAE03F /* GSTerrain.m */,
@@ -305,6 +308,9 @@
 			isa = PBXGroup;
 			children = (
 				ACE41C4916938D09003C572B /* Block Mesh Objects */,
+				AC56651416F03B440041E34F /* GSGridItem.h */,
+				AC3EF785161030DD00323C25 /* GSGrid.h */,
+				AC3EF786161030DD00323C25 /* GSGrid.m */,
 				AC3767A8163E053400BAE03F /* GSTerrainCursor.h */,
 				AC3767A9163E053400BAE03F /* GSTerrainCursor.m */,
 				13C8BE161602854300403815 /* GSNeighborhood.h */,
@@ -319,8 +325,6 @@
 				4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */,
 				13C8BE1B16038DC000403815 /* GSActiveRegion.h */,
 				13C8BE1C16038DC000403815 /* GSActiveRegion.m */,
-				AC3EF785161030DD00323C25 /* GSGrid.h */,
-				AC3EF786161030DD00323C25 /* GSGrid.m */,
 				AC5B2802151E2C1D0045B6E4 /* GSChunkStore.h */,
 				AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */,
 			);

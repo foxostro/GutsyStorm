@@ -12,6 +12,7 @@
 #import "Voxel.h"
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
+#import "GSGridItem.h"
 
 @interface GSActiveRegion ()
 
@@ -39,7 +40,7 @@
         assert(fmodf(_activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(_activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
 
-        _oldCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:GLKVector3Make(INFINITY, 0, INFINITY)]];
+        _oldCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:MinCornerForChunkAtPoint2(INFINITY, 0, INFINITY)];
 
         _activeRegionExtent = activeRegionExtent;
         
@@ -103,7 +104,7 @@
     // If the camera moved then recalculate the set of active chunks.
     if(flags & CAMERA_MOVED) {
         // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
-        chunk_id_t newCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:[GSChunkData minCornerForChunkAtPoint:[camera cameraEye]]];
+        chunk_id_t newCenterChunkID = [GSChunkData chunkIDWithChunkMinCorner:MinCornerForChunkAtPoint([camera cameraEye])];
 
         if(![_oldCenterChunkID isEqual:newCenterChunkID]) {
             _oldCenterChunkID = newCenterChunkID;

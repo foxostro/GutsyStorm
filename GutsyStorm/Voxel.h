@@ -19,10 +19,6 @@
 #endif
 
 
-#define CHUNK_SIZE_X (16)
-#define CHUNK_SIZE_Y (128)
-#define CHUNK_SIZE_Z (16)
-
 #define CHUNK_LIGHTING_MAX (MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z) - 1)
 
 #define FOR_BOX(p, minP, maxP) for((p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \

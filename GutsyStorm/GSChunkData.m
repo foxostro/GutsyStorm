@@ -25,13 +25,6 @@ const GSIntegerVector3 offsetForFace[FACE_NUM_FACES] =
 
 @implementation GSChunkData
 
-+ (GLKVector3)minCornerForChunkAtPoint:(GLKVector3)p
-{
-    return GLKVector3Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
-                          floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
-                          floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
-}
-
 + (GLKVector3)centerPointOfChunkAtPoint:(GLKVector3)p
 {
     return GLKVector3Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,

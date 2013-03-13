@@ -12,6 +12,7 @@
 #import <GLKit/GLKMath.h>
 #import "GSCamera.h"
 #import "Voxel.h"
+#import "GSGridItem.h"
 
 @implementation GSCamera
 {
