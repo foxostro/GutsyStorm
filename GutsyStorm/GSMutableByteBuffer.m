@@ -12,43 +12,27 @@
 #import "GSChunkVoxelData.h"
 #import "SyscallWrappers.h"
 
-#define BUFFER_SIZE_IN_BYTES (_dimensions.x * _dimensions.y * _dimensions.z * sizeof(uint8_t))
-
-// Columns in the y-axis are contiguous in memory.
-#define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*_dimensions.y*_dimensions.z) + ((p.z)*_dimensions.y) + (p.y)))
-
-static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
-
 
 @implementation GSMutableByteBuffer
 {
-    GSIntegerVector3 _offsetFromChunkLocalSpace;
     GSReaderWriterLock *_lockLightingBuffer;
 }
 
 - (id)initWithDimensions:(GSIntegerVector3)dim
 {
-    self = [super init];
+    self = [super initWithDimensions:dim];
     if (self) {
-        assert(dim.x >= CHUNK_SIZE_X);
-        assert(dim.y >= CHUNK_SIZE_Y);
-        assert(dim.z >= CHUNK_SIZE_Z);
-        
-        _dimensions = dim;
-        
-        _offsetFromChunkLocalSpace = GSIntegerVector3_Make((_dimensions.x - CHUNK_SIZE_X) / 2,
-                                                           (_dimensions.y - CHUNK_SIZE_Y) / 2,
-                                                           (_dimensions.z - CHUNK_SIZE_Z) / 2);
-        
-        _data = malloc(BUFFER_SIZE_IN_BYTES);
-        
-        if(!_data) {
-            [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
-        }
-        
         _lockLightingBuffer = [[GSReaderWriterLock alloc] init];
-        
-        [self clear];
+    }
+
+    return self;
+}
+
+- (id)initWithDimensions:(GSIntegerVector3)dim data:(uint8_t *)data
+{
+    self = [super initWithDimensions:dim data:data];
+    if (self) {
+        _lockLightingBuffer = [[GSReaderWriterLock alloc] init];
     }
 
     return self;
@@ -59,51 +43,9 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     return [self initWithDimensions:chunkSize];
 }
 
-- (void)dealloc
+- (uint8_t *)data
 {
-    free(_data);
-}
-
-- (uint8_t)valueAtPoint:(GSIntegerVector3)chunkLocalPos
-{
-    assert(_data);
-    
-    GSIntegerVector3 p = GSIntegerVector3_Add(chunkLocalPos, _offsetFromChunkLocalSpace);
-    
-    if(p.x >= 0 && p.x < _dimensions.x && p.y >= 0 && p.y < _dimensions.y && p.z >= 0 && p.z < _dimensions.z) {
-        return _data[INDEX_INTO_LIGHTING_BUFFER(p)];
-    } else {
-        return 0;
-    }
-}
-
-- (uint8_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
-                      withNormal:(GSIntegerVector3)normal
-                            minP:(GLKVector3)minP
-{
-    static const size_t count = 4;
-    GLKVector3 sample[count];
-    float light;
-    int i;
-
-    assert(_data);
-
-    samplingPoints(count, sample, normal);
-
-    for(light = 0.0f, i = 0; i < count; ++i)
-    {
-        GSIntegerVector3 clp = GSIntegerVector3_Make(truncf(sample[i].x + vertexPosInWorldSpace.x - minP.x),
-                                                     truncf(sample[i].y + vertexPosInWorldSpace.y - minP.y),
-                                                     truncf(sample[i].z + vertexPosInWorldSpace.z - minP.z));
-        
-        assert(clp.x >= -1 && clp.x <= CHUNK_SIZE_X);
-        assert(clp.y >= -1 && clp.y <= CHUNK_SIZE_Y);
-        assert(clp.z >= -1 && clp.z <= CHUNK_SIZE_Z);
-
-        light += [self valueAtPoint:clp] / (float)count;
-    }
-
-    return light;
+    return _data;
 }
 
 - (void)readerAccessToBufferUsingBlock:(void (^)(void))block
@@ -142,17 +84,12 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     }
 }
 
-- (void)clear
-{
-    bzero(_data, BUFFER_SIZE_IN_BYTES);
-}
-
 // Assumes the caller has already locked the lighting buffer for reading.
 - (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group
 {
     dispatch_group_enter(group);
 
-    dispatch_data_t sunlight = dispatch_data_create(_data, BUFFER_SIZE_IN_BYTES,
+    dispatch_data_t sunlight = dispatch_data_create(self.data, BUFFER_SIZE_IN_BYTES,
                                                     dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
                                                     DISPATCH_DATA_DESTRUCTOR_DEFAULT);
     
@@ -211,51 +148,9 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     }
 }
 
-@end
-
-
-static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 n)
+- (id)copyWithZone:(NSZone *)zone
 {
-    assert(count == 4);
-    assert(sample);
-
-    const float a = 0.5f;
-
-    if(n.x==1 && n.y==0 && n.z==0) {
-        sample[0] = GLKVector3Make(+a, -a, -a);
-        sample[1] = GLKVector3Make(+a, -a, +a);
-        sample[2] = GLKVector3Make(+a, +a, -a);
-        sample[3] = GLKVector3Make(+a, +a, +a);
-    } else if(n.x==-1 && n.y==0 && n.z==0) {
-        sample[0] = GLKVector3Make(-a, -a, -a);
-        sample[1] = GLKVector3Make(-a, -a, +a);
-        sample[2] = GLKVector3Make(-a, +a, -a);
-        sample[3] = GLKVector3Make(-a, +a, +a);
-    } else if(n.x==0 && n.y==1 && n.z==0) {
-        sample[0] = GLKVector3Make(-a, +a, -a);
-        sample[1] = GLKVector3Make(-a, +a, +a);
-        sample[2] = GLKVector3Make(+a, +a, -a);
-        sample[3] = GLKVector3Make(+a, +a, +a);
-    } else if(n.x==0 && n.y==-1 && n.z==0) {
-        sample[0] = GLKVector3Make(-a, -a, -a);
-        sample[1] = GLKVector3Make(-a, -a, +a);
-        sample[2] = GLKVector3Make(+a, -a, -a);
-        sample[3] = GLKVector3Make(+a, -a, +a);
-    } else if(n.x==0 && n.y==0 && n.z==1) {
-        sample[0] = GLKVector3Make(-a, -a, +a);
-        sample[1] = GLKVector3Make(-a, +a, +a);
-        sample[2] = GLKVector3Make(+a, -a, +a);
-        sample[3] = GLKVector3Make(+a, +a, +a);
-    } else if(n.x==0 && n.y==0 && n.z==-1) {
-        sample[0] = GLKVector3Make(-a, -a, -a);
-        sample[1] = GLKVector3Make(-a, +a, -a);
-        sample[2] = GLKVector3Make(+a, -a, -a);
-        sample[3] = GLKVector3Make(+a, +a, -a);
-    } else {
-        assert(!"shouldn't get here");
-        sample[0] = GLKVector3Make(0, 0, 0);
-        sample[1] = GLKVector3Make(0, 0, 0);
-        sample[2] = GLKVector3Make(0, 0, 0);
-        sample[3] = GLKVector3Make(0, 0, 0);
-    }
+    return [[GSMutableByteBuffer allocWithZone:zone] initWithDimensions:self.dimensions data:_data];
 }
+
+@end
