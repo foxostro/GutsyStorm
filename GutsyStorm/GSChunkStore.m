@@ -10,7 +10,7 @@
 #import "GSRay.h"
 #import "GSChunkGeometryData.h"
 #import "GSCamera.h"
-#import "GSGrid.h"
+#import "GSOldGrid.h"
 #import "GSActiveRegion.h"
 #import "GSShader.h"
 #import "GSChunkStore.h"
@@ -31,8 +31,8 @@
 
 @implementation GSChunkStore
 {
-    GSGrid *_gridVoxelData;
-    GSGrid *_gridGeometryData;
+    GSOldGrid *_gridVoxelData;
+    GSOldGrid *_gridGeometryData;
 
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _chunkTaskQueue;
@@ -103,8 +103,8 @@
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         
         size_t areaXZ = (w/CHUNK_SIZE_X) * (w/CHUNK_SIZE_Z);
-        _gridGeometryData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
-        _gridVoxelData = [[GSGrid alloc] initWithActiveRegionArea:areaXZ];
+        _gridGeometryData = [[GSOldGrid alloc] initWithActiveRegionArea:areaXZ];
+        _gridVoxelData = [[GSOldGrid alloc] initWithActiveRegionArea:areaXZ];
         
         // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
@@ -164,7 +164,7 @@
     void (^b)(GLKVector3) = ^(GLKVector3 p) {
         GSChunkVoxelData *voxels;
 
-        // Avoid blocking to take the lock in GSGrid.
+        // Avoid blocking to take the lock in GSOldGrid.
         if([self tryToGetChunkVoxelsAtPoint:p chunk:&voxels]) {
             dispatch_async(_chunkTaskQueue, ^{
                 if(!voxels.dirtySunlight) {

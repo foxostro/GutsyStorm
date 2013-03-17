@@ -1,5 +1,5 @@
 //
-//  GSGrid.h
+//  GSOldGrid.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/23/12.
@@ -10,9 +10,7 @@
 #import "GSGridItem.h"
 #import "GSReaderWriterLock.h"
 
-typedef NSObject <GSGridItem> * (^grid_item_factory_t)(GLKVector3 minP);
-
-@interface GSGrid : NSObject
+@interface GSOldGrid : NSObject
 
 - (id)initWithActiveRegionArea:(size_t)areaXZ;
 

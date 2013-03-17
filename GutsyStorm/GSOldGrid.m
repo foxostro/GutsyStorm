@@ -1,5 +1,5 @@
 //
-//  GSGrid.m
+//  GSOldGrid.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/23/12.
@@ -8,10 +8,10 @@
 
 #import <GLKit/GLKMath.h>
 #import "GLKVector3Extra.h" // for GLKVector3_Hash
-#import "GSGrid.h"
+#import "GSOldGrid.h"
 #import "GSChunkData.h"
 
-@implementation GSGrid
+@implementation GSOldGrid
 {
     GSReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
 
