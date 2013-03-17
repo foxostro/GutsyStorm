@@ -226,7 +226,7 @@
     }
 }
 
-- (uint8_t)lightAtPoint:(GSIntegerVector3)p getter:(GSLightingBuffer* (^)(GSChunkVoxelData *c))getter
+- (uint8_t)lightAtPoint:(GSIntegerVector3)p getter:(GSMutableByteBuffer* (^)(GSChunkVoxelData *c))getter
 {
     // Assumes each chunk spans the entire vertical extent of the world.
     
@@ -239,9 +239,9 @@
     }
     
     GSChunkVoxelData *chunk = [self neighborVoxelAtPoint:&p];
-    GSLightingBuffer *lightingBuffer = getter(chunk);
+    GSMutableByteBuffer *lightingBuffer = getter(chunk);
     
-    uint8_t lightLevel = [lightingBuffer lightAtPoint:p];
+    uint8_t lightLevel = [lightingBuffer valueAtPoint:p];
 
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
     

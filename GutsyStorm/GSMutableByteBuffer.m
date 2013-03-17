@@ -8,7 +8,7 @@
 
 #import <GLKit/GLKMath.h>
 #import "Voxel.h"
-#import "GSLightingBuffer.h"
+#import "GSMutableByteBuffer.h"
 #import "GSChunkVoxelData.h"
 #import "SyscallWrappers.h"
 
@@ -20,9 +20,10 @@
 static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
 
 
-@implementation GSLightingBuffer
+@implementation GSMutableByteBuffer
 {
     GSIntegerVector3 _offsetFromChunkLocalSpace;
+    GSReaderWriterLock *_lockLightingBuffer;
 }
 
 - (id)initWithDimensions:(GSIntegerVector3)dim
@@ -39,9 +40,9 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
                                                            (_dimensions.y - CHUNK_SIZE_Y) / 2,
                                                            (_dimensions.z - CHUNK_SIZE_Z) / 2);
         
-        _lightingBuffer = malloc(BUFFER_SIZE_IN_BYTES);
+        _data = malloc(BUFFER_SIZE_IN_BYTES);
         
-        if(!_lightingBuffer) {
+        if(!_data) {
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
         }
         
@@ -60,17 +61,17 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 
 - (void)dealloc
 {
-    free(_lightingBuffer);
+    free(_data);
 }
 
-- (uint8_t)lightAtPoint:(GSIntegerVector3)chunkLocalPos
+- (uint8_t)valueAtPoint:(GSIntegerVector3)chunkLocalPos
 {
-    assert(_lightingBuffer);
+    assert(_data);
     
     GSIntegerVector3 p = GSIntegerVector3_Add(chunkLocalPos, _offsetFromChunkLocalSpace);
     
     if(p.x >= 0 && p.x < _dimensions.x && p.y >= 0 && p.y < _dimensions.y && p.z >= 0 && p.z < _dimensions.z) {
-        return _lightingBuffer[INDEX_INTO_LIGHTING_BUFFER(p)];
+        return _data[INDEX_INTO_LIGHTING_BUFFER(p)];
     } else {
         return 0;
     }
@@ -85,7 +86,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     float light;
     int i;
 
-    assert(_lightingBuffer);
+    assert(_data);
 
     samplingPoints(count, sample, normal);
 
@@ -99,7 +100,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         assert(clp.y >= -1 && clp.y <= CHUNK_SIZE_Y);
         assert(clp.z >= -1 && clp.z <= CHUNK_SIZE_Z);
 
-        light += [self lightAtPoint:clp] / (float)count;
+        light += [self valueAtPoint:clp] / (float)count;
     }
 
     return light;
@@ -119,9 +120,31 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     [_lockLightingBuffer unlockForWriting];
 }
 
+- (BOOL)tryReaderAccessToBufferUsingBlock:(void (^)(void))block
+{
+    if([_lockLightingBuffer tryLockForReading]) {
+        block();
+        [_lockLightingBuffer unlockForReading];
+        return YES;
+    } else {
+        return NO;
+    }
+}
+
+- (BOOL)tryWriterAccessToBufferUsingBlock:(void (^)(void))block
+{
+    if([_lockLightingBuffer tryLockForWriting]) {
+        block();
+        [_lockLightingBuffer unlockForWriting];
+        return YES;
+    } else {
+        return NO;
+    }
+}
+
 - (void)clear
 {
-    bzero(_lightingBuffer, BUFFER_SIZE_IN_BYTES);
+    bzero(_data, BUFFER_SIZE_IN_BYTES);
 }
 
 // Assumes the caller has already locked the lighting buffer for reading.
@@ -129,7 +152,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 {
     dispatch_group_enter(group);
 
-    dispatch_data_t sunlight = dispatch_data_create(_lightingBuffer, BUFFER_SIZE_IN_BYTES,
+    dispatch_data_t sunlight = dispatch_data_create(_data, BUFFER_SIZE_IN_BYTES,
                                                     dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
                                                     DISPATCH_DATA_DESTRUCTOR_DEFAULT);
     
@@ -176,7 +199,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
             const void *buffer = NULL;
             dispatch_data_t mappedData = dispatch_data_create_map(data, &buffer, &size);
             assert(BUFFER_SIZE_IN_BYTES == size);
-            memcpy(_lightingBuffer, buffer, BUFFER_SIZE_IN_BYTES);
+            memcpy(_data, buffer, BUFFER_SIZE_IN_BYTES);
             dispatch_release(mappedData);
 
             completionHandler(YES);

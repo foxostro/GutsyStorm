@@ -82,7 +82,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         [_lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         _voxelData = NULL;
         
-        _sunlight = [[GSLightingBuffer alloc] initWithDimensions:GSIntegerVector3_Make(CHUNK_SIZE_X+2,CHUNK_SIZE_Y,CHUNK_SIZE_Z+2)];
+        _sunlight = [[GSMutableByteBuffer alloc] initWithDimensions:GSIntegerVector3_Make(CHUNK_SIZE_X+2,CHUNK_SIZE_Y,CHUNK_SIZE_Z+2)];
         _dirtySunlight = YES;
         
         // The initial loading from disk preceeds all attempts to generate new sunlight data.
@@ -264,7 +264,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
  * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local neighborhood.
  * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight values for the
  * region of the buffer corresponding to this chunk should be considered to be totally correct.
- * Assumes the caller has already locked the sunlight buffer for reading (sunlight.lockLightingBuffer).
+ * Assumes the caller has already locked the sunlight buffer for reading.
  */
 - (void)fillSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
 {
@@ -316,7 +316,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     {
         size_t src = INDEX_BOX(p, combinedMinP, combinedMaxP);
         size_t dst = INDEX_BOX(GSIntegerVector3_Add(p, offset), ivecZero, _sunlight.dimensions);
-        memcpy(_sunlight.lightingBuffer+dst, combinedSunlightData+src, CHUNK_SIZE_Y*sizeof(uint8_t));
+        memcpy(_sunlight.data+dst, combinedSunlightData+src, CHUNK_SIZE_Y*sizeof(uint8_t));
     }
 
     free(combinedSunlightData);
@@ -562,15 +562,16 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
             
         case 1:
         {
-            BOOL success = NO;
+            __block BOOL success = NO;
 
-            if(![_sunlight.lockLightingBuffer tryLockForWriting]) {
-                DebugLog(@"Can't update sunlight: sunlight buffer is busy."); // This failure really shouldn't happen much...
-            } else {
+            BOOL gotAccess = [_sunlight tryWriterAccessToBufferUsingBlock:^{
                 success = [self tryToRebuildSunlightWithNeighborhood:neighborhood
                                                                 tier:2
                                                    completionHandler:completionHandler];
-                [_sunlight.lockLightingBuffer unlockForWriting];
+            }];
+
+            if(!gotAccess) {
+                DebugLog(@"Can't update sunlight: sunlight buffer is busy."); // This failure really shouldn't happen much...
             }
 
             return success;

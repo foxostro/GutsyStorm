@@ -36,7 +36,7 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
 static void * allocateVertexMemory(size_t numVerts);
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct vertex *vertsBuffer,
-                                 GSLightingBuffer *sunlight,
+                                 GSMutableByteBuffer *sunlight,
                                  GLKVector3 minP);
 
 typedef GLint index_t;
@@ -202,19 +202,20 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
         }
         
         GSChunkVoxelData *center = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-        
-        if([center.sunlight.lockLightingBuffer tryLockForReading]) {
+
+        BOOL gotAccess = [center.sunlight tryReaderAccessToBufferUsingBlock:^{
             [self destroyGeometry];
             [self fillGeometryBuffersUsingVoxelData:neighborhood];
-            [center.sunlight.lockLightingBuffer unlockForReading];
-            
+        }];
+
+        if(gotAccess) {
             // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
             // Updating a boolean should be atomic on x86_64 and i386;
             _needsVBORegeneration = YES;
-            
+
             // Cache geometry buffers on disk for next time.
             [self saveGeometryDataToFile];
-            
+
             _dirty = NO;
             OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
             [_lockGeometry unlockWithCondition:READY];
@@ -290,7 +291,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
  * Assumes caller is already holding the following locks:
  * "lockGeometry"
  * "lockVoxelData" for all chunks in the neighborhood (for reading).
- * "sunlight.lockLightingBuffer" for the center chunk in the neighborhood (for reading).
+ * "sunlight" must be locked for reading for the center chunk in the neighborhood.
  */
 - (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)neighborhood
 {
@@ -591,7 +592,7 @@ static void * allocateVertexMemory(size_t numVerts)
 
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct vertex *vertsBuffer,
-                                 GSLightingBuffer *sunlight,
+                                 GSMutableByteBuffer *sunlight,
                                  GLKVector3 minP)
 {
     assert(vertsBuffer);
