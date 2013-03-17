@@ -29,11 +29,21 @@
 
 @property (readonly, nonatomic) GSIntegerVector3 dimensions;
 
+/* Creates a new GSByteBuffer and initializes it with data from file.
+ * The dimensions of the buffer must be specified upfront in order to ensure the file contains the correct amount of data.
+ * File I/O is performed asynchronously on the specified queue, and the new object is returned through the completion handler block.
+ * On error, the completion handler has aBuffer==nil and an error is provided with details.
+ */
++ (void)newBufferFromFile:(NSURL *)url
+               dimensions:(GSIntegerVector3)dimensions
+                    queue:(dispatch_queue_t)queue
+        completionHandler:(void (^)(GSByteBuffer *aBuffer, NSError *error))completionHandler;
+
 /* Initialize a buffer of the specified dimensions */
 - (id)initWithDimensions:(GSIntegerVector3)dim;
 
 /* Initialize a buffer of the specified dimensions. The specified backing data is copied into the internal buffer. */
-- (id)initWithDimensions:(GSIntegerVector3)dim data:(uint8_t *)data;
+- (id)initWithDimensions:(GSIntegerVector3)dim data:(const uint8_t *)data;
 
 /* Returns the value for the specified point in chunk-local space.
  * The final value is interpolated from the values of adjacent cells in the buffer.
@@ -55,5 +65,10 @@
 - (uint8_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
                       withNormal:(GSIntegerVector3)normal
                             minP:(GLKVector3)minP;
+
+/* Saves the buffer contents to file asynchronously on the specified dispatch
+ * Assumes the caller has already locked the lighting buffer for reading.
+ */
+- (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group;
 
 @end

@@ -8,12 +8,64 @@
 
 #import "GSByteBuffer.h"
 #import "Chunk.h"
+#import "GutsyStormErrorCodes.h"
+#import "SyscallWrappers.h"
 
 
 static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
 
 
 @implementation GSByteBuffer
+
++ (void)newBufferFromFile:(NSURL *)url
+               dimensions:(GSIntegerVector3)dimensions
+                    queue:(dispatch_queue_t)queue
+        completionHandler:(void (^)(GSByteBuffer *aBuffer, NSError *error))completionHandler
+{
+    // If the file does not exist then do nothing.
+    if(![url checkResourceIsReachableAndReturnError:NULL]) {
+        NSString *reason = [NSString stringWithFormat:@"File not found for buffer: %@", url];
+        completionHandler(nil, [NSError errorWithDomain:GSErrorDomain
+                                                   code:GSFileNotFoundError
+                                               userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
+        return;
+    }
+
+    const int fd = Open(url, O_RDONLY, 0);
+    const size_t len = (dimensions.x * dimensions.y * dimensions.z * sizeof(uint8_t));
+
+    dispatch_read(fd, len, queue, ^(dispatch_data_t dd, int error) {
+        Close(fd);
+
+        if(error) {
+            char errorMsg[LINE_MAX];
+            strerror_r(-error, errorMsg, LINE_MAX);
+            NSString *reason = [NSString stringWithFormat:@"error with read(fd=%d): %s [%d]", fd, errorMsg, error];
+            completionHandler(nil, [NSError errorWithDomain:NSPOSIXErrorDomain
+                                                       code:error
+                                                   userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
+            return;
+        }
+
+        if(dispatch_data_get_size(dd) != len) {
+            NSString *reason = [NSString stringWithFormat:@"Read %zu bytes from file, but expected %zu bytes.",
+                                dispatch_data_get_size(dd), len];
+            completionHandler(nil, [NSError errorWithDomain:GSErrorDomain
+                                                       code:GSInvalidChunkDataOnDiskError
+                                                   userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
+            return;
+        }
+
+        // Map the data object to a buffer in memory and use it to initialize a new GSByteBuffer object.
+        size_t size = 0;
+        const void *buffer = NULL;
+        dispatch_data_t mappedData = dispatch_data_create_map(dd, &buffer, &size);
+        assert(len == size);
+        GSByteBuffer *aBuffer = [[GSByteBuffer alloc] initWithDimensions:dimensions data:(const uint8_t *)buffer];
+        dispatch_release(mappedData);
+        completionHandler(aBuffer, nil);
+    });
+}
 
 - (id)initWithDimensions:(GSIntegerVector3)dim
 {
@@ -41,7 +93,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     return self;
 }
 
-- (id)initWithDimensions:(GSIntegerVector3)dim data:(uint8_t *)data
+- (id)initWithDimensions:(GSIntegerVector3)dim data:(const uint8_t *)data
 {
     assert(data);
     self = [self initWithDimensions:dim];
@@ -55,6 +107,11 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 - (void)dealloc
 {
     free(_data);
+}
+
+- (id)copyWithZone:(NSZone *)zone
+{
+    return [[GSByteBuffer allocWithZone:zone] initWithDimensions:_dimensions data:_data];
 }
 
 - (uint8_t)valueAtPoint:(GSIntegerVector3)chunkLocalPos
@@ -101,9 +158,29 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     return light;
 }
 
-- (id)copyWithZone:(NSZone *)zone
+// Assumes the caller has already locked the lighting buffer for reading.
+- (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group
 {
-    return [[GSByteBuffer allocWithZone:zone] initWithDimensions:_dimensions data:_data];
+    dispatch_group_enter(group);
+
+    dispatch_data_t dd = dispatch_data_create(_data, BUFFER_SIZE_IN_BYTES,
+                                                    dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                                                    DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+
+    dispatch_async(queue, ^{
+        int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+
+        dispatch_write(fd, dd, queue, ^(dispatch_data_t data, int error) {
+            Close(fd);
+
+            if(error) {
+                raiseExceptionForPOSIXError(error, [NSString stringWithFormat:@"error with write(fd=%u)", fd]);
+            }
+
+            dispatch_release(dd);
+            dispatch_group_leave(group);
+        });
+    });
 }
 
 @end
