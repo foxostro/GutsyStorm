@@ -243,7 +243,7 @@
     GSChunkVoxelData *chunk = [self neighborVoxelAtPoint:&p];
     GSByteBuffer *lightingBuffer = getter(chunk);
     
-    uint8_t lightLevel = [lightingBuffer valueAtPoint:p];
+    uint8_t lightLevel = [lightingBuffer valueAtPosition:p];
 
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
     

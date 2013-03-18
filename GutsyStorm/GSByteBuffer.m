@@ -149,7 +149,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     return [[GSByteBuffer allocWithZone:zone] initWithDimensions:_dimensions data:_data];
 }
 
-- (buffer_element_t)valueAtPoint:(GSIntegerVector3)chunkLocalPos
+- (buffer_element_t)valueAtPosition:(GSIntegerVector3)chunkLocalPos
 {
     assert(_data);
 
@@ -188,7 +188,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         assert(clp.y >= -1 && clp.y <= CHUNK_SIZE_Y);
         assert(clp.z >= -1 && clp.z <= CHUNK_SIZE_Z);
 
-        light += [self valueAtPoint:clp] / (float)count;
+        light += [self valueAtPosition:clp] / (float)count;
     }
     
     return light;

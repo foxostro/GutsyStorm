@@ -63,10 +63,9 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 - (id)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data;
 
 /* Returns the value for the specified point in chunk-local space.
- * The final value is interpolated from the values of adjacent cells in the buffer.
  * Always returns 0 for points which have no corresponding mapping in the buffer.
  */
-- (buffer_element_t)valueAtPoint:(GSIntegerVector3)chunkLocalP;
+- (buffer_element_t)valueAtPosition:(GSIntegerVector3)chunkLocalP;
 
 /* Given a specific vertex position in the chunk, and a normal for that vertex, get the contribution of the (lighting) buffer on
  * the vertex.
