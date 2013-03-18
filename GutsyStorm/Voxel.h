@@ -12,7 +12,7 @@
 #import "GSIntegerVector3.h"
 
 
-#ifdef DEBUG // TODO: find a better home for this macro
+#if 0 && defined(DEBUG) // TODO: find a better home for this macro
 #    define DebugLog(...) do { NSLog(__VA_ARGS__); } while(0);
 #else
 #    define DebugLog(...)
