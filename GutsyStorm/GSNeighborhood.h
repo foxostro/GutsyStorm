@@ -12,7 +12,7 @@
 
 
 @class GSChunkVoxelData;
-@class GSByteBuffer;
+@class GSBuffer;
 
 
 typedef enum
@@ -55,7 +55,7 @@ typedef enum
 /* Returns the lighting value at the specified block position for the specified lighting buffer.
  * Assumes the caller is already holding the lock on this buffer on all neighbors.
  */
-- (unsigned)lightAtPoint:(GSIntegerVector3)p getter:(GSByteBuffer* (^)(GSChunkVoxelData *c))getter;
+- (unsigned)lightAtPoint:(GSIntegerVector3)p getter:(GSBuffer* (^)(GSChunkVoxelData *c))getter;
 
 - (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block;
 - (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;

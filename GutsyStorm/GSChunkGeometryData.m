@@ -36,7 +36,7 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
 static void * allocateVertexMemory(size_t numVerts);
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct vertex *vertsBuffer,
-                                 GSByteBuffer *sunlight,
+                                 GSBuffer *sunlight,
                                  GLKVector3 minP);
 
 typedef GLint index_t;
@@ -582,7 +582,7 @@ static void * allocateVertexMemory(size_t numVerts)
 
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct vertex *vertsBuffer,
-                                 GSByteBuffer *sunlight,
+                                 GSBuffer *sunlight,
                                  GLKVector3 minP)
 {
     assert(vertsBuffer);

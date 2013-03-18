@@ -95,10 +95,10 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
                                 relativeToURL:_folder];
 
             static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
-            [GSByteBuffer newBufferFromFile:url
+            [GSBuffer newBufferFromFile:url
                                  dimensions:sunlightDim
                                       queue:_chunkTaskQueue
-                          completionHandler:^(GSByteBuffer *aBuffer, NSError *error) {
+                          completionHandler:^(GSBuffer *aBuffer, NSError *error) {
                               if(aBuffer) {
                                   _sunlight = aBuffer;
                                   _dirtySunlight = NO;
@@ -308,7 +308,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     }
 
     // Copy the sunlight data we just calculated into _sunlight. Discard non-overlapping portions.
-    _sunlight = [GSByteBuffer newBufferFromLargerRawBuffer:combinedSunlightData
+    _sunlight = [GSBuffer newBufferFromLargerRawBuffer:combinedSunlightData
                                                    srcMinP:combinedMinP
                                                    srcMaxP:combinedMaxP];
 

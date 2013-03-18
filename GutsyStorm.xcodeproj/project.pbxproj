@@ -49,7 +49,7 @@
 		AC9CCD741519B8AA0081964D /* shader.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD721519B8AA0081964D /* shader.frag.txt */; };
 		AC9CCD751519B8AA0081964D /* shader.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD731519B8AA0081964D /* shader.vert.txt */; };
 		ACC82D2716A1E6C000F56FB8 /* GSFace.m in Sources */ = {isa = PBXBuildFile; fileRef = ACC82D2616A1E6C000F56FB8 /* GSFace.m */; };
-		ACDD767316F6629D008169D1 /* GSByteBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = ACDD767216F6629D008169D1 /* GSByteBuffer.m */; };
+		ACDD767316F6629D008169D1 /* GSBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = ACDD767216F6629D008169D1 /* GSBuffer.m */; };
 		ACE41C4D1693AE1A003C572B /* GSBlockMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = ACE41C4C1693AE1A003C572B /* GSBlockMesh.m */; };
 		ACE787661686E90E00FBC792 /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACE787651686E90E00FBC792 /* GLKit.framework */; };
 		ACE99D70151FE922006055F6 /* snoise3.c in Sources */ = {isa = PBXBuildFile; fileRef = ACE99D6F151FE922006055F6 /* snoise3.c */; };
@@ -144,8 +144,8 @@
 		AC9CCD731519B8AA0081964D /* shader.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = shader.vert.txt; sourceTree = "<group>"; };
 		ACC82D2516A1E6C000F56FB8 /* GSFace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSFace.h; sourceTree = "<group>"; };
 		ACC82D2616A1E6C000F56FB8 /* GSFace.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSFace.m; sourceTree = "<group>"; };
-		ACDD767116F6629D008169D1 /* GSByteBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSByteBuffer.h; sourceTree = "<group>"; };
-		ACDD767216F6629D008169D1 /* GSByteBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSByteBuffer.m; sourceTree = "<group>"; };
+		ACDD767116F6629D008169D1 /* GSBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBuffer.h; sourceTree = "<group>"; };
+		ACDD767216F6629D008169D1 /* GSBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBuffer.m; sourceTree = "<group>"; };
 		ACE41C4B1693AE1A003C572B /* GSBlockMesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMesh.h; sourceTree = "<group>"; };
 		ACE41C4C1693AE1A003C572B /* GSBlockMesh.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMesh.m; sourceTree = "<group>"; };
 		ACE787651686E90E00FBC792 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
@@ -345,8 +345,8 @@
 		ACDD767016F6623A008169D1 /* Util */ = {
 			isa = PBXGroup;
 			children = (
-				ACDD767116F6629D008169D1 /* GSByteBuffer.h */,
-				ACDD767216F6629D008169D1 /* GSByteBuffer.m */,
+				ACDD767116F6629D008169D1 /* GSBuffer.h */,
+				ACDD767216F6629D008169D1 /* GSBuffer.m */,
 				AC3767A8163E053400BAE03F /* GSTerrainCursor.h */,
 				AC3767A9163E053400BAE03F /* GSTerrainCursor.m */,
 			);
@@ -474,7 +474,7 @@
 				ACC82D2716A1E6C000F56FB8 /* GSFace.m in Sources */,
 				AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */,
 				AC48C44616F563E40017BA94 /* GSNewGrid.m in Sources */,
-				ACDD767316F6629D008169D1 /* GSByteBuffer.m in Sources */,
+				ACDD767316F6629D008169D1 /* GSBuffer.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

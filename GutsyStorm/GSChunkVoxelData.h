@@ -12,7 +12,7 @@
 #import "GSReaderWriterLock.h"
 #import "Voxel.h"
 #import "GSNeighborhood.h"
-#import "GSByteBuffer.h"
+#import "GSBuffer.h"
 
 
 typedef void (^terrain_generator_t)(GLKVector3, voxel_t*);
@@ -22,7 +22,7 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
 @interface GSChunkVoxelData : GSChunkData
 
 @property (readonly, nonatomic) voxel_t *voxelData;
-@property (readonly) GSByteBuffer *sunlight;
+@property (readonly) GSBuffer *sunlight;
 @property (assign) BOOL dirtySunlight;
 
 /* There are circumstances when it is necessary to use this lock directly, but in most cases the reader/writer accessor methods

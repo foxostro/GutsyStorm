@@ -11,7 +11,7 @@
 #import "GSIntegerVector3.h"
 
 
-typedef uint8_t buffer_element_t;
+typedef uint16_t buffer_element_t;
 
 
 static inline size_t BUFFER_SIZE_IN_BYTES(GSIntegerVector3 dimensions)
@@ -30,7 +30,7 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 /* Represents a three-dimensional grid of bytes.
  * This can be used for myriad purposes including volumetric lighting values and voxel data.
  */
-@interface GSByteBuffer : NSObject <NSCopying>
+@interface GSBuffer : NSObject <NSCopying>
 {
 @protected
     GSIntegerVector3 _offsetFromChunkLocalSpace;
@@ -47,7 +47,7 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 + (void)newBufferFromFile:(NSURL *)url
                dimensions:(GSIntegerVector3)dimensions
                     queue:(dispatch_queue_t)queue
-        completionHandler:(void (^)(GSByteBuffer *aBuffer, NSError *error))completionHandler;
+        completionHandler:(void (^)(GSBuffer *aBuffer, NSError *error))completionHandler;
 
 /* Creates a new buffer of dimensions (CHUNK_SIZE_X+2) x (CHUNK_SIZE_Y) x (CHUNK_SIZE_Z+2).
  * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are discarded.

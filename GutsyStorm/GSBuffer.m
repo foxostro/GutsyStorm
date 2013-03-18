@@ -6,7 +6,7 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
-#import "GSByteBuffer.h"
+#import "GSBuffer.h"
 #import "Chunk.h"
 #import "GutsyStormErrorCodes.h"
 #import "SyscallWrappers.h"
@@ -18,12 +18,12 @@
 static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
 
 
-@implementation GSByteBuffer
+@implementation GSBuffer
 
 + (void)newBufferFromFile:(NSURL *)url
                dimensions:(GSIntegerVector3)dimensions
                     queue:(dispatch_queue_t)queue
-        completionHandler:(void (^)(GSByteBuffer *aBuffer, NSError *error))completionHandler
+        completionHandler:(void (^)(GSBuffer *aBuffer, NSError *error))completionHandler
 {
     // If the file does not exist then do nothing.
     if(![url checkResourceIsReachableAndReturnError:NULL]) {
@@ -64,7 +64,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         const void *buffer = NULL;
         dispatch_data_t mappedData = dispatch_data_create_map(dd, &buffer, &size);
         assert(len == size);
-        GSByteBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const buffer_element_t *)buffer];
+        GSBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const buffer_element_t *)buffer];
         dispatch_release(mappedData);
         completionHandler(aBuffer, nil);
     });
@@ -75,10 +75,8 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
                            srcMaxP:(GSIntegerVector3)combinedMaxP
 {
     static const GSIntegerVector3 dimensions = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
-    
-    _Static_assert(sizeof(srcBuf[0]) == sizeof(buffer_element_t), "copyLargeBufferIntoSmallBuffer expects uint8_t buffers");
+
     assert(srcBuf);
-    assert(dstBuf);
     assert(combinedMaxP.y - combinedMinP.y == CHUNK_SIZE_Y);
 
     GSIntegerVector3 offset = GSIntegerVector3_Make(1, 0, 1);
@@ -86,13 +84,22 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     GSIntegerVector3 b = GSIntegerVector3_Make(CHUNK_SIZE_X+1, 0, CHUNK_SIZE_Z+1);
     GSIntegerVector3 p; // loop counter
 
-    void *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
+    buffer_element_t *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
 
     FOR_Y_COLUMN_IN_BOX(p, a, b)
     {
         size_t srcOffset = INDEX_BOX(p, combinedMinP, combinedMaxP);
         size_t dstOffset = INDEX_BOX(GSIntegerVector3_Add(p, offset), ivecZero, dimensions);
-        memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(buffer_element_t));
+
+        // Use memcpy if possible, else copy and convert each element individually.
+        if(__builtin_expect(sizeof(srcBuf[0]) == sizeof(buffer_element_t), YES)) {
+             memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(buffer_element_t));
+        } else {
+            for(size_t i=0; i<CHUNK_SIZE_Y; ++i)
+            {
+                (dstBuf + dstOffset)[i] = (buffer_element_t)(srcBuf + srcOffset)[i];
+            }
+        }
     }
 
     id aBuffer = [[self alloc] initWithDimensions:dimensions data:dstBuf];
@@ -146,7 +153,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 
 - (id)copyWithZone:(NSZone *)zone
 {
-    return [[GSByteBuffer allocWithZone:zone] initWithDimensions:_dimensions data:_data];
+    return [[GSBuffer allocWithZone:zone] initWithDimensions:_dimensions data:_data];
 }
 
 - (buffer_element_t)valueAtPosition:(GSIntegerVector3)chunkLocalPos

@@ -226,7 +226,7 @@
     }
 }
 
-- (unsigned)lightAtPoint:(GSIntegerVector3)p getter:(GSByteBuffer* (^)(GSChunkVoxelData *c))getter
+- (unsigned)lightAtPoint:(GSIntegerVector3)p getter:(GSBuffer* (^)(GSChunkVoxelData *c))getter
 {
     assert(CHUNK_LIGHTING_MAX < (1ull << (sizeof(unsigned)*8)) && "unsigned int must be large enough to store light values");
     
@@ -241,7 +241,7 @@
     }
     
     GSChunkVoxelData *chunk = [self neighborVoxelAtPoint:&p];
-    GSByteBuffer *lightingBuffer = getter(chunk);
+    GSBuffer *lightingBuffer = getter(chunk);
     
     unsigned lightLevel = (unsigned)[lightingBuffer valueAtPosition:p];
 
