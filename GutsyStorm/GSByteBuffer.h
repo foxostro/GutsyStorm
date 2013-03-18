@@ -65,7 +65,6 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 /* Returns the value for the specified point in chunk-local space.
  * The final value is interpolated from the values of adjacent cells in the buffer.
  * Always returns 0 for points which have no corresponding mapping in the buffer.
- * Assumes the caller is already holding the lock on the buffer.
  */
 - (buffer_element_t)valueAtPoint:(GSIntegerVector3)chunkLocalP;
 
@@ -77,15 +76,12 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
  * minP -- Minimum corner of the chunk. This is the offset between world-space and chunk-local-space.
  *
  * As the lighting buffer has no knowledge of the neighboring chunks, expect values on the border to be incorrect.
- * Assumes the caller is already holding the lock on the lighting buffer.
  */
 - (buffer_element_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
                                withNormal:(GSIntegerVector3)normal
                                      minP:(GLKVector3)minP;
 
-/* Saves the buffer contents to file asynchronously on the specified dispatch
- * Assumes the caller has already locked the lighting buffer for reading.
- */
+/* Saves the buffer contents to file asynchronously on the specified dispatch */
 - (void)saveToFile:(NSURL *)url
              queue:(dispatch_queue_t)queue
              group:(dispatch_group_t)group;

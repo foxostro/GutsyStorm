@@ -12,7 +12,7 @@
 #import "GSReaderWriterLock.h"
 #import "Voxel.h"
 #import "GSNeighborhood.h"
-#import "GSMutableByteBuffer.h"
+#import "GSByteBuffer.h"
 
 
 typedef void (^terrain_generator_t)(GLKVector3, voxel_t*);
