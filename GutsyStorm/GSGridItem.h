@@ -15,22 +15,15 @@
 
 @optional
 
-/* Returns a filename to uniquely identify an item at the specified minP.
- * There must be a one-to-one mapping between minP vectors, filenames, and items of the implementing type.
+/* Message indicates the grid item is about to be evicted from the grid cache.
+ * The item should clean up. Some items may want to save themselves to disk to speed up regeneration later.
  */
-+ (NSString *)fileNameForItemAtMinP:(GLKVector3)minP;
+- (void)itemWillBeEvicted;
 
-/* Creates a new item at the specified minP and initializes it from file.
- * File I/O is performed asynchronously on the specified queue, and the new object is returned through the completion handler block.
- * On error, the completion handler has anItem==nil and `error' provides details about the failure.
+/* Message indicates the grid item is about to be invalidated.
+ * The item should take care to clean up and remove any on-disk cache files as they would not be valid.
  */
-+ (void)newItemFromFile:(NSURL *)url
-                   minP:(GLKVector3)minP
-                  queue:(dispatch_queue_t)queue
-      completionHandler:(void (^)(id anItem, NSError *error))completionHandler;
-
-/* Save the contents of the item to specified file URL. */
-- (void)saveToFile:(NSURL *)url;
+- (void)itemWillBeInvalidated;
 
 @end
 
