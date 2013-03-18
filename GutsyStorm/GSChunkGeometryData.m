@@ -36,7 +36,7 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
 static void * allocateVertexMemory(size_t numVerts);
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct vertex *vertsBuffer,
-                                 GSMutableByteBuffer *sunlight,
+                                 GSByteBuffer *sunlight,
                                  GLKVector3 minP);
 
 typedef GLint index_t;
@@ -200,31 +200,21 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different 
             DebugLog(@"Can't update geometry: lockGeometry is already taken.");
             return;
         }
-        
-        GSChunkVoxelData *center = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
 
-        BOOL gotAccess = [center.sunlight tryReaderAccessToBufferUsingBlock:^{
-            [self destroyGeometry];
-            [self fillGeometryBuffersUsingVoxelData:neighborhood];
-        }];
+        [self destroyGeometry];
+        [self fillGeometryBuffersUsingVoxelData:neighborhood];
 
-        if(gotAccess) {
-            // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
-            // Updating a boolean should be atomic on x86_64 and i386;
-            _needsVBORegeneration = YES;
+        // Need to set this flag so VBO rendering code knows that it needs to regenerate from geometry on next redraw.
+        // Updating a boolean should be atomic on x86_64 and i386;
+        _needsVBORegeneration = YES;
 
-            // Cache geometry buffers on disk for next time.
-            [self saveGeometryDataToFile];
+        // Cache geometry buffers on disk for next time.
+        [self saveGeometryDataToFile];
 
-            _dirty = NO;
-            OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
-            [_lockGeometry unlockWithCondition:READY];
-            success = YES;
-        } else {
-            OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
-            [_lockGeometry unlockWithCondition:!READY];
-            DebugLog(@"Can't update geometry: sunlight buffer is busy.");
-        }
+        _dirty = NO;
+        OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateInFlight); // reset
+        [_lockGeometry unlockWithCondition:READY];
+        success = YES;
     };
     
     if(![neighborhood tryReaderAccessToVoxelDataUsingBlock:b]) {
@@ -592,7 +582,7 @@ static void * allocateVertexMemory(size_t numVerts)
 
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct vertex *vertsBuffer,
-                                 GSMutableByteBuffer *sunlight,
+                                 GSByteBuffer *sunlight,
                                  GLKVector3 minP)
 {
     assert(vertsBuffer);

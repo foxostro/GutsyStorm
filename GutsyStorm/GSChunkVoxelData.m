@@ -82,7 +82,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         [_lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         _voxelData = NULL;
         
-        _sunlight = [[GSMutableByteBuffer alloc] initWithDimensions:GSIntegerVector3_Make(CHUNK_SIZE_X+2,CHUNK_SIZE_Y,CHUNK_SIZE_Z+2)];
         _dirtySunlight = YES;
         
         // The initial loading from disk preceeds all attempts to generate new sunlight data.
@@ -95,14 +94,17 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
             NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
                                 relativeToURL:_folder];
 
-            [_sunlight tryToLoadFromFile:url
-                                   queue:_chunkTaskQueue
-                       completionHandler:^(BOOL success) {
-                           if(success) {
-                               _dirtySunlight = NO;
-                           }
-                           OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
-                       }];
+            static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
+            [GSByteBuffer newBufferFromFile:url
+                                 dimensions:sunlightDim
+                                      queue:_chunkTaskQueue
+                          completionHandler:^(GSByteBuffer *aBuffer, NSError *error) {
+                              if(aBuffer) {
+                                  _sunlight = aBuffer;
+                                  _dirtySunlight = NO;
+                              }
+                              OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
+                          }];
 
             [self loadOrGenerateVoxelData:generator
                             postProcessor:postProcessor
@@ -306,9 +308,9 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     }
 
     // Copy the sunlight data we just calculated into _sunlight. Discard non-overlapping portions.
-    [_sunlight setContents:[GSByteBuffer newBufferFromLargerRawBuffer:combinedSunlightData
-                                                              srcMinP:combinedMinP
-                                                              srcMaxP:combinedMaxP]];
+    _sunlight = [GSByteBuffer newBufferFromLargerRawBuffer:combinedSunlightData
+                                                   srcMinP:combinedMinP
+                                                   srcMaxP:combinedMaxP];
 
     free(combinedSunlightData);
 }
@@ -552,23 +554,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         }
             
         case 1:
-        {
-            __block BOOL success = NO;
-
-            BOOL gotAccess = [_sunlight tryWriterAccessToBufferUsingBlock:^{
-                success = [self tryToRebuildSunlightWithNeighborhood:neighborhood
-                                                                tier:2
-                                                   completionHandler:completionHandler];
-            }];
-
-            if(!gotAccess) {
-                DebugLog(@"Can't update sunlight: sunlight buffer is busy."); // This failure really shouldn't happen much...
-            }
-
-            return success;
-        }
-
-        case 2:
         {
             BOOL success = NO;
 
