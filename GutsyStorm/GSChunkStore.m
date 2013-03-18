@@ -7,6 +7,7 @@
 //
 
 #import <GLKit/GLKMath.h>
+#import "Chunk.h"
 #import "GSRay.h"
 #import "GSChunkGeometryData.h"
 #import "GSCamera.h"

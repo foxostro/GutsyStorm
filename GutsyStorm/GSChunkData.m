@@ -7,6 +7,7 @@
 //
 
 #import <GLKit/GLKMath.h>
+#import "Chunk.h"
 #import "GSChunkData.h"
 #import "Voxel.h"
 #import "GSBoxedVector.h"

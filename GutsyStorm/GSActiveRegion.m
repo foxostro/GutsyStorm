@@ -7,6 +7,7 @@
 //
 
 #import <GLKit/GLKMath.h>
+#import "Chunk.h"
 #import "GSActiveRegion.h"
 #import "GSFrustum.h"
 #import "Voxel.h"

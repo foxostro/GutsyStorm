@@ -42,7 +42,7 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 /* Creates a new GSByteBuffer and initializes it with data from file.
  * The dimensions of the buffer must be specified upfront in order to ensure the file contains the correct amount of data.
  * File I/O is performed asynchronously on the specified queue, and the new object is returned through the completion handler block.
- * On error, the completion handler has aBuffer==nil and an error is provided with details.
+ * On error, the completion handler has aBuffer==nil and `error' provides details about the failure.
  */
 + (void)newBufferFromFile:(NSURL *)url
                dimensions:(GSIntegerVector3)dimensions

@@ -9,8 +9,6 @@
 #ifndef GutsyStorm_Voxel_h
 #define GutsyStorm_Voxel_h
 
-#import "GSIntegerVector3.h"
-
 
 #ifdef DEBUG // TODO: find a better home for this macro
 #    define DebugLog(...) do { NSLog(__VA_ARGS__); } while(0);
@@ -106,7 +104,7 @@ typedef struct
     uint8_t opaque:1;
 
     /* Indicates the voxel piece is upside down. */
-    uint8_t upsideDown:1; // TODO: implement upside down voxel pieces to smooth the underside of ledges.
+    uint8_t upsideDown:1;
 
     /* The direction of the voxel. (rotation around the Y-axis) Affects the orientation of the mesh and traversibility. */
     uint8_t dir:2;

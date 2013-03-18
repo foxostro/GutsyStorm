@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
-
 @interface GSBlockMesh : NSObject
 
 - (void)setFaces:(NSArray *)faces;

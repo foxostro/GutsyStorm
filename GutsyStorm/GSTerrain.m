@@ -7,6 +7,7 @@
 //
 
 #import <GLKit/GLKMath.h>
+#import "Chunk.h"
 #import "GSNoise.h"
 #import "GSTerrainCursor.h"
 #import "GSChunkStore.h"

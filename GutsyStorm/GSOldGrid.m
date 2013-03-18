@@ -10,6 +10,7 @@
 #import "GLKVector3Extra.h" // for GLKVector3_Hash
 #import "GSOldGrid.h"
 #import "GSChunkData.h"
+#import "Chunk.h"
 
 @implementation GSOldGrid
 {
