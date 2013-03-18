@@ -359,7 +359,15 @@ BOOL checkForOpenGLExtension(NSString *extension);
     // must lock GL context because display link is threaded
     CGLLockContext((CGLContextObj)[currentContext CGLContextObj]);
 
+    // FIXME: Frequently, the call to glClear will fail with "invalid framebuffer operation" when the application is quitting.
+    assert(checkGLErrors() == 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if(checkGLErrors() > 0) {
+        NSLog(@"ignoring OpenGL error");
+        CGLUnlockContext((CGLContextObj)[currentContext CGLContextObj]);
+        return kCVReturnError;
+    }
+
     glPushMatrix();
     glLoadIdentity();
     
