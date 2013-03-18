@@ -305,19 +305,10 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         }
     }
 
-    // Copy the combined sunlight data into the sunlight buffer. Discard the non-overlapping region.
-    assert(_sunlight.dimensions.x == CHUNK_SIZE_X+2);
-    assert(_sunlight.dimensions.y == CHUNK_SIZE_Y);
-    assert(_sunlight.dimensions.z == CHUNK_SIZE_Z+2);
-    GSIntegerVector3 offset = GSIntegerVector3_Make(1, 0, 1);
-    GSIntegerVector3 a = GSIntegerVector3_Make(-1, 0, -1);
-    GSIntegerVector3 b = GSIntegerVector3_Make(CHUNK_SIZE_X+1, 0, CHUNK_SIZE_Z+1);
-    FOR_Y_COLUMN_IN_BOX(p, a, b)
-    {
-        size_t src = INDEX_BOX(p, combinedMinP, combinedMaxP);
-        size_t dst = INDEX_BOX(GSIntegerVector3_Add(p, offset), ivecZero, _sunlight.dimensions);
-        memcpy(_sunlight.data+dst, combinedSunlightData+src, CHUNK_SIZE_Y*sizeof(uint8_t));
-    }
+    // Copy the sunlight data we just calculated into _sunlight. Discard non-overlapping portions.
+    [_sunlight setContents:[GSByteBuffer newBufferFromLargerRawBuffer:combinedSunlightData
+                                                              srcMinP:combinedMinP
+                                                              srcMaxP:combinedMaxP]];
 
     free(combinedSunlightData);
 }

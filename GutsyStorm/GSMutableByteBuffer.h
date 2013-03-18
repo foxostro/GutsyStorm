@@ -18,7 +18,7 @@
 - (id)initWithDimensions:(GSIntegerVector3)dimensions;
 
 /* Initialize a buffer of the specified dimensions. The specified backing data is copied into the internal buffer. */
-- (id)initWithDimensions:(GSIntegerVector3)dim data:(const uint8_t *)data;
+- (id)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data;
 
 /* Obtains a reader lock on the the buffer and allows the caller to access it in the specified block. */
 - (void)readerAccessToBufferUsingBlock:(void (^)(void))block;
@@ -32,8 +32,8 @@
 /* Obtains a writer lock on the buffer and allows the caller to access it in the specified block. */
 - (BOOL)tryWriterAccessToBufferUsingBlock:(void (^)(void))block;
 
-/* Returns a raw pointer to the internal buffer. Do not access without obtaining the lock first. */
-- (uint8_t *)data;
+/* Copies the contents of the specified buffer into this buffer. Assumes the caller has already locked the buffer for writing. */
+- (void)setContents:(GSByteBuffer *)src;
 
 /* Attempts to asynchronously load the buffer contents from file on the specifed dispatch queue.
  * Runs the completion handler immediately after loading the file and does not run it if the file could not be loaded.

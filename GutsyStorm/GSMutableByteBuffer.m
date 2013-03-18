@@ -27,7 +27,7 @@
     return self;
 }
 
-- (id)initWithDimensions:(GSIntegerVector3)dim data:(const uint8_t *)data
+- (id)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data
 {
     self = [super initWithDimensions:dim data:data];
     if (self) {
@@ -47,9 +47,13 @@
     return [[GSMutableByteBuffer allocWithZone:zone] initWithDimensions:self.dimensions data:_data];
 }
 
-- (uint8_t *)data
+- (void)setContents:(GSByteBuffer *)src
 {
-    return _data;
+    assert(src);
+    assert(src.dimensions == self.dimensions);
+    assert(src->_data);
+    assert(_data);
+    memcpy(_data, src->_data, BUFFER_SIZE_IN_BYTES(self.dimensions));
 }
 
 - (void)readerAccessToBufferUsingBlock:(void (^)(void))block
@@ -102,7 +106,7 @@
 
                           [_lockLightingBuffer lockForWriting];
                           assert(_data);
-                          memcpy(_data, aBuffer->_data, BUFFER_SIZE_IN_BYTES);
+                          memcpy(_data, aBuffer->_data, BUFFER_SIZE_IN_BYTES(self.dimensions));
                           completionHandler(YES);
                           [_lockLightingBuffer unlockForWriting];
                       } else {

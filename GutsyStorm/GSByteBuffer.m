@@ -11,6 +11,9 @@
 #import "GutsyStormErrorCodes.h"
 #import "SyscallWrappers.h"
 
+#import <GLKit/GLKQuaternion.h> // used by Voxel.h
+#import "Voxel.h" // for INDEX_BOX
+
 
 static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
 
@@ -32,7 +35,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     }
 
     const int fd = Open(url, O_RDONLY, 0);
-    const size_t len = (dimensions.x * dimensions.y * dimensions.z * sizeof(uint8_t));
+    const size_t len = BUFFER_SIZE_IN_BYTES(dimensions);
 
     dispatch_read(fd, len, queue, ^(dispatch_data_t dd, int error) {
         Close(fd);
@@ -61,10 +64,42 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         const void *buffer = NULL;
         dispatch_data_t mappedData = dispatch_data_create_map(dd, &buffer, &size);
         assert(len == size);
-        GSByteBuffer *aBuffer = [[GSByteBuffer alloc] initWithDimensions:dimensions data:(const uint8_t *)buffer];
+        GSByteBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const buffer_element_t *)buffer];
         dispatch_release(mappedData);
         completionHandler(aBuffer, nil);
     });
+}
+
++ (id)newBufferFromLargerRawBuffer:(uint8_t *)srcBuf
+                           srcMinP:(GSIntegerVector3)combinedMinP
+                           srcMaxP:(GSIntegerVector3)combinedMaxP
+{
+    static const GSIntegerVector3 dimensions = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
+    
+    _Static_assert(sizeof(srcBuf[0]) == sizeof(buffer_element_t), "copyLargeBufferIntoSmallBuffer expects uint8_t buffers");
+    assert(srcBuf);
+    assert(dstBuf);
+    assert(combinedMaxP.y - combinedMinP.y == CHUNK_SIZE_Y);
+
+    GSIntegerVector3 offset = GSIntegerVector3_Make(1, 0, 1);
+    GSIntegerVector3 a = GSIntegerVector3_Make(-1, 0, -1);
+    GSIntegerVector3 b = GSIntegerVector3_Make(CHUNK_SIZE_X+1, 0, CHUNK_SIZE_Z+1);
+    GSIntegerVector3 p; // loop counter
+
+    void *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
+
+    FOR_Y_COLUMN_IN_BOX(p, a, b)
+    {
+        size_t srcOffset = INDEX_BOX(p, combinedMinP, combinedMaxP);
+        size_t dstOffset = INDEX_BOX(GSIntegerVector3_Add(p, offset), ivecZero, dimensions);
+        memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(buffer_element_t));
+    }
+
+    id aBuffer = [[self alloc] initWithDimensions:dimensions data:dstBuf];
+
+    free(dstBuf);
+
+    return aBuffer;
 }
 
 - (id)initWithDimensions:(GSIntegerVector3)dim
@@ -81,24 +116,24 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
                                                            (dim.y - CHUNK_SIZE_Y) / 2,
                                                            (dim.z - CHUNK_SIZE_Z) / 2);
 
-        _data = malloc(BUFFER_SIZE_IN_BYTES);
+        _data = malloc(BUFFER_SIZE_IN_BYTES(dim));
 
         if(!_data) {
             [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
         }
 
-        bzero(_data, BUFFER_SIZE_IN_BYTES);
+        bzero(_data, BUFFER_SIZE_IN_BYTES(dim));
     }
     
     return self;
 }
 
-- (id)initWithDimensions:(GSIntegerVector3)dim data:(const uint8_t *)data
+- (id)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data
 {
     assert(data);
     self = [self initWithDimensions:dim];
     if (self) {
-        memcpy(_data, data, BUFFER_SIZE_IN_BYTES);
+        memcpy(_data, data, BUFFER_SIZE_IN_BYTES(dim));
     }
 
     return self;
@@ -114,24 +149,25 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     return [[GSByteBuffer allocWithZone:zone] initWithDimensions:_dimensions data:_data];
 }
 
-- (uint8_t)valueAtPoint:(GSIntegerVector3)chunkLocalPos
+- (buffer_element_t)valueAtPoint:(GSIntegerVector3)chunkLocalPos
 {
     assert(_data);
 
+    GSIntegerVector3 dim = self.dimensions;
     GSIntegerVector3 p = GSIntegerVector3_Add(chunkLocalPos, _offsetFromChunkLocalSpace);
 
-    if(p.x >= 0 && p.x < self.dimensions.x &&
-       p.y >= 0 && p.y < self.dimensions.y &&
-       p.z >= 0 && p.z < self.dimensions.z) {
-        return _data[INDEX_INTO_LIGHTING_BUFFER(p)];
+    if(p.x >= 0 && p.x < dim.x &&
+       p.y >= 0 && p.y < dim.y &&
+       p.z >= 0 && p.z < dim.z) {
+        return _data[INDEX_INTO_LIGHTING_BUFFER(dim, p)];
     } else {
         return 0;
     }
 }
 
-- (uint8_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
-                      withNormal:(GSIntegerVector3)normal
-                            minP:(GLKVector3)minP
+- (buffer_element_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
+                               withNormal:(GSIntegerVector3)normal
+                                     minP:(GLKVector3)minP
 {
     static const size_t count = 4;
     GLKVector3 sample[count];
@@ -158,12 +194,11 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     return light;
 }
 
-// Assumes the caller has already locked the lighting buffer for reading.
 - (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group
 {
     dispatch_group_enter(group);
 
-    dispatch_data_t dd = dispatch_data_create(_data, BUFFER_SIZE_IN_BYTES,
+    dispatch_data_t dd = dispatch_data_create(_data, BUFFER_SIZE_IN_BYTES(self.dimensions),
                                                     dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
                                                     DISPATCH_DATA_DESTRUCTOR_DEFAULT);
 

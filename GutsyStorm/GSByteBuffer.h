@@ -11,10 +11,20 @@
 #import "GSIntegerVector3.h"
 
 
-#define BUFFER_SIZE_IN_BYTES (self.dimensions.x * self.dimensions.y * self.dimensions.z * sizeof(uint8_t))
+typedef uint8_t buffer_element_t;
+
+
+static inline size_t BUFFER_SIZE_IN_BYTES(GSIntegerVector3 dimensions)
+{
+    return dimensions.x * dimensions.y * dimensions.z * sizeof(buffer_element_t);
+}
+
 
 // Columns in the y-axis are contiguous in memory.
-#define INDEX_INTO_LIGHTING_BUFFER(p) ((size_t)(((p.x)*self.dimensions.y*self.dimensions.z) + ((p.z)*self.dimensions.y) + (p.y)))
+static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSIntegerVector3 p)
+{
+    return (p.x * dimensions.y * dimensions.z) + (p.z * dimensions.y) + (p.y);
+}
 
 
 /* Represents a three-dimensional grid of bytes.
@@ -24,7 +34,7 @@
 {
 @protected
     GSIntegerVector3 _offsetFromChunkLocalSpace;
-    uint8_t *_data;
+    buffer_element_t *_data;
 }
 
 @property (readonly, nonatomic) GSIntegerVector3 dimensions;
@@ -39,18 +49,25 @@
                     queue:(dispatch_queue_t)queue
         completionHandler:(void (^)(GSByteBuffer *aBuffer, NSError *error))completionHandler;
 
+/* Creates a new buffer of dimensions (CHUNK_SIZE_X+2) x (CHUNK_SIZE_Y) x (CHUNK_SIZE_Z+2).
+ * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are discarded.
+ */
++ (id)newBufferFromLargerRawBuffer:(uint8_t *)srcBuf
+                           srcMinP:(GSIntegerVector3)srcMinP
+                           srcMaxP:(GSIntegerVector3)srcMaxP;
+
 /* Initialize a buffer of the specified dimensions */
 - (id)initWithDimensions:(GSIntegerVector3)dim;
 
 /* Initialize a buffer of the specified dimensions. The specified backing data is copied into the internal buffer. */
-- (id)initWithDimensions:(GSIntegerVector3)dim data:(const uint8_t *)data;
+- (id)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data;
 
 /* Returns the value for the specified point in chunk-local space.
  * The final value is interpolated from the values of adjacent cells in the buffer.
  * Always returns 0 for points which have no corresponding mapping in the buffer.
  * Assumes the caller is already holding the lock on the buffer.
  */
-- (uint8_t)valueAtPoint:(GSIntegerVector3)chunkLocalP;
+- (buffer_element_t)valueAtPoint:(GSIntegerVector3)chunkLocalP;
 
 /* Given a specific vertex position in the chunk, and a normal for that vertex, get the contribution of the (lighting) buffer on
  * the vertex.
@@ -62,13 +79,15 @@
  * As the lighting buffer has no knowledge of the neighboring chunks, expect values on the border to be incorrect.
  * Assumes the caller is already holding the lock on the lighting buffer.
  */
-- (uint8_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
-                      withNormal:(GSIntegerVector3)normal
-                            minP:(GLKVector3)minP;
+- (buffer_element_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
+                               withNormal:(GSIntegerVector3)normal
+                                     minP:(GLKVector3)minP;
 
 /* Saves the buffer contents to file asynchronously on the specified dispatch
  * Assumes the caller has already locked the lighting buffer for reading.
  */
-- (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group;
+- (void)saveToFile:(NSURL *)url
+             queue:(dispatch_queue_t)queue
+             group:(dispatch_group_t)group;
 
 @end
