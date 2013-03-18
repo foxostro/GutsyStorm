@@ -7,6 +7,8 @@
 //
 
 #import <GLKit/GLKMath.h>
+#import "GSBuffer.h" // for buffer_element_t, needed by Voxel.h
+#import "Voxel.h" // for face_t, needed by GSFace.h
 #import "GSFace.h"
 #import "GSVertex.h"
 

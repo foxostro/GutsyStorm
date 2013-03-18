@@ -8,8 +8,9 @@
 
 #import <GLKit/GLKMath.h>
 #import "GSVertex.h"
-#import "GSFace.h"
+#import "GSBuffer.h" // for buffer_element_t, needed by Voxel.h
 #import "Voxel.h"
+#import "GSFace.h"
 #import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"

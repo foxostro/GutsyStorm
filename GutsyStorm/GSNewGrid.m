@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKVector3.h>
 #import "GSNewGrid.h"
 
 @implementation GSNewGrid

@@ -121,6 +121,7 @@ typedef struct
 _Static_assert(NUM_VOXEL_DIRECTIONS <= (1<<2), "NUM_VOXEL_DIRECTIONS must be able to work with a 2-bit `dir' field.");
 _Static_assert(NUM_VOXEL_TYPES <= (1<<3),      "NUM_VOXEL_TYPES must be able to work with a 3-bit `type' field.");
 _Static_assert(NUM_VOXEL_TEXTURES <= (1<<2),   "NUM_VOXEL_TEXTURES must be able to work with a 2-bit `tex' field.");
+_Static_assert(sizeof(voxel_t) == sizeof(buffer_element_t), "voxel_t and buffer_element_t must be the same size");
 
 
 typedef enum

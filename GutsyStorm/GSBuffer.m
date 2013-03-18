@@ -70,7 +70,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     });
 }
 
-+ (id)newBufferFromLargerRawBuffer:(uint8_t *)srcBuf
++ (id)newBufferFromLargerRawBuffer:(buffer_element_t *)srcBuf
                            srcMinP:(GSIntegerVector3)combinedMinP
                            srcMaxP:(GSIntegerVector3)combinedMaxP
 {
@@ -90,16 +90,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     {
         size_t srcOffset = INDEX_BOX(p, combinedMinP, combinedMaxP);
         size_t dstOffset = INDEX_BOX(GSIntegerVector3_Add(p, offset), ivecZero, dimensions);
-
-        // Use memcpy if possible, else copy and convert each element individually.
-        if(__builtin_expect(sizeof(srcBuf[0]) == sizeof(buffer_element_t), YES)) {
-             memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(buffer_element_t));
-        } else {
-            for(size_t i=0; i<CHUNK_SIZE_Y; ++i)
-            {
-                (dstBuf + dstOffset)[i] = (buffer_element_t)(srcBuf + srcOffset)[i];
-            }
-        }
+        memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(buffer_element_t));
     }
 
     id aBuffer = [[self alloc] initWithDimensions:dimensions data:dstBuf];

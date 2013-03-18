@@ -236,7 +236,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p
                          lightLevel:(int)lightLevel
                   combinedVoxelData:(voxel_t *)combinedVoxelData
-       combinedSunlightData:(uint8_t *)combinedSunlightData
+       combinedSunlightData:(buffer_element_t *)combinedSunlightData
 {
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
     {
@@ -270,9 +270,9 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
  */
 - (void)fillSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
 {
-    uint8_t *combinedSunlightData = malloc((combinedMaxP.x - combinedMinP.x) *
-                                           (combinedMaxP.y - combinedMinP.y) *
-                                           (combinedMaxP.z - combinedMinP.z) * sizeof(uint8_t));
+    buffer_element_t *combinedSunlightData = malloc((combinedMaxP.x - combinedMinP.x) *
+                                                    (combinedMaxP.y - combinedMinP.y) *
+                                                    (combinedMaxP.z - combinedMinP.z) * sizeof(buffer_element_t));
 
     GSIntegerVector3 p;
     FOR_BOX(p, combinedMinP, combinedMaxP)
