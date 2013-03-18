@@ -12,6 +12,7 @@
 #import "GSChunkGeometryData.h"
 #import "GSCamera.h"
 #import "GSOldGrid.h"
+#import "GSNewGrid.h"
 #import "GSActiveRegion.h"
 #import "GSShader.h"
 #import "GSChunkStore.h"
@@ -33,7 +34,7 @@
 @implementation GSChunkStore
 {
     GSOldGrid *_gridVoxelData;
-    GSOldGrid *_gridGeometryData;
+    GSNewGrid *_gridGeometryData;
 
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _chunkTaskQueue;
@@ -104,9 +105,16 @@
         NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         
         size_t areaXZ = (w/CHUNK_SIZE_X) * (w/CHUNK_SIZE_Z);
-        _gridGeometryData = [[GSOldGrid alloc] initWithActiveRegionArea:areaXZ];
         _gridVoxelData = [[GSOldGrid alloc] initWithActiveRegionArea:areaXZ];
-        
+        _gridGeometryData = [[GSNewGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+            // Chunk geometry will be generated later and is only marked "dirty" for now.
+            return [[GSChunkGeometryData alloc] initWithMinP:minP
+                                                      folder:_folder
+                                              groupForSaving:_groupForSaving
+                                              queueForSaving:_queueForSaving
+                                                   glContext:_glContext];
+        }];
+
         // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
         _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
@@ -130,16 +138,21 @@
     [_lock unlock];
 }
 
-- (void)dealloc
+- (void)sync
 {
     [self waitForSaveToFinish];
+    [_gridGeometryData evictAllItems];
+}
+
+- (void)dealloc
+{   
     dispatch_release(_groupForSaving);
     dispatch_release(_chunkTaskQueue);
     dispatch_release(_queueForSaving);
 }
 
 - (void)drawActiveChunks
-{
+{   
     [_terrainShader bind];
     
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -414,18 +427,7 @@
 {
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
-    
-    GSChunkGeometryData *g = [_gridGeometryData objectAtPoint:p
-                                                objectFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-                                                    // Chunk geometry will be generated later and is only marked "dirty" for now.
-                                                    return [[GSChunkGeometryData alloc] initWithMinP:minP
-                                                                                              folder:_folder
-                                                                                      groupForSaving:_groupForSaving
-                                                                                      queueForSaving:_queueForSaving
-                                                                                           glContext:_glContext];
-                                                }];
-    
-    return g;
+    return [_gridGeometryData objectAtPoint:p];
 }
 
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p

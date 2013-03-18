@@ -47,6 +47,6 @@
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block;
 
-- (void)waitForSaveToFinish;
+- (void)sync;
 
 @end

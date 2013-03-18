@@ -474,7 +474,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (void)sync
 {
-    [_chunkStore waitForSaveToFinish];
+    [_chunkStore sync];
 }
 
 - (void)placeBlockUnderCrosshairs
