@@ -37,10 +37,11 @@
 - (void)invalidateItemAtPoint:(GLKVector3)p;
 
 /* Method is called when the grid is just about to invalidate an item.
+ * The item is passed in 'item' unless it is currently non-resident/evicted. In that case, 'item' will be nil.
  * Sub-classes should override this to get custom behavior on item invalidation.
  * For example, a sub-class may wish to delete on-disk caches for items which are currently evicted and are now invalid.
  */
-- (void)willInvalidateItem:(NSObject <GSGridItem> *)item;
+- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p;
 
 // Items in dependent grids are invalidated at points which map to the specified point in this grid.
 - (void)invalidateItemsDependentOnItemAtPoint:(GLKVector3)p;

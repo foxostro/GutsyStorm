@@ -9,15 +9,18 @@
 #import <GLKit/GLKMath.h>
 #import "Chunk.h"
 #import "GSRay.h"
-#import "GSChunkGeometryData.h"
-#import "GSChunkVBOs.h"
 #import "GSCamera.h"
-#import "GSOldGrid.h"
-#import "GSNewGrid.h"
 #import "GSActiveRegion.h"
 #import "GSShader.h"
 #import "GSChunkStore.h"
 #import "GSBoxedVector.h"
+
+#import "GSChunkGeometryData.h"
+#import "GSChunkVBOs.h"
+
+#import "GSOldGrid.h"
+#import "GSNewGrid.h"
+#import "GSGridGeometry.h"
 
 
 @interface GSChunkStore ()
@@ -39,7 +42,7 @@
 @implementation GSChunkStore
 {
     GSNewGrid *_gridVBOs;
-    GSNewGrid *_gridGeometryData;
+    GSGridGeometry *_gridGeometryData;
     GSOldGrid *_gridVoxelData;
 
     dispatch_group_t _groupForSaving;
@@ -113,10 +116,13 @@
         size_t areaXZ = (w/CHUNK_SIZE_X) * (w/CHUNK_SIZE_Z);
         _gridVoxelData = [[GSOldGrid alloc] initWithActiveRegionArea:areaXZ];
         
-        _gridGeometryData = [[GSNewGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-            GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minP];
-            return [[GSChunkGeometryData alloc] initWithMinP:minP neighborhood:neighborhood];
-        }];
+        _gridGeometryData = [[GSGridGeometry alloc]
+                             initWithCacheFolder:_folder
+                             factory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+                                 GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minP];
+                                 return [[GSChunkGeometryData alloc] initWithMinP:minP
+                                                                     neighborhood:neighborhood];
+                             }];
 
         _gridVBOs = [[GSNewGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
             GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minP];

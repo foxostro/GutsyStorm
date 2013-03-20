@@ -20,6 +20,8 @@ struct vertex;
 
 @interface GSChunkGeometryData : GSChunkData
 
++ (NSString *)fileNameForGeometryDataFromMinP:(GLKVector3)minP;
+
 /* Returns the shared block mesh factory for the specified voxel type. */
 + (GSBlockMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type;
 

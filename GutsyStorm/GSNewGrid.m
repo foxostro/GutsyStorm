@@ -252,24 +252,31 @@
 
     [lock lock];
 
+    NSObject <GSGridItem> *foundItem = nil;
+
     for(NSObject <GSGridItem> *item in bucket)
     {
         if(GLKVector3AllEqualToVector3(item.minP, minP)) {
-            if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
-                [item itemWillBeInvalidated];
-            }
-            [bucket removeObject:item];
+            foundItem = item;
             break;
         }
     }
 
-    [self invalidateItemsDependentOnItemAtPoint:p];
+    if(foundItem) {
+        if([foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
+            [foundItem itemWillBeInvalidated];
+        }
+        [bucket removeObject:foundItem];
+    }
+
+    [self willInvalidateItem:foundItem atPoint:minP];
+    [self invalidateItemsDependentOnItemAtPoint:minP];
 
     [lock unlock];
     [_lockTheTableItself unlockForReading];
 }
 
-- (void)willInvalidateItem:(NSObject <GSGridItem> *)item
+- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p
 {
     // do nothing
 }
