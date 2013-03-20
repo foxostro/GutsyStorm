@@ -269,6 +269,11 @@
     [_lockTheTableItself unlockForReading];
 }
 
+- (void)willInvalidateItem:(NSObject <GSGridItem> *)item
+{
+    // do nothing
+}
+
 - (void)invalidateItemsDependentOnItemAtPoint:(GLKVector3)p
 {
     for(GSNewGrid *grid in dependentGrids)

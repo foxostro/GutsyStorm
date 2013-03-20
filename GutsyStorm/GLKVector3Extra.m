@@ -6,17 +6,18 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
+#import <Foundation/Foundation.h>
 #include <stdio.h>
 #include <math.h>
 #include <GLKit/GLKMath.h>
 #include "GLKVector3Extra.h"
 
 
-size_t GLKVector3Hash(GLKVector3 v)
+NSUInteger GLKVector3Hash(GLKVector3 v)
 {
     // Source: <http://www.cse.yorku.ca/~oz/hash.html>
     
-    size_t hash = 0;
+    NSUInteger hash = 0;
     
     for(size_t i = 0; i < sizeof(GLKVector3); ++i)
     {

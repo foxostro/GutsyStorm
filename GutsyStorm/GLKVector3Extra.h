@@ -9,6 +9,6 @@
 #ifndef GutsyStorm_GLKVector3Extra_h
 #define GutsyStorm_GLKVector3Extra_h
 
-size_t GLKVector3Hash(GLKVector3 v);
+NSUInteger GLKVector3Hash(GLKVector3 v);
 
 #endif

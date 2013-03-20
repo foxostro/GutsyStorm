@@ -10,12 +10,14 @@
 #import "Chunk.h"
 #import "GSRay.h"
 #import "GSChunkGeometryData.h"
+#import "GSChunkVBOs.h"
 #import "GSCamera.h"
 #import "GSOldGrid.h"
 #import "GSNewGrid.h"
 #import "GSActiveRegion.h"
 #import "GSShader.h"
 #import "GSChunkStore.h"
+#import "GSBoxedVector.h"
 
 
 @interface GSChunkStore ()
@@ -23,8 +25,11 @@
 + (NSURL *)newWorldSaveFolderURLWithSeed:(NSUInteger)seed;
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
 - (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p neighborhood:(GSNeighborhood **)neighborhood;
+
+- (GSChunkVBOs *)chunkVBOsAtPoint:(GLKVector3)p;
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p;
+
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk;
 - (id)newChunkWithMinimumCorner:(GLKVector3)minP;
 
@@ -33,8 +38,9 @@
 
 @implementation GSChunkStore
 {
-    GSOldGrid *_gridVoxelData;
+    GSNewGrid *_gridVBOs;
     GSNewGrid *_gridGeometryData;
+    GSOldGrid *_gridVoxelData;
 
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _chunkTaskQueue;
@@ -106,13 +112,21 @@
         
         size_t areaXZ = (w/CHUNK_SIZE_X) * (w/CHUNK_SIZE_Z);
         _gridVoxelData = [[GSOldGrid alloc] initWithActiveRegionArea:areaXZ];
+        
         _gridGeometryData = [[GSNewGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-            // Chunk geometry will be generated later and is only marked "dirty" for now.
-            return [[GSChunkGeometryData alloc] initWithMinP:minP
-                                                      folder:_folder
-                                              groupForSaving:_groupForSaving
-                                              queueForSaving:_queueForSaving
-                                                   glContext:_glContext];
+            GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minP];
+            return [[GSChunkGeometryData alloc] initWithMinP:minP neighborhood:neighborhood];
+        }];
+
+        _gridVBOs = [[GSNewGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+            GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minP];
+            return [[GSChunkVBOs alloc] initWithChunkGeometry:geometry glContext:_glContext];
+        }];
+
+        // Each chunk VBO object depends on the single, corresponding chunk geometry object.
+        [_gridGeometryData registerDependentGrid:_gridVBOs mapping:^NSSet *(GLKVector3 p) {
+            GSBoxedVector *boxedP = [GSBoxedVector boxedVectorWithVector:p];
+            return [[NSSet alloc] initWithArray:@[boxedP]];
         }];
 
         // Do a full refresh fo the active region
@@ -121,8 +135,8 @@
         _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent];
         [_activeRegion updateWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)
                                               camera:cam
-                                       chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
-                                           return [self chunkGeometryAtPoint:p];
+                                       chunkProducer:^GSChunkVBOs *(GLKVector3 p) {
+                                           return [self chunkVBOsAtPoint:p];
                                        }];
     }
     
@@ -162,7 +176,7 @@
     
     glTranslatef(0.5, 0.5, 0.5);
     
-    [_activeRegion drawWithVBOGenerationLimit:_numVBOGenerationsAllowedPerFrame];
+    [_activeRegion draw];
     
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -172,66 +186,13 @@
     [_terrainShader unbind];
 }
 
-// Try to update asynchronously dirty chunk sunlight. Skip any that would block due to lock contention.
-- (void)tryToUpdateDirtySunlight
-{
-    void (^b)(GLKVector3) = ^(GLKVector3 p) {
-        GSChunkVoxelData *voxels;
-
-        // Avoid blocking to take the lock in GSOldGrid.
-        if([self tryToGetChunkVoxelsAtPoint:p chunk:&voxels]) {
-            dispatch_async(_chunkTaskQueue, ^{
-                if(!voxels.dirtySunlight) {
-                    return;
-                }
-
-                GSNeighborhood *neighborhood = nil;
-                if(![self tryToGetNeighborhoodAtPoint:voxels.centerP neighborhood:&neighborhood]) {
-                    return;
-                }
-                
-                [voxels tryToRebuildSunlightWithNeighborhood:neighborhood completionHandler:^{
-                    GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:p];
-                    geometry.dirty = YES;
-                    [geometry tryToUpdateWithVoxelData:neighborhood]; // make an effort to update geometry immediately
-                }];
-            });
-        }
-    };
-    
-    [_activeRegion enumeratePointsInActiveRegionNearCamera:_camera usingBlock:b];
-}
-
-// Try to asynchronously update dirty chunk geometry. Skip any that would block due to lock contention.
-- (void)tryToUpdateDirtyGeometry
-{
-    void (^b)(GSChunkGeometryData *) = ^(GSChunkGeometryData *geometry) {
-        dispatch_async(_chunkTaskQueue, ^{
-            if(!geometry.dirty) {
-                return;
-            }
-
-            GSNeighborhood *neighborhood = nil;
-            if(![self tryToGetNeighborhoodAtPoint:geometry.centerP neighborhood:&neighborhood]) {
-                return;
-            }
-
-            [geometry tryToUpdateWithVoxelData:neighborhood];
-        });
-    };
-    
-    [_activeRegion enumerateActiveChunkWithBlock:b];
-}
-
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
     [_activeRegion updateWithCameraModifiedFlags:flags
                                           camera:_camera
-                                   chunkProducer:^GSChunkGeometryData *(GLKVector3 p) {
-                                       return [self chunkGeometryAtPoint:p];
+                                   chunkProducer:^GSChunkVBOs *(GLKVector3 p) {
+                                       return [self chunkVBOsAtPoint:p];
                                    }];
-    [self tryToUpdateDirtySunlight];
-    [self tryToUpdateDirtyGeometry];
 }
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)newBlock
@@ -245,13 +206,13 @@
         *block = newBlock;
     }];
     
-    /* Invalidate sunlight data and geometry for the modified chunk and surrounding chunks.
+    /* FIXME: Invalidate sunlight data and geometry for the modified chunk and surrounding chunks.
      * Chunks' sunlight and geometry will be updated on the next update tick.
      */
-    [[self neighborhoodAtPoint:pos] enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
-        voxels.dirtySunlight = YES;
-        [self chunkGeometryAtPoint:voxels.centerP].dirty = YES;
-    }];
+    //[[self neighborhoodAtPoint:pos] enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
+    //    voxels.dirtySunlight = YES;
+    //    [self chunkGeometryAtPoint:voxels.minP].dirty = YES;
+    //}];
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel
@@ -421,6 +382,13 @@
 
     *outNeighborhood = neighborhood;
     return YES;
+}
+
+- (GSChunkVBOs *)chunkVBOsAtPoint:(GLKVector3)p
+{
+    assert(p.y >= 0); // world does not extend below y=0
+    assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    return [_gridVBOs objectAtPoint:p];
 }
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p

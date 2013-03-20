@@ -6,11 +6,9 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
-#import "GSChunkGeometryData.h"
-
 @class GSCamera;
 @class GSFrustum;
+@class GSChunkVBOs;
 
 
 @interface GSActiveRegion : NSObject
@@ -20,9 +18,9 @@
 - (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent;
 - (void)updateWithCameraModifiedFlags:(unsigned)flags
                                camera:(GSCamera *)camera
-                        chunkProducer:(GSChunkGeometryData * (^)(GLKVector3 p))chunkProducer;
-- (void)drawWithVBOGenerationLimit:(NSUInteger)limit;
-- (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkGeometryData *))block;
+                        chunkProducer:(GSChunkVBOs * (^)(GLKVector3 p))chunkProducer;
+- (void)draw;
+- (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkVBOs *))block;
 - (NSArray *)pointsListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedPoints;
 - (NSArray *)chunksListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedChunks;
 - (void)enumeratePointsInActiveRegionNearCamera:(GSCamera *)camera usingBlock:(void (^)(GLKVector3 p))myBlock;

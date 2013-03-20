@@ -10,35 +10,22 @@
 #import <OpenGL/gl.h>
 #import <OpenGL/OpenGL.h>
 #import "GSChunkData.h"
-#import "GSVertex.h"
 #import "Voxel.h"
 
 
+struct vertex;
 @class GSNeighborhood;
 @class GSBlockMesh;
 
 
 @interface GSChunkGeometryData : GSChunkData
 
-@property (assign) BOOL dirty;
-@property (assign) BOOL visible; // Used by GSChunkStore to note chunks it has determined are visible.
-@property (assign) GLKVector3 *corners;
-
 /* Returns the shared block mesh factory for the specified voxel type. */
 + (GSBlockMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type;
 
-- (id)initWithMinP:(GLKVector3)minP
-            folder:(NSURL *)folder
-    groupForSaving:(dispatch_group_t)groupForSaving
-    queueForSaving:(dispatch_queue_t)queueForSaving
-         glContext:(NSOpenGLContext *)_glContext;
+- (id)initWithMinP:(GLKVector3)minP neighborhood:(GSNeighborhood *)neighborhood;
 
-/* Try to immediately update geometry using voxel data for the local neighborhood. If it is not possible to immediately take all
- * the locks on necessary resources then this method aborts the update and returns NO. If it is able to complete the update
- * successfully then it returns YES and marks this GSChunkGeometryData as being clean. (dirty=NO)
- */
-- (BOOL)tryToUpdateWithVoxelData:(GSNeighborhood *)neighborhood;
-
-- (BOOL)drawGeneratingVBOsIfNecessary:(BOOL)allowVBOGeneration;
+/* Copy the chunk vertex buffer to a new buffer and return that in `dst'. Return the number of vertices in the buffer. */
+- (GLsizei)copyVertsToBuffer:(struct vertex **)dst;
 
 @end
