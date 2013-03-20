@@ -21,7 +21,6 @@
 #import "GSBlockMeshOutsideCorner.h"
 #import "SyscallWrappers.h"
 
-#define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
 
 struct chunk_geometry_header
 {
@@ -39,15 +38,14 @@ static void applyLightToVertices(size_t numChunkVerts,
 
 @interface GSChunkGeometryData ()
 
-- (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)voxelData;
++ (NSData *)dataWithVoxelNeighborhood:(GSNeighborhood *)neighborhood minP:(GLKVector3)minCorner;
 
 @end
 
 
 @implementation GSChunkGeometryData
 {
-    GLsizei _numChunkVerts;
-    struct vertex *_vertsBuffer;
+    NSData *_data;
 }
 
 @synthesize minP;
@@ -72,56 +70,68 @@ static void applyLightToVertices(size_t numChunkVerts,
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.geometry.dat", minP.x, minP.y, minP.z];
 }
 
-- (id)initWithMinP:(GLKVector3)mp neighborhood:(GSNeighborhood *)neighborhood
+- (id)initWithMinP:(GLKVector3)minCorner
+            folder:(NSURL *)folder
+      neighborhood:(GSNeighborhood *)neighborhood
 {
     self = [super init];
     if (self) {
-        minP = mp;
-        [neighborhood readerAccessToVoxelDataUsingBlock:^{
-            [self fillGeometryBuffersUsingVoxelData:neighborhood];
-        }];
+        minP = minCorner;
+        
+        NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP]
+                            relativeToURL:folder];
+        NSError *error = nil;
+        _data = [NSData dataWithContentsOfFile:[url path]
+                                       options:NSDataReadingMapped
+                                         error:&error];
+
+        if(!_data) {
+            NSLog(@"failed to map the geometry data file at \"%@\": %@", url, error);
+            [neighborhood readerAccessToVoxelDataUsingBlock:^{
+                _data = [GSChunkGeometryData dataWithVoxelNeighborhood:neighborhood minP:self.minP];
+                [_data writeToURL:url atomically:YES];
+            }];
+        }
+
+        assert(_data);
     }
     
     return self;
-}
-
-- (void)dealloc
-{
-    free(_vertsBuffer);
 }
 
 - (GLsizei)copyVertsToBuffer:(struct vertex **)dst
 {
     assert(dst);
 
-    const GLsizei count = _numChunkVerts;
-    struct vertex *vertsCopy = malloc(_numChunkVerts * count);
+    const struct chunk_geometry_header *restrict header = [_data bytes];
+    const struct vertex * restrict vertsBuffer = ((void *)header) + sizeof(struct chunk_geometry_header);
+
+    // consistency checks
+    assert(header->w == CHUNK_SIZE_X);
+    assert(header->h == CHUNK_SIZE_Y);
+    assert(header->d == CHUNK_SIZE_Z);
+    assert(header->len == (header->numChunkVerts * sizeof(struct vertex)));
+
+    struct vertex *vertsCopy = malloc(header->len);
     if(!vertsCopy) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating vertsCopy in -copyVertsToBuffer:."];
     }
 
-    memcpy(vertsCopy, _vertsBuffer, sizeof(struct vertex) * count);
+    memcpy(vertsCopy, vertsBuffer, header->len);
 
     *dst = vertsCopy;
-    return count;
+    return header->numChunkVerts;
 }
 
-/* Completely regenerate geometry for the chunk.
- *
- * Assumes caller is already holding the following locks:
- * "lockGeometry"
- * "lockVoxelData" for all chunks in the neighborhood (for reading).
- * "sunlight" must be locked for reading for the center chunk in the neighborhood.
- */
-- (void)fillGeometryBuffersUsingVoxelData:(GSNeighborhood *)neighborhood
+// Completely regenerate geometry for the chunk.
++ (NSData *)dataWithVoxelNeighborhood:(GSNeighborhood *)neighborhood minP:(GLKVector3)minCorner
 {
     GLKVector3 pos;
     NSMutableArray *vertices;
 
     assert(neighborhood);
 
-    GLKVector3 minCorner = self.minP;
-    GLKVector3 maxCorner = GLKVector3Add(minCorner, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+    const GLKVector3 maxCorner = GLKVector3Add(minCorner, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
 
     vertices = [[NSMutableArray alloc] init];
 
@@ -143,38 +153,39 @@ static void applyLightToVertices(size_t numChunkVerts,
         }
     }
     
-    _numChunkVerts = (GLsizei)[vertices count];
-    assert(_numChunkVerts % 4 == 0); // chunk geometry is all done with quads
+    const GLsizei numChunkVerts = (GLsizei)[vertices count];
+    assert(numChunkVerts % 4 == 0); // chunk geometry is all done with quads
+
+    const uint32_t len = numChunkVerts * sizeof(struct vertex);
+    const size_t capacity = sizeof(struct chunk_geometry_header) + len;
+    NSMutableData *data = [[NSMutableData alloc] initWithBytesNoCopy:malloc(capacity) length:capacity freeWhenDone:YES];
+
+    struct chunk_geometry_header * header = [data mutableBytes];
+    struct vertex * vertsBuffer = (void *)header + sizeof(struct chunk_geometry_header);
+
+    header->w = CHUNK_SIZE_X;
+    header->h = CHUNK_SIZE_Y;
+    header->d = CHUNK_SIZE_Z;
+    header->numChunkVerts = numChunkVerts;
+    header->len = len;
 
     // Take the vertices array and generate raw buffers for OpenGL to consume.
-    _vertsBuffer = allocateVertexMemory(_numChunkVerts);
-    for(GLsizei i=0; i<_numChunkVerts; ++i)
+    for(GLsizei i=0; i<numChunkVerts; ++i)
     {
         GSVertex *v = vertices[i];
-        _vertsBuffer[i] = v.v;
+        vertsBuffer[i] = v.v;
     }
 
     // Iterate over all vertices and calculate lighting.
-    applyLightToVertices(_numChunkVerts, _vertsBuffer,
+    applyLightToVertices(numChunkVerts, vertsBuffer,
                          [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER].sunlight,
                          minCorner);
+
+    return data;
 }
 
 @end
 
-
-// Allocate a buffer for use in geometry generation and VBOs.
-static void * allocateVertexMemory(size_t numVerts)
-{
-    assert(numVerts > 0);
-    
-    void *buffer = malloc(sizeof(struct vertex) * numVerts);
-    if(!buffer) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating chunk buffer."];
-    }
-    
-    return buffer;
-}
 
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct vertex *vertsBuffer,

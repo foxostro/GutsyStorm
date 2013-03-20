@@ -119,6 +119,7 @@
                              factory:^NSObject <GSGridItem> * (GLKVector3 minP) {
                                  GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minP];
                                  return [[GSChunkGeometryData alloc] initWithMinP:minP
+                                                                           folder:_folder
                                                                      neighborhood:neighborhood];
                              }];
 

@@ -310,23 +310,9 @@
 		AC3767A7163E04E100BAE03F /* Terrain Internals */ = {
 			isa = PBXGroup;
 			children = (
+				ACE6ABEC16F9985F00DE88E3 /* Grid */,
 				ACE41C4916938D09003C572B /* Block Mesh Objects */,
 				ACDD767016F6623A008169D1 /* Util */,
-				AC56651416F03B440041E34F /* GSGridItem.h */,
-				13C8BE161602854300403815 /* GSNeighborhood.h */,
-				13C8BE171602854300403815 /* GSNeighborhood.m */,
-				4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */,
-				4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */,
-				4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */,
-				4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */,
-				AC48C44416F563E40017BA94 /* GSGrid.h */,
-				AC48C44516F563E40017BA94 /* GSGrid.m */,
-				ACE6ABE516F984D300DE88E3 /* GSGridGeometry.h */,
-				ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */,
-				ACDD767416F6E556008169D1 /* GSChunkVBOs.h */,
-				ACDD767516F6E557008169D1 /* GSChunkVBOs.m */,
-				13C8BE1B16038DC000403815 /* GSActiveRegion.h */,
-				13C8BE1C16038DC000403815 /* GSActiveRegion.m */,
 				AC5B2802151E2C1D0045B6E4 /* GSChunkStore.h */,
 				AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */,
 			);
@@ -345,6 +331,10 @@
 		ACDD767016F6623A008169D1 /* Util */ = {
 			isa = PBXGroup;
 			children = (
+				13C8BE161602854300403815 /* GSNeighborhood.h */,
+				13C8BE171602854300403815 /* GSNeighborhood.m */,
+				13C8BE1B16038DC000403815 /* GSActiveRegion.h */,
+				13C8BE1C16038DC000403815 /* GSActiveRegion.m */,
 				ACE6ABEA16F993D400DE88E3 /* Voxel.m */,
 				ACDD767116F6629D008169D1 /* GSBuffer.h */,
 				ACDD767216F6629D008169D1 /* GSBuffer.m */,
@@ -369,6 +359,24 @@
 				AC2B281B1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m */,
 			);
 			name = "Block Mesh Objects";
+			sourceTree = "<group>";
+		};
+		ACE6ABEC16F9985F00DE88E3 /* Grid */ = {
+			isa = PBXGroup;
+			children = (
+				AC56651416F03B440041E34F /* GSGridItem.h */,
+				AC48C44416F563E40017BA94 /* GSGrid.h */,
+				AC48C44516F563E40017BA94 /* GSGrid.m */,
+				4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */,
+				4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */,
+				4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */,
+				4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */,
+				ACDD767416F6E556008169D1 /* GSChunkVBOs.h */,
+				ACDD767516F6E557008169D1 /* GSChunkVBOs.m */,
+				ACE6ABE516F984D300DE88E3 /* GSGridGeometry.h */,
+				ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */,
+			);
+			name = Grid;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

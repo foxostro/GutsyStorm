@@ -15,6 +15,10 @@
 #import "GSChunkGeometryData.h"
 #import "GSVertex.h"
 
+
+#define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
+
+
 extern int checkGLErrors(void);
 static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
 
@@ -110,7 +114,7 @@ typedef GLint index_t;
     const index_t * const indices = [GSChunkVBOs sharedIndexBuffer]; // TODO: index buffer object
 
     assert(checkGLErrors() == 0);
-    assert(numIndicesForDrawing < SHARED_INDEX_BUFFER_LEN);
+    assert(_numIndicesForDrawing < SHARED_INDEX_BUFFER_LEN);
     assert(indices);
 
     glBindBuffer(GL_ARRAY_BUFFER, _vbo);
