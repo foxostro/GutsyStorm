@@ -6,7 +6,7 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
-@interface GSGridGeometry : GSNewGrid
+@interface GSGridGeometry : GSGrid
 
 - (id)initWithCacheFolder:(NSURL *)folder factory:(grid_item_factory_t)factory;
 

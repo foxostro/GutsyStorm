@@ -12,7 +12,6 @@
 		13C8BE1D16038DC000403815 /* GSActiveRegion.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE1C16038DC000403815 /* GSActiveRegion.m */; };
 		4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */; };
 		4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */; };
-		4A2310C7153E112900A4EBE6 /* GSChunkData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C6153E112900A4EBE6 /* GSChunkData.m */; };
 		4A2CCFF71513C3FC006C6551 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A2CCFF61513C3FC006C6551 /* Cocoa.framework */; };
 		4A2CD0011513C3FC006C6551 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CCFFF1513C3FC006C6551 /* InfoPlist.strings */; };
 		4A2CD0031513C3FC006C6551 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CD0021513C3FC006C6551 /* main.m */; };
@@ -39,8 +38,7 @@
 		AC3767A2163DFB4000BAE03F /* GutsyStormErrorCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A1163DFB4000BAE03F /* GutsyStormErrorCodes.m */; };
 		AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A5163DFD4200BAE03F /* GSTerrain.m */; };
 		AC3767AA163E053400BAE03F /* GSTerrainCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A9163E053400BAE03F /* GSTerrainCursor.m */; };
-		AC3EF787161030DE00323C25 /* GSOldGrid.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3EF786161030DD00323C25 /* GSOldGrid.m */; };
-		AC48C44616F563E40017BA94 /* GSNewGrid.m in Sources */ = {isa = PBXBuildFile; fileRef = AC48C44516F563E40017BA94 /* GSNewGrid.m */; };
+		AC48C44616F563E40017BA94 /* GSGrid.m in Sources */ = {isa = PBXBuildFile; fileRef = AC48C44516F563E40017BA94 /* GSGrid.m */; };
 		AC5B2800151DC7BB0045B6E4 /* GSNoise.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */; };
 		AC5B2804151E2C1D0045B6E4 /* GSChunkStore.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */; };
 		AC96B179168CF2A500FF7FFC /* GSBlockMeshCube.m in Sources */ = {isa = PBXBuildFile; fileRef = AC96B178168CF2A500FF7FFC /* GSBlockMeshCube.m */; };
@@ -72,8 +70,6 @@
 		4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkVoxelData.m; sourceTree = "<group>"; };
 		4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkGeometryData.h; sourceTree = "<group>"; };
 		4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkGeometryData.m; sourceTree = "<group>"; };
-		4A2310C5153E112900A4EBE6 /* GSChunkData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkData.h; sourceTree = "<group>"; };
-		4A2310C6153E112900A4EBE6 /* GSChunkData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkData.m; sourceTree = "<group>"; };
 		4A2CCFF21513C3FC006C6551 /* GutsyStorm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GutsyStorm.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A2CCFF61513C3FC006C6551 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		4A2CCFF91513C3FC006C6551 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -126,10 +122,8 @@
 		AC3767A5163DFD4200BAE03F /* GSTerrain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrain.m; sourceTree = "<group>"; };
 		AC3767A8163E053400BAE03F /* GSTerrainCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainCursor.h; sourceTree = "<group>"; };
 		AC3767A9163E053400BAE03F /* GSTerrainCursor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainCursor.m; sourceTree = "<group>"; };
-		AC3EF785161030DD00323C25 /* GSOldGrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOldGrid.h; sourceTree = "<group>"; };
-		AC3EF786161030DD00323C25 /* GSOldGrid.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOldGrid.m; sourceTree = "<group>"; };
-		AC48C44416F563E40017BA94 /* GSNewGrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSNewGrid.h; sourceTree = "<group>"; };
-		AC48C44516F563E40017BA94 /* GSNewGrid.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSNewGrid.m; sourceTree = "<group>"; };
+		AC48C44416F563E40017BA94 /* GSGrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGrid.h; sourceTree = "<group>"; };
+		AC48C44516F563E40017BA94 /* GSGrid.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGrid.m; sourceTree = "<group>"; };
 		AC56651416F03B440041E34F /* GSGridItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridItem.h; sourceTree = "<group>"; };
 		AC5B27FE151DC7BA0045B6E4 /* GSNoise.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSNoise.h; sourceTree = "<group>"; };
 		AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSNoise.m; sourceTree = "<group>"; };
@@ -321,16 +315,12 @@
 				AC56651416F03B440041E34F /* GSGridItem.h */,
 				13C8BE161602854300403815 /* GSNeighborhood.h */,
 				13C8BE171602854300403815 /* GSNeighborhood.m */,
-				4A2310C5153E112900A4EBE6 /* GSChunkData.h */,
-				4A2310C6153E112900A4EBE6 /* GSChunkData.m */,
 				4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */,
 				4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */,
 				4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */,
 				4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */,
-				AC48C44416F563E40017BA94 /* GSNewGrid.h */,
-				AC48C44516F563E40017BA94 /* GSNewGrid.m */,
-				AC3EF785161030DD00323C25 /* GSOldGrid.h */,
-				AC3EF786161030DD00323C25 /* GSOldGrid.m */,
+				AC48C44416F563E40017BA94 /* GSGrid.h */,
+				AC48C44516F563E40017BA94 /* GSGrid.m */,
 				ACE6ABE516F984D300DE88E3 /* GSGridGeometry.h */,
 				ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */,
 				ACDD767416F6E556008169D1 /* GSChunkVBOs.h */,
@@ -468,12 +458,10 @@
 				4AE4E552153B982100FC3047 /* GSVertex.m in Sources */,
 				4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */,
 				4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */,
-				4A2310C7153E112900A4EBE6 /* GSChunkData.m in Sources */,
 				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
 				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,
 				13C8BE191602854300403815 /* GSNeighborhood.m in Sources */,
 				13C8BE1D16038DC000403815 /* GSActiveRegion.m in Sources */,
-				AC3EF787161030DE00323C25 /* GSOldGrid.m in Sources */,
 				AC3767A2163DFB4000BAE03F /* GutsyStormErrorCodes.m in Sources */,
 				AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */,
 				AC3767AA163E053400BAE03F /* GSTerrainCursor.m in Sources */,
@@ -484,7 +472,7 @@
 				ACE41C4D1693AE1A003C572B /* GSBlockMesh.m in Sources */,
 				ACC82D2716A1E6C000F56FB8 /* GSFace.m in Sources */,
 				AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */,
-				AC48C44616F563E40017BA94 /* GSNewGrid.m in Sources */,
+				AC48C44616F563E40017BA94 /* GSGrid.m in Sources */,
 				ACDD767316F6629D008169D1 /* GSBuffer.m in Sources */,
 				ACDD767616F6E559008169D1 /* GSChunkVBOs.m in Sources */,
 				ACE6ABE716F984D300DE88E3 /* GSGridGeometry.m in Sources */,

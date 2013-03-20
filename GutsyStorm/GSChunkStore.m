@@ -18,8 +18,7 @@
 #import "GSChunkGeometryData.h"
 #import "GSChunkVBOs.h"
 
-#import "GSOldGrid.h"
-#import "GSNewGrid.h"
+#import "GSGrid.h"
 #import "GSGridGeometry.h"
 
 
@@ -41,9 +40,9 @@
 
 @implementation GSChunkStore
 {
-    GSNewGrid *_gridVBOs;
+    GSGrid *_gridVBOs;
     GSGridGeometry *_gridGeometryData;
-    GSOldGrid *_gridVoxelData;
+    GSGrid *_gridVoxelData;
 
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _chunkTaskQueue;
@@ -111,10 +110,9 @@
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
         dispatch_retain(_queueForSaving);
         
-        NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
-        
-        size_t areaXZ = (w/CHUNK_SIZE_X) * (w/CHUNK_SIZE_Z);
-        _gridVoxelData = [[GSOldGrid alloc] initWithActiveRegionArea:areaXZ];
+        _gridVoxelData = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+            return [self newChunkWithMinimumCorner:minP];
+        }];
 
         _gridGeometryData = [[GSGridGeometry alloc]
                              initWithCacheFolder:_folder
@@ -124,26 +122,32 @@
                                                                      neighborhood:neighborhood];
                              }];
 
-        _gridVBOs = [[GSNewGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+        _gridVBOs = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
             GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minP];
             return [[GSChunkVBOs alloc] initWithChunkGeometry:geometry glContext:_glContext];
         }];
 
-        /*// Each chunk geometry object depends on the single, corresponding neighborhood of voxel data objects.
+        // Each chunk geometry object depends on the single, corresponding neighborhood of voxel data objects.
         [_gridVoxelData registerDependentGrid:_gridGeometryData mapping:^NSSet *(GLKVector3 p) {
-            assert(!"unimplemented");
-            GSBoxedVector *boxedP = [GSBoxedVector boxedVectorWithVector:p];
-            return [[NSSet alloc] initWithArray:@[boxedP]];
-        }];*/
+            NSMutableArray *correspondingPoint = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
+            for(neighbor_index_t i=0; CHUNK_NUM_NEIGHBORS; ++i)
+            {
+                GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+                GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, offset)];
+                [correspondingPoint addObject:boxedPoint];
+            }
+            return [[NSSet alloc] initWithArray:correspondingPoint];
+        }];
 
         // Each chunk VBO object depends on the single, corresponding chunk geometry object.
         [_gridGeometryData registerDependentGrid:_gridVBOs mapping:^NSSet *(GLKVector3 p) {
-            GSBoxedVector *boxedP = [GSBoxedVector boxedVectorWithVector:p];
-            return [[NSSet alloc] initWithArray:@[boxedP]];
+            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:p];
+            return [[NSSet alloc] initWithArray:@[boxedPoint]];
         }];
 
         // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
+        NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
         _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent];
         [_activeRegion updateWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)
@@ -415,13 +419,7 @@
 {
     assert(p.y >= 0); // world does not extend below y=0
     assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
-    
-    GSChunkVoxelData *v = [_gridVoxelData objectAtPoint:p
-                                          objectFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-                                              return [self newChunkWithMinimumCorner:minP];
-                                          }];
-    
-    return v;
+    return [_gridVoxelData objectAtPoint:p];
 }
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk
@@ -433,11 +431,7 @@
     assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
     assert(chunk);
 
-    success = [_gridVoxelData tryToGetObjectAtPoint:p
-                                            object:&v
-                                     objectFactory:^id(GLKVector3 minP) {
-                                         return [self newChunkWithMinimumCorner:minP];
-                                     }];
+    success = [_gridVoxelData tryToGetObjectAtPoint:p object:&v];
 
     if(success) {
         *chunk = v;

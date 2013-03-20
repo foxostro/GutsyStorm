@@ -11,19 +11,19 @@
 #import "GLKVector3Extra.h"
 #import "GSIntegerVector3.h"
 #import "Voxel.h"
-#import "GSNewGrid.h"
+#import "GSGrid.h"
 #import "GSReaderWriterLock.h"
 #import "GSBoxedVector.h"
 
 
-@interface GSNewGrid ()
+@interface GSGrid ()
 
 - (NSObject <GSGridItem> *)searchForItemAtPosition:(GLKVector3)minP bucket:(NSMutableArray *)bucket;
 
 @end
 
 
-@implementation GSNewGrid
+@implementation GSGrid
 {
     GSReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
 
@@ -295,7 +295,7 @@
 
 - (void)invalidateItemsDependentOnItemAtPoint:(GLKVector3)p
 {
-    for(GSNewGrid *grid in dependentGrids)
+    for(GSGrid *grid in dependentGrids)
     {
         NSSet * (^mapping)(GLKVector3) = [mappingToDependentGrids objectForKey:[grid description]];
         NSSet *correspondingPoints = mapping(p);
@@ -306,7 +306,7 @@
     }
 }
 
-- (void)registerDependentGrid:(GSNewGrid *)grid
+- (void)registerDependentGrid:(GSGrid *)grid
                       mapping:(NSSet * (^)(GLKVector3))mapping
 {
     [dependentGrids addObject:grid];

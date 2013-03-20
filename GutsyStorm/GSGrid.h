@@ -10,7 +10,7 @@
 #import "GSGridItem.h"
 #import "GSReaderWriterLock.h"
 
-@interface GSNewGrid : NSObject
+@interface GSGrid : NSObject
 
 - (id)initWithFactory:(grid_item_factory_t)factory;
 
@@ -49,7 +49,7 @@
 /* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns the points in
  * 'dependentGrid' which actually depend on that point.
  */
-- (void)registerDependentGrid:(GSNewGrid *)dependentGrid
+- (void)registerDependentGrid:(GSGrid *)dependentGrid
                       mapping:(NSSet * (^)(GLKVector3))mapping;
 
 /* Applies the given transformation function to the item at the specified point.

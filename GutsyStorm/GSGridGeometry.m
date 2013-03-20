@@ -10,7 +10,7 @@
 #import <GLKit/GLKVector3.h>
 #import <GLKit/GLKQuaternion.h>
 #import "GSIntegerVector3.h"
-#import "GSNewGrid.h"
+#import "GSGrid.h"
 #import "GSChunkGeometryData.h"
 #import "GSGridGeometry.h"
 
