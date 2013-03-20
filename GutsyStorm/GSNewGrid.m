@@ -13,6 +13,14 @@
 #import "GSReaderWriterLock.h"
 #import "GSBoxedVector.h"
 
+
+@interface GSNewGrid ()
+
+- (NSObject <GSGridItem> *)searchForItemAtPosition:(GLKVector3)minP bucket:(NSMutableArray *)bucket;
+
+@end
+
+
 @implementation GSNewGrid
 {
     GSReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
@@ -147,12 +155,7 @@
         return NO;
     }
 
-    for(NSObject <GSGridItem> *item in bucket)
-    {
-        if(GLKVector3AllEqualToVector3(item.minP, minP)) {
-            anObject = item;
-        }
-    }
+    anObject = [self searchForItemAtPosition:minP bucket:bucket];
 
     if(!anObject) {
         anObject = _factory(minP);
@@ -203,15 +206,13 @@
 
     [lock lock];
 
-    for(NSObject <GSGridItem> *item in bucket)
-    {
-        if(GLKVector3AllEqualToVector3(item.minP, minP)) {
-            if([item respondsToSelector:@selector(itemWillBeEvicted)]) {
-                [item itemWillBeEvicted];
-            }
-            [bucket removeObject:item];
-            break;
+    NSObject <GSGridItem> *foundItem = [self searchForItemAtPosition:minP bucket:bucket];
+
+    if(foundItem) {
+        if([foundItem respondsToSelector:@selector(itemWillBeEvicted)]) {
+            [foundItem itemWillBeEvicted];
         }
+        [bucket removeObject:foundItem];
     }
 
     [lock unlock];
@@ -239,6 +240,21 @@
     [_lockTheTableItself unlockForWriting];
 }
 
+- (NSObject <GSGridItem> *)searchForItemAtPosition:(GLKVector3)minP bucket:(NSMutableArray *)bucket
+{
+    assert(bucket);
+
+    for(NSObject <GSGridItem> *item in bucket)
+    {
+        assert(item);
+        if(GLKVector3AllEqualToVector3(item.minP, minP)) {
+            return item;
+        }
+    }
+
+    return nil;
+}
+
 - (void)invalidateItemAtPoint:(GLKVector3)p
 {
     [_lockTheTableItself lockForReading];
@@ -254,13 +270,7 @@
 
     NSObject <GSGridItem> *foundItem = nil;
 
-    for(NSObject <GSGridItem> *item in bucket)
-    {
-        if(GLKVector3AllEqualToVector3(item.minP, minP)) {
-            foundItem = item;
-            break;
-        }
-    }
+    foundItem = [self searchForItemAtPosition:minP bucket:bucket];
 
     if(foundItem) {
         if([foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
