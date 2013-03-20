@@ -6,8 +6,9 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
+#import <GLKit/GLKQuaternion.h>
 #import "GSBuffer.h"
-#import "Chunk.h"
+#import "Voxel.h"
 #import "GutsyStormErrorCodes.h"
 #import "SyscallWrappers.h"
 

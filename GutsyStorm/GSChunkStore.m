@@ -7,7 +7,7 @@
 //
 
 #import <GLKit/GLKMath.h>
-#import "Chunk.h"
+#import "GSIntegerVector3.h"
 #import "GSRay.h"
 #import "GSCamera.h"
 #import "GSActiveRegion.h"
@@ -115,7 +115,7 @@
         
         size_t areaXZ = (w/CHUNK_SIZE_X) * (w/CHUNK_SIZE_Z);
         _gridVoxelData = [[GSOldGrid alloc] initWithActiveRegionArea:areaXZ];
-        
+
         _gridGeometryData = [[GSGridGeometry alloc]
                              initWithCacheFolder:_folder
                              factory:^NSObject <GSGridItem> * (GLKVector3 minP) {
@@ -128,6 +128,13 @@
             GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minP];
             return [[GSChunkVBOs alloc] initWithChunkGeometry:geometry glContext:_glContext];
         }];
+
+        /*// Each chunk geometry object depends on the single, corresponding neighborhood of voxel data objects.
+        [_gridVoxelData registerDependentGrid:_gridGeometryData mapping:^NSSet *(GLKVector3 p) {
+            assert(!"unimplemented");
+            GSBoxedVector *boxedP = [GSBoxedVector boxedVectorWithVector:p];
+            return [[NSSet alloc] initWithArray:@[boxedP]];
+        }];*/
 
         // Each chunk VBO object depends on the single, corresponding chunk geometry object.
         [_gridGeometryData registerDependentGrid:_gridVBOs mapping:^NSSet *(GLKVector3 p) {

@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <GLKit/GLKVector3.h>
 #import <GLKit/GLKQuaternion.h>
-#import "Chunk.h"
+#import "GSIntegerVector3.h"
 #import "GSNewGrid.h"
 #import "GSChunkGeometryData.h"
 #import "GSGridGeometry.h"

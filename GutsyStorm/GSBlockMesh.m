@@ -12,7 +12,6 @@
 #import "Voxel.h"
 #import "GSFace.h"
 #import "GSNeighborhood.h"
-#import "GSChunkData.h"
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"
 

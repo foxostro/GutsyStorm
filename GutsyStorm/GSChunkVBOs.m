@@ -9,8 +9,9 @@
 #import <Foundation/Foundation.h>
 #import <GLKit/GLKVector3.h>
 #import <GLKit/GLKQuaternion.h>
-#import "GSChunkData.h"
+#import "GSGridItem.h"
 #import "GSChunkVBOs.h"
+#import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSVertex.h"
 
@@ -36,6 +37,8 @@ typedef GLint index_t;
     GLuint _vbo;
     NSOpenGLContext *_glContext;
 }
+
+@synthesize minP;
 
 + (index_t *)sharedIndexBuffer
 {
@@ -64,11 +67,12 @@ typedef GLint index_t;
     assert(geometry);
     assert(context);
     
-    if(self = [super initWithMinP:geometry.minP]) {
+    if(self = [super init]) {
         struct vertex *vertsBuffer = NULL;
         _numIndicesForDrawing = [geometry copyVertsToBuffer:&vertsBuffer];
         _glContext = context;
         _vbo = 0;
+        minP = geometry.minP;
 
         [context makeCurrentContext];
         CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread

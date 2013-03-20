@@ -11,7 +11,7 @@
 #import <OpenGL/glu.h>
 #import <GLKit/GLKMath.h>
 #import "GSCamera.h"
-#import "Chunk.h"
+#import "GSIntegerVector3.h"
 #import "GSBuffer.h" // for buffer_element_t, needed by Voxel.h
 #import "Voxel.h"
 

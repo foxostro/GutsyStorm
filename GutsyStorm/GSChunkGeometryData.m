@@ -7,7 +7,7 @@
 //
 
 #import <GLKit/GLKMath.h>
-#import "Chunk.h"
+#import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSChunkVoxelData.h"
 #import "GSRay.h"
@@ -50,6 +50,8 @@ static void applyLightToVertices(size_t numChunkVerts,
     struct vertex *_vertsBuffer;
 }
 
+@synthesize minP;
+
 + (GSBlockMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type
 {
     static GSBlockMesh *factories[NUM_VOXEL_TYPES] = {nil};
@@ -70,10 +72,11 @@ static void applyLightToVertices(size_t numChunkVerts,
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.geometry.dat", minP.x, minP.y, minP.z];
 }
 
-- (id)initWithMinP:(GLKVector3)minP neighborhood:(GSNeighborhood *)neighborhood
+- (id)initWithMinP:(GLKVector3)mp neighborhood:(GSNeighborhood *)neighborhood
 {
-    self = [super initWithMinP:minP];
+    self = [super init];
     if (self) {
+        minP = mp;
         [neighborhood readerAccessToVoxelDataUsingBlock:^{
             [self fillGeometryBuffersUsingVoxelData:neighborhood];
         }];
@@ -117,17 +120,17 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     assert(neighborhood);
 
-    GLKVector3 minP = self.minP;
-    GLKVector3 maxP = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+    GLKVector3 minCorner = self.minP;
+    GLKVector3 maxCorner = GLKVector3Add(minCorner, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
 
     vertices = [[NSMutableArray alloc] init];
 
     // Iterate over all voxels in the chunk and generate geometry.
-    FOR_BOX(pos, minP, maxP)
+    FOR_BOX(pos, minCorner, maxCorner)
     {
         @autoreleasepool
         {
-            GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
+            GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minCorner.x, pos.y-minCorner.y, pos.z-minCorner.z);
             voxel_type_t type = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos].type;
 
             if(type != VOXEL_TYPE_EMPTY) {
@@ -135,7 +138,7 @@ static void applyLightToVertices(size_t numChunkVerts,
                 [factory generateGeometryForSingleBlockAtPosition:pos
                                                        vertexList:vertices
                                                         voxelData:neighborhood
-                                                             minP:minP];
+                                                             minP:minCorner];
             }
         }
     }
@@ -154,7 +157,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     // Iterate over all vertices and calculate lighting.
     applyLightToVertices(_numChunkVerts, _vertsBuffer,
                          [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER].sunlight,
-                         minP);
+                         minCorner);
 }
 
 @end

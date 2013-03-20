@@ -7,7 +7,7 @@
 //
 
 #import <GLKit/GLKMath.h>
-#import "Chunk.h"
+#import "GSIntegerVector3.h"
 #import "GSBuffer.h" // for buffer_element_t, needed by Voxel.h
 #import "Voxel.h"
 #import "GSRay.h"

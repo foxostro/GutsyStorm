@@ -7,8 +7,10 @@
 //
 
 #import <GLKit/GLKVector3.h>
+#import <GLKit/GLKQuaternion.h>
 #import "GLKVector3Extra.h"
-#import "Chunk.h"
+#import "GSIntegerVector3.h"
+#import "Voxel.h"
 #import "GSNewGrid.h"
 #import "GSReaderWriterLock.h"
 #import "GSBoxedVector.h"

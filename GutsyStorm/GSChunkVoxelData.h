@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSChunkData.h"
+#import "GSGridItem.h"
 #import "GSIntegerVector3.h"
 #import "GSReaderWriterLock.h"
 #import "Voxel.h"
@@ -19,7 +19,7 @@ typedef void (^terrain_generator_t)(GLKVector3, voxel_t*);
 typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntegerVector3 minP, GSIntegerVector3 maxP);
 
 
-@interface GSChunkVoxelData : GSChunkData
+@interface GSChunkVoxelData : NSObject <GSGridItem>
 
 @property (readonly, nonatomic) voxel_t *voxelData;
 @property (readonly) GSBuffer *sunlight;

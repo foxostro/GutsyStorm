@@ -7,11 +7,12 @@
 //
 
 #import <GLKit/GLKMath.h>
-#import "Chunk.h"
+#import "GSIntegerVector3.h"
 #import "GSChunkVoxelData.h"
 #import "GSRay.h"
 #import "GSBoxedVector.h"
 #import "GSChunkStore.h"
+#import "GutsyStormErrorCodes.h"
 #import "SyscallWrappers.h"
 
 static const GSIntegerVector3 combinedMinP = {-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z};
@@ -46,6 +47,8 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     int _updateForSunlightInFlight;
 }
 
+@synthesize minP;
+
 + (NSString *)fileNameForVoxelDataFromMinP:(GLKVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
@@ -56,7 +59,7 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.sunlight.dat", minP.x, minP.y, minP.z];
 }
 
-- (id)initWithMinP:(GLKVector3)minP
+- (id)initWithMinP:(GLKVector3)mp
             folder:(NSURL *)folder
     groupForSaving:(dispatch_group_t)groupForSaving
     queueForSaving:(dispatch_queue_t)queueForSaving
@@ -64,9 +67,11 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
          generator:(terrain_generator_t)generator
      postProcessor:(terrain_post_processor_t)postProcessor
 {
-    self = [super initWithMinP:minP];
+    self = [super init];
     if (self) {
         assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
+
+        minP = mp;
         
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         dispatch_retain(_groupForSaving);

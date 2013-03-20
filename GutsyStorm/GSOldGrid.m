@@ -8,9 +8,10 @@
 
 #import <GLKit/GLKMath.h>
 #import "GLKVector3Extra.h" // for GLKVector3_Hash
+#import "GSIntegerVector3.h"
 #import "GSOldGrid.h"
 #import "GSChunkData.h"
-#import "Chunk.h"
+#import "Voxel.h"
 
 @implementation GSOldGrid
 {

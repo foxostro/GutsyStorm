@@ -8,7 +8,7 @@
 
 @class GSChunkGeometryData;
 
-@interface GSChunkVBOs : GSChunkData
+@interface GSChunkVBOs : NSObject <GSGridItem>
 
 - (id)initWithChunkGeometry:(GSChunkGeometryData *)geometry
                   glContext:(NSOpenGLContext *)glContext;

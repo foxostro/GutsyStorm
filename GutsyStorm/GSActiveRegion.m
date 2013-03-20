@@ -8,7 +8,7 @@
 
 #import <GLKit/GLKMath.h>
 #import "GLKVector3Extra.h"
-#import "Chunk.h"
+#import "GSIntegerVector3.h"
 #import "GSActiveRegion.h"
 #import "GSFrustum.h"
 #import "GSIntegerVector3.h"
@@ -17,7 +17,6 @@
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
 #import "GSGridItem.h"
-#import "GSChunkData.h"
 #import "GSChunkVBOs.h"
 
 
@@ -191,12 +190,10 @@
 {
     GLKVector3 cameraEye = [camera cameraEye];
     
-    NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(id a, id b) {
+    NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(NSObject <GSGridItem> *a, NSObject <GSGridItem> *b) {
         static const GLKVector3 halfSize = {CHUNK_SIZE_X / 2, CHUNK_SIZE_Y / 2, CHUNK_SIZE_Z / 2};
-        GSChunkData *chunkA = (GSChunkData *)a;
-        GSChunkData *chunkB = (GSChunkData *)b;
-        GLKVector3 centerA = GLKVector3Add([chunkA minP], halfSize);
-        GLKVector3 centerB = GLKVector3Add([chunkB minP], halfSize);
+        GLKVector3 centerA = GLKVector3Add(a.minP, halfSize);
+        GLKVector3 centerB = GLKVector3Add(b.minP, halfSize);
         float distA = GLKVector3Length(GLKVector3Subtract(centerA, cameraEye));
         float distB = GLKVector3Length(GLKVector3Subtract(centerB, cameraEye));
         return [@(distA) compare:@(distB)];

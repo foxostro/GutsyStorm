@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
 #import <OpenGL/OpenGL.h>
-#import "GSChunkData.h"
+#import "GSGridItem.h"
 #import "Voxel.h"
 
 
@@ -18,7 +18,7 @@ struct vertex;
 @class GSBlockMesh;
 
 
-@interface GSChunkGeometryData : GSChunkData
+@interface GSChunkGeometryData : NSObject <GSGridItem>
 
 + (NSString *)fileNameForGeometryDataFromMinP:(GLKVector3)minP;
 
