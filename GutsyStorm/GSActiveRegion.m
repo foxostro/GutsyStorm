@@ -192,12 +192,13 @@
     GLKVector3 cameraEye = [camera cameraEye];
     
     NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(id a, id b) {
+        static const GLKVector3 halfSize = {CHUNK_SIZE_X / 2, CHUNK_SIZE_Y / 2, CHUNK_SIZE_Z / 2};
         GSChunkData *chunkA = (GSChunkData *)a;
         GSChunkData *chunkB = (GSChunkData *)b;
-        GLKVector3 centerA = GLKVector3MultiplyScalar(GLKVector3Add([chunkA minP], [chunkA maxP]), 0.5);
-        GLKVector3 centerB = GLKVector3MultiplyScalar(GLKVector3Add([chunkB minP], [chunkB maxP]), 0.5);
+        GLKVector3 centerA = GLKVector3Add([chunkA minP], halfSize);
+        GLKVector3 centerB = GLKVector3Add([chunkB minP], halfSize);
         float distA = GLKVector3Length(GLKVector3Subtract(centerA, cameraEye));
-        float distB = GLKVector3Length(GLKVector3Subtract(centerB, cameraEye));;
+        float distB = GLKVector3Length(GLKVector3Subtract(centerB, cameraEye));
         return [@(distA) compare:@(distB)];
     }];
     

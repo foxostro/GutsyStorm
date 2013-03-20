@@ -32,7 +32,6 @@ const GSIntegerVector3 offsetForFace[FACE_NUM_FACES] =
     if (self) {
         // Initialization code here.
         _minP = minP;
-        _maxP = GLKVector3Add(_minP, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
     }
     
     return self;

@@ -24,7 +24,6 @@ extern const GSIntegerVector3 offsetForFace[FACE_NUM_FACES];
 @interface GSChunkData : NSObject <GSGridItem>
 
 @property (readonly, nonatomic) GLKVector3 minP;
-@property (readonly, nonatomic) GLKVector3 maxP;
 
 - (id)initWithMinP:(GLKVector3)minP;
 

@@ -118,7 +118,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     assert(neighborhood);
 
     GLKVector3 minP = self.minP;
-    GLKVector3 maxP = self.maxP;
+    GLKVector3 maxP = GLKVector3Add(minP, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
 
     vertices = [[NSMutableArray alloc] init];
 
