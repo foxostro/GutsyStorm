@@ -131,7 +131,7 @@
         // Each chunk geometry object depends on the single, corresponding neighborhood of voxel data objects.
         [_gridVoxelData registerDependentGrid:_gridGeometryData mapping:^NSSet *(GLKVector3 p) {
             NSMutableArray *correspondingPoint = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
-            for(neighbor_index_t i=0; CHUNK_NUM_NEIGHBORS; ++i)
+            for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
             {
                 GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
                 GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, offset)];
@@ -194,7 +194,12 @@
     
     glTranslatef(0.5, 0.5, 0.5);
     
-    [_activeRegion draw];
+    [_activeRegion enumeratePointsInActiveRegionNearCamera:_camera usingBlock:^(GLKVector3 p) {
+        GSChunkVBOs *vbo = nil;
+        if([_gridVBOs tryToGetObjectAtPoint:p object:&vbo]) {
+            [vbo draw];
+        }
+    }];
     
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -224,13 +229,10 @@
         *block = newBlock;
     }];
     
-    /* FIXME: Invalidate sunlight data and geometry for the modified chunk and surrounding chunks.
-     * Chunks' sunlight and geometry will be updated on the next update tick.
-     */
-    //[[self neighborhoodAtPoint:pos] enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels) {
-    //    voxels.dirtySunlight = YES;
-    //    [self chunkGeometryAtPoint:voxels.minP].dirty = YES;
-    //}];
+    // FIXME: Regenerate sunlight data when blocks are placed.
+    // FIXME: Voxel data should be immutable and modifications should be done through read-copy-update.
+    // FIXME: only invalidate as many geometry objects as could have been affected by the block placement (may be fewer than 9)
+    [_gridVoxelData invalidateItemsDependentOnItemAtPoint:pos];
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel

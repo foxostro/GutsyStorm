@@ -38,8 +38,8 @@
     
     grid_item_factory_t _factory;
 
-    NSMutableArray *dependentGrids;
-    NSMutableDictionary *mappingToDependentGrids;
+    NSMutableArray *_dependentGrids;
+    NSMutableDictionary *_mappingToDependentGrids;
 }
 
 - (id)init
@@ -56,6 +56,8 @@
         _numBuckets = 1024;
         _n = 0;
         _loadLevelToTriggerResize = 0.80;
+        _dependentGrids = [[NSMutableArray alloc] init];
+        _mappingToDependentGrids = [[NSMutableDictionary alloc] init];
 
         _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
         for(NSUInteger i=0; i<_numBuckets; ++i)
@@ -274,14 +276,16 @@
 
     foundItem = [self searchForItemAtPosition:minP bucket:bucket];
 
-    if(foundItem) {
-        if([foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
-            [foundItem itemWillBeInvalidated];
-        }
-        [bucket removeObject:foundItem];
+    if(foundItem && [foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
+        [foundItem itemWillBeInvalidated];
     }
 
     [self willInvalidateItem:foundItem atPoint:minP];
+
+    if(foundItem) {
+        [bucket removeObject:foundItem];
+    }
+    
     [self invalidateItemsDependentOnItemAtPoint:minP];
 
     [lock unlock];
@@ -295,9 +299,9 @@
 
 - (void)invalidateItemsDependentOnItemAtPoint:(GLKVector3)p
 {
-    for(GSGrid *grid in dependentGrids)
+    for(GSGrid *grid in _dependentGrids)
     {
-        NSSet * (^mapping)(GLKVector3) = [mappingToDependentGrids objectForKey:[grid description]];
+        NSSet * (^mapping)(GLKVector3) = [_mappingToDependentGrids objectForKey:[grid description]];
         NSSet *correspondingPoints = mapping(p);
         for(GSBoxedVector *q in correspondingPoints)
         {
@@ -309,8 +313,8 @@
 - (void)registerDependentGrid:(GSGrid *)grid
                       mapping:(NSSet * (^)(GLKVector3))mapping
 {
-    [dependentGrids addObject:grid];
-    [mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
+    [_dependentGrids addObject:grid];
+    [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
 }
 
 - (void)replaceItemAtPoint:(GLKVector3)p

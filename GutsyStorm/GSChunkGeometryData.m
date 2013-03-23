@@ -86,7 +86,7 @@ static void applyLightToVertices(size_t numChunkVerts,
                                          error:&error];
 
         if(!_data) {
-            NSLog(@"failed to map the geometry data file at \"%@\": %@", url, error);
+            //NSLog(@"failed to map the geometry data file at \"%@\": %@", url, error);
             [neighborhood readerAccessToVoxelDataUsingBlock:^{
                 _data = [GSChunkGeometryData dataWithVoxelNeighborhood:neighborhood minP:self.minP];
                 [_data writeToURL:url atomically:YES];

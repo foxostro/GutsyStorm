@@ -94,8 +94,13 @@ typedef GLint index_t;
 
 - (void)dealloc
 {
+    NSOpenGLContext *context = _glContext;
+    GLuint vbo = _vbo;
+
+    assert(context);
+
     dispatch_async(dispatch_get_main_queue(), ^{
-        syncDestroySingleVBO(_glContext, _vbo);
+        syncDestroySingleVBO(context, vbo);
     });
 }
 
