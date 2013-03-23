@@ -31,9 +31,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (void)loadOrGenerateVoxelData:(terrain_generator_t)generator
                   postProcessor:(terrain_post_processor_t)postProcessor
               completionHandler:(void (^)(void))completionHandler;
-- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
-                                        tier:(unsigned)tier
-                           completionHandler:(void (^)(void))completionHandler;
 
 @end
 
@@ -44,7 +41,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _queueForSaving;
     dispatch_queue_t _chunkTaskQueue;
-    int _updateForSunlightInFlight;
 }
 
 @synthesize minP;
@@ -52,11 +48,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 + (NSString *)fileNameForVoxelDataFromMinP:(GLKVector3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
-}
-
-+ (NSString *)fileNameForSunlightDataFromMinP:(GLKVector3)minP
-{
-    return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.sunlight.dat", minP.x, minP.y, minP.z];
 }
 
 - (id)initWithMinP:(GLKVector3)mp
@@ -88,30 +79,9 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
         [_lockVoxelData lockForWriting]; // This is locked initially and unlocked at the end of the first update.
         _voxelData = NULL;
         
-        _dirtySunlight = YES;
-        
-        // The initial loading from disk preceeds all attempts to generate new sunlight data.
-        OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateForSunlightInFlight);
-        
         // Fire off asynchronous task to load or generate voxel data.
         dispatch_async(_chunkTaskQueue, ^{
             [self allocateVoxelData];
-            
-            NSURL *url = [NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
-                                relativeToURL:_folder];
-
-            static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
-            [GSBuffer newBufferFromFile:url
-                                 dimensions:sunlightDim
-                                      queue:_chunkTaskQueue
-                          completionHandler:^(GSBuffer *aBuffer, NSError *error) {
-                              if(aBuffer) {
-                                  _sunlight = aBuffer;
-                                  _dirtySunlight = NO;
-                              }
-                              OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
-                          }];
-
             [self loadOrGenerateVoxelData:generator
                             postProcessor:postProcessor
                         completionHandler:^{
@@ -155,7 +125,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 - (void)voxelDataWasModified
 {
     [self recalcOutsideVoxelsNoLock];
-    _dirtySunlight = YES; // Caller must make sure to update sunlight later...
     [self saveVoxelDataToFile];
 }
 
@@ -237,94 +206,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
     }];
     
     return combinedVoxelData;
-}
-
-- (BOOL)isAdjacentToSunlightAtPoint:(GSIntegerVector3)p
-                         lightLevel:(int)lightLevel
-                  combinedVoxelData:(voxel_t *)combinedVoxelData
-       combinedSunlightData:(buffer_element_t *)combinedSunlightData
-{
-    for(face_t i=0; i<FACE_NUM_FACES; ++i)
-    {
-        GSIntegerVector3 a = GSIntegerVector3_Add(p, offsetForFace[i]);
-        
-        if(a.x < -CHUNK_SIZE_X || a.x >= (2*CHUNK_SIZE_X) ||
-           a.z < -CHUNK_SIZE_Z || a.z >= (2*CHUNK_SIZE_Z) ||
-           a.y < 0 || a.y >= CHUNK_SIZE_Y) {
-            continue; // The point is out of bounds, so bail out.
-        }
-        
-        size_t idx = INDEX_BOX(a, combinedMinP, combinedMaxP);
-        
-        if(combinedVoxelData[idx].opaque) {
-            continue;
-        }
-        
-        if(combinedSunlightData[idx] == lightLevel) {
-            return YES;
-        }
-    }
-    
-    return NO;
-}
-
-/* Generate and return  sunlight data for this chunk from the specified voxel data buffer. The voxel data buffer must be
- * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local neighborhood.
- * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight values for the
- * region of the buffer corresponding to this chunk should be considered to be totally correct.
- * Assumes the caller has already locked the sunlight buffer for reading.
- */
-- (void)fillSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
-{
-    buffer_element_t *combinedSunlightData = malloc((combinedMaxP.x - combinedMinP.x) *
-                                                    (combinedMaxP.y - combinedMinP.y) *
-                                                    (combinedMaxP.z - combinedMinP.z) * sizeof(buffer_element_t));
-
-    GSIntegerVector3 p;
-    FOR_BOX(p, combinedMinP, combinedMaxP)
-    {
-        size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
-        voxel_t voxel = combinedVoxelData[idx];
-        BOOL directlyLit = (!voxel.opaque) && (voxel.outside);
-        combinedSunlightData[idx] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
-    }
-
-    /* Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
-     * Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
-     * Set the blocks we find to the next lower light level.
-     */
-    for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
-    {
-        FOR_BOX(p, combinedMinP, combinedMaxP)
-        {
-            size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
-            voxel_t voxel = combinedVoxelData[idx];
-            
-            if(voxel.opaque || voxel.outside) {
-                continue;
-            }
-            
-            if([self isAdjacentToSunlightAtPoint:p
-                                      lightLevel:lightLevel
-                               combinedVoxelData:combinedVoxelData
-                    combinedSunlightData:combinedSunlightData]) {
-                combinedSunlightData[idx] = MAX(combinedSunlightData[idx], lightLevel - 1);
-            }
-        }
-    }
-
-    // Copy the sunlight data we just calculated into _sunlight. Discard non-overlapping portions.
-    _sunlight = [GSBuffer newBufferFromLargerRawBuffer:combinedSunlightData
-                                                   srcMinP:combinedMinP
-                                                   srcMaxP:combinedMaxP];
-
-    free(combinedSunlightData);
-}
-
-- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
-                           completionHandler:(void (^)(void))completionHandler
-{
-    return [self tryToRebuildSunlightWithNeighborhood:neighborhood tier:0 completionHandler:completionHandler];
 }
 
 - (void)saveVoxelDataToFile
@@ -523,78 +404,6 @@ static const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CH
 
                  completionHandler();
              }];
-}
-
-/* Try to immediately update sunlight using voxel data for the local neighborhood. If it is not possible to immediately take all
- * the locks on necessary resources then this method aborts the update and returns NO. If it is able to complete the update
- * successfully then it returns YES and marks this GSChunkVoxelData as being clean. (dirtySunlight=NO)
- * If the update was able to complete succesfully then the completionHandler block is called.
- *
- * There are several levels of locks which are taken recursively. The level of recursion is indicated using the `tier' parameter.
- * The top-level caller should always call with tier==0.
- */
-- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood
-                                        tier:(unsigned)tier
-                           completionHandler:(void (^)(void))completionHandler
-{
-    assert(neighborhood);
-    assert(tier < 3);
-
-    switch(tier)
-    {
-        case 0:
-        {
-            BOOL success = NO;
-
-            if(!OSAtomicCompareAndSwapIntBarrier(0, 1, &_updateForSunlightInFlight)) {
-                DebugLog(@"Can't update sunlight: already in-flight.");
-            } else {
-                success = [self tryToRebuildSunlightWithNeighborhood:neighborhood
-                                                                tier:1
-                                                   completionHandler:completionHandler];
-
-                OSAtomicCompareAndSwapIntBarrier(1, 0, &_updateForSunlightInFlight); // reset
-            }
-
-            return success;
-        }
-            
-        case 1:
-        {
-            BOOL success = NO;
-
-            // Try to copy the entire neighborhood's voxel data into one large buffer.
-            __block voxel_t *buf = NULL;
-            BOOL copyWasSuccessful = [neighborhood tryReaderAccessToVoxelDataUsingBlock:^{
-                buf = [self newVoxelBufferWithNeighborhood:neighborhood];
-            }];
-
-            if(!copyWasSuccessful) {
-                DebugLog(@"Can't update sunlight: voxel data buffers are busy.");
-            } else {
-                // Actually generate sunlight data.
-                [self fillSunlightBufferUsingCombinedVoxelData:buf];
-
-                _dirtySunlight = NO;
-                success = YES;
-
-                // Spin off a task to save sunlight data to disk.
-                [_sunlight saveToFile:[NSURL URLWithString:[GSChunkVoxelData fileNameForSunlightDataFromMinP:self.minP]
-                                             relativeToURL:_folder]
-                                queue:_queueForSaving
-                                group:_groupForSaving];
-
-                completionHandler(); // Only call the completion handler if the update was successful.
-            }
-
-            free(buf);
-            
-            return success;
-        }
-    }
-    
-    assert(!"shouldn't get here");
-    return NO;
 }
 
 @end

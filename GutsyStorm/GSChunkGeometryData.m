@@ -29,12 +29,6 @@ struct chunk_geometry_header
     uint32_t len;
 };
 
-static void * allocateVertexMemory(size_t numVerts);
-static void applyLightToVertices(size_t numChunkVerts,
-                                 struct vertex *vertsBuffer,
-                                 GSBuffer *sunlight,
-                                 GLKVector3 minP);
-
 
 @interface GSChunkGeometryData ()
 
@@ -176,43 +170,7 @@ static void applyLightToVertices(size_t numChunkVerts,
         vertsBuffer[i] = v.v;
     }
 
-    // Iterate over all vertices and calculate lighting.
-    applyLightToVertices(numChunkVerts, vertsBuffer,
-                         [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER].sunlight,
-                         minCorner);
-
     return data;
 }
 
 @end
-
-
-static void applyLightToVertices(size_t numChunkVerts,
-                                 struct vertex *vertsBuffer,
-                                 GSBuffer *sunlight,
-                                 GLKVector3 minP)
-{
-    assert(vertsBuffer);
-    assert(sunlight);
-
-    for(GLsizei i=0; i<numChunkVerts; ++i)
-    {
-        struct vertex *v = &vertsBuffer[i];
-        
-        GLKVector3 vertexPos = GLKVector3MakeWithArray(v->position);
-        GSIntegerVector3 normal = GSIntegerVector3_MakeWithGLubyte3(v->normal);
-
-        uint8_t sunlightValue = [sunlight lightForVertexAtPoint:vertexPos
-                                                     withNormal:normal
-                                                           minP:minP];
-
-        GLKVector4 color = {0};
-
-        color.g = 204.0f * (sunlightValue / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
-
-        v->color[0] = color.v[0];
-        v->color[1] = color.v[1];
-        v->color[2] = color.v[2];
-        v->color[3] = color.v[3];
-    }
-}

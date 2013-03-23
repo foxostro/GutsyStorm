@@ -22,8 +22,6 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
 @interface GSChunkVoxelData : NSObject <GSGridItem>
 
 @property (readonly, nonatomic) voxel_t *voxelData;
-@property (readonly) GSBuffer *sunlight;
-@property (assign) BOOL dirtySunlight;
 
 /* There are circumstances when it is necessary to use this lock directly, but in most cases the reader/writer accessor methods
  * here and in GSNeighborhood should be preferred.
@@ -31,7 +29,6 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
 @property (readonly, nonatomic) GSReaderWriterLock *lockVoxelData;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GLKVector3)minP;
-+ (NSString *)fileNameForSunlightDataFromMinP:(GLKVector3)minP;
 
 - (id)initWithMinP:(GLKVector3)minP
             folder:(NSURL *)folder
@@ -60,12 +57,5 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
 // Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
 - (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
-
-/* Try to immediately update sunlight using voxel data for the local neighborhood. If it is not possible to immediately take all
- * the locks on necessary resources then this method aborts the update and returns NO. If it is able to complete the update
- * successfully then it returns YES and marks this GSChunkVoxelData as being clean. (dirtySunlight=NO)
- * If the update was able to complete succesfully then the completionHandler block is called.
- */
-- (BOOL)tryToRebuildSunlightWithNeighborhood:(GSNeighborhood *)neighborhood completionHandler:(void (^)(void))completionHandler;
 
 @end
