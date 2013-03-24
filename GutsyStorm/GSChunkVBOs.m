@@ -14,13 +14,14 @@
 #import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSVertex.h"
+#import "GSVBOHolder.h"
 
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
 
 
 extern int checkGLErrors(void);
-static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
+static GLuint createVBO(NSOpenGLContext *context, struct vertex *verts, GLsizei count);
 
 
 // Make sure the number of indices can be stored in the type used for the shared index buffer.
@@ -38,7 +39,7 @@ typedef GLint index_t;
 @implementation GSChunkVBOs
 {
     GLsizei _numIndicesForDrawing;
-    GLuint _vbo;
+    GSVBOHolder *_vbo;
     NSOpenGLContext *_glContext;
 }
 
@@ -75,45 +76,21 @@ typedef GLint index_t;
         struct vertex *vertsBuffer = NULL;
         _numIndicesForDrawing = [geometry copyVertsToBuffer:&vertsBuffer];
         _glContext = context;
-        _vbo = 0;
         minP = geometry.minP;
-
-        [context makeCurrentContext];
-        CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
-        {
-            glGenBuffers(1, &_vbo);
-            glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-            glBufferData(GL_ARRAY_BUFFER, _numIndicesForDrawing * sizeof(struct vertex), vertsBuffer, GL_STATIC_DRAW);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
-        CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
+        _vbo = [[GSVBOHolder alloc] initWithHandle:createVBO(context, vertsBuffer, _numIndicesForDrawing)
+                                           context:context];
     }
 
     return self;
 }
 
-- (void)dealloc
+- (id)copyWithZone:(NSZone *)zone
 {
-    NSOpenGLContext *context = _glContext;
-    GLuint vbo = _vbo;
-
-    assert(context);
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-        syncDestroySingleVBO(context, vbo);
-    });
+    return self; // All GSChunkVBO objects are immutable, so return self instead of deep copying.
 }
 
 - (void)draw
 {
-    if(!_vbo) {
-        return;
-    }
-
-    if(_numIndicesForDrawing <= 0) {
-        return;
-    }
-
     // TODO: use VAOs
 
     const index_t * const indices = [GSChunkVBOs sharedIndexBuffer]; // TODO: index buffer object
@@ -122,7 +99,7 @@ typedef GLint index_t;
     assert(_numIndicesForDrawing < SHARED_INDEX_BUFFER_LEN);
     assert(indices);
 
-    glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, _vbo.handle);
 
     // Verify that vertex attribute formats are consistent with in-memory storage.
     assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct vertex, position));
@@ -157,13 +134,22 @@ typedef GLint index_t;
 @end
 
 
-static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo)
+GLuint createVBO(NSOpenGLContext *context, struct vertex *verts, GLsizei count)
 {
     assert(context);
-    if(vbo) {
-        [context makeCurrentContext];
-        CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
-        glDeleteBuffers(1, &vbo);
-        CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
-    }
+    assert(verts);
+
+    GLuint handle = 0;
+
+    [context makeCurrentContext];
+    CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
+
+    glGenBuffers(1, &handle);
+    glBindBuffer(GL_ARRAY_BUFFER, handle);
+    glBufferData(GL_ARRAY_BUFFER, count * sizeof(struct vertex), verts, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
+
+    return handle;
 }

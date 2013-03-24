@@ -92,6 +92,11 @@ struct chunk_geometry_header
     return self;
 }
 
+- (id)copyWithZone:(NSZone *)zone
+{
+    return self; // all geometry objects are immutable, so return self instead of deep copying
+}
+
 - (GLsizei)copyVertsToBuffer:(struct vertex **)dst
 {
     assert(dst);

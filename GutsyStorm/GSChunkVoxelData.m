@@ -112,6 +112,11 @@
     dispatch_release(_queueForSaving);
 }
 
+- (id)copyWithZone:(NSZone *)zone
+{
+    return self; // all voxel data objects are immutable, so return self instead of deep copying
+}
+
 - (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)p
 {
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);

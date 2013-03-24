@@ -6,7 +6,7 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
-@protocol GSGridItem <NSObject>
+@protocol GSGridItem <NSCopying>
 
 @required
 
