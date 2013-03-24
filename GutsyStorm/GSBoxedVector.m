@@ -105,7 +105,7 @@ static const float EPS = 1e-5;
 
 - (id)copyWithZone:(NSZone *)zone
 {
-    return self;
+    return self; // GSBoxedVector is immutable. Return self rather than performing a deep copy.
 }
 
 - (NSUInteger)computeHash

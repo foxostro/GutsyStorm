@@ -133,16 +133,16 @@
 
 - (BOOL)objectAtPoint:(GLKVector3)p
              blocking:(BOOL)blocking
-               object:(id *)object
+               object:(id *)item
+      createIfMissing:(BOOL)createIfMissing
 {
-    assert(object);
-
     if(blocking) {
         [_lockTheTableItself lockForReading];
     } else if(![_lockTheTableItself tryLockForReading]) {
         return NO;
     }
 
+    BOOL result = NO;
     float load = 0;
     NSObject <GSGridItem> * anObject = nil;
     GLKVector3 minP = MinCornerForChunkAtPoint(p);
@@ -161,12 +161,16 @@
 
     anObject = [self searchForItemAtPosition:minP bucket:bucket];
 
-    if(!anObject) {
+    if(!anObject && createIfMissing) {
         anObject = _factory(minP);
         assert(anObject);
         [bucket addObject:anObject];
         OSAtomicIncrement32Barrier(&_n);
         load = (float)_n / _numBuckets;
+    }
+
+    if(anObject) {
+        result = YES;
     }
 
     [lock unlock];
@@ -176,25 +180,33 @@
         [self resizeTable];
     }
 
-    *object = anObject;
-    return YES;
+    if(result && item) {
+        *item = anObject;
+    }
+    return result;
 }
 
 - (id)objectAtPoint:(GLKVector3)p
 {
-    NSObject <GSGridItem> *anObject = nil;
+    id anItem = nil;
     [self objectAtPoint:p
                blocking:YES
-                 object:&anObject];
-    return anObject;
+                 object:&anItem
+        createIfMissing:YES];
+    assert(anItem);
+    return anItem;
 }
 
-- (BOOL)tryToGetObjectAtPoint:(GLKVector3)p
-                       object:(id *)object
+- (void)prefetchItemAtPoint:(GLKVector3)p
 {
-    return [self objectAtPoint:p
-                      blocking:NO
-                        object:object];
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        // Get the object into the cache.
+        [self objectAtPoint:p
+                   blocking:NO
+                     object:nil
+            createIfMissing:YES];
+        
+    });
 }
 
 - (void)evictItemAtPoint:(GLKVector3)p

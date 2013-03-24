@@ -14,16 +14,26 @@
 
 - (id)initWithFactory:(grid_item_factory_t)factory;
 
-// Returns the object corresponding to the given point on the grid. Creates the object from the factory, if necessary.
+/* Returns the object corresponding to the given point on the grid. Creates the object from the factory, if necessary. */
 - (id)objectAtPoint:(GLKVector3)p;
 
-/* Tries to get the object corresponding to the given point on the grid, returning it in 'object'. Creates the object from the
- * factory, if necessary.. On success, 'object' points to the desired object and this method returns YES. On failure, this method
- * return NO and 'object' is not modified.
- * The method may fail if getting the object would require blocking to take a lock.
+/* Tries to get the object corresponding to the given point on the grid, returning it in "object".
+ *
+ * On success, "object" points to the desired object and this method returns YES.
+ * On failure, this method returns NO and "object" is not modified.
+ *
+ * If the object is not present in the grid cache and "createIfMissing" is YES then the factory will create the object.
+ * However, if the object is not present and "createIfMissing" is NO then the method will fail.
+ *
+ * The method may fail if getting the object would require blocking to take a lock. This behavior is specified via "blocking".
  */
-- (BOOL)tryToGetObjectAtPoint:(GLKVector3)p
-                       object:(id *)object;
+- (BOOL)objectAtPoint:(GLKVector3)p
+             blocking:(BOOL)blocking
+               object:(id *)object
+      createIfMissing:(BOOL)createIfMissing;
+
+/* Begin asynchronous generation of the item at the specified point. Cache that item when it is ready. */
+- (void)prefetchItemAtPoint:(GLKVector3)p;
 
 // Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids.
 - (void)evictItemAtPoint:(GLKVector3)p;

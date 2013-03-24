@@ -29,7 +29,6 @@
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
 - (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p neighborhood:(GSNeighborhood **)neighborhood;
 
-- (GSChunkVBOs *)chunkVBOsAtPoint:(GLKVector3)p;
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p;
 
@@ -149,14 +148,22 @@
 
         // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
-        NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
+        const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
-        _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent];
-        [_activeRegion updateWithCameraModifiedFlags:(CAMERA_MOVED|CAMERA_TURNED)
-                                              camera:cam
-                                       chunkProducer:^GSChunkVBOs *(GLKVector3 p) {
-                                           return [self chunkVBOsAtPoint:p];
-                                       }];
+        _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
+                                                                    camera:cam
+                                                               vboProducer:^GSChunkVBOs *(GLKVector3 p) {
+                                                                   assert(p.y >= 0 && p.y < _activeRegionExtent.y);
+                                                                   id object = nil;
+                                                                   [_gridVBOs objectAtPoint:p
+                                                                                   blocking:NO
+                                                                                     object:&object
+                                                                            createIfMissing:NO];
+                                                                   return object;
+                                                               }
+                                                             vboPrefetcher:^(GLKVector3 p) {
+                                                                 [_gridVBOs prefetchItemAtPoint:p];
+                                                             }];
     }
     
     return self;
@@ -194,13 +201,8 @@
     glEnableClientState(GL_COLOR_ARRAY);
     
     glTranslatef(0.5, 0.5, 0.5);
-    
-    [_activeRegion enumeratePointsInActiveRegionNearCamera:_camera usingBlock:^(GLKVector3 p) {
-        GSChunkVBOs *vbo = nil;
-        if([_gridVBOs tryToGetObjectAtPoint:p object:&vbo]) {
-            [vbo draw];
-        }
-    }];
+
+    [_activeRegion draw];
     
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -212,11 +214,7 @@
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    [_activeRegion updateWithCameraModifiedFlags:flags
-                                          camera:_camera
-                                   chunkProducer:^GSChunkVBOs *(GLKVector3 p) {
-                                       return [self chunkVBOsAtPoint:p];
-                                   }];
+    [_activeRegion updateWithCameraModifiedFlags:flags];
 }
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block
@@ -386,44 +384,34 @@
     return YES;
 }
 
-- (GSChunkVBOs *)chunkVBOsAtPoint:(GLKVector3)p
-{
-    assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
-    return [_gridVBOs objectAtPoint:p];
-}
-
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p
 {
-    assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     return [_gridGeometryData objectAtPoint:p];
 }
 
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p
 {
-    assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     return [_gridVoxelData objectAtPoint:p];
 }
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk
 {
-    BOOL success;
-    GSChunkVoxelData *v;
-
-    assert(p.y >= 0); // world does not extend below y=0
-    assert(p.y < _activeRegionExtent.y); // world does not extend above y=activeRegionExtent.y
+    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(chunk);
 
-    success = [_gridVoxelData tryToGetObjectAtPoint:p object:&v];
+    GSChunkVoxelData *v = nil;
+    BOOL success = [_gridVoxelData objectAtPoint:p
+                                        blocking:NO
+                                          object:&v
+                                 createIfMissing:YES];
 
     if(success) {
         *chunk = v;
-        return YES;
-    } else {
-        return NO;
     }
+
+    return success;
 }
 
 + (NSURL *)newWorldSaveFolderURLWithSeed:(NSUInteger)seed

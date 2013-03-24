@@ -7,12 +7,8 @@
 //
 
 #import <GLKit/GLKMath.h>
-#import "GLKVector3Extra.h"
-#import "GSIntegerVector3.h"
 #import "GSActiveRegion.h"
 #import "GSFrustum.h"
-#import "GSIntegerVector3.h"
-#import "GSBuffer.h"
 #import "Voxel.h"
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
@@ -20,204 +16,117 @@
 #import "GSChunkVBOs.h"
 
 
-@interface GSActiveRegion ()
-
-- (void)unsafelyEnumerateActiveChunkWithBlock:(void (^)(GSChunkVBOs *))block;
-- (void)removeAllActiveChunks;
-- (void)setActiveChunk:(GSChunkVBOs *)chunk atIndex:(NSUInteger)idx;
-
-@end
-
-
 @implementation GSActiveRegion
 {
-    GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
-    GSChunkVBOs * __strong *_activeChunks;
-    NSLock *_lock;
-    NSUInteger _oldCenterChunkID; // FIXME: chunks are identified by hashes, but the hashes are not unique
-    NSMutableArray *retainChunkTemporarily;
+    /* The camera at the center of the active region. */
+    GSCamera *_camera;
+
+    /* Vector specifies the AABB of the active region.
+     * The camera position plus/minus this vector equals the max/min corners of the AABB.
+     */
+    GLKVector3 _activeRegionExtent;
+
+    /* List of points corresponding to chunk AABBs which are within the camera frustum. */
+    NSArray *_chunksInCameraFrustum;
+
+    /* This block may be invoked at any time to retrieve the GSChunkVBO for any point in space. The block may return NULL if no
+     * VBO has been generated for that point.
+     */
+    GSChunkVBOs * (^_vboProducer)(GLKVector3 p);
+
+    /* This block may be invoked at any time to notify the VBO source of the active region's intentions to retrieve the
+     * corresponding GSChunkVBO for that point sometime soon. The VBO source (the details of which are unimportant to this class)
+     * may decide to act on this information by beginning VBO generation now.
+     */
+    void (^_vboPrefetcher)(GLKVector3 p);
+
+    /* Keep track of chunks we've seen. Maps GSBoxedVector -> GSChunkVBOs.
+     * This is necessary because _vboProducer may return nil for resident chunks when doing otherwise would end up blocking.
+     * Each time _vboProducer produces a non-nil result, the chunk is stored in this dictionary.
+     * Each time _vboProducer produces a nil result, we look for the corresponding chunk in this dictionary.
+     */
+    NSMutableDictionary *_rememberVBOs;
 }
 
 - (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
+                          camera:(GSCamera *)camera
+                     vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer
+                   vboPrefetcher:(void (^)(GLKVector3 p))vboPrefetcher
 {
     self = [super init];
     if (self) {
+        assert(camera);
         assert(fmodf(_activeRegionExtent.x, CHUNK_SIZE_X) == 0);
         assert(fmodf(_activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
         assert(fmodf(_activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
 
-        _oldCenterChunkID = GLKVector3Hash(MinCornerForChunkAtPoint2(INFINITY, 0, INFINITY));
-
+        _camera = camera;
         _activeRegionExtent = activeRegionExtent;
-        
-        _maxActiveChunks = (2*_activeRegionExtent.x/CHUNK_SIZE_X)
-                         * (_activeRegionExtent.y/CHUNK_SIZE_Y)
-                         * (2*_activeRegionExtent.z/CHUNK_SIZE_Z);
+        _chunksInCameraFrustum = nil;
+        _rememberVBOs = [[NSMutableDictionary alloc] init];
+        _vboProducer = [vboProducer copy];
+        _vboPrefetcher = [vboPrefetcher copy];
 
-        retainChunkTemporarily = [[NSMutableArray alloc] initWithCapacity:_maxActiveChunks];
-
-        _activeChunks = (GSChunkVBOs * __strong *)calloc(_maxActiveChunks, sizeof(GSChunkGeometryData *));
-        
-        if(!_activeChunks) {
-            [NSException raise:@"Out of Memory" format:@"Out of memory allocating activeChunk."];
-        }
-        
-        _lock = [[NSLock alloc] init];
+        [self updateWithCameraModifiedFlags:(CAMERA_MOVED | CAMERA_TURNED)];
     }
     
     return self;
 }
 
-- (void)dealloc
-{
-    [self removeAllActiveChunks];
-    free(_activeChunks);
-}
-
-- (void)unsafelyEnumerateActiveChunkWithBlock:(void (^)(GSChunkVBOs *))block
-{
-    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
-    {
-        GSChunkVBOs *chunk = _activeChunks[i];
-        if(chunk) {
-            block(chunk);
-        }
-    }
-}
-
 - (void)draw
 {
-    // FIXME: need a new grid for VBO data. These items are drawn if present in the grid.
-    [_lock lock];
-    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
+    NSArray *chunksInCameraFrustum = _chunksInCameraFrustum; // reading the pointer should be atomic here
+
+    for(GSBoxedVector *boxed in chunksInCameraFrustum)
     {
-        GSChunkVBOs *vbo = _activeChunks[i];
+        const GLKVector3 p = [boxed vectorValue];
+
+        _vboPrefetcher(p);
+
+        GSChunkVBOs *vbo = _vboProducer(p);
+
+        /*if(vbo) {
+            [_rememberVBOs setObject:vbo forKey:boxed];
+        } else {
+            vbo = [_rememberVBOs objectForKey:boxed];
+        }*/
+
         [vbo draw];
     }
-    [_lock unlock];
 }
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags
-                               camera:(GSCamera *)camera
-                        chunkProducer:(GSChunkVBOs * (^)(GLKVector3 p))chunkProducer
 {
     if(!(flags & CAMERA_TURNED) && !(flags & CAMERA_MOVED)) {
         return;
     }
 
-    [_lock lock];
-    
-    // If the camera moved then recalculate the set of active chunks.
-    if(flags & CAMERA_MOVED) {
-        // We can avoid a lot of work if the camera hasn't moved enough to add/remove any chunks in the active region.
-        NSUInteger newCenterChunkID = GLKVector3Hash(MinCornerForChunkAtPoint(camera.cameraEye));
+    GSFrustum *frustum = _camera.frustum;
+    NSMutableArray *chunksInCameraFrustum = [[NSMutableArray alloc] init];
 
-        if(_oldCenterChunkID != newCenterChunkID) {
-            _oldCenterChunkID = newCenterChunkID;
+    [self enumeratePointsWithBlock:^(GLKVector3 p) {
+        GLKVector3 corners[8];
 
-            [self unsafelyEnumerateActiveChunkWithBlock:^(GSChunkVBOs *vbo) {
-                [retainChunkTemporarily addObject:vbo];
-            }];
-    
-            [self removeAllActiveChunks];
-    
-            __block NSUInteger i = 0;
-            [self enumeratePointsInActiveRegionNearCamera:camera usingBlock:^(GLKVector3 p) {
-                [self setActiveChunk:chunkProducer(p) atIndex:i];
-                i++;
-            }];
-            assert(i == _maxActiveChunks);
-            
-            [retainChunkTemporarily removeAllObjects];
+        corners[0] = MinCornerForChunkAtPoint(p);
+        corners[1] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            0));
+        corners[2] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
+        corners[3] = GLKVector3Add(corners[0], GLKVector3Make(0,            0,            CHUNK_SIZE_Z));
+        corners[4] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        corners[5] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        corners[6] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
+        corners[7] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
+        
+        if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
+            [chunksInCameraFrustum addObject:[GSBoxedVector boxedVectorWithVector:corners[0]]];
         }
-    }
-
-#if 0
-    // FIXME: need a new way to track chunk visibility. GSChunkGeometry and GSChunkVBO are going to be immutable objects.
-    GSFrustum *frustum = camera.frustum;
-    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
-    {
-        if(_activeChunks[i]) {
-            _activeChunks[i].visible = (GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:_activeChunks[i].corners]);
-        }
-    }
-#endif
-
-    [_lock unlock];
-}
-
-- (void)enumerateActiveChunkWithBlock:(void (^)(GSChunkVBOs *))block
-{
-    // Copy active region blocks so we don't have to hold the lock while running the block over and over again.
-    GSChunkVBOs * __strong *temp = (GSChunkVBOs * __strong *)calloc(_maxActiveChunks, sizeof(GSChunkVBOs *));
-    if(!temp) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp buffer."];
-    }
-    
-    [_lock lock];
-    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
-    {
-        temp[i] = _activeChunks[i];
-    }
-    [_lock unlock];
-    
-    [self unsafelyEnumerateActiveChunkWithBlock:block];
-    
-    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
-    {
-        temp[i] = nil; // explicitly drop the reference for ARC
-    }
-    free(temp);
-}
-
-- (void)removeAllActiveChunks
-{
-    for(NSUInteger i = 0; i < _maxActiveChunks; ++i)
-    {
-        _activeChunks[i] = nil;
-    }
-}
-
-- (void)setActiveChunk:(GSChunkVBOs *)chunk atIndex:(NSUInteger)idx
-{
-    assert(chunk);
-    assert(idx < _maxActiveChunks);
-    
-    _activeChunks[idx] = chunk;
-}
-
-- (NSArray *)chunksListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedChunks
-{
-    GLKVector3 cameraEye = [camera cameraEye];
-    
-    NSArray *sortedChunks = [unsortedChunks sortedArrayUsingComparator: ^(NSObject <GSGridItem> *a, NSObject <GSGridItem> *b) {
-        static const GLKVector3 halfSize = {CHUNK_SIZE_X / 2, CHUNK_SIZE_Y / 2, CHUNK_SIZE_Z / 2};
-        GLKVector3 centerA = GLKVector3Add(a.minP, halfSize);
-        GLKVector3 centerB = GLKVector3Add(b.minP, halfSize);
-        float distA = GLKVector3Length(GLKVector3Subtract(centerA, cameraEye));
-        float distB = GLKVector3Length(GLKVector3Subtract(centerB, cameraEye));
-        return [@(distA) compare:@(distB)];
     }];
-    
-    return sortedChunks;
+
+    _chunksInCameraFrustum = chunksInCameraFrustum; // assignment should be atomic here
 }
 
-- (NSArray *)pointsListSortedByDistFromCamera:(GSCamera *)camera unsortedList:(NSMutableArray *)unsortedPoints
+- (void)enumeratePointsWithBlock:(void (^)(GLKVector3 p))block
 {
-    GLKVector3 center = [camera cameraEye];
-    
-    return [unsortedPoints sortedArrayUsingComparator: ^(id a, id b) {
-        GLKVector3 centerA = [(GSBoxedVector *)a vectorValue];
-        GLKVector3 centerB = [(GSBoxedVector *)b vectorValue];
-        float distA = GLKVector3Length(GLKVector3Subtract(centerA, center));
-        float distB = GLKVector3Length(GLKVector3Subtract(centerB, center));
-        return [@(distA) compare:@(distB)];
-    }];
-}
-
-- (void)enumeratePointsInActiveRegionNearCamera:(GSCamera *)camera usingBlock:(void (^)(GLKVector3))myBlock
-{
-    const GLKVector3 center = [camera cameraEye];
+    const GLKVector3 center = _camera.cameraEye;
     const ssize_t activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
     const ssize_t activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
     const ssize_t activeRegionSizeY = _activeRegionExtent.y/CHUNK_SIZE_Y;
@@ -242,7 +151,7 @@
                                             floorf(p1.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
                                             floorf(p1.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z + CHUNK_SIZE_Z/2);
         
-        myBlock(centerP);
+        block(centerP);
     }
 }
 

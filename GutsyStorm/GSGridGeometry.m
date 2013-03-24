@@ -35,7 +35,6 @@
     NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
     const char *path = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];
     unlink(path);
-    NSLog(@"invalidated geometry at %@", fileName);
 }
 
 @end

@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSIntegerVector3.h"
 
-@interface GSBoxedVector : NSObject
+@interface GSBoxedVector : NSObject <NSCopying>
 
 + (GSBoxedVector *)boxedVectorWithVector:(GLKVector3)vector;
 + (GSBoxedVector *)boxedVectorWithIntegerVector:(GSIntegerVector3)vector;

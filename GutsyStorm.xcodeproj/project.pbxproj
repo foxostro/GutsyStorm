@@ -339,10 +339,6 @@
 		ACDD767016F6623A008169D1 /* Util */ = {
 			isa = PBXGroup;
 			children = (
-				13C8BE161602854300403815 /* GSNeighborhood.h */,
-				13C8BE171602854300403815 /* GSNeighborhood.m */,
-				13C8BE1B16038DC000403815 /* GSActiveRegion.h */,
-				13C8BE1C16038DC000403815 /* GSActiveRegion.m */,
 				ACE6ABEA16F993D400DE88E3 /* Voxel.m */,
 				ACDD767116F6629D008169D1 /* GSBuffer.h */,
 				ACDD767216F6629D008169D1 /* GSBuffer.m */,
@@ -350,6 +346,10 @@
 				ACE8F00B16FE6A7D00ABA2AD /* GSMutableBuffer.m */,
 				AC3767A8163E053400BAE03F /* GSTerrainCursor.h */,
 				AC3767A9163E053400BAE03F /* GSTerrainCursor.m */,
+				13C8BE1B16038DC000403815 /* GSActiveRegion.h */,
+				13C8BE1C16038DC000403815 /* GSActiveRegion.m */,
+				13C8BE161602854300403815 /* GSNeighborhood.h */,
+				13C8BE171602854300403815 /* GSNeighborhood.m */,
 			);
 			name = Util;
 			sourceTree = "<group>";
