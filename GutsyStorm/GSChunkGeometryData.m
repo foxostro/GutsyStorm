@@ -14,6 +14,7 @@
 #import "GSChunkStore.h"
 #import "GSVertex.h"
 #import "Voxel.h"
+#import "GSNeighborhood.h"
 #import "GSBlockMesh.h"
 #import "GSBlockMeshCube.h"
 #import "GSBlockMeshRamp.h"
@@ -81,10 +82,8 @@ struct chunk_geometry_header
 
         if(!_data) {
             //NSLog(@"failed to map the geometry data file at \"%@\": %@", url, error);
-            [neighborhood readerAccessToVoxelDataUsingBlock:^{
-                _data = [GSChunkGeometryData dataWithVoxelNeighborhood:neighborhood minP:self.minP];
-                [_data writeToURL:url atomically:YES];
-            }];
+            _data = [GSChunkGeometryData dataWithVoxelNeighborhood:neighborhood minP:minP];
+            [_data writeToURL:url atomically:YES];
         }
 
         assert(_data);

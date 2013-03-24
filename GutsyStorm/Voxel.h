@@ -9,6 +9,9 @@
 #ifndef GutsyStorm_Voxel_h
 #define GutsyStorm_Voxel_h
 
+#import <GLKit/GLKQuaternion.h>
+#import "GSIntegerVector3.h"
+
 
 #if 0 && defined(DEBUG) // TODO: find a better home for this macro
 #    define DebugLog(...) do { NSLog(__VA_ARGS__); } while(0);
@@ -135,6 +138,8 @@ typedef enum
 
 extern const GSIntegerVector3 chunkSize;
 extern const GSIntegerVector3 offsetForFace[FACE_NUM_FACES];
+extern const GSIntegerVector3 combinedMinP;
+extern const GSIntegerVector3 combinedMaxP;
 
 
 #define CHUNK_SIZE_X (16)
@@ -155,5 +160,19 @@ static inline GLKVector3 MinCornerForChunkAtPoint2(float x, float y, float z)
                           floorf(y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
                           floorf(z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
 }
+
+typedef enum
+{
+    CHUNK_NEIGHBOR_POS_X_NEG_Z = 0,
+    CHUNK_NEIGHBOR_POS_X_ZER_Z = 1,
+    CHUNK_NEIGHBOR_POS_X_POS_Z = 2,
+    CHUNK_NEIGHBOR_NEG_X_NEG_Z = 3,
+    CHUNK_NEIGHBOR_NEG_X_ZER_Z = 4,
+    CHUNK_NEIGHBOR_NEG_X_POS_Z = 5,
+    CHUNK_NEIGHBOR_ZER_X_NEG_Z = 6,
+    CHUNK_NEIGHBOR_ZER_X_POS_Z = 7,
+    CHUNK_NEIGHBOR_CENTER = 8,
+    CHUNK_NUM_NEIGHBORS = 9
+} neighbor_index_t;
 
 #endif

@@ -261,35 +261,37 @@
 
 - (void)invalidateItemAtPoint:(GLKVector3)p
 {
-    [_lockTheTableItself lockForReading];
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        [_lockTheTableItself lockForReading];
 
-    GLKVector3 minP = MinCornerForChunkAtPoint(p);
-    NSUInteger hash = GLKVector3Hash(minP);
-    NSUInteger idxBucket = hash % _numBuckets;
-    NSUInteger idxLock = hash % _numLocks;
-    NSLock *lock = _locks[idxLock];
-    NSMutableArray *bucket = _buckets[idxBucket];
+        GLKVector3 minP = MinCornerForChunkAtPoint(p);
+        NSUInteger hash = GLKVector3Hash(minP);
+        NSUInteger idxBucket = hash % _numBuckets;
+        NSUInteger idxLock = hash % _numLocks;
+        NSLock *lock = _locks[idxLock];
+        NSMutableArray *bucket = _buckets[idxBucket];
 
-    [lock lock];
+        [lock lock];
 
-    NSObject <GSGridItem> *foundItem = nil;
+        NSObject <GSGridItem> *foundItem = nil;
 
-    foundItem = [self searchForItemAtPosition:minP bucket:bucket];
+        foundItem = [self searchForItemAtPosition:minP bucket:bucket];
 
-    if(foundItem && [foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
-        [foundItem itemWillBeInvalidated];
-    }
+        if(foundItem && [foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
+            [foundItem itemWillBeInvalidated];
+        }
 
-    [self willInvalidateItem:foundItem atPoint:minP];
+        [self willInvalidateItem:foundItem atPoint:minP];
 
-    if(foundItem) {
-        [bucket removeObject:foundItem];
-    }
-    
-    [self invalidateItemsDependentOnItemAtPoint:minP];
-
-    [lock unlock];
-    [_lockTheTableItself unlockForReading];
+        if(foundItem) {
+            [bucket removeObject:foundItem];
+        }
+        
+        [self invalidateItemsDependentOnItemAtPoint:minP];
+        
+        [lock unlock];
+        [_lockTheTableItself unlockForReading];
+    });
 }
 
 - (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p
@@ -318,7 +320,7 @@
 }
 
 - (void)replaceItemAtPoint:(GLKVector3)p
-                 transform:(NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *))newReplacementItem
+                 transform:(NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *original))newReplacementItem
 {
     [_lockTheTableItself lockForReading];
 

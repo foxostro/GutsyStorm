@@ -14,6 +14,7 @@
 #import "GSShader.h"
 #import "GSChunkStore.h"
 #import "GSBoxedVector.h"
+#import "GSNeighborhood.h"
 
 #import "GSChunkGeometryData.h"
 #import "GSChunkVBOs.h"
@@ -218,27 +219,18 @@
                                    }];
 }
 
-- (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)newBlock
+- (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block
 {
-    GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
-    [chunk writerAccessToVoxelDataUsingBlock:^{
-        voxel_t *block = [chunk pointerToVoxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
-                                                                                    pos.y-chunk.minP.y,
-                                                                                    pos.z-chunk.minP.z)];
-        assert(block);
-        *block = newBlock;
+    [_gridVoxelData replaceItemAtPoint:pos transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
+        GSChunkVoxelData *modifiedItem = [((GSChunkVoxelData *)originalItem) copyWithEditAtPoint:pos block:block];
+        [modifiedItem saveToFile];
+        return modifiedItem;
     }];
-    
-    // FIXME: Regenerate sunlight data when blocks are placed.
-    // FIXME: Voxel data should be immutable and modifications should be done through read-copy-update.
-    // FIXME: only invalidate as many geometry objects as could have been affected by the block placement (may be fewer than 9)
-    [_gridVoxelData invalidateItemsDependentOnItemAtPoint:pos];
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel
 {
-    __block voxel_t block;
-    GSChunkVoxelData *chunk;
+    GSChunkVoxelData *chunk = nil;
 
     assert(voxel);
 
@@ -246,30 +238,20 @@
         return NO;
     }
 
-    if(![chunk tryReaderAccessToVoxelDataUsingBlock:^{
-        block = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
-                                                                  pos.y-chunk.minP.y,
-                                                                  pos.z-chunk.minP.z)];
-    }]) {
-        return NO;
-    }
-
-    *voxel = block;
+    *voxel = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
+                                                               pos.y-chunk.minP.y,
+                                                               pos.z-chunk.minP.z)];
+    
     return YES;
 }
 
 - (voxel_t)voxelAtPoint:(GLKVector3)pos
 {
-    __block voxel_t block;
     GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
     
-    [chunk readerAccessToVoxelDataUsingBlock:^{
-        block = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
-                                                                  pos.y-chunk.minP.y,
-                                                                  pos.z-chunk.minP.z)];
-    }];
-    
-    return block;
+    return [chunk voxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
+                                                             pos.y-chunk.minP.y,
+                                                             pos.z-chunk.minP.z)];
 }
 
 - (BOOL)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop, BOOL *fail))block

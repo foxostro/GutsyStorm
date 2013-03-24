@@ -11,7 +11,7 @@
 #import "Voxel.h"
 #import "GutsyStormErrorCodes.h"
 #import "SyscallWrappers.h"
-
+#import "GSNeighborhood.h"
 #import <GLKit/GLKQuaternion.h> // used by Voxel.h
 #import "Voxel.h" // for INDEX_BOX
 
@@ -71,7 +71,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     });
 }
 
-+ (id)newBufferFromLargerRawBuffer:(buffer_element_t *)srcBuf
++ (id)newBufferFromLargerRawBuffer:(const buffer_element_t *)srcBuf
                            srcMinP:(GSIntegerVector3)combinedMinP
                            srcMaxP:(GSIntegerVector3)combinedMaxP
 {
@@ -132,6 +132,12 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     assert(data);
     self = [self initWithDimensions:dim];
     if (self) {
+        _data = malloc(BUFFER_SIZE_IN_BYTES(dim));
+
+        if(!_data) {
+            [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
+        }
+
         memcpy(_data, data, BUFFER_SIZE_IN_BYTES(dim));
     }
 
@@ -215,6 +221,68 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
             dispatch_group_leave(group);
         });
     });
+}
+
+- (void)copyToCombinedNeighborhoodBuffer:(buffer_element_t *)dstBuf
+                                   count:(NSUInteger)count
+                                neighbor:(neighbor_index_t)neighbor
+{
+    static ssize_t offsetsX[CHUNK_NUM_NEIGHBORS];
+    static ssize_t offsetsZ[CHUNK_NUM_NEIGHBORS];
+    static dispatch_once_t onceToken;
+
+    dispatch_once(&onceToken, ^{
+        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
+        {
+            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+            offsetsX[i] = offset.x;
+            offsetsZ[i] = offset.z;
+        }
+    });
+    
+    ssize_t offsetX = offsetsX[neighbor];
+    ssize_t offsetZ = offsetsZ[neighbor];
+
+    GSIntegerVector3 p;
+    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+    {
+        assert(p.x >= 0 && p.x < chunkSize.x);
+        assert(p.y >= 0 && p.y < chunkSize.y);
+        assert(p.z >= 0 && p.z < chunkSize.z);
+
+        size_t dstIdx = INDEX_BOX(GSIntegerVector3_Make(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
+        size_t srcIdx = INDEX_BOX(p, ivecZero, chunkSize);
+
+        assert(dstIdx < count);
+        assert(srcIdx < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));
+
+        memcpy(&dstBuf[dstIdx], &_data[srcIdx], CHUNK_SIZE_Y*sizeof(dstBuf[0]));
+    }
+}
+
+- (GSBuffer *)copyWithEditAtPosition:(GSIntegerVector3)chunkLocalPos value:(buffer_element_t)newValue
+{
+    GSIntegerVector3 dim = self.dimensions;
+    GSIntegerVector3 p = GSIntegerVector3_Add(chunkLocalPos, _offsetFromChunkLocalSpace);
+
+    assert(chunkLocalPos.x >= 0 && chunkLocalPos.x < dim.x);
+    assert(chunkLocalPos.y >= 0 && chunkLocalPos.y < dim.y);
+    assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < dim.z);
+
+    buffer_element_t *modifiedData = malloc(BUFFER_SIZE_IN_BYTES(dim));
+    
+    if(!modifiedData) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating modifiedData."];
+    }
+
+    memcpy(modifiedData, _data, BUFFER_SIZE_IN_BYTES(dim));
+    modifiedData[INDEX_INTO_LIGHTING_BUFFER(dim, p)] = newValue;
+
+    GSBuffer *buffer = [[GSBuffer alloc] initWithDimensions:dim data:modifiedData];
+
+    free(modifiedData);
+
+    return buffer;
 }
 
 @end

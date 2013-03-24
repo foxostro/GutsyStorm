@@ -23,3 +23,6 @@ const GSIntegerVector3 offsetForFace[FACE_NUM_FACES] =
     {+1, 0, 0},
     {-1, 0, 0}
 };
+
+const GSIntegerVector3 combinedMinP = {-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z};
+const GSIntegerVector3 combinedMaxP = {2*CHUNK_SIZE_X, CHUNK_SIZE_Y, 2*CHUNK_SIZE_Z};

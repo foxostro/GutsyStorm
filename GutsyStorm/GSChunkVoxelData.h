@@ -9,9 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSGridItem.h"
 #import "GSIntegerVector3.h"
-#import "GSReaderWriterLock.h"
 #import "Voxel.h"
-#import "GSNeighborhood.h"
 #import "GSBuffer.h"
 
 
@@ -21,12 +19,7 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
 
 @interface GSChunkVoxelData : NSObject <GSGridItem>
 
-@property (readonly, nonatomic) voxel_t *voxelData;
-
-/* There are circumstances when it is necessary to use this lock directly, but in most cases the reader/writer accessor methods
- * here and in GSNeighborhood should be preferred.
- */
-@property (readonly, nonatomic) GSReaderWriterLock *lockVoxelData;
+@property (readonly, nonatomic) GSBuffer *voxels;
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GLKVector3)minP;
 
@@ -38,24 +31,17 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
          generator:(terrain_generator_t)generator
      postProcessor:(terrain_post_processor_t)postProcessor;
 
-// Must call after modifying voxel data and while still holding the lock on "lockVoxelData".
-- (void)voxelDataWasModified;
+- (id)initWithMinP:(GLKVector3)minP
+            folder:(NSURL *)folder
+    groupForSaving:(dispatch_group_t)groupForSaving
+    queueForSaving:(dispatch_queue_t)queueForSaving
+    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+              data:(GSBuffer *)data;
 
-// Obtains a reader lock on the voxel data and allows the caller to access it in the specified block.
-- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block;
-
-/* Tries to obtain a reader lock on the voxel data and allows the caller to access it in the specified block.
- * If the lock cannot be taken without blocking then this returns NO immediately. Otherwise, returns YES after executing the block.
- */
-- (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block;
-
-/* Obtains a writer lock on the voxel data and allows the caller to access it in the specified block. Calls -voxelDataWasModified
- * after the block returns.
- */
-- (void)writerAccessToVoxelDataUsingBlock:(void (^)(void))block;
-
-// Assumes the caller is already holding "lockVoxelData".
 - (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
-- (voxel_t *)pointerToVoxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
+
+- (void)saveToFile;
+
+- (GSChunkVoxelData *)copyWithEditAtPoint:(GLKVector3)pos block:(voxel_t)newBlock;
 
 @end

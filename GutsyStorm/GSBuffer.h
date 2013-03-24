@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <GLKit/GLKVector3.h>
 #import "GSIntegerVector3.h"
+#import "Voxel.h"
 
 
 typedef uint16_t buffer_element_t;
@@ -52,7 +53,7 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 /* Creates a new buffer of dimensions (CHUNK_SIZE_X+2) x (CHUNK_SIZE_Y) x (CHUNK_SIZE_Z+2).
  * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are discarded.
  */
-+ (id)newBufferFromLargerRawBuffer:(buffer_element_t *)srcBuf
++ (id)newBufferFromLargerRawBuffer:(const buffer_element_t *)srcBuf
                            srcMinP:(GSIntegerVector3)srcMinP
                            srcMaxP:(GSIntegerVector3)srcMaxP;
 
@@ -84,5 +85,12 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 - (void)saveToFile:(NSURL *)url
              queue:(dispatch_queue_t)queue
              group:(dispatch_group_t)group;
+
+/* Copies this buffer into a sub-range of another buffer of dimensions defined by combinedMinP and combinedMaxP. */
+- (void)copyToCombinedNeighborhoodBuffer:(buffer_element_t *)dstBuf
+                                   count:(NSUInteger)count
+                                neighbor:(neighbor_index_t)neighbor;
+
+- (GSBuffer *)copyWithEditAtPosition:(GSIntegerVector3)chunkLocalPos value:(buffer_element_t)newValue;
 
 @end

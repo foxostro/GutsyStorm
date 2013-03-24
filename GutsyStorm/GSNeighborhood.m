@@ -116,47 +116,23 @@
     }
 }
 
-- (BOOL)tryReaderAccessToVoxelDataUsingBlock:(void (^)(void))block
+- (voxel_t *)newVoxelBufferFromNeighborhood
 {
-    NSMutableArray *locksTaken = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
-    
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        if([_neighbors[i].lockVoxelData tryLockForReading]) {
-            [locksTaken addObject:_neighbors[i].lockVoxelData];
-        } else {
-            // It was not possible to lock all neighbors, so unwind and bail out.
-            for(GSReaderWriterLock *lock in locksTaken)
-            {
-                [lock unlockForReading];
-            }
-            
-            return NO;
-        }
+    // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
+    _Static_assert(sizeof(voxel_t) == sizeof(buffer_element_t), "expected to be able to store a voxel_t in a buffer_element_t");
+    static const size_t count = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
+    voxel_t *combinedVoxelData = calloc(count, sizeof(voxel_t));
+    if(!combinedVoxelData) {
+        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
-    
-    block();
-    
-    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
-        [neighbor.lockVoxelData unlockForReading];
-    }];
-    
-    return YES;
-}
 
-- (void)readerAccessToVoxelDataUsingBlock:(void (^)(void))block
-{
-    [[GSNeighborhood sharedVoxelDataLock] lock];
-    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
-        [neighbor.lockVoxelData lockForReading];
+    [self enumerateNeighborsWithBlock2:^(neighbor_index_t i, GSChunkVoxelData *voxels) {
+        [voxels.voxels copyToCombinedNeighborhoodBuffer:(buffer_element_t *)combinedVoxelData
+                                                  count:count
+                                               neighbor:i];
     }];
-    [[GSNeighborhood sharedVoxelDataLock] unlock];
-    
-    block();
-    
-    [self enumerateNeighborsWithBlock:^(GSChunkVoxelData *neighbor) {
-        [neighbor.lockVoxelData unlockForReading];
-    }];
+
+    return combinedVoxelData;
 }
 
 - (GSChunkVoxelData *)neighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP
