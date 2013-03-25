@@ -25,7 +25,7 @@
 
 @interface GSChunkStore ()
 
-+ (NSURL *)newWorldSaveFolderURLWithSeed:(NSUInteger)seed;
++ (NSURL *)newTerrainCacheFolderURL;
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
 - (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p neighborhood:(GSNeighborhood **)neighborhood;
 
@@ -90,7 +90,7 @@
 {
     self = [super init];
     if (self) {
-        _folder = [GSChunkStore newWorldSaveFolderURLWithSeed:seed];
+        _folder = [GSChunkStore newTerrainCacheFolderURL];
         _groupForSaving = dispatch_group_create();
         _shutdownDrawing = NO;
         _semaDrawingIsShutdown = dispatch_semaphore_create(0);
@@ -431,27 +431,27 @@
     return success;
 }
 
-+ (NSURL *)newWorldSaveFolderURLWithSeed:(NSUInteger)seed
++ (NSURL *)newTerrainCacheFolderURL
 {
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *folder = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
-    
-    folder = [folder stringByAppendingPathComponent:@"GutsyStorm"];
-    folder = [folder stringByAppendingPathComponent:@"save"];
-    folder = [folder stringByAppendingPathComponent:[NSString stringWithFormat:@"%lu",seed]];
-    NSLog(@"ChunkStore will save chunks to folder: %@", folder);
+    NSString *bundleIdentifier = [[NSRunningApplication currentApplication] bundleIdentifier];
+
+    folder = [folder stringByAppendingPathComponent:bundleIdentifier];
+    folder = [folder stringByAppendingPathComponent:@"terrain-cache"];
+    NSLog(@"ChunkStore will cache terrain data in folder: %@", folder);
     
     if(![[NSFileManager defaultManager] createDirectoryAtPath:folder
                                   withIntermediateDirectories:YES
                                                    attributes:nil
                                                         error:NULL]) {
-        NSLog(@"Failed to create save folder: %@", folder);
+        NSLog(@"Failed to create terrain cache folder: %@", folder);
     }
     
     NSURL *url = [[NSURL alloc] initFileURLWithPath:folder isDirectory:YES];
     
     if(![url checkResourceIsReachableAndReturnError:NULL]) {
-        NSLog(@"ChunkStore's Save folder not reachable: %@", folder);
+        NSLog(@"ChunkStore's terrain cache folder is not reachable: %@", folder);
     }
     
     return url;
