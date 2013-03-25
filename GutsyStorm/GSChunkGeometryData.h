@@ -16,6 +16,7 @@
 struct vertex;
 @class GSNeighborhood;
 @class GSBlockMesh;
+@class GSChunkSunlightData;
 
 
 @interface GSChunkGeometryData : NSObject <GSGridItem>
@@ -27,7 +28,7 @@ struct vertex;
 
 - (id)initWithMinP:(GLKVector3)minCorner
             folder:(NSURL *)folder
-      neighborhood:(GSNeighborhood *)neighborhood;
+          sunlight:(GSChunkSunlightData *)sunlight;
 
 /* Copy the chunk vertex buffer to a new buffer and return that in `dst'. Return the number of vertices in the buffer. */
 - (GLsizei)copyVertsToBuffer:(struct vertex **)dst;

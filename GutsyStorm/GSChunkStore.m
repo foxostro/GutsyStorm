@@ -16,8 +16,10 @@
 #import "GSBoxedVector.h"
 #import "GSNeighborhood.h"
 
-#import "GSChunkGeometryData.h"
 #import "GSChunkVBOs.h"
+#import "GSChunkGeometryData.h"
+#import "GSChunkSunlightData.h"
+#import "GSChunkVoxelData.h"
 
 #import "GSGrid.h"
 #import "GSGridGeometry.h"
@@ -25,11 +27,16 @@
 
 @interface GSChunkStore ()
 
+- (void)createGrids;
+- (void)setupGridDependencies;
+- (void)setupActiveRegionWithCamera:(GSCamera *)cam;
+
 + (NSURL *)newTerrainCacheFolderURL;
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
 - (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p neighborhood:(GSNeighborhood **)neighborhood;
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
+- (GSChunkSunlightData *)chunkSunlightAtPoint:(GLKVector3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p;
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk;
@@ -42,6 +49,7 @@
 {
     GSGrid *_gridVBOs;
     GSGridGeometry *_gridGeometryData;
+    GSGrid *_gridSunlightData;
     GSGrid *_gridVoxelData;
 
     dispatch_group_t _groupForSaving;
@@ -81,6 +89,81 @@
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
+- (void)createGrids
+{
+    _gridVoxelData = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+        return [self newChunkWithMinimumCorner:minP];
+    }];
+    
+    _gridSunlightData = [[GSGridGeometry alloc]
+                         initWithCacheFolder:_folder
+                         factory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+                             GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minP];
+                             return [[GSChunkSunlightData alloc] initWithMinP:minP
+                                                                       folder:_folder
+                                                                 neighborhood:neighborhood];
+                         }];
+    
+    _gridGeometryData = [[GSGridGeometry alloc]
+                         initWithCacheFolder:_folder
+                         factory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+                             GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minP];
+                             return [[GSChunkGeometryData alloc] initWithMinP:minP
+                                                                       folder:_folder
+                                                                     sunlight:sunlight];
+                         }];
+    
+    _gridVBOs = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
+        GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minP];
+        return [[GSChunkVBOs alloc] initWithChunkGeometry:geometry glContext:_glContext];
+    }];
+}
+
+- (void)setupGridDependencies
+{
+    // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
+    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet *(GLKVector3 p) {
+        NSMutableArray *correspondingPoint = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
+        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
+        {
+            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, offset)];
+            [correspondingPoint addObject:boxedPoint];
+        }
+        return [[NSSet alloc] initWithArray:correspondingPoint];
+    }];
+    
+    // Each chunk geometry object depends on the single, corresponding chunk sunlight object.
+    [_gridSunlightData registerDependentGrid:_gridGeometryData mapping:^NSSet *(GLKVector3 p) {
+        GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:p];
+        return [[NSSet alloc] initWithArray:@[boxedPoint]];
+    }];
+    
+    // Each chunk VBO object depends on the single, corresponding chunk geometry object.
+    [_gridGeometryData registerDependentGrid:_gridVBOs mapping:^NSSet *(GLKVector3 p) {
+        GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:p];
+        return [[NSSet alloc] initWithArray:@[boxedPoint]];
+    }];
+}
+
+- (void)setupActiveRegionWithCamera:(GSCamera *)cam
+{
+    // Active region is bounded at y>=0.
+    const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
+    _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
+    _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
+                                                                camera:cam
+                                                           vboProducer:^GSChunkVBOs *(GLKVector3 p) {
+                                                               assert(p.y >= 0 && p.y < _activeRegionExtent.y);
+                                                               return [_gridVBOs objectAtPoint:p];
+                                                           }];
+    
+    // At launch time, prefetch all chunks in the active region.
+    [_activeRegion enumeratePointsWithBlock:^(GLKVector3 p) {
+        [_gridVBOs prefetchItemAtPoint:p];
+    }];
+}
+
 - (id)initWithSeed:(NSUInteger)seed
             camera:(GSCamera *)cam
        terrainShader:(GSShader *)shader
@@ -100,69 +183,15 @@
         _generator = [generatorCallback copy];
         _postProcessor = [postProcessorCallback copy];
         
-        /* VBO generation must be performed on the main thread.
-         * To preserve responsiveness, limit the number of VBOs we create per frame.
-         */
-        NSInteger n = [[NSUserDefaults standardUserDefaults] integerForKey:@"NumVBOGenerationsAllowedPerFrame"];
-        assert(n > 0 && n < INT_MAX);
-        _numVBOGenerationsAllowedPerFrame = (int)n;
-        
         _chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
         dispatch_retain(_chunkTaskQueue);
 
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
         dispatch_retain(_queueForSaving);
         
-        _gridVoxelData = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-            return [self newChunkWithMinimumCorner:minP];
-        }];
-
-        _gridGeometryData = [[GSGridGeometry alloc]
-                             initWithCacheFolder:_folder
-                             factory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-                                 GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minP];
-                                 return [[GSChunkGeometryData alloc] initWithMinP:minP
-                                                                           folder:_folder
-                                                                     neighborhood:neighborhood];
-                             }];
-
-        _gridVBOs = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-            GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minP];
-            return [[GSChunkVBOs alloc] initWithChunkGeometry:geometry glContext:_glContext];
-        }];
-
-        // Each chunk geometry object depends on the single, corresponding neighborhood of voxel data objects.
-        [_gridVoxelData registerDependentGrid:_gridGeometryData mapping:^NSSet *(GLKVector3 p) {
-            NSMutableArray *correspondingPoint = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
-            for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
-            {
-                GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
-                GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, offset)];
-                [correspondingPoint addObject:boxedPoint];
-            }
-            return [[NSSet alloc] initWithArray:correspondingPoint];
-        }];
-
-        // Each chunk VBO object depends on the single, corresponding chunk geometry object.
-        [_gridGeometryData registerDependentGrid:_gridVBOs mapping:^NSSet *(GLKVector3 p) {
-            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:p];
-            return [[NSSet alloc] initWithArray:@[boxedPoint]];
-        }];
-
-        // Active region is bounded at y>=0.
-        const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
-        _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
-        _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
-                                                                    camera:cam
-                                                               vboProducer:^GSChunkVBOs *(GLKVector3 p) {
-                                                                   assert(p.y >= 0 && p.y < _activeRegionExtent.y);
-                                                                   return [_gridVBOs objectAtPoint:p];
-                                                               }];
-
-        // At launch time, prefetch all chunks in the active region.
-        [_activeRegion enumeratePointsWithBlock:^(GLKVector3 p) {
-            [_gridVBOs prefetchItemAtPoint:p];
-        }];
+        [self createGrids];
+        [self setupGridDependencies];
+        [self setupActiveRegionWithCamera:cam];
     }
     
     return self;
@@ -405,6 +434,12 @@
 {
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     return [_gridGeometryData objectAtPoint:p];
+}
+
+- (GSChunkSunlightData *)chunkSunlightAtPoint:(GLKVector3)p
+{
+    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
+    return [_gridSunlightData objectAtPoint:p];
 }
 
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p

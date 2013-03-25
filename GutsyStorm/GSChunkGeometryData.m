@@ -9,6 +9,7 @@
 #import <GLKit/GLKMath.h>
 #import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
+#import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 #import "GSRay.h"
 #import "GSChunkStore.h"
@@ -31,9 +32,14 @@ struct chunk_geometry_header
 };
 
 
+static void applyLightToVertices(size_t numChunkVerts,
+                                 struct vertex *vertsBuffer,
+                                 GSBuffer *sunlight,
+                                 GLKVector3 minP);
+
 @interface GSChunkGeometryData ()
 
-+ (NSData *)dataWithVoxelNeighborhood:(GSNeighborhood *)neighborhood minP:(GLKVector3)minCorner;
++ (NSData *)dataWithSunlight:(GSChunkSunlightData *)sunlight minP:(GLKVector3)minCorner;
 
 @end
 
@@ -67,7 +73,7 @@ struct chunk_geometry_header
 
 - (id)initWithMinP:(GLKVector3)minCorner
             folder:(NSURL *)folder
-      neighborhood:(GSNeighborhood *)neighborhood
+          sunlight:(GSChunkSunlightData *)sunlight
 {
     self = [super init];
     if (self) {
@@ -82,7 +88,7 @@ struct chunk_geometry_header
 
         if(!_data) {
             //NSLog(@"failed to map the geometry data file at \"%@\": %@", url, error);
-            _data = [GSChunkGeometryData dataWithVoxelNeighborhood:neighborhood minP:minP];
+            _data = [GSChunkGeometryData dataWithSunlight:sunlight minP:minP];
             [_data writeToURL:url atomically:YES];
         }
 
@@ -122,12 +128,14 @@ struct chunk_geometry_header
 }
 
 // Completely regenerate geometry for the chunk.
-+ (NSData *)dataWithVoxelNeighborhood:(GSNeighborhood *)neighborhood minP:(GLKVector3)minCorner
++ (NSData *)dataWithSunlight:(GSChunkSunlightData *)sunlight minP:(GLKVector3)minCorner
 {
     GLKVector3 pos;
     NSMutableArray *vertices;
 
-    assert(neighborhood);
+    assert(sunlight);
+
+    GSNeighborhood *neighborhood = sunlight.neighborhood;
 
     const GLKVector3 maxCorner = GLKVector3Add(minCorner, GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
 
@@ -174,7 +182,40 @@ struct chunk_geometry_header
         vertsBuffer[i] = v.v;
     }
 
+    // Iterate over all vertices and calculate lighting.
+    applyLightToVertices(numChunkVerts, vertsBuffer, sunlight.sunlight, minCorner);
+
     return data;
 }
 
 @end
+
+static void applyLightToVertices(size_t numChunkVerts,
+                                 struct vertex *vertsBuffer,
+                                 GSBuffer *sunlight,
+                                 GLKVector3 minP)
+{
+    assert(vertsBuffer);
+    assert(sunlight);
+
+    for(GLsizei i=0; i<numChunkVerts; ++i)
+    {
+        struct vertex *v = &vertsBuffer[i];
+        
+        GLKVector3 vertexPos = GLKVector3MakeWithArray(v->position);
+        GSIntegerVector3 normal = GSIntegerVector3_MakeWithGLubyte3(v->normal);
+
+        uint8_t sunlightValue = [sunlight lightForVertexAtPoint:vertexPos
+                                                     withNormal:normal
+                                                           minP:minP];
+
+        GLKVector4 color = {0};
+
+        color.g = 204.0f * (sunlightValue / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
+
+        v->color[0] = color.v[0];
+        v->color[1] = color.v[1];
+        v->color[2] = color.v[2];
+        v->color[3] = color.v[3];
+    }
+}
