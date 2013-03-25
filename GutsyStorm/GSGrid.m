@@ -201,11 +201,7 @@
 {
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
         // Get the object into the cache.
-        [self objectAtPoint:p
-                   blocking:NO
-                     object:nil
-            createIfMissing:YES];
-        
+        [self objectAtPoint:p];
     });
 }
 

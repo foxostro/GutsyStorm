@@ -20,19 +20,22 @@
  * camera -- The camera at the center of the active region.
  * vboProducer -- This block may be invoked at any time to retrieve the GSChunkVBO for any point in space.
  *                The block may return NULL if no VBO has been generated for that point or if the call would block on a lock.
- * vboPrefetcher -- This block may be invoked at any time to notify the VBO source of the active region's intentions to retrieve the
- *                  corresponding GSChunkVBO for that point sometime soon. The VBO source (the details of which are unimportant to
- *                  this class) may decide to act on this information by beginning VBO generation now.
  */
 - (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
                           camera:(GSCamera *)camera
-                     vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer
-                   vboPrefetcher:(void (^)(GLKVector3 p))vboPrefetcher;
+                     vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer;
 
-- (void)updateWithCameraModifiedFlags:(unsigned)flags;
+- (void)updateWithDeltaTime:(float)dt
+        cameraModifiedFlags:(unsigned)cameraModifiedFlags;;
 
 - (void)draw;
 
 - (void)enumeratePointsWithBlock:(void (^)(GLKVector3 p))block;
+
+/* Call this to notify the active region that a VBO in the active region has been updated. (replaced, invalidated, &c)
+ * If this is not called immediately when a VBO has been replaced then updates to the world will not be visible until the next
+ * automatic update occurs.
+ */
+- (void)notifyOfChangeInActiveRegionVBOs;
 
 @end

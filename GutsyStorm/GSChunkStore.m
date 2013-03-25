@@ -146,7 +146,6 @@
             return [[NSSet alloc] initWithArray:@[boxedPoint]];
         }];
 
-        // Do a full refresh fo the active region
         // Active region is bounded at y>=0.
         const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
@@ -154,16 +153,13 @@
                                                                     camera:cam
                                                                vboProducer:^GSChunkVBOs *(GLKVector3 p) {
                                                                    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
-                                                                   id object = nil;
-                                                                   [_gridVBOs objectAtPoint:p
-                                                                                   blocking:NO
-                                                                                     object:&object
-                                                                            createIfMissing:NO];
-                                                                   return object;
-                                                               }
-                                                             vboPrefetcher:^(GLKVector3 p) {
-                                                                 [_gridVBOs prefetchItemAtPoint:p];
-                                                             }];
+                                                                   return [_gridVBOs objectAtPoint:p];
+                                                               }];
+
+        // At launch time, prefetch all chunks in the active region.
+        [_activeRegion enumeratePointsWithBlock:^(GLKVector3 p) {
+            [_gridVBOs prefetchItemAtPoint:p];
+        }];
     }
     
     return self;
@@ -214,7 +210,7 @@
 
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    [_activeRegion updateWithCameraModifiedFlags:flags];
+    [_activeRegion updateWithDeltaTime:dt cameraModifiedFlags:flags];
 }
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block
@@ -224,6 +220,9 @@
         [modifiedItem saveToFile];
         return modifiedItem;
     }];
+
+    // Must notify the active region so that the change will get picked up right away.
+    [_activeRegion notifyOfChangeInActiveRegionVBOs];
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel

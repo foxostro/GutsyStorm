@@ -16,6 +16,13 @@
 #import "GSChunkVBOs.h"
 
 
+@interface GSActiveRegion ()
+
+- (void)updateVBOsInCameraFrustum;
+
+@end
+
+
 @implementation GSActiveRegion
 {
     /* The camera at the center of the active region. */
@@ -26,32 +33,31 @@
      */
     GLKVector3 _activeRegionExtent;
 
-    /* List of points corresponding to chunk AABBs which are within the camera frustum. */
-    NSArray *_chunksInCameraFrustum;
+    /* List of GSChunkVBOs which are within the camera frustum. */
+    NSArray *_vbosInCameraFrustum;
 
-    /* This block may be invoked at any time to retrieve the GSChunkVBO for any point in space. The block may return NULL if no
+    /* This block may be invoked at any time to retrieve the GSChunkVBOs for any point in space. The block may return NULL if no
      * VBO has been generated for that point.
      */
     GSChunkVBOs * (^_vboProducer)(GLKVector3 p);
 
-    /* This block may be invoked at any time to notify the VBO source of the active region's intentions to retrieve the
-     * corresponding GSChunkVBO for that point sometime soon. The VBO source (the details of which are unimportant to this class)
-     * may decide to act on this information by beginning VBO generation now.
+    /* Seconds until VBOs in the camera frustum are recalculated.
+     * Note that these are always immediately recalculated when the camera moves.
      */
-    void (^_vboPrefetcher)(GLKVector3 p);
+    float _timeUntilNextUpdate;
 
-    /* Keep track of chunks we've seen. Maps GSBoxedVector -> GSChunkVBOs.
-     * This is necessary because _vboProducer may return nil for resident chunks when doing otherwise would end up blocking.
-     * Each time _vboProducer produces a non-nil result, the chunk is stored in this dictionary.
-     * Each time _vboProducer produces a nil result, we look for the corresponding chunk in this dictionary.
+    /* Seconds between updates of VBOs in the camera frustum.
+     * Note that these are always immediately recalculated when the camera moves.
      */
-    NSMutableDictionary *_rememberVBOs;
+    float _updatePeriod;
+
+    /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
+    dispatch_queue_t _updateQueue;
 }
 
 - (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
                           camera:(GSCamera *)camera
                      vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer
-                   vboPrefetcher:(void (^)(GLKVector3 p))vboPrefetcher
 {
     self = [super init];
     if (self) {
@@ -62,51 +68,41 @@
 
         _camera = camera;
         _activeRegionExtent = activeRegionExtent;
-        _chunksInCameraFrustum = nil;
-        _rememberVBOs = [[NSMutableDictionary alloc] init];
+        _vbosInCameraFrustum = nil;
         _vboProducer = [vboProducer copy];
-        _vboPrefetcher = [vboPrefetcher copy];
+        _timeUntilNextUpdate = 0.0f;
+        _updatePeriod = 1.0f;
+        _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
 
-        [self updateWithCameraModifiedFlags:(CAMERA_MOVED | CAMERA_TURNED)];
+        [self updateWithDeltaTime:0.0f cameraModifiedFlags:(CAMERA_MOVED | CAMERA_TURNED)];
     }
     
     return self;
 }
 
+- (void)dealloc
+{
+    dispatch_release(_updateQueue);
+}
+
 - (void)draw
 {
-    NSArray *chunksInCameraFrustum = _chunksInCameraFrustum; // reading the pointer should be atomic here
+    NSArray *vbos = _vbosInCameraFrustum; // Reading the pointer is atomic.
 
-    for(GSBoxedVector *boxed in chunksInCameraFrustum)
+    for(GSChunkVBOs *vbo in vbos)
     {
-        const GLKVector3 p = [boxed vectorValue];
-
-        _vboPrefetcher(p);
-
-        GSChunkVBOs *vbo = _vboProducer(p);
-
-        /*if(vbo) {
-            [_rememberVBOs setObject:vbo forKey:boxed];
-        } else {
-            vbo = [_rememberVBOs objectForKey:boxed];
-        }*/
-
         [vbo draw];
     }
 }
 
-- (void)updateWithCameraModifiedFlags:(unsigned)flags
+- (void)updateVBOsInCameraFrustum
 {
-    if(!(flags & CAMERA_TURNED) && !(flags & CAMERA_MOVED)) {
-        return;
-    }
-
     GSFrustum *frustum = _camera.frustum;
-    NSMutableArray *chunksInCameraFrustum = [[NSMutableArray alloc] init];
-
+    NSMutableArray *vbosInCameraFrustum = [[NSMutableArray alloc] init];
+    
     [self enumeratePointsWithBlock:^(GLKVector3 p) {
         GLKVector3 corners[8];
-
+        
         corners[0] = MinCornerForChunkAtPoint(p);
         corners[1] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            0));
         corners[2] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
@@ -117,11 +113,32 @@
         corners[7] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
         
         if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
-            [chunksInCameraFrustum addObject:[GSBoxedVector boxedVectorWithVector:corners[0]]];
+            GSChunkVBOs *vbo = _vboProducer(corners[0]);
+            if(vbo) {
+                [vbosInCameraFrustum addObject:vbo];
+            }
         }
     }];
+    
+    /* Publish the list of chunk VBOs which are in the camera frustum.
+     * This is consumed on the rendering thread by -draw. Assignment is atomic.
+     */
+    _vbosInCameraFrustum = vbosInCameraFrustum;
+}
 
-    _chunksInCameraFrustum = chunksInCameraFrustum; // assignment should be atomic here
+- (void)updateWithDeltaTime:(float)dt
+        cameraModifiedFlags:(unsigned)flags;
+{
+    BOOL forceImmediateUpdate = (flags & CAMERA_TURNED) || (flags & CAMERA_MOVED);
+
+    _timeUntilNextUpdate -= dt;
+    if(forceImmediateUpdate || (_timeUntilNextUpdate<0.0f)) {
+        _timeUntilNextUpdate = _updatePeriod;
+
+        dispatch_async(_updateQueue, ^{
+            [self updateVBOsInCameraFrustum];
+        });
+    }
 }
 
 - (void)enumeratePointsWithBlock:(void (^)(GLKVector3 p))block
@@ -153,6 +170,13 @@
         
         block(centerP);
     }
+}
+
+- (void)notifyOfChangeInActiveRegionVBOs
+{
+    dispatch_async(_updateQueue, ^{
+        [self updateVBOsInCameraFrustum];
+    });
 }
 
 @end
