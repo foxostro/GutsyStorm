@@ -79,6 +79,7 @@ typedef GLint index_t;
         minP = geometry.minP;
         _vbo = [[GSVBOHolder alloc] initWithHandle:createVBO(context, vertsBuffer, _numIndicesForDrawing)
                                            context:context];
+        free(vertsBuffer);
     }
 
     return self;
