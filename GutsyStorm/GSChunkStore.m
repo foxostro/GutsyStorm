@@ -214,6 +214,9 @@
     [_gridVoxelData evictAllItems];
     _gridVoxelData = nil;
 
+    [_gridSunlightData evictAllItems];
+    _gridSunlightData = nil;
+
     [_gridGeometryData evictAllItems];
     _gridGeometryData = nil;
 
@@ -511,6 +514,7 @@
 {
     [_gridVoxelData evictAllItems];
     [_gridGeometryData evictAllItems];
+    [_gridSunlightData evictAllItems];
     [_gridVBOs evictAllItems];
     [_activeRegion purge];
     NSLog(@"testPurge");
