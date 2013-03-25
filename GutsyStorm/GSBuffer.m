@@ -130,14 +130,9 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 - (id)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data
 {
     assert(data);
-    self = [self initWithDimensions:dim];
+    self = [self initWithDimensions:dim]; // NOTE: this call will allocate memory for _data
     if (self) {
-        _data = malloc(BUFFER_SIZE_IN_BYTES(dim));
-
-        if(!_data) {
-            [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
-        }
-
+        assert(_data);
         memcpy(_data, data, BUFFER_SIZE_IN_BYTES(dim));
     }
 
@@ -151,7 +146,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 
 - (id)copyWithZone:(NSZone *)zone
 {
-    return [[GSBuffer allocWithZone:zone] initWithDimensions:_dimensions data:_data];
+    return self; // GSBuffer is immutable. Return self rather than perform a deep copy.
 }
 
 - (buffer_element_t)valueAtPosition:(GSIntegerVector3)chunkLocalPos
