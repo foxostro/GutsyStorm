@@ -25,10 +25,15 @@
 - (void)updateWithDeltaTime:(float)dt
         cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
-- (void)sync;
-
 - (void)placeBlockUnderCrosshairs;
 
 - (void)removeBlockUnderCrosshairs;
+
+- (void)testPurge;
+
+/* Clean-up in preparation for destroying the terrain object.
+ * For example, synchronize with the disk one last time and resources.
+ */
+- (void)shutdown;
 
 @end

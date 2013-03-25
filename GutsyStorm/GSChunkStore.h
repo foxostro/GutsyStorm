@@ -47,6 +47,11 @@
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block;
 
-- (void)sync;
+- (void)testPurge;
+
+/* Clean-up in preparation for destroying the terrain object.
+ * For example, synchronize with the disk one last time and resources.
+ */
+- (void)shutdown;
 
 @end

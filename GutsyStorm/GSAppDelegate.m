@@ -37,7 +37,7 @@
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
-    [_terrain sync];
+    [_terrain shutdown];
     _terrain = nil; // explicitly give up the reference
     CVDisplayLinkStop(_displayLink);
 }

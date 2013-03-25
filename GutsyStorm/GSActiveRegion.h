@@ -38,4 +38,7 @@
  */
 - (void)notifyOfChangeInActiveRegionVBOs;
 
+/* Give up all stored references to active region VBO objects. */
+- (void)purge;
+
 @end

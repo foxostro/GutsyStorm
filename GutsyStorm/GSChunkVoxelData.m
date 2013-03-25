@@ -21,10 +21,10 @@
 @interface GSChunkVoxelData ()
 
 - (void)markOutsideVoxels:(GSMutableBuffer *)data;
-- (GSBuffer *)generateVoxelDataWithGenerator:(terrain_generator_t)generator
-                               postProcessor:(terrain_post_processor_t)postProcessor;
-- (GSBuffer *)loadOrGenerateVoxelData:(terrain_generator_t)generator
-                        postProcessor:(terrain_post_processor_t)postProcessor;
+- (GSBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
+                                postProcessor:(terrain_post_processor_t)postProcessor;
+- (GSBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
+                                                     postProcessor:(terrain_post_processor_t)postProcessor;
 
 @end
 
@@ -68,7 +68,8 @@
         
         _folder = folder;
         
-        _voxels = [self loadOrGenerateVoxelData:generator postProcessor:postProcessor];
+        _voxels = [self newVoxelDataBufferFromFileOrFromScratchWithGenerator:generator
+                                                               postProcessor:postProcessor];
     }
     
     return self;
@@ -96,9 +97,7 @@
         _folder = folder;
 
         GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
-
         [self markOutsideVoxels:dataWithUpdatedOutside];
-
         _voxels = dataWithUpdatedOutside;
     }
 
@@ -178,8 +177,8 @@
  * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
  * the chunk is equal to maxP-minP. Ditto for the other major axii.
  */
-- (GSBuffer *)generateVoxelDataWithGenerator:(terrain_generator_t)generator
-                               postProcessor:(terrain_post_processor_t)postProcessor
+- (GSBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
+                                postProcessor:(terrain_post_processor_t)postProcessor
 {
     GSIntegerVector3 p, a, b;
     a = GSIntegerVector3_Make(-1, 0, -1);
@@ -221,28 +220,28 @@
     [self.voxels saveToFile:url queue:_queueForSaving group:_groupForSaving];
 }
 
-- (GSBuffer *)loadOrGenerateVoxelData:(terrain_generator_t)generator
-                        postProcessor:(terrain_post_processor_t)postProcessor
+- (GSBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
+                                                     postProcessor:(terrain_post_processor_t)postProcessor
 {
-    NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
-    NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
-
     GSBuffer *buffer = nil;
-    NSData *data = nil;
-    NSError *error = nil;
-    
-    data = [NSData dataWithContentsOfFile:[url path]
-                                   options:NSDataReadingMapped
-                                     error:&error];
 
-    if(data) {
-        buffer = [[GSBuffer alloc] initWithDimensions:chunkSize data:[data bytes]];
-    } else {
-        buffer = [self generateVoxelDataWithGenerator:generator postProcessor:postProcessor];
-        [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
+    @autoreleasepool {
+        NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
+        NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
+        NSError *error = nil;
+        NSData *data = [NSData dataWithContentsOfFile:[url path]
+                                              options:NSDataReadingMapped
+                                                error:&error];
+
+        if(data) {
+            buffer = [[GSBuffer alloc] initWithDimensions:chunkSize data:[data bytes]];
+        } else {
+            buffer = [self newVoxelDataBufferWithGenerator:generator postProcessor:postProcessor];
+            [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
+        }
+        
+        assert(buffer);
     }
-
-    assert(buffer);
 
     return buffer;
 }

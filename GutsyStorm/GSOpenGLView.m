@@ -36,9 +36,10 @@ BOOL checkForOpenGLExtension(NSString *extension);
     GSCamera *_camera;
     GLString *_fpsStringTex;
     NSMutableDictionary *_stringAttribs; // attributes for string textures
-    GSTerrain *_terrain;
+    __weak GSTerrain *_terrain;
     BOOL _spaceBarDebounce;
     BOOL _bKeyDebounce;
+    BOOL _uKeyDebounce;
     CVDisplayLinkRef _displayLink;
 }
 
@@ -122,13 +123,14 @@ BOOL checkForOpenGLExtension(NSString *extension);
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, materialShininess);
     
     [self buildFontsAndStrings];
-    
-    _terrain = [[GSTerrain alloc] initWithSeed:0
-                                       camera:_camera
-                                    glContext:[self openGLContext]];
+
+    GSTerrain *terrain = [[GSTerrain alloc] initWithSeed:0
+                                                  camera:_camera
+                                               glContext:[self openGLContext]];
     
     GSAppDelegate *appDelegate = [[NSApplication sharedApplication] delegate];
-    appDelegate.terrain = _terrain;
+    appDelegate.terrain = terrain;
+    _terrain = terrain;
     
     [self enableVSync];
     
@@ -170,6 +172,7 @@ BOOL checkForOpenGLExtension(NSString *extension);
     _terrain = nil;
     _spaceBarDebounce = NO;
     _bKeyDebounce = NO;
+    _uKeyDebounce = NO;
     
     _camera = [[GSCamera alloc] init];
     [_camera moveToPosition:GLKVector3Make(85.1, 16.1, 140.1)];
@@ -278,6 +281,15 @@ BOOL checkForOpenGLExtension(NSString *extension);
         }
     } else {
         _bKeyDebounce = NO;
+    }
+
+    if([_keysDown[@('u')] boolValue]) {
+        if(!_uKeyDebounce) {
+            _uKeyDebounce = YES;
+            [_terrain testPurge];
+        }
+    } else {
+        _uKeyDebounce = NO;
     }
     
     // Reset for the next update

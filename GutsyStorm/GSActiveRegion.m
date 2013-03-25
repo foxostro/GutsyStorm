@@ -179,4 +179,9 @@
     });
 }
 
+- (void)purge
+{
+    _vbosInCameraFrustum = nil; // assignment is atomic here
+}
+
 @end

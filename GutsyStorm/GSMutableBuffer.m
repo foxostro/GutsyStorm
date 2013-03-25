@@ -34,6 +34,12 @@
     return self;
 }
 
+- (id)copyWithZone:(NSZone *)zone
+{
+    // Copies the underlying buffer to a new buffer.
+    return [[GSMutableBuffer allocWithZone:zone] initWithDimensions:self.dimensions data:_data];
+}
+
 - (buffer_element_t *)mutableData
 {
     return _data;

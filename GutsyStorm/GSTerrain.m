@@ -473,9 +473,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     [_chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
 }
 
-- (void)sync
+- (void)testPurge
 {
-    [_chunkStore sync];
+    [_chunkStore testPurge];
 }
 
 - (void)placeBlockUnderCrosshairs
@@ -533,6 +533,12 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     _cursor.cursorIsActive = cursorIsActive;
     _cursor.cursorPos = cursorPos;
     _cursor.cursorPlacePos = prev;
+}
+
+- (void)shutdown
+{
+    [_chunkStore shutdown];
+    _chunkStore = nil;
 }
 
 @end

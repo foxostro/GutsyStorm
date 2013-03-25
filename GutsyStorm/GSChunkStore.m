@@ -48,7 +48,9 @@
     dispatch_queue_t _chunkTaskQueue;
     dispatch_queue_t _queueForSaving;
 
-    NSLock *_lock;
+    BOOL _shutdownDrawing;
+    dispatch_semaphore_t _semaDrawingIsShutdown;
+
     NSUInteger _numVBOGenerationsAllowedPerFrame;
     GSCamera *_camera;
     NSURL *_folder;
@@ -90,10 +92,11 @@
     if (self) {
         _folder = [GSChunkStore newWorldSaveFolderURLWithSeed:seed];
         _groupForSaving = dispatch_group_create();
+        _shutdownDrawing = NO;
+        _semaDrawingIsShutdown = dispatch_semaphore_create(0);
         _camera = cam;
         _terrainShader = shader;
         _glContext = context;
-        _lock = [[NSLock alloc] init];
         _generator = [generatorCallback copy];
         _postProcessor = [postProcessorCallback copy];
         
@@ -165,30 +168,45 @@
     return self;
 }
 
-- (void)waitForSaveToFinish
+- (void)shutdown
 {
-    [_lock lock];
+    // Shutdown drawing on the display link thread.
+    _shutdownDrawing = YES;
+    dispatch_semaphore_wait(_semaDrawingIsShutdown, DISPATCH_TIME_FOREVER);
+
     NSLog(@"Waiting for all chunk-saving tasks to complete.");
     dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER); // wait for save operations to complete
     NSLog(@"All chunks have been saved.");
-    [_lock unlock];
-}
+    
+    [_gridVoxelData evictAllItems];
+    _gridVoxelData = nil;
 
-- (void)sync
-{
-    [self waitForSaveToFinish];
     [_gridGeometryData evictAllItems];
-}
+    _gridGeometryData = nil;
 
-- (void)dealloc
-{   
+    [_gridVBOs evictAllItems];
+    _gridVBOs = nil;
+    
+    [_activeRegion purge];
+    _activeRegion = nil;
+
     dispatch_release(_groupForSaving);
+    _groupForSaving = NULL;
+
     dispatch_release(_chunkTaskQueue);
+    _chunkTaskQueue = NULL;
+
     dispatch_release(_queueForSaving);
+    _queueForSaving = NULL;
 }
 
 - (void)drawActiveChunks
-{   
+{
+    if(_shutdownDrawing) {
+        dispatch_semaphore_signal(_semaDrawingIsShutdown);
+        return;
+    }
+
     [_terrainShader bind];
     
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -448,6 +466,15 @@
                                    chunkTaskQueue:_chunkTaskQueue
                                         generator:_generator
                                     postProcessor:_postProcessor];
+}
+
+- (void)testPurge
+{
+    [_gridVoxelData evictAllItems];
+    [_gridGeometryData evictAllItems];
+    [_gridVBOs evictAllItems];
+    [_activeRegion purge];
+    NSLog(@"testPurge");
 }
 
 @end
