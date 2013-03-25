@@ -280,6 +280,11 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     return buffer;
 }
 
+- (const buffer_element_t *)data
+{
+    return _data;
+}
+
 @end
 
 

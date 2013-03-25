@@ -93,4 +93,6 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 
 - (GSBuffer *)copyWithEditAtPosition:(GSIntegerVector3)chunkLocalPos value:(buffer_element_t)newValue;
 
+- (const buffer_element_t *)data;
+
 @end

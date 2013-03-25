@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSIntegerVector3.h"
 #import "GSReaderWriterLock.h"
+#import "Voxel.h"
 
 
 @class GSChunkVoxelData;

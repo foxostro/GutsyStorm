@@ -23,6 +23,7 @@
 
 #import "GSGrid.h"
 #import "GSGridGeometry.h"
+#import "GSGridSunlight.h"
 
 
 @interface GSChunkStore ()
@@ -49,7 +50,7 @@
 {
     GSGrid *_gridVBOs;
     GSGridGeometry *_gridGeometryData;
-    GSGrid *_gridSunlightData;
+    GSGridSunlight *_gridSunlightData;
     GSGrid *_gridVoxelData;
 
     dispatch_group_t _groupForSaving;
@@ -91,30 +92,33 @@
 
 - (void)createGrids
 {
-    _gridVoxelData = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-        return [self newChunkWithMinimumCorner:minP];
+    _gridVoxelData = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+        return [self newChunkWithMinimumCorner:minCorner];
     }];
     
-    _gridSunlightData = [[GSGridGeometry alloc]
+    _gridSunlightData = [[GSGridSunlight alloc]
                          initWithCacheFolder:_folder
-                         factory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-                             GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minP];
-                             return [[GSChunkSunlightData alloc] initWithMinP:minP
+                         factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                             GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
+                             return [[GSChunkSunlightData alloc] initWithMinP:minCorner
                                                                        folder:_folder
+                                                               groupForSaving:_groupForSaving
+                                                               queueForSaving:_queueForSaving
+                                                               chunkTaskQueue:_chunkTaskQueue
                                                                  neighborhood:neighborhood];
                          }];
     
     _gridGeometryData = [[GSGridGeometry alloc]
                          initWithCacheFolder:_folder
-                         factory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-                             GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minP];
-                             return [[GSChunkGeometryData alloc] initWithMinP:minP
+                         factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                             GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
+                             return [[GSChunkGeometryData alloc] initWithMinP:minCorner
                                                                        folder:_folder
                                                                      sunlight:sunlight];
                          }];
     
-    _gridVBOs = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minP) {
-        GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minP];
+    _gridVBOs = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+        GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
         return [[GSChunkVBOs alloc] initWithChunkGeometry:geometry glContext:_glContext];
     }];
 }
