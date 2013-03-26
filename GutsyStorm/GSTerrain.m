@@ -470,7 +470,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         [self recalcCursorPosition];
     }
     
-    [_chunkStore updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
+    [_chunkStore updateWithCameraModifiedFlags:cameraModifiedFlags];
 }
 
 - (void)testPurge

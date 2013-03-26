@@ -25,8 +25,7 @@
  */
 - (void)drawActiveChunks;
 
-- (void)updateWithDeltaTime:(float)dt
-        cameraModifiedFlags:(unsigned)cameraModifiedFlags;
+- (void)updateWithCameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
 /* Enumerates the voxels on the specified ray up to the specified maximum depth. Calls the block for each voxel cell. The block
  * may set '*stop=YES;' to indicate that enumeration should terminate with a successful condition. The block may set '*fail=YES;'

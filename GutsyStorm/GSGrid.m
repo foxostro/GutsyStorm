@@ -269,6 +269,7 @@
 
 - (void)invalidateItemAtPoint:(GLKVector3)p
 {
+    // Invalidate asynchronously to avoid deadlock.
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
         [_lockTheTableItself lockForReading];
 

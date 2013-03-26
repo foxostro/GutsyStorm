@@ -22,6 +22,7 @@
 #import "GSChunkVoxelData.h"
 
 #import "GSGrid.h"
+#import "GSGridVBOs.h"
 #import "GSGridGeometry.h"
 #import "GSGridSunlight.h"
 
@@ -48,7 +49,7 @@
 
 @implementation GSChunkStore
 {
-    GSGrid *_gridVBOs;
+    GSGridVBOs *_gridVBOs;
     GSGridGeometry *_gridGeometryData;
     GSGridSunlight *_gridSunlightData;
     GSGrid *_gridVoxelData;
@@ -117,7 +118,7 @@
                                                                      sunlight:sunlight];
                          }];
     
-    _gridVBOs = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+    _gridVBOs = [[GSGridVBOs alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
         GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
         return [[GSChunkVBOs alloc] initWithChunkGeometry:geometry glContext:_glContext];
     }];
@@ -166,6 +167,12 @@
     [_activeRegion enumeratePointsWithBlock:^(GLKVector3 p) {
         [_gridVBOs prefetchItemAtPoint:p];
     }];
+
+    // Whenever a VBO is invalidated, the active region must be invalidated.
+    __weak GSActiveRegion *weakActiveRegion = _activeRegion;
+    _gridVBOs.invalidationNotification = ^{
+        [weakActiveRegion notifyOfChangeInActiveRegionVBOs];
+    };
 }
 
 - (id)initWithSeed:(NSUInteger)seed
@@ -262,9 +269,9 @@
     [_terrainShader unbind];
 }
 
-- (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
+- (void)updateWithCameraModifiedFlags:(unsigned)flags
 {
-    [_activeRegion updateWithDeltaTime:dt cameraModifiedFlags:flags];
+    [_activeRegion updateWithCameraModifiedFlags:flags];
 }
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block

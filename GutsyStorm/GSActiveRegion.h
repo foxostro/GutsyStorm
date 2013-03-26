@@ -25,8 +25,7 @@
                           camera:(GSCamera *)camera
                      vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer;
 
-- (void)updateWithDeltaTime:(float)dt
-        cameraModifiedFlags:(unsigned)cameraModifiedFlags;;
+- (void)updateWithCameraModifiedFlags:(unsigned)flags;
 
 - (void)draw;
 

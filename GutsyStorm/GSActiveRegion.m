@@ -41,16 +41,6 @@
      */
     GSChunkVBOs * (^_vboProducer)(GLKVector3 p);
 
-    /* Seconds until VBOs in the camera frustum are recalculated.
-     * Note that these are always immediately recalculated when the camera moves.
-     */
-    float _timeUntilNextUpdate;
-
-    /* Seconds between updates of VBOs in the camera frustum.
-     * Note that these are always immediately recalculated when the camera moves.
-     */
-    float _updatePeriod;
-
     /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
     dispatch_queue_t _updateQueue;
 }
@@ -70,11 +60,9 @@
         _activeRegionExtent = activeRegionExtent;
         _vbosInCameraFrustum = nil;
         _vboProducer = [vboProducer copy];
-        _timeUntilNextUpdate = 0.0f;
-        _updatePeriod = 1.0f;
         _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
 
-        [self updateWithDeltaTime:0.0f cameraModifiedFlags:(CAMERA_MOVED | CAMERA_TURNED)];
+        [self updateVBOsInCameraFrustum];
     }
     
     return self;
@@ -126,15 +114,9 @@
     _vbosInCameraFrustum = vbosInCameraFrustum;
 }
 
-- (void)updateWithDeltaTime:(float)dt
-        cameraModifiedFlags:(unsigned)flags;
+- (void)updateWithCameraModifiedFlags:(unsigned)flags;
 {
-    BOOL forceImmediateUpdate = (flags & CAMERA_TURNED) || (flags & CAMERA_MOVED);
-
-    _timeUntilNextUpdate -= dt;
-    if(forceImmediateUpdate || (_timeUntilNextUpdate<0.0f)) {
-        _timeUntilNextUpdate = _updatePeriod;
-
+    if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
         dispatch_async(_updateQueue, ^{
             [self updateVBOsInCameraFrustum];
         });
