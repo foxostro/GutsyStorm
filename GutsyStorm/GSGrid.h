@@ -32,9 +32,6 @@
                object:(id *)object
       createIfMissing:(BOOL)createIfMissing;
 
-/* Begin asynchronous generation of the item at the specified point. Cache that item when it is ready. */
-- (void)prefetchItemAtPoint:(GLKVector3)p;
-
 // Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids.
 - (void)evictItemAtPoint:(GLKVector3)p;
 

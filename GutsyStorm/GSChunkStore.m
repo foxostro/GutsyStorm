@@ -162,11 +162,6 @@
                                                                assert(p.y >= 0 && p.y < _activeRegionExtent.y);
                                                                return [_gridVBOs objectAtPoint:p];
                                                            }];
-    
-    // At launch time, prefetch all chunks in the active region.
-    [_activeRegion enumeratePointsWithBlock:^(GLKVector3 p) {
-        [_gridVBOs prefetchItemAtPoint:p];
-    }];
 
     // Whenever a VBO is invalidated, the active region must be invalidated.
     __weak GSActiveRegion *weakActiveRegion = _activeRegion;
@@ -523,7 +518,6 @@
     [_gridGeometryData evictAllItems];
     [_gridSunlightData evictAllItems];
     [_gridVBOs evictAllItems];
-    [_activeRegion purge];
     NSLog(@"testPurge");
 }
 
