@@ -475,7 +475,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (void)testPurge
 {
-    [_chunkStore testPurge];
+    [_chunkStore purge];
 }
 
 - (void)placeBlockUnderCrosshairs

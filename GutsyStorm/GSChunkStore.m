@@ -27,6 +27,9 @@
 #import "GSGridSunlight.h"
 
 
+static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway, void (^eventHandler)());
+
+
 @interface GSChunkStore ()
 
 - (void)createGrids;
@@ -60,6 +63,8 @@
 
     BOOL _shutdownDrawing;
     dispatch_semaphore_t _semaDrawingIsShutdown;
+
+    dispatch_source_t _timer;
 
     NSUInteger _numVBOGenerationsAllowedPerFrame;
     GSCamera *_camera;
@@ -198,6 +203,13 @@
         [self createGrids];
         [self setupGridDependencies];
         [self setupActiveRegionWithCamera:cam];
+
+        _timer = createDispatchTimer(60 * NSEC_PER_SEC, // interval
+                                     NSEC_PER_SEC,     // leeway
+                                     ^{
+                                         [self purge];
+                                         NSLog(@"automatic purge");
+                                     });
     }
     
     return self;
@@ -205,6 +217,9 @@
 
 - (void)shutdown
 {
+    dispatch_source_cancel(_timer);
+    dispatch_release(_timer);
+
     // Shutdown drawing on the display link thread.
     _shutdownDrawing = YES;
     dispatch_semaphore_wait(_semaDrawingIsShutdown, DISPATCH_TIME_FOREVER);
@@ -512,13 +527,29 @@
                                     postProcessor:_postProcessor];
 }
 
-- (void)testPurge
+- (void)purge
 {
     [_gridVoxelData evictAllItems];
     [_gridGeometryData evictAllItems];
     [_gridSunlightData evictAllItems];
     [_gridVBOs evictAllItems];
-    NSLog(@"testPurge");
 }
 
 @end
+
+
+static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway, void (^eventHandler)())
+{
+    dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0,
+                                                     dispatch_get_global_queue(0, 0));
+
+    dispatch_source_set_timer(timer,
+                              dispatch_time(DISPATCH_TIME_NOW, interval),
+                              interval, leeway);
+
+    dispatch_source_set_event_handler(timer, eventHandler);
+
+    dispatch_resume(timer);
+
+    return timer;
+}
