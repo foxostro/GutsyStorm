@@ -18,63 +18,21 @@
 
 @interface GSNeighborhood ()
 
-+ (NSLock *)sharedVoxelDataLock;
+- (void)clear;
 
 @end
 
 
 @implementation GSNeighborhood
 {
-    GSChunkVoxelData *_neighbors[CHUNK_NUM_NEIGHBORS];
-}
-
-+ (GLKVector3)offsetForNeighborIndex:(neighbor_index_t)idx
-{
-    switch(idx)
-    {
-        case CHUNK_NEIGHBOR_POS_X_NEG_Z:
-            return GLKVector3Make(+CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z);
-            
-        case CHUNK_NEIGHBOR_POS_X_ZER_Z:
-            return GLKVector3Make(+CHUNK_SIZE_X, 0, 0);
-            
-        case CHUNK_NEIGHBOR_POS_X_POS_Z:
-            return GLKVector3Make(+CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z);
-            
-        case CHUNK_NEIGHBOR_NEG_X_NEG_Z:
-            return GLKVector3Make(-CHUNK_SIZE_X, 0, -CHUNK_SIZE_Z);
-            
-        case CHUNK_NEIGHBOR_NEG_X_ZER_Z:
-            return GLKVector3Make(-CHUNK_SIZE_X, 0, 0);
-            
-        case CHUNK_NEIGHBOR_NEG_X_POS_Z:
-            return GLKVector3Make(-CHUNK_SIZE_X, 0, +CHUNK_SIZE_Z);
-            
-        case CHUNK_NEIGHBOR_ZER_X_NEG_Z:
-            return GLKVector3Make(0, 0, -CHUNK_SIZE_Z);
-            
-        case CHUNK_NEIGHBOR_ZER_X_POS_Z:
-            return GLKVector3Make(0, 0, +CHUNK_SIZE_Z);
-            
-        case CHUNK_NEIGHBOR_CENTER:
-            return GLKVector3Make(0, 0, 0);
-            
-        case CHUNK_NUM_NEIGHBORS:
-            [NSException raise:NSInvalidArgumentException format:@"\"idx\" must not be CHUNK_NUM_NEIGHBORS."];
-    }
-    
-    NSAssert(NO, @"shouldn't get here");
-    return GLKVector3Make(0, 0, 0);
+    GSChunkVoxelData *_neighbors[3][3][3];
 }
 
 - (id)init
 {
     self = [super init];
     if (self) {
-        for(size_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-        {
-            _neighbors[i] = nil;
-        }
+        [self clear];
     }
     
     return self;
@@ -82,37 +40,52 @@
 
 - (void)dealloc
 {
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    [self clear];
+}
+
+- (void)clear
+{
+    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+1, +1, +1);
+    GSIntegerVector3 p;
+    FOR_BOX(p, a, b)
     {
-        _neighbors[i] = nil;
+        [self setNeighborAtPosition:p neighbor:nil];
     }
 }
 
-- (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx
+- (GSChunkVoxelData *)neighborAtPosition:(GSIntegerVector3)p
 {
-    NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
-    return _neighbors[idx];
+    assert(p.x >= -1 && p.x <= +1);
+    assert(p.y >= -1 && p.y <= +1);
+    assert(p.z >= -1 && p.z <= +1);
+    return _neighbors[p.x+1][p.y+1][p.z+1];
 }
 
-- (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor
+- (void)setNeighborAtPosition:(GSIntegerVector3)p neighbor:(GSChunkVoxelData *)neighbor
 {
-    NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
-    _neighbors[idx] = neighbor;
+    assert(p.x >= -1 && p.x <= +1);
+    assert(p.y >= -1 && p.y <= +1);
+    assert(p.z >= -1 && p.z <= +1);
+    _neighbors[p.x+1][p.y+1][p.z+1] = neighbor;
 }
 
 - (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block
 {
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+1, +1, +1);
+    GSIntegerVector3 p;
+    FOR_BOX(p, a, b)
     {
-        block(_neighbors[i]);
+        block([self neighborAtPosition:p]);
     }
 }
 
-- (void)enumerateNeighborsWithBlock2:(void (^)(neighbor_index_t, GSChunkVoxelData*))block
+- (void)enumerateNeighborsWithBlock2:(void (^)(GSIntegerVector3 p, GSChunkVoxelData*))block
 {
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+1, +1, +1);
+    GSIntegerVector3 p;
+    FOR_BOX(p, a, b)
     {
-        block(i, _neighbors[i]);
+        block(p, [self neighborAtPosition:p]);
     }
 }
 
@@ -126,97 +99,64 @@
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
 
-    [self enumerateNeighborsWithBlock2:^(neighbor_index_t i, GSChunkVoxelData *voxels) {
+    [self enumerateNeighborsWithBlock2:^(GSIntegerVector3 positionInNeighborhood, GSChunkVoxelData *voxels) {
         [voxels.voxels copyToCombinedNeighborhoodBuffer:(buffer_element_t *)combinedVoxelData
                                                   count:count
-                                               neighbor:i];
+                                 positionInNeighborhood:positionInNeighborhood];
     }];
 
     return combinedVoxelData;
 }
 
-- (GSChunkVoxelData *)neighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP
+- (GSChunkVoxelData *)neighborVoxelAtPoint:(GSIntegerVector3 *)outChunkLocalPos
 {
-    if(chunkLocalP->x >= CHUNK_SIZE_X) {
-        chunkLocalP->x -= CHUNK_SIZE_X;
-        
-        if(chunkLocalP->z < 0) {
-            chunkLocalP->z += CHUNK_SIZE_Z;
-            return [self neighborAtIndex:CHUNK_NEIGHBOR_POS_X_NEG_Z];
-        } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
-            chunkLocalP->z -= CHUNK_SIZE_Z;
-            return [self neighborAtIndex:CHUNK_NEIGHBOR_POS_X_POS_Z];
-        } else {
-            return [self neighborAtIndex:CHUNK_NEIGHBOR_POS_X_ZER_Z];
-        }
-    } else if(chunkLocalP->x < 0) {
-        chunkLocalP->x += CHUNK_SIZE_X;
-        
-        if(chunkLocalP->z < 0) {
-            chunkLocalP->z += CHUNK_SIZE_Z;
-            return [self neighborAtIndex:CHUNK_NEIGHBOR_NEG_X_NEG_Z];
-        } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
-            chunkLocalP->z -= CHUNK_SIZE_Z;
-            return [self neighborAtIndex:CHUNK_NEIGHBOR_NEG_X_POS_Z];
-        } else {
-            return [self neighborAtIndex:CHUNK_NEIGHBOR_NEG_X_ZER_Z];
-        }
+    assert(outChunkLocalPos);
+
+    GSIntegerVector3 p = *outChunkLocalPos;
+    GSIntegerVector3 neighbor = ivecZero;
+
+    if(p.x < 0) {
+        p.x += CHUNK_SIZE_X;
+        neighbor.x = -1;
+    } else if(p.x >= CHUNK_SIZE_X) {
+        p.x -= CHUNK_SIZE_X;
+        neighbor.x = +1;
     } else {
-        if(chunkLocalP->z < 0) {
-            chunkLocalP->z += CHUNK_SIZE_Z;
-            return [self neighborAtIndex:CHUNK_NEIGHBOR_ZER_X_NEG_Z];
-        } else if(chunkLocalP->z >= CHUNK_SIZE_Z) {
-            chunkLocalP->z -= CHUNK_SIZE_Z;
-            return [self neighborAtIndex:CHUNK_NEIGHBOR_ZER_X_POS_Z];
-        } else {
-            return [self neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-        }
+        neighbor.x = 0;
     }
+
+    if(p.y < 0) {
+        p.y += CHUNK_SIZE_Y;
+        neighbor.y = -1;
+    } else if(p.y >= CHUNK_SIZE_Y) {
+        p.y -= CHUNK_SIZE_Y;
+        neighbor.y = +1;
+    } else {
+        neighbor.y = 0;
+    }
+
+    if(p.z < 0) {
+        p.z += CHUNK_SIZE_Z;
+        neighbor.z = -1;
+    } else if(p.z >= CHUNK_SIZE_Z) {
+        p.z -= CHUNK_SIZE_Z;
+        neighbor.z = +1;
+    } else {
+        neighbor.z = 0;
+    }
+
+    *outChunkLocalPos = p;
+    return [self neighborAtPosition:neighbor];
 }
 
 - (voxel_t)voxelAtPoint:(GSIntegerVector3)p
 {
-    /* NOTE:
-     *   - The voxels used for above/below the world must be updated when voxel def changes
-     *   - Assumes each chunk spans the entire vertical extent of the world.
-     */
-    
-    if(p.y < 0) {
-        // Space below the world is always made of solid cubes.
-        return (voxel_t){.outside=NO,
-                         .exposedToAirOnTop=NO,
-                         .opaque=YES,
-                         .upsideDown=NO,
-                         .dir=VOXEL_DIR_NORTH,
-                         .type=VOXEL_TYPE_CUBE,
-                         .tex=VOXEL_TEX_DIRT};
-    } else if(p.y >= CHUNK_SIZE_Y) {
-        // Space above the world is always empty.
-        return (voxel_t){.outside=YES,
-                         .exposedToAirOnTop=YES,
-                         .opaque=NO,
-                         .upsideDown=NO,
-                         .dir=VOXEL_DIR_NORTH,
-                         .type=VOXEL_TYPE_EMPTY,
-                         .tex=0};
-    } else {
-        return [[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p];
-    }
+    return [[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p];
 }
 
 - (unsigned)lightAtPoint:(GSIntegerVector3)p getter:(GSBuffer* (^)(GSChunkVoxelData *c))getter
 {
     assert(CHUNK_LIGHTING_MAX < (1ull << (sizeof(unsigned)*8)) && "unsigned int must be large enough to store light values");
-    
-    // Assumes each chunk spans the entire vertical extent of the world.
-    
-    if(p.y < 0) {
-        return 0; // Space below the world is always dark.
-    }
-    
-    if(p.y >= CHUNK_SIZE_Y) {
-        return CHUNK_LIGHTING_MAX; // Space above the world is always bright.
-    }
     
     GSChunkVoxelData *chunk = [self neighborVoxelAtPoint:&p];
     GSBuffer *lightingBuffer = getter(chunk);
@@ -226,19 +166,6 @@
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
     
     return lightLevel;
-}
-
-+ (NSLock *)sharedVoxelDataLock
-{
-    static dispatch_once_t onceToken;
-    static NSLock *a = nil;
-
-    dispatch_once(&onceToken, ^{
-        a = [[NSLock alloc] init];
-        [a setName:@"GSNeighborhood.sharedVoxelDataLock"];
-    });
-
-    return a;
 }
 
 @end

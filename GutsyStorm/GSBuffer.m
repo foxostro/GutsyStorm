@@ -220,23 +220,11 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 
 - (void)copyToCombinedNeighborhoodBuffer:(buffer_element_t *)dstBuf
                                    count:(NSUInteger)count
-                                neighbor:(neighbor_index_t)neighbor
+                  positionInNeighborhood:(GSIntegerVector3)positionInNeighborhood
 {
-    static ssize_t offsetsX[CHUNK_NUM_NEIGHBORS];
-    static ssize_t offsetsZ[CHUNK_NUM_NEIGHBORS];
-    static dispatch_once_t onceToken;
-
-    dispatch_once(&onceToken, ^{
-        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
-        {
-            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
-            offsetsX[i] = offset.x;
-            offsetsZ[i] = offset.z;
-        }
-    });
-    
-    ssize_t offsetX = offsetsX[neighbor];
-    ssize_t offsetZ = offsetsZ[neighbor];
+    assert(positionInNeighborhood.x >= -1 && positionInNeighborhood.x <= +1);
+    assert(positionInNeighborhood.y >= -1 && positionInNeighborhood.y <= +1);
+    assert(positionInNeighborhood.z >= -1 && positionInNeighborhood.z <= +1);
 
     GSIntegerVector3 p;
     FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
@@ -245,7 +233,8 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         assert(p.y >= 0 && p.y < chunkSize.y);
         assert(p.z >= 0 && p.z < chunkSize.z);
 
-        size_t dstIdx = INDEX_BOX(GSIntegerVector3_Make(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
+        const GSIntegerVector3 offsetP = GSIntegerVector3_Add(p, positionInNeighborhood);
+        size_t dstIdx = INDEX_BOX(offsetP, combinedMinP, combinedMaxP);
         size_t srcIdx = INDEX_BOX(p, ivecZero, chunkSize);
 
         assert(dstIdx < count);

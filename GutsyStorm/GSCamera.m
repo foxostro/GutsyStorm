@@ -12,8 +12,6 @@
 #import <GLKit/GLKMath.h>
 #import "GSCamera.h"
 #import "GSIntegerVector3.h"
-#import "GSBuffer.h" // for buffer_element_t, needed by Voxel.h
-#import "Voxel.h"
 
 @implementation GSCamera
 {
@@ -55,7 +53,7 @@
 // Set the default camera and reset camera properties.
 - (void)resetCamera
 {    
-    _ceilingHeight = CHUNK_SIZE_Y;
+    _ceilingHeight = 128.0;
     _cameraSpeed = 10.0;
     _cameraRotSpeed = 1.0;
     _cameraEye = GLKVector3Make(0.0f, 0.0f, 0.0f);

@@ -38,7 +38,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 + (NSURL *)newTerrainCacheFolderURL;
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
-- (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p neighborhood:(GSNeighborhood **)neighborhood;
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
 - (GSChunkSunlightData *)chunkSunlightAtPoint:(GLKVector3)p;
@@ -132,12 +131,15 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 - (void)setupGridDependencies
 {
     // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
-    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet *(GLKVector3 p) {
-        NSMutableArray *correspondingPoint = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
-        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
+    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet *(GLKVector3 point) {
+        const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+1, +1, +1);
+        const ssize_t capacity = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
+        NSMutableArray *correspondingPoint = [[NSMutableArray alloc] initWithCapacity:capacity];
+        GSIntegerVector3 positionInNeighborhood;
+        FOR_BOX(positionInNeighborhood, a, b)
         {
-            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
-            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, offset)];
+            GLKVector3 offset = GLKVector3Make(positionInNeighborhood.x, positionInNeighborhood.y, positionInNeighborhood.z);
+            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:GLKVector3Add(point, offset)];
             [correspondingPoint addObject:boxedPoint];
         }
         return [[NSSet alloc] initWithArray:correspondingPoint];
@@ -160,7 +162,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 {
     // Active region is bounded at y>=0.
     const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
-    _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
+    _activeRegionExtent = GLKVector3Make(w, w, w);
     _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
                                                                 camera:cam
                                                            vboProducer:^GSChunkVBOs *(GLKVector3 p) {
@@ -420,38 +422,19 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p
 {
     GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
-    
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+
+    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+1, +1, +1);
+    GSIntegerVector3 positionInNeighborhood;
+    FOR_BOX(positionInNeighborhood, a, b)
     {
-        GLKVector3 a = GLKVector3Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
-        GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a]; // NOTE: may block
-        [neighborhood setNeighborAtIndex:i neighbor:voxels];
+        const GLKVector3 offset = GLKVector3Make(positionInNeighborhood.x,
+                                                 positionInNeighborhood.y,
+                                                 positionInNeighborhood.z);
+        GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:GLKVector3Add(p, offset)]; // NOTE: may block
+        [neighborhood setNeighborAtPosition:positionInNeighborhood neighbor:voxels];
     }
     
     return neighborhood;
-}
-
-- (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p
-                       neighborhood:(GSNeighborhood **)outNeighborhood
-{
-    assert(outNeighborhood);
-
-    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
-
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        GLKVector3 a = GLKVector3Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
-        GSChunkVoxelData *voxels = nil;
-
-        if(![self tryToGetChunkVoxelsAtPoint:a chunk:&voxels]) {
-            return NO;
-        }
-
-        [neighborhood setNeighborAtIndex:i neighbor:voxels];
-    }
-
-    *outNeighborhood = neighborhood;
-    return YES;
 }
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p

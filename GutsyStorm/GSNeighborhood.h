@@ -16,14 +16,13 @@
 @class GSBuffer;
 
 
+// Moore neighborhood of voxel cells (in three dimensions)
 @interface GSNeighborhood : NSObject
 
-+ (GLKVector3)offsetForNeighborIndex:(neighbor_index_t)idx;
-
-- (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx;
-- (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor;
+- (GSChunkVoxelData *)neighborAtPosition:(GSIntegerVector3)positionInNeighborhood;
+- (void)setNeighborAtPosition:(GSIntegerVector3)positionInNeighborhood neighbor:(GSChunkVoxelData *)neighbor;
 - (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData *voxels))block;
-- (void)enumerateNeighborsWithBlock2:(void (^)(neighbor_index_t i, GSChunkVoxelData *voxels))block;
+- (void)enumerateNeighborsWithBlock2:(void (^)(GSIntegerVector3 positionInNeighborhood, GSChunkVoxelData *voxels))block;
 
 /* Copy the voxel data for this neighborhood into a new buffer and return that buffer.
  * The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and may be indexed using the INDEX2 macro.

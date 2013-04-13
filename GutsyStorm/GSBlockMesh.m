@@ -137,7 +137,7 @@
     assert(voxelData);
 
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
-    voxel_t voxel = [[voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
+    voxel_t voxel = [[voxelData neighborAtPosition:ivecZero] voxelAtLocalPosition:chunkLocalPos];
 
     for(GSFace *face in _faces[voxel.upsideDown?1:0][voxel.dir])
     {

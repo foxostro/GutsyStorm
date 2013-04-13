@@ -12,7 +12,7 @@
 #import "GSMutableBuffer.h"
 
 
-static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
+static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHUNK_SIZE_Z+2};
 
 
 @implementation GSChunkSunlightData
@@ -51,7 +51,14 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
         dispatch_retain(_queueForSaving);
 
         _neighborhood = neighborhood;
+
+#if 0
         _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder];
+#else
+        GSMutableBuffer *sunlight = [[GSMutableBuffer alloc] initWithDimensions:sunlightDim];
+        memset([sunlight mutableData], CHUNK_LIGHTING_MAX, BUFFER_SIZE_IN_BYTES(sunlightDim));
+        _sunlight = sunlight;
+#endif
     }
     return self;
 }
@@ -82,23 +89,8 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
 
-    static ssize_t offsetsX[CHUNK_NUM_NEIGHBORS];
-    static ssize_t offsetsZ[CHUNK_NUM_NEIGHBORS];
-    static dispatch_once_t onceToken;
-
-    dispatch_once(&onceToken, ^{
-        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
-        {
-            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
-            offsetsX[i] = offset.x;
-            offsetsZ[i] = offset.z;
-        }
-    });
-
-    [neighborhood enumerateNeighborsWithBlock2:^(neighbor_index_t i, GSChunkVoxelData *voxels) {
+    [neighborhood enumerateNeighborsWithBlock2:^(GSIntegerVector3 positionInNeighborhood, GSChunkVoxelData *voxels) {
         const voxel_t *data = (const voxel_t *)[voxels.voxels data];
-        ssize_t offsetX = offsetsX[i];
-        ssize_t offsetZ = offsetsZ[i];
 
         GSIntegerVector3 p;
         FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
@@ -107,7 +99,10 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
             assert(p.y >= 0 && p.y < chunkSize.y);
             assert(p.z >= 0 && p.z < chunkSize.z);
 
-            size_t dstIdx = INDEX_BOX(GSIntegerVector3_Make(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
+            GSIntegerVector3 offsetP = GSIntegerVector3_Make(p.x+positionInNeighborhood.x,
+                                                             p.y+positionInNeighborhood.z,
+                                                             p.z+positionInNeighborhood.z);
+            size_t dstIdx = INDEX_BOX(offsetP, combinedMinP, combinedMaxP);
             size_t srcIdx = INDEX_BOX(p, ivecZero, chunkSize);
 
             assert(dstIdx < size);

@@ -128,12 +128,12 @@
     const GLKVector3 center = _camera.cameraEye;
     const ssize_t activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
     const ssize_t activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
-    const ssize_t activeRegionSizeY = _activeRegionExtent.y/CHUNK_SIZE_Y;
+    const ssize_t activeRegionExtentY = _activeRegionExtent.y/CHUNK_SIZE_Y;
     
     GSIntegerVector3 p, minP, maxP;
     
-    minP = GSIntegerVector3_Make(-activeRegionExtentX, 0, -activeRegionExtentZ);
-    maxP = GSIntegerVector3_Make(activeRegionExtentX, activeRegionSizeY, activeRegionExtentZ);
+    minP = GSIntegerVector3_Make(-activeRegionExtentX, -activeRegionExtentY, -activeRegionExtentZ);
+    maxP = GSIntegerVector3_Make(activeRegionExtentX, activeRegionExtentY, activeRegionExtentZ);
     
     FOR_BOX(p, minP, maxP)
     {
@@ -141,10 +141,10 @@
         assert(p.x < activeRegionExtentX);
         assert((p.z+activeRegionExtentZ) >= 0);
         assert(p.z < activeRegionExtentZ);
-        assert(p.y >= 0);
-        assert(p.y < activeRegionSizeY);
+        assert((p.y+activeRegionExtentY) >= 0);
+        assert(p.y < activeRegionExtentY);
         
-        GLKVector3 p1 = GLKVector3Make(center.x + p.x*CHUNK_SIZE_X, p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z);
+        GLKVector3 p1 = GLKVector3Make(center.x + p.x*CHUNK_SIZE_X, center.y + p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z);
         
         GLKVector3 centerP = GLKVector3Make(floorf(p1.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,
                                             floorf(p1.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
