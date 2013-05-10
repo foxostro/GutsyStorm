@@ -166,7 +166,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
                                                                 camera:cam
                                                            vboProducer:^GSChunkVBOs *(GLKVector3 p) {
-                                                               assert(p.y >= 0 && p.y < _activeRegionExtent.y);
                                                                return [_gridVBOs objectAtPoint:p];
                                                            }];
 
@@ -423,7 +422,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 {
     GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
 
-    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+1, +1, +1);
+    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
     GSIntegerVector3 positionInNeighborhood;
     FOR_BOX(positionInNeighborhood, a, b)
     {
@@ -432,32 +431,33 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                                  positionInNeighborhood.z);
         GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:GLKVector3Add(p, offset)]; // NOTE: may block
         [neighborhood setNeighborAtPosition:positionInNeighborhood neighbor:voxels];
+        NSLog(@"voxels: %@ at <%.0f, %.0f, %.0f>", voxels, offset.x, offset.y, offset.z);
     }
-    
+
+    [neighborhood enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels){
+        NSLog(@"voxels: %@", voxels);
+    }];
+
     return neighborhood;
 }
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p
 {
-    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     return [_gridGeometryData objectAtPoint:p];
 }
 
 - (GSChunkSunlightData *)chunkSunlightAtPoint:(GLKVector3)p
 {
-    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     return [_gridSunlightData objectAtPoint:p];
 }
 
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p
 {
-    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     return [_gridVoxelData objectAtPoint:p];
 }
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk
 {
-    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(chunk);
 
     GSChunkVoxelData *v = nil;

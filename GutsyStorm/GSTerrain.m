@@ -411,7 +411,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         };
 
         terrain_post_processor_t postProcessor = ^(size_t count, voxel_t *voxels, GSIntegerVector3 minP, GSIntegerVector3 maxP) {
-            _Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
+            /*_Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
 
             voxel_t *temp1 = malloc(count * sizeof(voxel_t));
             if(!temp1) {
@@ -434,7 +434,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             memcpy(voxels, temp1, count * sizeof(voxel_t));
 
             free(temp1);
-            free(temp2);
+            free(temp2);*/
         };
         
         _chunkStore = [[GSChunkStore alloc] initWithSeed:seed
