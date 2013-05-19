@@ -421,22 +421,13 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     return YES;
 }
 
-- (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p
+- (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)centerMinP
 {
-    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
-
-    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
-    GSIntegerVector3 positionInNeighborhood;
-    FOR_BOX(positionInNeighborhood, a, b)
-    {
-        const GLKVector3 offset = GLKVector3Make(positionInNeighborhood.x,
-                                                 positionInNeighborhood.y,
-                                                 positionInNeighborhood.z);
-        GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:GLKVector3Add(p, offset)]; // NOTE: may block
-        [neighborhood setNeighborAtPosition:positionInNeighborhood neighbor:voxels];
-    }
-
-    return neighborhood;
+    GSNeighborhood *n = [[GSNeighborhood alloc] initWithCenterPoint:centerMinP
+                                                      chunkProducer:^GSChunkVoxelData *(GLKVector3 p) {
+                                                          return [self chunkVoxelsAtPoint:p]; // NOTE: may block
+                                                      }];
+    return n;
 }
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p

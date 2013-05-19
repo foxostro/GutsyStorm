@@ -19,6 +19,14 @@
 @interface GSNeighborhood ()
 
 - (void)clear;
+- (void)setNeighborAtPosition:(GSNeighborOffset)p neighbor:(GSChunkVoxelData *)neighbor;
+
+/* Returns YES if all neighbor chunk positions are consistent and if there are no duplicates and no empty neighbor slots.
+ * A neighborhood may be inconsistent if the chunks assigned as neighbors are not in the expected positions.
+ * A neighborhood may be inconsistent if a neighbor slot has been left empty (set to nil).
+ * A neighborhood may be inconsistent if the same chunk has been assigned to fill two separate neighbor slots.
+ */
+- (BOOL)neighborhoodIsConsistent;
 
 @end
 
@@ -30,9 +38,34 @@
 
 - (id)init
 {
+    assert(!"call -initWithCenterPoint:chunkProducer: instead");
+    
     self = [super init];
     if (self) {
         [self clear];
+    }
+    
+    return self;
+}
+
+- (id)initWithCenterPoint:(GLKVector3)centerMinP chunkProducer:(GSChunkVoxelData * (^)(GLKVector3 p))chunkProducer
+{
+    if (self = [super init]) {
+        [self clear];
+        
+        const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
+        GSIntegerVector3 positionInNeighborhood;
+        FOR_BOX(positionInNeighborhood, a, b)
+        {
+            GLKVector3 offset = GLKVector3Make(positionInNeighborhood.x * CHUNK_SIZE_X,
+                                               positionInNeighborhood.y * CHUNK_SIZE_Y,
+                                               positionInNeighborhood.z * CHUNK_SIZE_Z);
+            GLKVector3 neighborMinP = GLKVector3Add(centerMinP, offset);
+            GSChunkVoxelData *voxels = chunkProducer(neighborMinP);
+            [self setNeighborAtPosition:positionInNeighborhood neighbor:voxels];
+        }
+        
+        assert([self neighborhoodIsConsistent]);
     }
     
     return self;
@@ -46,10 +79,10 @@
 - (void)clear
 {
     const GSNeighborOffset a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
-    GSNeighborOffset p;
-    FOR_BOX(p, a, b)
+    GSNeighborOffset positionInNeighborhood;
+    FOR_BOX(positionInNeighborhood, a, b)
     {
-        [self setNeighborAtPosition:p neighbor:nil];
+        [self setNeighborAtPosition:positionInNeighborhood neighbor:nil];
     }
 }
 
@@ -67,6 +100,44 @@
     assert(p.y >= -1 && p.y <= +1);
     assert(p.z >= -1 && p.z <= +1);
     _neighbors[p.x+1][p.y+1][p.z+1] = neighbor;
+}
+
+- (BOOL)neighborhoodIsConsistent
+{
+    const GSNeighborOffset a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
+    GSNeighborOffset p, q;
+    
+    FOR_BOX(p, a, b)
+    {
+        if([self neighborAtPosition:p] == nil) {
+            return NO;
+        }
+    }
+    
+    FOR_BOX(p, a, b)
+    {
+        FOR_BOX(q, a, b)
+        {
+            if(0 != memcmp(&p, &q, sizeof(GSNeighborOffset))) {
+                if([self neighborAtPosition:p] == [self neighborAtPosition:q]) {
+                    return NO;
+                }
+            }
+        }
+    }
+    
+    GLKVector3 centerMinP = [self neighborAtPosition:ivecZero].minP;
+    FOR_BOX(p, a, b)
+    {
+        GLKVector3 offset = GLKVector3Make(p.x * CHUNK_SIZE_X, p.y * CHUNK_SIZE_Y, p.z * CHUNK_SIZE_Z);
+        GLKVector3 expectedNeighborMinP = GLKVector3Add(centerMinP, offset);
+        GLKVector3 actualNeighborMinP = [self neighborAtPosition:p].minP;
+        if(GLKVector3Distance(expectedNeighborMinP, actualNeighborMinP) > FLT_EPSILON) {
+            return NO;
+        }
+    }
+    
+    return YES;
 }
 
 - (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block

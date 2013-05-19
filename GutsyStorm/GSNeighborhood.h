@@ -19,8 +19,10 @@
 // Moore neighborhood of voxel cells (in three dimensions)
 @interface GSNeighborhood : NSObject
 
+- (id)initWithCenterPoint:(GLKVector3)centerMinP chunkProducer:(GSChunkVoxelData * (^)(GLKVector3 p))chunkProducer;
+
 - (GSChunkVoxelData *)neighborAtPosition:(GSNeighborOffset)positionInNeighborhood;
-- (void)setNeighborAtPosition:(GSNeighborOffset)positionInNeighborhood neighbor:(GSChunkVoxelData *)neighbor;
+
 - (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData *voxels))block;
 - (void)enumerateNeighborsWithBlock2:(void (^)(GSNeighborOffset positionInNeighborhood, GSChunkVoxelData *voxels))block;
 

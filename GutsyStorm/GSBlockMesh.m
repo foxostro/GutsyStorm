@@ -142,10 +142,14 @@
     for(GSFace *face in _faces[voxel.upsideDown?1:0][voxel.dir])
     {
         // Omit the face if the face is eligible for such omission and is adjacent to a cube block.
-        if(face.eligibleForOmission &&
-           [voxelData voxelAtPoint:GSIntegerVector3_Add(chunkLocalPos,
-                                                        offsetForFace[face.correspondingCubeFace])].type == VOXEL_TYPE_CUBE) {
-            continue;
+        if(face.eligibleForOmission) {
+            GSIntegerVector3 offsetForAdjacentFace = offsetForFace[face.correspondingCubeFace];
+            GSIntegerVector3 adjacentVoxelPosition = GSIntegerVector3_Add(chunkLocalPos, offsetForAdjacentFace);
+            
+            voxel_t adjacentVoxel = [voxelData voxelAtPoint:adjacentVoxelPosition];
+            if(adjacentVoxel.type == VOXEL_TYPE_CUBE) {
+                continue;
+            }
         }
 
         for(GSVertex *vertex in face.vertexList)

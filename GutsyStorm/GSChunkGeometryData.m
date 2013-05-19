@@ -75,6 +75,8 @@ static void applyLightToVertices(size_t numChunkVerts,
             folder:(NSURL *)folder
           sunlight:(GSChunkSunlightData *)sunlight
 {
+    assert(sunlight);
+    
     self = [super init];
     if (self) {
         minP = minCorner;
