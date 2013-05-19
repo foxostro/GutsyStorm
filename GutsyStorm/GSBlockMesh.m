@@ -15,6 +15,9 @@
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"
 
+static int voxelTypeAdjacentToFace(GSIntegerVector3 chunkLocalPos, face_t face, GSNeighborhood *neighborhood);
+static BOOL isExposedToAirOnTop(GSIntegerVector3 chunkLocalPos, int voxelTypeAtPos, GSNeighborhood *neighborhood);
+
 
 @interface GSBlockMesh ()
 
@@ -138,16 +141,14 @@
 
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     voxel_t voxel = [[voxelData neighborAtPosition:ivecZero] voxelAtLocalPosition:chunkLocalPos];
+    BOOL exposedToAirOnTop = isExposedToAirOnTop(chunkLocalPos, voxel.type, voxelData);
 
     for(GSFace *face in _faces[voxel.upsideDown?1:0][voxel.dir])
     {
         // Omit the face if the face is eligible for such omission and is adjacent to a cube block.
         if(face.eligibleForOmission) {
-            GSIntegerVector3 offsetForAdjacentFace = offsetForFace[face.correspondingCubeFace];
-            GSIntegerVector3 adjacentVoxelPosition = GSIntegerVector3_Add(chunkLocalPos, offsetForAdjacentFace);
-            
-            voxel_t adjacentVoxel = [voxelData voxelAtPoint:adjacentVoxelPosition];
-            if(adjacentVoxel.type == VOXEL_TYPE_CUBE) {
+            int adjacentVoxelType = voxelTypeAdjacentToFace(chunkLocalPos, face.correspondingCubeFace, voxelData);
+            if(adjacentVoxelType == VOXEL_TYPE_CUBE) {
                 continue;
             }
         }
@@ -162,7 +163,7 @@
 
             // Grass and dirt are handled specially because it uses two textures and the others use one.
             if(voxel.tex == VOXEL_TEX_DIRT || voxel.tex == VOXEL_TEX_GRASS) {
-                if(!voxel.exposedToAirOnTop && (v.texCoord[2] == VOXEL_TEX_GRASS || v.texCoord[2] == VOXEL_TEX_SIDE)) {
+                if(!exposedToAirOnTop && (v.texCoord[2] == VOXEL_TEX_GRASS || v.texCoord[2] == VOXEL_TEX_SIDE)) {
                     v.texCoord[2] = VOXEL_TEX_DIRT;
                 }
             } else {
@@ -175,3 +176,20 @@
 }
 
 @end
+
+
+static int voxelTypeAdjacentToFace(GSIntegerVector3 chunkLocalPos, face_t face, GSNeighborhood *neighborhood)
+{
+    return [neighborhood voxelAtPoint:GSIntegerVector3_Add(chunkLocalPos, offsetForFace[face])].type;
+}
+
+static BOOL isExposedToAirOnTop(GSIntegerVector3 chunkLocalPos, int voxelTypeAtPos, GSNeighborhood *neighborhood)
+{
+    // XXX: It would be better to store the relationships between voxel types in some other way. Not here.
+    int voxelTypeOnTop = voxelTypeAdjacentToFace(chunkLocalPos, FACE_TOP, neighborhood);
+    BOOL exposedToAirOnTop = (voxelTypeAtPos!=VOXEL_TYPE_EMPTY && voxelTypeOnTop==VOXEL_TYPE_EMPTY) ||
+                             (voxelTypeAtPos==VOXEL_TYPE_CUBE && voxelTypeOnTop==VOXEL_TYPE_CORNER_OUTSIDE) ||
+                             (voxelTypeAtPos==VOXEL_TYPE_CORNER_INSIDE && voxelTypeOnTop==VOXEL_TYPE_CORNER_OUTSIDE) ||
+                             (voxelTypeAtPos==VOXEL_TYPE_CUBE && voxelTypeOnTop==VOXEL_TYPE_RAMP);
+    return exposedToAirOnTop;
+}
