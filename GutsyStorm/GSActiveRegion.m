@@ -43,6 +43,9 @@
 
     /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
     dispatch_queue_t _updateQueue;
+    
+    /* Dispatch group to which all updates are assigned. Used for flushing the queue. */
+    dispatch_group_t _updateGroup;
 }
 
 - (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
@@ -61,6 +64,7 @@
         _vbosInCameraFrustum = nil;
         _vboProducer = [vboProducer copy];
         _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
+        _updateGroup = dispatch_group_create();
 
         [self updateVBOsInCameraFrustum];
     }
@@ -70,6 +74,7 @@
 
 - (void)dealloc
 {
+    dispatch_release(_updateGroup);
     dispatch_release(_updateQueue);
 }
 
@@ -114,13 +119,18 @@
     _vbosInCameraFrustum = vbosInCameraFrustum;
 }
 
-- (void)updateWithCameraModifiedFlags:(unsigned)flags;
+- (void)queueUpdateWithCameraModifiedFlags:(unsigned)flags;
 {
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        dispatch_async(_updateQueue, ^{
+        dispatch_group_async(_updateGroup, _updateQueue, ^{
             [self updateVBOsInCameraFrustum];
         });
     }
+}
+
+- (void)flushUpdateQueue
+{
+    dispatch_group_wait(_updateGroup, DISPATCH_TIME_FOREVER);
 }
 
 - (void)enumeratePointsWithBlock:(void (^)(GLKVector3 p))block

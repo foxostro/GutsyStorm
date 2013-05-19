@@ -25,7 +25,11 @@
                           camera:(GSCamera *)camera
                      vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer;
 
-- (void)updateWithCameraModifiedFlags:(unsigned)flags;
+/* Enqueues an update to the active region according to the specified flags desribing how the camera has been modified. */
+- (void)queueUpdateWithCameraModifiedFlags:(unsigned)flags;
+
+/* Flushes the queue of pending, asynchronous updates */
+- (void)flushUpdateQueue;
 
 - (void)draw;
 
@@ -37,7 +41,7 @@
  */
 - (void)notifyOfChangeInActiveRegionVBOs;
 
-/* Give up all stored references to active region VBO objects. */
+/* Give up all stored references to active region VBO objects. Does NOT flush the update queue. */
 - (void)purge;
 
 @end

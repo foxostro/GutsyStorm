@@ -218,11 +218,17 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)shutdown
 {
+    NSLog(@"shutting down");
+    [_activeRegion flushUpdateQueue];
+    [_activeRegion purge];
+    _activeRegion = nil;
+    
+    _shutdownDrawing = YES;
+    
     dispatch_source_cancel(_timer);
     dispatch_release(_timer);
 
     // Shutdown drawing on the display link thread.
-    _shutdownDrawing = YES;
     dispatch_semaphore_wait(_semaDrawingIsShutdown, DISPATCH_TIME_FOREVER);
 
     NSLog(@"Waiting for all chunk-saving tasks to complete.");
@@ -240,9 +246,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
     [_gridVBOs evictAllItems];
     _gridVBOs = nil;
-    
-    [_activeRegion purge];
-    _activeRegion = nil;
 
     dispatch_release(_groupForSaving);
     _groupForSaving = NULL;
@@ -282,7 +285,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags
 {
-    [_activeRegion updateWithCameraModifiedFlags:flags];
+    [_activeRegion queueUpdateWithCameraModifiedFlags:flags];
 }
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block
@@ -431,28 +434,26 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                                  positionInNeighborhood.z);
         GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:GLKVector3Add(p, offset)]; // NOTE: may block
         [neighborhood setNeighborAtPosition:positionInNeighborhood neighbor:voxels];
-        NSLog(@"voxels: %@ at <%.0f, %.0f, %.0f>", voxels, offset.x, offset.y, offset.z);
     }
-
-    [neighborhood enumerateNeighborsWithBlock:^(GSChunkVoxelData *voxels){
-        NSLog(@"voxels: %@", voxels);
-    }];
 
     return neighborhood;
 }
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p
 {
+    assert(!_shutdownDrawing);
     return [_gridGeometryData objectAtPoint:p];
 }
 
 - (GSChunkSunlightData *)chunkSunlightAtPoint:(GLKVector3)p
 {
+    assert(!_shutdownDrawing);
     return [_gridSunlightData objectAtPoint:p];
 }
 
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p
 {
+    assert(!_shutdownDrawing);
     return [_gridVoxelData objectAtPoint:p];
 }
 
