@@ -14,6 +14,8 @@ typedef struct
     ssize_t x, y, z;
 } GSIntegerVector3;
 
+typedef GSIntegerVector3 GSNeighborOffset;
+
 static inline GSIntegerVector3 GSIntegerVector3_Make(ssize_t x, ssize_t y, ssize_t z)
 {
     return (GSIntegerVector3){x, y, z};

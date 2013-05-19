@@ -89,7 +89,7 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 /* Copies this buffer into a sub-range of another buffer of dimensions defined by combinedMinP and combinedMaxP. */
 - (void)copyToCombinedNeighborhoodBuffer:(buffer_element_t *)dstBuf
                                    count:(NSUInteger)count
-                  positionInNeighborhood:(GSIntegerVector3)positionInNeighborhood;
+                  positionInNeighborhood:(GSNeighborOffset)positionInNeighborhood;
 
 - (GSBuffer *)copyWithEditAtPosition:(GSIntegerVector3)chunkLocalPos value:(buffer_element_t)newValue;
 

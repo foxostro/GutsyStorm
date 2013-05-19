@@ -45,15 +45,15 @@
 
 - (void)clear
 {
-    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
-    GSIntegerVector3 p;
+    const GSNeighborOffset a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
+    GSNeighborOffset p;
     FOR_BOX(p, a, b)
     {
         [self setNeighborAtPosition:p neighbor:nil];
     }
 }
 
-- (GSChunkVoxelData *)neighborAtPosition:(GSIntegerVector3)p
+- (GSChunkVoxelData *)neighborAtPosition:(GSNeighborOffset)p
 {
     assert(p.x >= -1 && p.x <= +1);
     assert(p.y >= -1 && p.y <= +1);
@@ -61,7 +61,7 @@
     return _neighbors[p.x+1][p.y+1][p.z+1];
 }
 
-- (void)setNeighborAtPosition:(GSIntegerVector3)p neighbor:(GSChunkVoxelData *)neighbor
+- (void)setNeighborAtPosition:(GSNeighborOffset)p neighbor:(GSChunkVoxelData *)neighbor
 {
     assert(p.x >= -1 && p.x <= +1);
     assert(p.y >= -1 && p.y <= +1);
@@ -71,8 +71,8 @@
 
 - (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block
 {
-    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
-    GSIntegerVector3 p;
+    const GSNeighborOffset a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
+    GSNeighborOffset p;
     FOR_BOX(p, a, b)
     {
         block([self neighborAtPosition:p]);
@@ -81,8 +81,8 @@
 
 - (void)enumerateNeighborsWithBlock2:(void (^)(GSIntegerVector3 p, GSChunkVoxelData*))block
 {
-    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
-    GSIntegerVector3 p;
+    const GSNeighborOffset a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
+    GSNeighborOffset p;
     FOR_BOX(p, a, b)
     {
         block(p, [self neighborAtPosition:p]);
@@ -99,7 +99,7 @@
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
 
-    [self enumerateNeighborsWithBlock2:^(GSIntegerVector3 positionInNeighborhood, GSChunkVoxelData *voxels) {
+    [self enumerateNeighborsWithBlock2:^(GSNeighborOffset positionInNeighborhood, GSChunkVoxelData *voxels) {
         [voxels.voxels copyToCombinedNeighborhoodBuffer:(buffer_element_t *)combinedVoxelData
                                                   count:count
                                  positionInNeighborhood:positionInNeighborhood];
@@ -108,63 +108,71 @@
     return combinedVoxelData;
 }
 
-- (GSChunkVoxelData *)neighborVoxelAtPoint:(GSIntegerVector3 *)outChunkLocalPos
+/* Every neighboring chunk is referred to by a vector offset describing the position of the neighboring chunk relative to the local
+ * chunk. For example, (-1, 0, 0). The local chunk is described by (0, 0, 0).
+ *
+ * This method gets the vector offset for the neighboring chunk that contains the specified local position.
+ *
+ * The specified local position must be in the Moore neighborhood of the local chunk.
+ */
+- (GSIntegerVector3)neighborOffsetForLocalPosition:(GSNeighborOffset)p
 {
-    assert(outChunkLocalPos);
-
-    GSIntegerVector3 p = *outChunkLocalPos;
-    GSIntegerVector3 neighbor = ivecZero;
-
+    assert(p.x >= -CHUNK_SIZE_X);
+    assert(p.y >= -CHUNK_SIZE_Y);
+    assert(p.z >= -CHUNK_SIZE_Z);
+    assert(p.x < 2*CHUNK_SIZE_X);
+    assert(p.y < 2*CHUNK_SIZE_Y);
+    assert(p.z < 2*CHUNK_SIZE_Z);
+    
+    GSNeighborOffset neighbor = ivecZero;
+    
     if(p.x < 0) {
-        p.x += CHUNK_SIZE_X;
         neighbor.x = -1;
     } else if(p.x >= CHUNK_SIZE_X) {
-        p.x -= CHUNK_SIZE_X;
         neighbor.x = +1;
     } else {
         neighbor.x = 0;
     }
-
+    
     if(p.y < 0) {
-        p.y += CHUNK_SIZE_Y;
         neighbor.y = -1;
     } else if(p.y >= CHUNK_SIZE_Y) {
-        p.y -= CHUNK_SIZE_Y;
         neighbor.y = +1;
     } else {
         neighbor.y = 0;
     }
-
+    
     if(p.z < 0) {
-        p.z += CHUNK_SIZE_Z;
         neighbor.z = -1;
     } else if(p.z >= CHUNK_SIZE_Z) {
-        p.z -= CHUNK_SIZE_Z;
         neighbor.z = +1;
     } else {
         neighbor.z = 0;
     }
-
-    *outChunkLocalPos = p;
-    return [self neighborAtPosition:neighbor];
+    
+    return neighbor;
 }
 
-- (voxel_t)voxelAtPoint:(GSIntegerVector3)p
+- (voxel_t)voxelAtPoint:(GSIntegerVector3)chunkLocalPosition
 {
-    return [[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p];
+    GSNeighborOffset neighborOffset = [self neighborOffsetForLocalPosition:chunkLocalPosition];
+    GSIntegerVector3 coordinateSpaceOffset = GSIntegerVector3_Make(neighborOffset.x * -CHUNK_SIZE_X,
+                                                                   neighborOffset.y * -CHUNK_SIZE_Y,
+                                                                   neighborOffset.z * -CHUNK_SIZE_Z);
+    GSIntegerVector3 translatedPosition = GSIntegerVector3_Add(chunkLocalPosition, coordinateSpaceOffset);
+    GSChunkVoxelData *neighborChunk = [self neighborAtPosition:neighborOffset];
+    voxel_t voxel = [neighborChunk voxelAtLocalPosition:translatedPosition];
+    return voxel;
 }
 
 - (unsigned)lightAtPoint:(GSIntegerVector3)p getter:(GSBuffer* (^)(GSChunkVoxelData *c))getter
 {
     assert(CHUNK_LIGHTING_MAX < (1ull << (sizeof(unsigned)*8)) && "unsigned int must be large enough to store light values");
-    
-    GSChunkVoxelData *chunk = [self neighborVoxelAtPoint:&p];
-    GSBuffer *lightingBuffer = getter(chunk);
-    
+    GSIntegerVector3 neighborOffset = [self neighborOffsetForLocalPosition:p];
+    GSChunkVoxelData *neighborChunk = [self neighborAtPosition:neighborOffset];
+    GSBuffer *lightingBuffer = getter(neighborChunk);
     unsigned lightLevel = (unsigned)[lightingBuffer valueAtPosition:p];
-
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
-    
     return lightLevel;
 }
 

@@ -220,7 +220,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 
 - (void)copyToCombinedNeighborhoodBuffer:(buffer_element_t *)dstBuf
                                    count:(NSUInteger)count
-                  positionInNeighborhood:(GSIntegerVector3)positionInNeighborhood
+                  positionInNeighborhood:(GSNeighborOffset)positionInNeighborhood
 {
     assert(positionInNeighborhood.x >= -1 && positionInNeighborhood.x <= +1);
     assert(positionInNeighborhood.y >= -1 && positionInNeighborhood.y <= +1);

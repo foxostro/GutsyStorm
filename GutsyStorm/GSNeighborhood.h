@@ -19,21 +19,15 @@
 // Moore neighborhood of voxel cells (in three dimensions)
 @interface GSNeighborhood : NSObject
 
-- (GSChunkVoxelData *)neighborAtPosition:(GSIntegerVector3)positionInNeighborhood;
-- (void)setNeighborAtPosition:(GSIntegerVector3)positionInNeighborhood neighbor:(GSChunkVoxelData *)neighbor;
+- (GSChunkVoxelData *)neighborAtPosition:(GSNeighborOffset)positionInNeighborhood;
+- (void)setNeighborAtPosition:(GSNeighborOffset)positionInNeighborhood neighbor:(GSChunkVoxelData *)neighbor;
 - (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData *voxels))block;
-- (void)enumerateNeighborsWithBlock2:(void (^)(GSIntegerVector3 positionInNeighborhood, GSChunkVoxelData *voxels))block;
+- (void)enumerateNeighborsWithBlock2:(void (^)(GSNeighborOffset positionInNeighborhood, GSChunkVoxelData *voxels))block;
 
 /* Copy the voxel data for this neighborhood into a new buffer and return that buffer.
  * The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and may be indexed using the INDEX2 macro.
  */
 - (voxel_t *)newVoxelBufferFromNeighborhood;
-
-/* Given a position relative to this voxel, return the chunk that contains the specified position.
- * Also returns the position in the local coordinate system of that chunk.
- * The position must be within the neighborhood.
- */
-- (GSChunkVoxelData *)neighborVoxelAtPoint:(GSIntegerVector3 *)chunkLocalP;
 
 /* Returns a copy of the voxel at the the specified position in the neighborhood.
  * Positions are specified in chunk-local space relative to the center chunk of the neighborhood.
