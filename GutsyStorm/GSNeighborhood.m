@@ -45,7 +45,7 @@
 
 - (void)clear
 {
-    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+1, +1, +1);
+    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
     GSIntegerVector3 p;
     FOR_BOX(p, a, b)
     {
@@ -71,7 +71,7 @@
 
 - (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block
 {
-    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+1, +1, +1);
+    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
     GSIntegerVector3 p;
     FOR_BOX(p, a, b)
     {
@@ -81,7 +81,7 @@
 
 - (void)enumerateNeighborsWithBlock2:(void (^)(GSIntegerVector3 p, GSChunkVoxelData*))block
 {
-    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+1, +1, +1);
+    const GSIntegerVector3 a=GSIntegerVector3_Make(-1, -1, -1), b=GSIntegerVector3_Make(+2, +2, +2);
     GSIntegerVector3 p;
     FOR_BOX(p, a, b)
     {
