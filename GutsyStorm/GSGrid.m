@@ -40,6 +40,8 @@
 
     NSMutableArray *_dependentGrids;
     NSMutableDictionary *_mappingToDependentGrids;
+    
+    dispatch_queue_t _queue;
 }
 
 - (id)init
@@ -72,6 +74,8 @@
         }
 
         _lockTheTableItself = [[GSReaderWriterLock alloc] init];
+        
+        _queue = dispatch_queue_create("com.foxostro.GutsyStorm.GSGrid", DISPATCH_QUEUE_CONCURRENT);
     }
 
     return self;
@@ -90,6 +94,8 @@
         _locks[i] = nil;
     }
     free(_locks);
+    
+    dispatch_release(_queue);
 }
 
 - (void)resizeTable
@@ -164,7 +170,7 @@
 
     if(!anObject && createIfMissing) {
         if(allowAsyncCreate) {
-            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+            dispatch_barrier_async(_queue, ^{
                 // create the object at some later time
                 [self objectAtPoint:p
                            blocking:YES
@@ -275,7 +281,7 @@
 - (void)invalidateItemAtPoint:(GLKVector3)p
 {
     // Invalidate asynchronously to avoid deadlock.
-    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+    dispatch_async(_queue, ^{
         [_lockTheTableItself lockForReading];
 
         GLKVector3 minP = MinCornerForChunkAtPoint(p);

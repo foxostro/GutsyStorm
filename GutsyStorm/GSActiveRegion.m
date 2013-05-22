@@ -14,6 +14,7 @@
 #import "GSCamera.h"
 #import "GSGridItem.h"
 #import "GSChunkVBOs.h"
+#import "GLKVector3Extra.h"
 
 
 @interface GSActiveRegion ()
@@ -32,9 +33,12 @@
      * The camera position plus/minus this vector equals the max/min corners of the AABB.
      */
     GLKVector3 _activeRegionExtent;
+    
+    /* Lock to protect _vbosInCameraFrustum */
+    NSLock *_lockVBOsInCameraFrustum;
 
-    /* List of GSChunkVBOs which are within the camera frustum. */
-    NSArray *_vbosInCameraFrustum;
+    /* GSChunkVBOs which are within the camera frustum. The dictionary maps chunk minP to the chunk. */
+    NSDictionary *_vbosInCameraFrustum;
 
     /* This block may be invoked at any time to retrieve the GSChunkVBOs for any point in space. The block may return NULL if no
      * VBO has been generated for that point.
@@ -62,6 +66,7 @@
         _camera = camera;
         _activeRegionExtent = activeRegionExtent;
         _vbosInCameraFrustum = nil;
+        _lockVBOsInCameraFrustum = [[NSLock alloc] init];
         _vboProducer = [vboProducer copy];
         _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
         _updateGroup = dispatch_group_create();
@@ -80,9 +85,12 @@
 
 - (void)draw
 {
-    NSArray *vbos = _vbosInCameraFrustum; // Reading the pointer is atomic.
+    [_lockVBOsInCameraFrustum lock];
+    // TODO: consider eliminating the allocation and using a double-buffering scheme
+    NSDictionary *vbos = [_vbosInCameraFrustum copy];
+    [_lockVBOsInCameraFrustum unlock];
 
-    for(GSChunkVBOs *vbo in vbos)
+    for(GSChunkVBOs *vbo in [vbos allValues])
     {
         [vbo draw];
     }
@@ -91,7 +99,15 @@
 - (void)updateVBOsInCameraFrustum
 {
     GSFrustum *frustum = _camera.frustum;
-    NSMutableArray *vbosInCameraFrustum = [[NSMutableArray alloc] init];
+    
+    [_lockVBOsInCameraFrustum lock];
+    NSMutableDictionary *vbosInCameraFrustum;
+    if(_vbosInCameraFrustum) {
+        vbosInCameraFrustum = [[NSMutableDictionary alloc] initWithDictionary:_vbosInCameraFrustum];
+    } else {
+        vbosInCameraFrustum = [[NSMutableDictionary alloc] init];
+    }
+    [_lockVBOsInCameraFrustum unlock];
     
     [self enumeratePointsWithBlock:^(GLKVector3 p) {
         GLKVector3 corners[8];
@@ -108,15 +124,18 @@
         if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
             GSChunkVBOs *vbo = _vboProducer(corners[0]);
             if(vbo) {
-                [vbosInCameraFrustum addObject:vbo];
+                NSNumber *key = [NSNumber numberWithUnsignedLongLong:GLKVector3Hash(vbo.minP)];
+                [vbosInCameraFrustum setObject:vbo forKey:key];
             }
         }
     }];
     
     /* Publish the list of chunk VBOs which are in the camera frustum.
-     * This is consumed on the rendering thread by -draw. Assignment is atomic.
+     * This is consumed on the rendering thread by -draw.
      */
+    [_lockVBOsInCameraFrustum lock];
     _vbosInCameraFrustum = vbosInCameraFrustum;
+    [_lockVBOsInCameraFrustum unlock];
 }
 
 - (void)queueUpdateWithCameraModifiedFlags:(unsigned)flags;
@@ -173,7 +192,9 @@
 
 - (void)purge
 {
-    _vbosInCameraFrustum = nil; // assignment is atomic here
+    [_lockVBOsInCameraFrustum lock];
+    _vbosInCameraFrustum = nil;
+    [_lockVBOsInCameraFrustum unlock];
 }
 
 @end
