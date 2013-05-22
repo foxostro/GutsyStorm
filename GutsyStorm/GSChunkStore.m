@@ -166,7 +166,14 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
                                                                 camera:cam
                                                            vboProducer:^GSChunkVBOs *(GLKVector3 p) {
-                                                               return [_gridVBOs objectAtPoint:p];
+                                                               // When retrieving VBOs, try to never block.
+                                                               id anItem = nil;
+                                                               [_gridVBOs objectAtPoint:p
+                                                                               blocking:NO
+                                                                                 object:&anItem
+                                                                        createIfMissing:YES
+                                                                       allowAsyncCreate:YES];
+                                                               return anItem;
                                                            }];
 
     // Whenever a VBO is invalidated, the active region must be invalidated.
@@ -456,7 +463,8 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     BOOL success = [_gridVoxelData objectAtPoint:p
                                         blocking:NO
                                           object:&v
-                                 createIfMissing:YES];
+                                 createIfMissing:YES
+                                allowAsyncCreate:NO]; // TODO: can I set allowAsyncCreate to YES here?
 
     if(success) {
         *chunk = v;

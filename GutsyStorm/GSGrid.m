@@ -135,6 +135,7 @@
              blocking:(BOOL)blocking
                object:(id *)item
       createIfMissing:(BOOL)createIfMissing
+     allowAsyncCreate:(BOOL)allowAsyncCreate
 {
     if(blocking) {
         [_lockTheTableItself lockForReading];
@@ -162,11 +163,22 @@
     anObject = [self searchForItemAtPosition:minP bucket:bucket];
 
     if(!anObject && createIfMissing) {
-        anObject = _factory(minP);
-        assert(anObject);
-        [bucket addObject:anObject];
-        OSAtomicIncrement32Barrier(&_n);
-        load = (float)_n / _numBuckets;
+        if(allowAsyncCreate) {
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                // create the object at some later time
+                [self objectAtPoint:p
+                           blocking:YES
+                             object:nil // we don't want the object returned to us, really
+                    createIfMissing:YES
+                   allowAsyncCreate:NO]; // of course, we can't defer again
+            });
+        } else {
+            anObject = _factory(minP);
+            assert(anObject);
+            [bucket addObject:anObject];
+            OSAtomicIncrement32Barrier(&_n);
+            load = (float)_n / _numBuckets;
+        }
     }
 
     if(anObject) {
@@ -192,7 +204,8 @@
     [self objectAtPoint:p
                blocking:YES
                  object:&anItem
-        createIfMissing:YES];
+        createIfMissing:YES
+       allowAsyncCreate:NO];
     assert(anItem);
     return anItem;
 }
