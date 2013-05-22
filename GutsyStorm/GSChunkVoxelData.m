@@ -181,8 +181,8 @@
                                 postProcessor:(terrain_post_processor_t)postProcessor
 {
     GSIntegerVector3 p, a, b;
-    a = GSIntegerVector3_Make(-1, 0, -1);
-    b = GSIntegerVector3_Make(chunkSize.x+1, chunkSize.y, chunkSize.z+1);
+    a = GSIntegerVector3_Make(-1, -1, -1);
+    b = GSIntegerVector3_Make(chunkSize.x+1, chunkSize.y+1, chunkSize.z+1);
 
     const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
     voxel_t *voxels = calloc(count, sizeof(voxel_t));
@@ -198,14 +198,16 @@
     postProcessor(count, voxels, a, b);
 
     // Copy the voxels for the chunk to their final destination.
-    // TODO: Copy each column wholesale using memcpy
     GSMutableBuffer *data = [[GSMutableBuffer alloc] initWithDimensions:chunkSize];
     voxel_t *buf = (voxel_t *)[data mutableData];
-    FOR_BOX(p, ivecZero, chunkSize)
+    
+    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
     {
-        buf[INDEX_BOX(p, ivecZero, chunkSize)] = voxels[INDEX_BOX(p, a, b)];
+        size_t srcOffset = INDEX_BOX(p, a, b);
+        size_t dstOffset = INDEX_BOX(p, ivecZero, chunkSize);
+        memcpy(buf + dstOffset, voxels + srcOffset, CHUNK_SIZE_Y * sizeof(voxel_t));
     }
-
+    
     free(voxels);
 
     [self markOutsideVoxels:data];

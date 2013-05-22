@@ -411,7 +411,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         };
 
         terrain_post_processor_t postProcessor = ^(size_t count, voxel_t *voxels, GSIntegerVector3 minP, GSIntegerVector3 maxP) {
-            /*_Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
+            _Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
 
             voxel_t *temp1 = malloc(count * sizeof(voxel_t));
             if(!temp1) {
@@ -434,7 +434,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             memcpy(voxels, temp1, count * sizeof(voxel_t));
 
             free(temp1);
-            free(temp2);*/
+            free(temp2);
         };
         
         _chunkStore = [[GSChunkStore alloc] initWithSeed:seed
@@ -647,6 +647,7 @@ static void postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
     assert(ruleSet);
     assert(voxelsIn);
     assert(voxelsOut);
+    assert((maxP.y-minP.y) == (CHUNK_SIZE_Y+2)); // necessary since we try to access the chunk at y==CHUNK_SIZE_Y and y==-1
 
     GSIntegerVector3 p = {0};
 
@@ -658,17 +659,17 @@ static void postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
     {
         if(ruleSet->upsideDown) {
             // Find a voxel which is empty and is directly below a cube voxel.
-            p.y = CHUNK_SIZE_Y-1;
+            p.y = CHUNK_SIZE_Y;
             voxel_type_t prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
-            for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
+            for(p.y = CHUNK_SIZE_Y-1; p.y >= 0; --p.y)
             {
                 postProcessingInnerLoop(maxP, minP, p, voxelsIn, voxelsOut, ruleSet, &prevType);
             }
         } else {
             // Find a voxel which is empty and is directly above a cube voxel.
-            p.y = 0;
+            p.y = -1;
             voxel_type_t prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
-            for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
+            for(p.y = 0; p.y < CHUNK_SIZE_Y; ++p.y)
             {
                 postProcessingInnerLoop(maxP, minP, p, voxelsIn, voxelsOut, ruleSet, &prevType);
             }
