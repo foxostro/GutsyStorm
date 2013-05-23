@@ -60,10 +60,11 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     dispatch_queue_t _chunkTaskQueue;
     dispatch_queue_t _queueForSaving;
 
-    BOOL _shutdownDrawing;
+    BOOL _shutdown;
     dispatch_semaphore_t _semaDrawingIsShutdown;
 
-    dispatch_source_t _timer;
+    dispatch_source_t _timerPurge;
+    dispatch_source_t _timerPickupNewTerrain;
 
     NSUInteger _numVBOGenerationsAllowedPerFrame;
     GSCamera *_camera;
@@ -194,7 +195,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     if (self) {
         _folder = [GSChunkStore newTerrainCacheFolderURL];
         _groupForSaving = dispatch_group_create();
-        _shutdownDrawing = NO;
+        _shutdown = NO;
         _semaDrawingIsShutdown = dispatch_semaphore_create(0);
         _camera = cam;
         _terrainShader = shader;
@@ -212,12 +213,19 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
         [self setupGridDependencies];
         [self setupActiveRegionWithCamera:cam];
 
-        _timer = createDispatchTimer(60 * NSEC_PER_SEC, // interval
-                                     NSEC_PER_SEC,     // leeway
-                                     ^{
-                                         [self purge];
-                                         NSLog(@"automatic purge");
-                                     });
+        _timerPurge = createDispatchTimer(60 * NSEC_PER_SEC, // interval
+                                          NSEC_PER_SEC,      // leeway
+                                          ^{
+                                              [self purge];
+                                              NSLog(@"automatic purge");
+                                          });
+        
+        _timerPickupNewTerrain = createDispatchTimer(500 * NSEC_PER_MSEC, // interval
+                                                     NSEC_PER_SEC,     // leeway
+                                                     ^{
+                                                         unsigned f = CAMERA_MOVED | CAMERA_TURNED;
+                                                         [_activeRegion queueUpdateWithCameraModifiedFlags:f];
+                                                     });
     }
     
     return self;
@@ -226,6 +234,12 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 - (void)shutdown
 {
     NSLog(@"shutting down");
+    dispatch_source_cancel(_timerPickupNewTerrain);
+    dispatch_release(_timerPickupNewTerrain);
+    
+    dispatch_source_cancel(_timerPurge);
+    dispatch_release(_timerPurge);
+    
     [_activeRegion flushUpdateQueue];
     [_activeRegion purge];
     _activeRegion = nil;
@@ -234,10 +248,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     [_gridSunlightData shutdown];
     [_gridVBOs shutdown];
     
-    _shutdownDrawing = YES;
-    
-    dispatch_source_cancel(_timer);
-    dispatch_release(_timer);
+    _shutdown = YES;
 
     // Shutdown drawing on the display link thread.
     dispatch_semaphore_wait(_semaDrawingIsShutdown, DISPATCH_TIME_FOREVER);
@@ -270,7 +281,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)drawActiveChunks
 {
-    if(_shutdownDrawing) {
+    if(_shutdown) {
         dispatch_semaphore_signal(_semaDrawingIsShutdown);
         return;
     }

@@ -50,6 +50,7 @@
     
     /* Dispatch group to which all updates are assigned. Used for flushing the queue. */
     dispatch_group_t _updateGroup;
+    BOOL _updateIsQueued;
     BOOL _cancelUpdates;
 }
 
@@ -71,7 +72,7 @@
         _vboProducer = [vboProducer copy];
         _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
         _updateGroup = dispatch_group_create();
-        _cancelUpdates = NO;
+        _updateIsQueued = NO;
 
         [self updateVBOsInCameraFrustum];
     }
@@ -144,16 +145,20 @@
 - (void)queueUpdateWithCameraModifiedFlags:(unsigned)flags;
 {
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        dispatch_group_async(_updateGroup, _updateQueue, ^{
-            if(_cancelUpdates) return;
-            [self updateVBOsInCameraFrustum];
-        });
+        // if no update has been queued then queue one now
+        if(!_cancelUpdates && !_updateIsQueued) {
+            _updateIsQueued = YES;
+            dispatch_group_async(_updateGroup, _updateQueue, ^{
+                _updateIsQueued = NO;
+                if(_cancelUpdates) return;
+                [self updateVBOsInCameraFrustum];
+            });
+        }
     }
 }
 
 - (void)flushUpdateQueue
 {
-    _cancelUpdates = YES;
     dispatch_group_wait(_updateGroup, DISPATCH_TIME_FOREVER);
 }
 
@@ -190,9 +195,7 @@
 
 - (void)notifyOfChangeInActiveRegionVBOs
 {
-    dispatch_async(_updateQueue, ^{
-        [self updateVBOsInCameraFrustum];
-    });
+    [self queueUpdateWithCameraModifiedFlags:(CAMERA_TURNED|CAMERA_MOVED)];
 }
 
 - (void)purge
