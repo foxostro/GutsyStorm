@@ -230,6 +230,10 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     [_activeRegion purge];
     _activeRegion = nil;
     
+    [_gridVoxelData shutdown];
+    [_gridSunlightData shutdown];
+    [_gridVBOs shutdown];
+    
     _shutdownDrawing = YES;
     
     dispatch_source_cancel(_timer);

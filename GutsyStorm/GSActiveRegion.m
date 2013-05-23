@@ -50,6 +50,7 @@
     
     /* Dispatch group to which all updates are assigned. Used for flushing the queue. */
     dispatch_group_t _updateGroup;
+    BOOL _cancelUpdates;
 }
 
 - (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
@@ -70,6 +71,7 @@
         _vboProducer = [vboProducer copy];
         _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
         _updateGroup = dispatch_group_create();
+        _cancelUpdates = NO;
 
         [self updateVBOsInCameraFrustum];
     }
@@ -100,14 +102,15 @@
 {
     GSFrustum *frustum = _camera.frustum;
     
+    NSMutableDictionary *vbosInCameraFrustum = [NSMutableDictionary alloc];
     [_lockVBOsInCameraFrustum lock];
-    NSMutableDictionary *vbosInCameraFrustum;
     if(_vbosInCameraFrustum) {
-        vbosInCameraFrustum = [[NSMutableDictionary alloc] initWithDictionary:_vbosInCameraFrustum];
+        vbosInCameraFrustum = [vbosInCameraFrustum initWithDictionary:_vbosInCameraFrustum];
+        [_lockVBOsInCameraFrustum unlock];
     } else {
-        vbosInCameraFrustum = [[NSMutableDictionary alloc] init];
+        [_lockVBOsInCameraFrustum unlock];
+        vbosInCameraFrustum = [vbosInCameraFrustum init];
     }
-    [_lockVBOsInCameraFrustum unlock];
     
     [self enumeratePointsWithBlock:^(GLKVector3 p) {
         GLKVector3 corners[8];
@@ -142,6 +145,7 @@
 {
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
         dispatch_group_async(_updateGroup, _updateQueue, ^{
+            if(_cancelUpdates) return;
             [self updateVBOsInCameraFrustum];
         });
     }
@@ -149,6 +153,7 @@
 
 - (void)flushUpdateQueue
 {
+    _cancelUpdates = YES;
     dispatch_group_wait(_updateGroup, DISPATCH_TIME_FOREVER);
 }
 

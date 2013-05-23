@@ -42,6 +42,8 @@
     NSMutableDictionary *_mappingToDependentGrids;
     
     dispatch_queue_t _queue;
+    dispatch_group_t _group; // all queue blocks are placed in a group so we can flush the queue at shutdown
+    BOOL _cancelPendingCreation;
 }
 
 - (id)init
@@ -60,6 +62,7 @@
         _loadLevelToTriggerResize = 0.80;
         _dependentGrids = [[NSMutableArray alloc] init];
         _mappingToDependentGrids = [[NSMutableDictionary alloc] init];
+        _cancelPendingCreation = NO;
 
         _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
         for(NSUInteger i=0; i<_numBuckets; ++i)
@@ -75,7 +78,8 @@
 
         _lockTheTableItself = [[GSReaderWriterLock alloc] init];
         
-        _queue = dispatch_queue_create("com.foxostro.GutsyStorm.GSGrid", DISPATCH_QUEUE_CONCURRENT);
+        _queue = dispatch_queue_create("com.foxostro.GutsyStorm.GSGrid", DISPATCH_QUEUE_SERIAL);
+        _group = dispatch_group_create();
     }
 
     return self;
@@ -96,6 +100,13 @@
     free(_locks);
     
     dispatch_release(_queue);
+    dispatch_release(_group);
+}
+
+- (void)shutdown
+{
+    _cancelPendingCreation = YES;
+    dispatch_group_wait(_group, DISPATCH_TIME_FOREVER);
 }
 
 - (void)resizeTable
@@ -143,6 +154,8 @@
       createIfMissing:(BOOL)createIfMissing
      allowAsyncCreate:(BOOL)allowAsyncCreate
 {
+    assert(!allowAsyncCreate || (allowAsyncCreate && !blocking && createIfMissing));
+    
     if(blocking) {
         [_lockTheTableItself lockForReading];
     } else if(![_lockTheTableItself tryLockForReading]) {
@@ -170,8 +183,9 @@
 
     if(!anObject && createIfMissing) {
         if(allowAsyncCreate) {
-            dispatch_barrier_async(_queue, ^{
+            dispatch_group_async(_group, _queue, ^{
                 // create the object at some later time
+                if(_cancelPendingCreation) return;
                 [self objectAtPoint:p
                            blocking:YES
                              object:nil // we don't want the object returned to us, really
@@ -281,7 +295,7 @@
 - (void)invalidateItemAtPoint:(GLKVector3)p
 {
     // Invalidate asynchronously to avoid deadlock.
-    dispatch_async(_queue, ^{
+    dispatch_group_async(_group, _queue, ^{
         [_lockTheTableItself lockForReading];
 
         GLKVector3 minP = MinCornerForChunkAtPoint(p);

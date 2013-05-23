@@ -26,6 +26,10 @@
  * However, if the object is not present and "createIfMissing" is NO then the method will fail.
  *
  * The method may fail if getting the object would require blocking to take a lock. This behavior is specified via "blocking".
+ *
+ * In some circumstances, we may want to create the object if it is missing but cannot take the time to wait for object creation.
+ * Set allowAsyncCreate to YES when blocking is NO and createIfMissing is YES to allow object creation to be queued for processing
+ * at a later, more convenient time. The method will return nil, but a later request will find the object.
  */
 - (BOOL)objectAtPoint:(GLKVector3)p
              blocking:(BOOL)blocking
@@ -65,5 +69,10 @@
  */
 - (void)replaceItemAtPoint:(GLKVector3)p
                  transform:(NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *))fn;
+
+/* Clean-up in preparation for destroying the grid.
+ * For example, flush the internal queue for item invalidation and creation.
+ */
+- (void)shutdown;
 
 @end
