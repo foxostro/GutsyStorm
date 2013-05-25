@@ -146,9 +146,9 @@ extern const GSIntegerVector3 combinedMaxP;
 #define CHUNK_SIZE_Y (64)
 #define CHUNK_SIZE_Z (16)
 
-_Static_assert(CHUNK_SIZE_X < 256, "CHUNK_SIZE_X must be representable by an 8-bit unsigned integer");
-_Static_assert(CHUNK_SIZE_Y < 256, "CHUNK_SIZE_Y must be representable by an 8-bit unsigned integer");
-_Static_assert(CHUNK_SIZE_Z < 256, "CHUNK_SIZE_Z must be representable by an 8-bit unsigned integer");
+_Static_assert(CHUNK_SIZE_X > 0 && CHUNK_SIZE_X < 256, "CHUNK_SIZE_X must be representable by an 8-bit unsigned integer");
+_Static_assert(CHUNK_SIZE_Y > 0 && CHUNK_SIZE_Y < 256, "CHUNK_SIZE_Y must be representable by an 8-bit unsigned integer");
+_Static_assert(CHUNK_SIZE_Z > 0 && CHUNK_SIZE_Z < 256, "CHUNK_SIZE_Z must be representable by an 8-bit unsigned integer");
 
 
 static inline GLKVector3 MinCornerForChunkAtPoint(GLKVector3 p)
