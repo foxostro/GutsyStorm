@@ -135,8 +135,7 @@ static NSInteger sort(GSBoxedVector *p1, GSBoxedVector *p2, void *context)
                 allowAsyncCreate:YES];
         
         if(vbo) {
-            NSNumber *key = [NSNumber numberWithUnsignedLongLong:GLKVector3Hash(vbo.minP)];
-            [vbosInCameraFrustum setObject:vbo forKey:key];
+            [vbosInCameraFrustum setObject:vbo forKey:[NSNumber numberWithUnsignedLongLong:[b hash]]];
         }
     };
     
