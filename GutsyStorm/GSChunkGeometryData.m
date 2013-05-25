@@ -21,7 +21,7 @@
 #import "GSBlockMeshRamp.h"
 #import "GSBlockMeshInsideCorner.h"
 #import "GSBlockMeshOutsideCorner.h"
-#import "SyscallWrappers.h"
+#import "NSDataCompression.h"
 
 
 struct chunk_geometry_header
@@ -81,17 +81,15 @@ static void applyLightToVertices(size_t numChunkVerts,
     if (self) {
         minP = minCorner;
         
-        NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP]
-                            relativeToURL:folder];
+        NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP] relativeToURL:folder];
         NSError *error = nil;
-        _data = [NSData dataWithContentsOfFile:[url path]
-                                       options:NSDataReadingMapped
-                                         error:&error];
+        _data = [[NSData dataWithContentsOfFile:[url path]
+                                        options:NSDataReadingMapped
+                                          error:&error] zlibInflate];
 
         if(!_data) {
-            //NSLog(@"failed to map the geometry data file at \"%@\": %@", url, error);
             _data = [GSChunkGeometryData dataWithSunlight:sunlight minP:minP];
-            [_data writeToURL:url atomically:YES];
+            [[_data zlibDeflate] writeToURL:url atomically:YES];
         }
 
         assert(_data);

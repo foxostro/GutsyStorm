@@ -10,10 +10,10 @@
 #import "GSBuffer.h"
 #import "Voxel.h"
 #import "GutsyStormErrorCodes.h"
-#import "SyscallWrappers.h"
 #import "GSNeighborhood.h"
 #import <GLKit/GLKQuaternion.h> // used by Voxel.h
 #import "Voxel.h" // for INDEX_BOX
+#import "NSDataCompression.h"
 
 
 static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
@@ -34,41 +34,17 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
                                                userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
         return;
     }
-
-    const int fd = Open(url, O_RDONLY, 0);
-    const size_t len = BUFFER_SIZE_IN_BYTES(dimensions);
-
-    dispatch_read(fd, len, queue, ^(dispatch_data_t dd, int error) {
-        Close(fd);
-
-        if(error) {
-            char errorMsg[LINE_MAX];
-            strerror_r(-error, errorMsg, LINE_MAX);
-            NSString *reason = [NSString stringWithFormat:@"error with read(fd=%d): %s [%d]", fd, errorMsg, error];
-            completionHandler(nil, [NSError errorWithDomain:NSPOSIXErrorDomain
-                                                       code:error
-                                                   userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
-            return;
-        }
-
-        if(dispatch_data_get_size(dd) != len) {
-            NSString *reason = [NSString stringWithFormat:@"Read %zu bytes from file, but expected %zu bytes.",
-                                dispatch_data_get_size(dd), len];
-            completionHandler(nil, [NSError errorWithDomain:GSErrorDomain
-                                                       code:GSInvalidChunkDataOnDiskError
-                                                   userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
-            return;
-        }
-
-        // Map the data object to a buffer in memory and use it to initialize a new GSByteBuffer object.
-        size_t size = 0;
-        const void *buffer = NULL;
-        dispatch_data_t mappedData = dispatch_data_create_map(dd, &buffer, &size);
-        assert(len == size);
-        GSBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const buffer_element_t *)buffer];
-        dispatch_release(mappedData);
+    
+    NSError *error = nil;
+    NSData *compressedData = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&error];
+    
+    if(compressedData) {
+        NSData *uncompressedData = [compressedData zlibInflate];
+        GSBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const buffer_element_t *)[uncompressedData bytes]];
         completionHandler(aBuffer, nil);
-    });
+    } else {
+        completionHandler(nil, error);
+    }
 }
 
 + (id)newBufferFromLargerRawBuffer:(const buffer_element_t *)srcBuf
@@ -196,25 +172,10 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 
 - (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group
 {
-    dispatch_group_enter(group);
-
-    dispatch_data_t dd = dispatch_data_create(_data, BUFFER_SIZE_IN_BYTES(self.dimensions),
-                                                    dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
-                                                    DISPATCH_DATA_DESTRUCTOR_DEFAULT);
-
-    dispatch_async(queue, ^{
-        int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-
-        dispatch_write(fd, dd, queue, ^(dispatch_data_t data, int error) {
-            Close(fd);
-
-            if(error) {
-                raiseExceptionForPOSIXError(error, [NSString stringWithFormat:@"error with write(fd=%u)", fd]);
-            }
-
-            dispatch_release(dd);
-            dispatch_group_leave(group);
-        });
+    NSData *uncompressedData = [NSData dataWithBytes:_data length:BUFFER_SIZE_IN_BYTES(self.dimensions)];
+    dispatch_group_async(group, queue, ^{
+        NSData *compressedData = [uncompressedData zlibDeflate];
+        [compressedData writeToURL:url atomically:YES];
     });
 }
 

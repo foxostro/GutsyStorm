@@ -202,29 +202,33 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
 
 - (GSBuffer *)newSunlightBufferWithNeighborhood:(GSNeighborhood *)neighborhood folder:(NSURL *)folder
 {
-    GSBuffer *buffer = nil;
-
-    @autoreleasepool {
-        NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:self.minP];
-        NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
-        NSError *error = nil;
-        NSData *data = [NSData dataWithContentsOfFile:[url path]
-                                              options:NSDataReadingMapped
-                                                error:&error];
-
-        if(data) {
-            buffer = [[GSBuffer alloc] initWithDimensions:sunlightDim data:[data bytes]];
-        } else {
-            voxel_t *data = [self newVoxelBufferWithNeighborhood:neighborhood];
-            buffer = [self newSunlightBufferUsingCombinedVoxelData:data];
-            free(data);
-            [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
-        }
-
-        assert(buffer);
-    }
-
-    return buffer;
+    __block GSBuffer *myBuffer = nil;
+    
+    NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:self.minP];
+    NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+    
+    [GSBuffer newBufferFromFile:url
+                     dimensions:sunlightDim
+                          queue:_chunkTaskQueue
+              completionHandler:^(GSBuffer *aBuffer, NSError *error) {
+                  if(aBuffer) {
+                      myBuffer = aBuffer;
+                  } else {
+                      voxel_t *data = [self newVoxelBufferWithNeighborhood:neighborhood];
+                      myBuffer = [self newSunlightBufferUsingCombinedVoxelData:data];
+                      free(data);
+                      [myBuffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
+                  }
+                  
+                  dispatch_semaphore_signal(sema);
+              }];
+    
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+    assert(myBuffer);
+    dispatch_release(sema);
+    
+    return myBuffer;
 }
 
 @end

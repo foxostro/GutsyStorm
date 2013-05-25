@@ -14,8 +14,8 @@
 #import "GSChunkStore.h"
 #import "GSNeighborhood.h"
 #import "GutsyStormErrorCodes.h"
-#import "SyscallWrappers.h"
 #import "GSMutableBuffer.h"
+#import "NSDataCompression.h"
 
 
 @interface GSChunkVoxelData ()
@@ -225,27 +225,31 @@
 - (GSBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
                                                      postProcessor:(terrain_post_processor_t)postProcessor
 {
-    GSBuffer *buffer = nil;
+    __block GSBuffer *myBuffer = nil;
 
-    @autoreleasepool {
-        NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
-        NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
-        NSError *error = nil;
-        NSData *data = [NSData dataWithContentsOfFile:[url path]
-                                              options:NSDataReadingMapped
-                                                error:&error];
+    NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
+    NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+    
+    [GSBuffer newBufferFromFile:url
+                     dimensions:chunkSize
+                          queue:_chunkTaskQueue
+              completionHandler:^(GSBuffer *aBuffer, NSError *error) {
+                  if(aBuffer) {
+                      myBuffer = aBuffer;
+                  } else {
+                      myBuffer = [self newVoxelDataBufferWithGenerator:generator postProcessor:postProcessor];
+                      [myBuffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
+                  }
+                  
+                  dispatch_semaphore_signal(sema);
+              }];
+    
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+    assert(myBuffer);
+    dispatch_release(sema);
 
-        if(data) {
-            buffer = [[GSBuffer alloc] initWithDimensions:chunkSize data:[data bytes]];
-        } else {
-            buffer = [self newVoxelDataBufferWithGenerator:generator postProcessor:postProcessor];
-            [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
-        }
-        
-        assert(buffer);
-    }
-
-    return buffer;
+    return myBuffer;
 }
 
 - (GSChunkVoxelData *)copyWithEditAtPoint:(GLKVector3)pos block:(voxel_t)newBlock

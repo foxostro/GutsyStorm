@@ -29,12 +29,13 @@
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
 		4AE4E552153B982100FC3047 /* GSVertex.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE4E551153B982100FC3047 /* GSVertex.m */; };
+		AC0674A21750813100C3AD1B /* NSDataCompression.m in Sources */ = {isa = PBXBuildFile; fileRef = AC0674A11750813100C3AD1B /* NSDataCompression.m */; };
+		AC0674A41750821600C3AD1B /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = AC0674A31750821500C3AD1B /* libz.dylib */; };
 		AC154885152C04EF00434374 /* GSBoxedVector.m in Sources */ = {isa = PBXBuildFile; fileRef = AC154884152C04EF00434374 /* GSBoxedVector.m */; };
 		AC202CC1151E437C00D91067 /* GSFrustum.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC0151E437C00D91067 /* GSFrustum.m */; };
 		AC202CC5151E453E00D91067 /* GSPlane.c in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* GSPlane.c */; };
 		AC2B281816927F6B00BFBF7F /* GSBlockMeshInsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */; };
 		AC2B281C1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281B1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m */; };
-		AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */ = {isa = PBXBuildFile; fileRef = AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */; };
 		AC3767A2163DFB4000BAE03F /* GutsyStormErrorCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A1163DFB4000BAE03F /* GutsyStormErrorCodes.m */; };
 		AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A5163DFD4200BAE03F /* GSTerrain.m */; };
 		AC3767AA163E053400BAE03F /* GSTerrainCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A9163E053400BAE03F /* GSTerrainCursor.m */; };
@@ -109,6 +110,9 @@
 		4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLView.m; sourceTree = "<group>"; };
 		4AE4E550153B982100FC3047 /* GSVertex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVertex.h; sourceTree = "<group>"; };
 		4AE4E551153B982100FC3047 /* GSVertex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSVertex.m; sourceTree = "<group>"; };
+		AC0674A01750813100C3AD1B /* NSDataCompression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSDataCompression.h; sourceTree = "<group>"; };
+		AC0674A11750813100C3AD1B /* NSDataCompression.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSDataCompression.m; sourceTree = "<group>"; };
+		AC0674A31750821500C3AD1B /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		AC154883152C04EF00434374 /* GSBoxedVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBoxedVector.h; sourceTree = "<group>"; };
 		AC154884152C04EF00434374 /* GSBoxedVector.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedVector.m; sourceTree = "<group>"; };
 		AC202CBF151E437C00D91067 /* GSFrustum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSFrustum.h; sourceTree = "<group>"; };
@@ -119,8 +123,6 @@
 		AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshInsideCorner.m; sourceTree = "<group>"; };
 		AC2B281A1692919D00BFBF7F /* GSBlockMeshOutsideCorner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMeshOutsideCorner.h; sourceTree = "<group>"; };
 		AC2B281B1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshOutsideCorner.m; sourceTree = "<group>"; };
-		AC319A3D16A52E1700F65F11 /* SyscallWrappers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SyscallWrappers.h; sourceTree = "<group>"; };
-		AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SyscallWrappers.m; sourceTree = "<group>"; };
 		AC3767A0163DFB4000BAE03F /* GutsyStormErrorCodes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GutsyStormErrorCodes.h; sourceTree = "<group>"; };
 		AC3767A1163DFB4000BAE03F /* GutsyStormErrorCodes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GutsyStormErrorCodes.m; sourceTree = "<group>"; };
 		AC3767A4163DFD4100BAE03F /* GSTerrain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrain.h; sourceTree = "<group>"; };
@@ -177,6 +179,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AC0674A41750821600C3AD1B /* libz.dylib in Frameworks */,
 				ACE787661686E90E00FBC792 /* GLKit.framework in Frameworks */,
 				4A2CCFF71513C3FC006C6551 /* Cocoa.framework in Frameworks */,
 				4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */,
@@ -227,6 +230,7 @@
 		4A2CCFF81513C3FC006C6551 /* Other Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				AC0674A31750821500C3AD1B /* libz.dylib */,
 				ACE787651686E90E00FBC792 /* GLKit.framework */,
 				1338A2D915B792C800663E28 /* CoreVideo.framework */,
 				4AD9531815142AA000C2AF8E /* OpenGL.framework */,
@@ -257,8 +261,8 @@
 				4A2CD0091513C3FC006C6551 /* GSAppDelegate.m */,
 				4A95D39D154645920042C081 /* GSReaderWriterLock.h */,
 				4A95D39E154645920042C081 /* GSReaderWriterLock.m */,
-				AC319A3D16A52E1700F65F11 /* SyscallWrappers.h */,
-				AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */,
+				AC0674A01750813100C3AD1B /* NSDataCompression.h */,
+				AC0674A11750813100C3AD1B /* NSDataCompression.m */,
 				4A2CD00B1513C3FD006C6551 /* MainMenu.xib */,
 				4A2310C8153E1BE000A4EBE6 /* Terrain */,
 				AC202CC7151E57BD00D91067 /* OpenGL Wrapper */,
@@ -504,7 +508,6 @@
 				AC2B281C1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m in Sources */,
 				ACE41C4D1693AE1A003C572B /* GSBlockMesh.m in Sources */,
 				ACC82D2716A1E6C000F56FB8 /* GSFace.m in Sources */,
-				AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */,
 				AC48C44616F563E40017BA94 /* GSGrid.m in Sources */,
 				ACDD767316F6629D008169D1 /* GSBuffer.m in Sources */,
 				ACDD767616F6E559008169D1 /* GSChunkVBOs.m in Sources */,
@@ -515,6 +518,7 @@
 				AC3BDE95170016CF0005E6C2 /* GSChunkSunlightData.m in Sources */,
 				AC3BDE9817002EE30005E6C2 /* GSGridSunlight.m in Sources */,
 				AC941759170149AD00EDAB98 /* GSGridVBOs.m in Sources */,
+				AC0674A21750813100C3AD1B /* NSDataCompression.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
