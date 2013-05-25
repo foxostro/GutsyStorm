@@ -64,7 +64,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     dispatch_semaphore_t _semaDrawingIsShutdown;
 
     dispatch_source_t _timerPurge;
-    dispatch_source_t _timerPickupNewTerrain;
 
     NSUInteger _numVBOGenerationsAllowedPerFrame;
     GSCamera *_camera;
@@ -161,26 +160,14 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)setupActiveRegionWithCamera:(GSCamera *)cam
 {
-    // Active region is bounded at y>=0.
     const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
     _activeRegionExtent = GLKVector3Make(w, w, w);
-    _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
-                                                                camera:cam
-                                                           vboProducer:^GSChunkVBOs *(GLKVector3 p) {
-                                                               // When retrieving VBOs, try to never block.
-                                                               id anItem = nil;
-                                                               [_gridVBOs objectAtPoint:p
-                                                                               blocking:NO
-                                                                                 object:&anItem
-                                                                        createIfMissing:YES
-                                                                       allowAsyncCreate:YES];
-                                                               return anItem;
-                                                           }];
+    _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent camera:cam gridVBOs:_gridVBOs];
 
     // Whenever a VBO is invalidated, the active region must be invalidated.
     __weak GSActiveRegion *weakActiveRegion = _activeRegion;
     _gridVBOs.invalidationNotification = ^{
-        [weakActiveRegion notifyOfChangeInActiveRegionVBOs];
+        [weakActiveRegion update];
     };
 }
 
@@ -219,13 +206,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                               [self purge];
                                               NSLog(@"automatic purge");
                                           });
-        
-        _timerPickupNewTerrain = createDispatchTimer(500 * NSEC_PER_MSEC, // interval
-                                                     NSEC_PER_SEC,     // leeway
-                                                     ^{
-                                                         unsigned f = CAMERA_MOVED | CAMERA_TURNED;
-                                                         [_activeRegion queueUpdateWithCameraModifiedFlags:f];
-                                                     });
     }
     
     return self;
@@ -234,13 +214,10 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 - (void)shutdown
 {
     NSLog(@"shutting down");
-    dispatch_source_cancel(_timerPickupNewTerrain);
-    dispatch_release(_timerPickupNewTerrain);
     
     dispatch_source_cancel(_timerPurge);
     dispatch_release(_timerPurge);
     
-    [_activeRegion flushUpdateQueue];
     [_activeRegion purge];
     _activeRegion = nil;
     
@@ -307,7 +284,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags
 {
-    [_activeRegion queueUpdateWithCameraModifiedFlags:flags];
+    [_activeRegion update];
 }
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block
@@ -317,9 +294,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
         [modifiedItem saveToFile];
         return modifiedItem;
     }];
-
-    // Must notify the active region so that the change will get picked up right away.
-    [_activeRegion notifyOfChangeInActiveRegionVBOs];
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel
@@ -454,19 +428,19 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p
 {
-    assert(!_shutdownDrawing);
+    assert(!_shutdown);
     return [_gridGeometryData objectAtPoint:p];
 }
 
 - (GSChunkSunlightData *)chunkSunlightAtPoint:(GLKVector3)p
 {
-    assert(!_shutdownDrawing);
+    assert(!_shutdown);
     return [_gridSunlightData objectAtPoint:p];
 }
 
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p
 {
-    assert(!_shutdownDrawing);
+    assert(!_shutdown);
     return [_gridVoxelData objectAtPoint:p];
 }
 

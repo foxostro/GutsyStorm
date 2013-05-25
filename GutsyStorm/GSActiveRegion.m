@@ -14,14 +14,25 @@
 #import "GSCamera.h"
 #import "GSGridItem.h"
 #import "GSChunkVBOs.h"
+#import "GSGridVBOs.h"
 #import "GLKVector3Extra.h"
 
 
-@interface GSActiveRegion ()
-
-- (void)updateVBOsInCameraFrustum;
-
-@end
+static NSInteger sort(GSBoxedVector *p1, GSBoxedVector *p2, void *context)
+{
+    GSCamera *camera = (__bridge GSCamera *)context;
+    GLKVector3 cameraEye = camera.cameraEye;
+    float dist1 = GLKVector3Distance(cameraEye, [p1 vectorValue]);
+    float dist2 = GLKVector3Distance(cameraEye, [p2 vectorValue]);
+    
+    if(dist1 < dist2) {
+        return NSOrderedAscending;
+    } else if(dist1 > dist2) {
+        return NSOrderedDescending;
+    } else {
+        return NSOrderedSame;
+    }
+}
 
 
 @implementation GSActiveRegion
@@ -39,24 +50,13 @@
 
     /* GSChunkVBOs which are within the camera frustum. The dictionary maps chunk minP to the chunk. */
     NSDictionary *_vbosInCameraFrustum;
-
-    /* This block may be invoked at any time to retrieve the GSChunkVBOs for any point in space. The block may return NULL if no
-     * VBO has been generated for that point.
-     */
-    GSChunkVBOs * (^_vboProducer)(GLKVector3 p);
-
-    /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
-    dispatch_queue_t _updateQueue;
     
-    /* Dispatch group to which all updates are assigned. Used for flushing the queue. */
-    dispatch_group_t _updateGroup;
-    BOOL _updateIsQueued;
-    BOOL _cancelUpdates;
+    GSGridVBOs *_gridVBOs;
 }
 
 - (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
                           camera:(GSCamera *)camera
-                     vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer
+                        gridVBOs:(GSGridVBOs * )gridVBOs
 {
     self = [super init];
     if (self) {
@@ -69,27 +69,17 @@
         _activeRegionExtent = activeRegionExtent;
         _vbosInCameraFrustum = nil;
         _lockVBOsInCameraFrustum = [[NSLock alloc] init];
-        _vboProducer = [vboProducer copy];
-        _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
-        _updateGroup = dispatch_group_create();
-        _updateIsQueued = NO;
+        _gridVBOs = gridVBOs;
 
-        [self updateVBOsInCameraFrustum];
+        [self update];
     }
     
     return self;
 }
 
-- (void)dealloc
-{
-    dispatch_release(_updateGroup);
-    dispatch_release(_updateQueue);
-}
-
 - (void)draw
 {
     [_lockVBOsInCameraFrustum lock];
-    // TODO: consider eliminating the allocation and using a double-buffering scheme
     NSDictionary *vbos = [_vbosInCameraFrustum copy];
     [_lockVBOsInCameraFrustum unlock];
 
@@ -99,7 +89,7 @@
     }
 }
 
-- (void)updateVBOsInCameraFrustum
+- (void)update
 {
     GSFrustum *frustum = _camera.frustum;
     
@@ -112,6 +102,8 @@
         [_lockVBOsInCameraFrustum unlock];
         vbosInCameraFrustum = [vbosInCameraFrustum init];
     }
+    
+    NSMutableArray *chunkPositions = [[NSMutableArray alloc] init];
     
     [self enumeratePointsWithBlock:^(GLKVector3 p) {
         GLKVector3 corners[8];
@@ -126,13 +118,27 @@
         corners[7] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
         
         if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
-            GSChunkVBOs *vbo = _vboProducer(corners[0]);
-            if(vbo) {
-                NSNumber *key = [NSNumber numberWithUnsignedLongLong:GLKVector3Hash(vbo.minP)];
-                [vbosInCameraFrustum setObject:vbo forKey:key];
-            }
+            [chunkPositions addObject:[GSBoxedVector boxedVectorWithVector:corners[0]]];
         }
     }];
+    
+    [chunkPositions sortUsingFunction:sort context:(__bridge void *)(_camera)];
+    
+    for(GSBoxedVector *b in chunkPositions)
+    {
+        GSChunkVBOs *vbo = nil;
+        
+        [_gridVBOs objectAtPoint:[b vectorValue]
+                        blocking:NO
+                          object:&vbo
+                 createIfMissing:YES
+                allowAsyncCreate:YES];
+        
+        if(vbo) {
+            NSNumber *key = [NSNumber numberWithUnsignedLongLong:GLKVector3Hash(vbo.minP)];
+            [vbosInCameraFrustum setObject:vbo forKey:key];
+        }
+    };
     
     /* Publish the list of chunk VBOs which are in the camera frustum.
      * This is consumed on the rendering thread by -draw.
@@ -140,26 +146,6 @@
     [_lockVBOsInCameraFrustum lock];
     _vbosInCameraFrustum = vbosInCameraFrustum;
     [_lockVBOsInCameraFrustum unlock];
-}
-
-- (void)queueUpdateWithCameraModifiedFlags:(unsigned)flags;
-{
-    if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        // if no update has been queued then queue one now
-        if(!_cancelUpdates && !_updateIsQueued) {
-            _updateIsQueued = YES;
-            dispatch_group_async(_updateGroup, _updateQueue, ^{
-                _updateIsQueued = NO;
-                if(_cancelUpdates) return;
-                [self updateVBOsInCameraFrustum];
-            });
-        }
-    }
-}
-
-- (void)flushUpdateQueue
-{
-    dispatch_group_wait(_updateGroup, DISPATCH_TIME_FOREVER);
 }
 
 - (void)enumeratePointsWithBlock:(void (^)(GLKVector3 p))block
@@ -191,11 +177,6 @@
         
         block(centerP);
     }
-}
-
-- (void)notifyOfChangeInActiveRegionVBOs
-{
-    [self queueUpdateWithCameraModifiedFlags:(CAMERA_TURNED|CAMERA_MOVED)];
 }
 
 - (void)purge

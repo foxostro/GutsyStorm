@@ -78,7 +78,7 @@
 
         _lockTheTableItself = [[GSReaderWriterLock alloc] init];
         
-        _queue = dispatch_queue_create("com.foxostro.GutsyStorm.GSGrid", DISPATCH_QUEUE_SERIAL);
+        _queue = dispatch_queue_create("com.foxostro.GutsyStorm.GSGrid", DISPATCH_QUEUE_CONCURRENT);
         _group = dispatch_group_create();
     }
 
@@ -154,8 +154,6 @@
       createIfMissing:(BOOL)createIfMissing
      allowAsyncCreate:(BOOL)allowAsyncCreate
 {
-    assert(!allowAsyncCreate || (allowAsyncCreate && !blocking && createIfMissing));
-    
     if(blocking) {
         [_lockTheTableItself lockForReading];
     } else if(![_lockTheTableItself tryLockForReading]) {
@@ -187,7 +185,7 @@
                 // create the object at some later time
                 if(_cancelPendingCreation) return;
                 [self objectAtPoint:p
-                           blocking:YES
+                           blocking:NO
                              object:nil // we don't want the object returned to us, really
                     createIfMissing:YES
                    allowAsyncCreate:NO]; // of course, we can't defer again
