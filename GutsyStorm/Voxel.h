@@ -100,9 +100,6 @@ typedef struct
     /* Cache the results of the calculation of whether this vertex is outside or inside. */
     uint8_t outside:1;
 
-    /* Indicates the block above the one for this vertex is an empty, air block. */
-    uint8_t exposedToAirOnTop:1;
-
     /* Indicates the voxel transmits light as if it were air. (used by the lighting engine) */
     uint8_t opaque:1;
 

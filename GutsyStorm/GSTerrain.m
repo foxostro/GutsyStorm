@@ -631,7 +631,6 @@ static void postProcessingInnerLoop(GSIntegerVector3 maxP, GSIntegerVector3 minP
             voxel_t replacement = rule->replacement;
             replacement.tex = voxel->tex;
             replacement.outside = voxel->outside;
-            replacement.exposedToAirOnTop = !ruleSet->upsideDown;
             replacement.upsideDown = ruleSet->upsideDown;
             voxelsOut[idx] = replacement;
         }
@@ -757,7 +756,6 @@ static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, GLKVector
 
     outVoxel->dir = VOXEL_DIR_NORTH;
     outVoxel->outside = NO; // calculated later
-    outVoxel->exposedToAirOnTop = NO; // calculated later
     outVoxel->opaque = groundLayer || floatingMountain;
     outVoxel->tex = VOXEL_TEX_GRASS;
     outVoxel->type = (groundLayer || floatingMountain) ? VOXEL_TYPE_CUBE : VOXEL_TYPE_EMPTY;
