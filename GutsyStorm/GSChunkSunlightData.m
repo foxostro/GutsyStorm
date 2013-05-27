@@ -39,8 +39,6 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
     if(self = [super init]) {
         assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
-        minP = minCorner;
-
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         dispatch_retain(_groupForSaving);
 
@@ -50,15 +48,9 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         dispatch_retain(_queueForSaving);
 
+        minP = minCorner;
         _neighborhood = neighborhood;
-
-#if 0
         _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder];
-#else
-        GSMutableBuffer *sunlight = [[GSMutableBuffer alloc] initWithDimensions:sunlightDim];
-        memset([sunlight mutableData], CHUNK_LIGHTING_MAX, BUFFER_SIZE_IN_BYTES(sunlightDim));
-        _sunlight = sunlight;
-#endif
     }
     return self;
 }
