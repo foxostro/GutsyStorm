@@ -151,26 +151,6 @@
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
-
-    // Determine voxels in the chunk which are exposed to air on top.
-    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
-    {
-        // Find a voxel which is empty and is directly above a cube voxel.
-        p.y = CHUNK_SIZE_Y-1;
-        voxel_type_t prevType = ((voxel_t *)[data pointerToValueAtPosition:p])->type;
-        for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
-        {
-            voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:p];
-
-            // XXX: It would be better to store the relationships between voxel types in some other way. Not here.
-            voxel->exposedToAirOnTop = (voxel->type!=VOXEL_TYPE_EMPTY && prevType==VOXEL_TYPE_EMPTY) ||
-                                       (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
-                                       (voxel->type==VOXEL_TYPE_CORNER_INSIDE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
-                                       (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_RAMP);
-
-            prevType = voxel->type;
-        }
-    }
 }
 
 /* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is translated so
