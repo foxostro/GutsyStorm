@@ -20,7 +20,6 @@
 
 @interface GSChunkVoxelData ()
 
-- (void)markOutsideVoxels:(GSMutableBuffer *)data;
 - (GSBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
                                 postProcessor:(terrain_post_processor_t)postProcessor;
 - (GSBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
@@ -95,10 +94,7 @@
         dispatch_retain(_queueForSaving);
 
         _folder = folder;
-
-        GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
-        [self markOutsideVoxels:dataWithUpdatedOutside];
-        _voxels = dataWithUpdatedOutside;
+        _voxels = [GSMutableBuffer newMutableBufferWithBuffer:data];
     }
 
     return self;
@@ -124,33 +120,6 @@
     buffer_element_t value = [_voxels valueAtPosition:p];
     voxel_t voxel = *((const voxel_t *)&value);
     return voxel;
-}
-
-- (void)markOutsideVoxels:(GSMutableBuffer *)data
-{
-    GSIntegerVector3 p;
-
-    // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
-    // We assume here that the chunk is the height of the world.
-    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
-    {
-        // Get the y value of the highest non-empty voxel in the chunk.
-        ssize_t heightOfHighestVoxel;
-        for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
-        {
-            voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:GSIntegerVector3_Make(p.x, heightOfHighestVoxel, p.z)];
-            
-            if(voxel->opaque) {
-                break;
-            }
-        }
-        
-        for(p.y = 0; p.y < chunkSize.y; ++p.y)
-        {
-            voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:p];
-            voxel->outside = (p.y >= heightOfHighestVoxel);
-        }
-    }
 }
 
 /* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is translated so
@@ -189,8 +158,6 @@
     }
     
     free(voxels);
-
-    [self markOutsideVoxels:data];
 
     return data;
 }

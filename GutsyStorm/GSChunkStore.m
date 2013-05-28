@@ -110,7 +110,8 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                                                groupForSaving:_groupForSaving
                                                                queueForSaving:_queueForSaving
                                                                chunkTaskQueue:_chunkTaskQueue
-                                                                 neighborhood:neighborhood];
+                                                                 neighborhood:neighborhood
+                                                                   chunkStore:self];
                          }];
     
     _gridGeometryData = [[GSGridGeometry alloc]

@@ -97,9 +97,6 @@ typedef enum
 
 typedef struct
 {
-    /* Cache the results of the calculation of whether this vertex is outside or inside. */
-    uint8_t outside:1;
-
     /* Indicates the voxel transmits light as if it were air. (used by the lighting engine) */
     uint8_t opaque:1;
 
@@ -140,7 +137,7 @@ extern const GSIntegerVector3 combinedMaxP;
 
 
 #define CHUNK_SIZE_X (16)
-#define CHUNK_SIZE_Y (64)
+#define CHUNK_SIZE_Y (32)
 #define CHUNK_SIZE_Z (16)
 
 _Static_assert(CHUNK_SIZE_X > 0 && CHUNK_SIZE_X < 256, "CHUNK_SIZE_X must be representable by an 8-bit unsigned integer");

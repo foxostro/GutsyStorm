@@ -112,6 +112,11 @@
 - (void)resizeTable
 {
     [_lockTheTableItself lockForWriting];
+    
+    // Check the load again. Something else might have resized the table while we were waiting on the lock.
+    if(((float)_n / _numBuckets) <= _loadLevelToTriggerResize) {
+        return;
+    }
 
     _n = 0;
 

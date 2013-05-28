@@ -51,23 +51,25 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
                            srcMinP:(GSIntegerVector3)combinedMinP
                            srcMaxP:(GSIntegerVector3)combinedMaxP
 {
-    static const GSIntegerVector3 dimensions = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
+    static const GSIntegerVector3 dimensions = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHUNK_SIZE_Z+2};
 
     assert(srcBuf);
-    assert(combinedMaxP.y - combinedMinP.y == CHUNK_SIZE_Y);
-
-    GSIntegerVector3 offset = GSIntegerVector3_Make(1, 0, 1);
-    GSIntegerVector3 a = GSIntegerVector3_Make(-1, 0, -1);
-    GSIntegerVector3 b = GSIntegerVector3_Make(CHUNK_SIZE_X+1, 0, CHUNK_SIZE_Z+1);
+    
     GSIntegerVector3 p; // loop counter
+    
+    GSIntegerVector3 a = GSIntegerVector3_Make(-1, -1, -1);
+    GSIntegerVector3 b = GSIntegerVector3_Make(CHUNK_SIZE_X+1, CHUNK_SIZE_Y+1, CHUNK_SIZE_Z+1);
 
     buffer_element_t *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
-
+    if(!dstBuf) {
+        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for dstBuf."];
+    }
+    
     FOR_Y_COLUMN_IN_BOX(p, a, b)
     {
-        size_t srcOffset = INDEX_BOX(p, combinedMinP, combinedMaxP);
-        size_t dstOffset = INDEX_BOX(GSIntegerVector3_Add(p, offset), ivecZero, dimensions);
-        memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(buffer_element_t));
+        size_t srcIndex = INDEX_BOX(p, combinedMinP, combinedMaxP);
+        size_t dstIndex = INDEX_BOX(p, a, b);
+        memcpy(dstBuf + dstIndex, srcBuf + srcIndex, dimensions.y * sizeof(buffer_element_t));
     }
 
     id aBuffer = [[self alloc] initWithDimensions:dimensions data:dstBuf];

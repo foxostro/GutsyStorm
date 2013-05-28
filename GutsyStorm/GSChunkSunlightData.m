@@ -10,6 +10,10 @@
 #import "GSChunkVoxelData.h"
 #import "GSNeighborhood.h"
 #import "GSMutableBuffer.h"
+#import "GSChunkStore.h"
+
+
+static BOOL straightShotToTheSky(GLKVector3 p, GSChunkStore *chunkStore);
 
 
 static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHUNK_SIZE_Z+2};
@@ -35,6 +39,7 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
     queueForSaving:(dispatch_queue_t)queueForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
       neighborhood:(GSNeighborhood *)neighborhood
+        chunkStore:(GSChunkStore *)chunkStore
 {
     if(self = [super init]) {
         assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
@@ -50,7 +55,9 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
 
         minP = minCorner;
         _neighborhood = neighborhood;
-        _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder];
+        _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood
+                                                     folder:folder
+                                                 chunkStore:chunkStore];
     }
     return self;
 }
@@ -73,7 +80,7 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
  */
 - (voxel_t *)newVoxelBufferWithNeighborhood:(GSNeighborhood *)neighborhood
 {
-    static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
+    static const size_t size = (3*CHUNK_SIZE_X) * (3*CHUNK_SIZE_Y) * (3*CHUNK_SIZE_Z);
 
     // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
     voxel_t *combinedVoxelData = combinedVoxelData = malloc(size*sizeof(voxel_t));
@@ -144,20 +151,41 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
  * Assumes the caller has already locked the sunlight buffer for reading.
  */
 - (GSBuffer *)newSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
+                                           chunkStore:(GSChunkStore *)chunkStore
 {
     buffer_element_t *combinedSunlightData = malloc((combinedMaxP.x - combinedMinP.x) *
                                                     (combinedMaxP.y - combinedMinP.y) *
                                                     (combinedMaxP.z - combinedMinP.z) * sizeof(buffer_element_t));
-
-    GSIntegerVector3 p;
-    FOR_BOX(p, combinedMinP, combinedMaxP)
-    {
-        size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
-        voxel_t voxel = combinedVoxelData[idx];
-        BOOL directlyLit = (!voxel.opaque) && (voxel.outside);
-        combinedSunlightData[idx] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
+    if(!combinedSunlightData) {
+        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedSunlightData."];
     }
+    
+    NSLog(@"determining outside/inside...");
+    CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
+    GSIntegerVector3 p;
+    FOR_Y_COLUMN_IN_BOX(p, combinedMinP, combinedMaxP)
+    {
+        ssize_t heightOfOpaque = INT_MIN;
+        
+        if(straightShotToTheSky(GLKVector3Add(minP, GLKVector3Make(p.x, combinedMaxP.y, p.z)), chunkStore)) {
+            for(heightOfOpaque = combinedMaxP.y-1; heightOfOpaque >= combinedMinP.y; --heightOfOpaque)
+            {
+                voxel_t voxel = [_neighborhood voxelAtPoint:GSIntegerVector3_Make(p.x, heightOfOpaque, p.z)];
+                if (voxel.opaque) {
+                    break;
+                }
+            }
+        }
+        
+        for(p.y = combinedMinP.y; p.y < combinedMaxP.y; ++p.y)
+        {
+            combinedSunlightData[INDEX_BOX(p, combinedMinP, combinedMaxP)] = (p.y < heightOfOpaque) ? 0 : CHUNK_LIGHTING_MAX;
+        }
+    }
+    CFAbsoluteTime endTime = CFAbsoluteTimeGetCurrent();
+    NSLog(@"...finished determining outside/inside. It took %.2fs.", endTime - startTime);
 
+#if 0
     /* Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
      * Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
      * Set the blocks we find to the next lower light level.
@@ -169,7 +197,7 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
             size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
             voxel_t voxel = combinedVoxelData[idx];
 
-            if(voxel.opaque || voxel.outside) {
+            if(voxel.opaque /*|| voxel.outside*/) {
                 continue;
             }
 
@@ -181,6 +209,7 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
             }
         }
     }
+#endif
 
     // Copy the sunlight data we just calculated into _sunlight. Discard non-overlapping portions.
     GSBuffer *sunlight = [GSBuffer newBufferFromLargerRawBuffer:combinedSunlightData
@@ -192,7 +221,9 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
     return sunlight;
 }
 
-- (GSBuffer *)newSunlightBufferWithNeighborhood:(GSNeighborhood *)neighborhood folder:(NSURL *)folder
+- (GSBuffer *)newSunlightBufferWithNeighborhood:(GSNeighborhood *)neighborhood
+                                         folder:(NSURL *)folder
+                                     chunkStore:(GSChunkStore *)chunkStore
 {
     __block GSBuffer *myBuffer = nil;
     
@@ -208,7 +239,8 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
                       myBuffer = aBuffer;
                   } else {
                       voxel_t *data = [self newVoxelBufferWithNeighborhood:neighborhood];
-                      myBuffer = [self newSunlightBufferUsingCombinedVoxelData:data];
+                      myBuffer = [self newSunlightBufferUsingCombinedVoxelData:data
+                                                                    chunkStore:(GSChunkStore *)chunkStore];
                       free(data);
                       [myBuffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
                   }
@@ -224,3 +256,19 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
 }
 
 @end
+
+
+static BOOL straightShotToTheSky(GLKVector3 p, GSChunkStore *chunkStore)
+{
+    const float WORLD_CEILING_HEIGHT = 128.0f;
+    
+    for(GLKVector3 worldPos = p; worldPos.y < WORLD_CEILING_HEIGHT; ++worldPos.y)
+    {
+        voxel_t voxel = [chunkStore voxelAtPoint:worldPos];
+        if(voxel.opaque) {
+            return NO;
+        }
+    }
+    
+    return YES;
+}

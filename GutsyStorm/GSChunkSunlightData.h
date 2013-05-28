@@ -13,6 +13,7 @@
 
 @class GSNeighborhood;
 @class GSBuffer;
+@class GSChunkStore;
 
 
 @interface GSChunkSunlightData : NSObject <GSGridItem>
@@ -27,6 +28,7 @@
     groupForSaving:(dispatch_group_t)groupForSaving
     queueForSaving:(dispatch_queue_t)queueForSaving
     chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-      neighborhood:(GSNeighborhood *)neighborhood;
+      neighborhood:(GSNeighborhood *)neighborhood
+        chunkStore:(GSChunkStore *)chunkStore;
 
 @end
