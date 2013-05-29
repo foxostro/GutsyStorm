@@ -45,6 +45,9 @@
 
 - (voxel_t)voxelAtPoint:(GLKVector3)pos;
 
+/* Returns YES if there are no opaque blocks along the Y-axis from the specified point up to the sky. */
+- (BOOL)straightShotToTheSkyAlongColumn:(GLKVector3)worldPos;
+
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block;
 
 - (void)purge;

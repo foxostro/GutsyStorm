@@ -199,9 +199,9 @@
     return myBuffer;
 }
 
-- (GSChunkVoxelData *)copyWithEditAtPoint:(GLKVector3)pos block:(voxel_t)newBlock
+- (GSChunkVoxelData *)copyWithEditAtPoint:(GLKVector3)worldPos block:(voxel_t)newBlock
 {
-    GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
+    GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(worldPos.x-minP.x, worldPos.y-minP.y, worldPos.z-minP.z);
     buffer_element_t newValue = *((buffer_element_t *)&newBlock);
     GSBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue];
     GSChunkVoxelData *modifiedVoxelData = [[GSChunkVoxelData alloc] initWithMinP:minP
@@ -211,6 +211,21 @@
                                                                   chunkTaskQueue:_chunkTaskQueue
                                                                             data:modified];
     return modifiedVoxelData;
+}
+
+- (BOOL)straightShotToTheSkyAlongColumn:(GLKVector3)worldPos
+{
+    GSIntegerVector3 p = GSIntegerVector3_Make(worldPos.x-minP.x, worldPos.y-minP.y, worldPos.z-minP.z);
+    
+    for(; p.y < CHUNK_SIZE_Y; ++p.y)
+    {
+        buffer_element_t value = [_voxels valueAtPosition:p]; // XXX: maybe add a bulk API to grab an entire column at once?
+        if (((voxel_t *)&value)->opaque) {
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 @end

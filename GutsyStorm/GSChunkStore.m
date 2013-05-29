@@ -323,6 +323,32 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                                              pos.z-chunk.minP.z)];
 }
 
+- (BOOL)straightShotToTheSkyAlongColumn:(GLKVector3)worldPos
+{
+    if (worldPos.y >= WORLD_CEILING_HEIGHT) {
+        return true;
+    }
+    
+    GSChunkVoxelData *voxels;
+    
+    voxels = [self chunkVoxelsAtPoint:worldPos];
+    if (![voxels straightShotToTheSkyAlongColumn:worldPos]) {
+        return false;
+    }
+    
+    for (worldPos.y = (floorf(worldPos.y / CHUNK_SIZE_Y) + 1) * CHUNK_SIZE_Y;
+         worldPos.y < WORLD_CEILING_HEIGHT;
+         worldPos.y += CHUNK_SIZE_Y)
+    {
+        voxels = [self chunkVoxelsAtPoint:worldPos];
+        if (![voxels straightShotToTheSkyAlongColumn:worldPos]) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 - (BOOL)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop, BOOL *fail))block
 {
     /* Implementation is based on:

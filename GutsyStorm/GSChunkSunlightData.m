@@ -13,9 +13,6 @@
 #import "GSChunkStore.h"
 
 
-static BOOL straightShotToTheSky(GLKVector3 p, GSChunkStore *chunkStore);
-
-
 static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHUNK_SIZE_Z+2};
 
 
@@ -159,7 +156,7 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
                                            chunkStore:(GSChunkStore *)chunkStore
 {
     CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
-    
+    GLKVector3 mp = minP;
     buffer_element_t *combinedSunlightData = calloc((combinedMaxP.x - combinedMinP.x) *
                                                     (combinedMaxP.y - combinedMinP.y) *
                                                     (combinedMaxP.z - combinedMinP.z), sizeof(buffer_element_t));
@@ -179,7 +176,9 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
     {
         ssize_t heightOfOpaque = INT_MIN;
         
-        if(straightShotToTheSky(GLKVector3Add(minP, GLKVector3Make(p.x, b.y, p.z)), chunkStore)) {
+        GLKVector3 worldPos = GLKVector3Add(mp, GLKVector3Make(p.x, b.y, p.z));
+                             
+        if([chunkStore straightShotToTheSkyAlongColumn:worldPos]) {
             for(heightOfOpaque = b.y-1; heightOfOpaque >= a.y; --heightOfOpaque)
             {
                 voxel_t voxel = [_neighborhood voxelAtPoint:GSIntegerVector3_Make(p.x, heightOfOpaque, p.z)];
@@ -230,7 +229,7 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
     free(combinedSunlightData);
     
     CFAbsoluteTime endTime = CFAbsoluteTimeGetCurrent();
-    NSLog(@"finished calculating chunk lighting. It took %.2fs.", endTime - startTime);
+    NSLog(@"finished calculating chunk lighting. It took %fs.", endTime - startTime);
 
     return sunlight;
 }
@@ -270,17 +269,3 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
 }
 
 @end
-
-
-static BOOL straightShotToTheSky(GLKVector3 p, GSChunkStore *chunkStore)
-{
-    for(GLKVector3 worldPos = p; worldPos.y < WORLD_CEILING_HEIGHT; ++worldPos.y)
-    {
-        voxel_t voxel = [chunkStore voxelAtPoint:worldPos];
-        if(voxel.opaque) {
-            return NO;
-        }
-    }
-    
-    return YES;
-}

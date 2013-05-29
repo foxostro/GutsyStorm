@@ -42,6 +42,9 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
 
 - (void)saveToFile;
 
-- (GSChunkVoxelData *)copyWithEditAtPoint:(GLKVector3)pos block:(voxel_t)newBlock;
+- (GSChunkVoxelData *)copyWithEditAtPoint:(GLKVector3)worldPos block:(voxel_t)newBlock;
+
+/* Returns YES if there are no opaque blocks along the Y-axis from the specified point up to the sky. */
+- (BOOL)straightShotToTheSkyAlongColumn:(GLKVector3)worldPos;
 
 @end
