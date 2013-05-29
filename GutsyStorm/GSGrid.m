@@ -113,44 +113,45 @@
 {
     [_lockTheTableItself lockForWriting];
     
-    // Check the load again. Something else might have resized the table while we were waiting on the lock.
-    if(((float)_n / _numBuckets) <= _loadLevelToTriggerResize) {
-        return;
-    }
-
-    _n = 0;
-
     NSUInteger oldNumBuckets = _numBuckets;
-    NSMutableArray * __strong *oldBuckets = _buckets;
+    NSMutableArray * __strong *oldBuckets = nil;
+    
+    // Check the load again. Something else might have resized the table while we were waiting on the lock.
+    if (((float)_n / _numBuckets) > _loadLevelToTriggerResize) {
+        _n = 0;
+        oldBuckets = _buckets;
 
-    // Allocate memory for a new set of buckets.
-    _numBuckets *= 2;
-    assert(_numBuckets>0);
-    _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
-    for(NSUInteger i=0; i<_numBuckets; ++i)
-    {
-        _buckets[i] = [[NSMutableArray alloc] init];
-    }
-
-    // Insert each object into the new hash table.
-    for(NSUInteger i=0; i<oldNumBuckets; ++i)
-    {
-        for(NSObject <GSGridItem> *item in oldBuckets[i])
+        // Allocate memory for a new set of buckets.
+        _numBuckets *= 2;
+        assert(_numBuckets>0);
+        _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
+        for(NSUInteger i=0; i<_numBuckets; ++i)
         {
-            NSUInteger hash = GLKVector3Hash(item.minP);
-            [_buckets[hash % _numBuckets] addObject:item];
-            _n++;
+            _buckets[i] = [[NSMutableArray alloc] init];
+        }
+
+        // Insert each object into the new hash table.
+        for(NSUInteger i=0; i<oldNumBuckets; ++i)
+        {
+            for(NSObject <GSGridItem> *item in oldBuckets[i])
+            {
+                NSUInteger hash = GLKVector3Hash(item.minP);
+                [_buckets[hash % _numBuckets] addObject:item];
+                _n++;
+            }
         }
     }
 
     [_lockTheTableItself unlockForWriting];
 
     // Free the old set of buckets.
-    for(NSUInteger i=0; i<oldNumBuckets; ++i)
-    {
-        oldBuckets[i] = nil;
+    if (oldBuckets) {
+        for(NSUInteger i=0; i<oldNumBuckets; ++i)
+        {
+            oldBuckets[i] = nil;
+        }
+        free(oldBuckets);
     }
-    free(oldBuckets);
 }
 
 - (BOOL)objectAtPoint:(GLKVector3)p
