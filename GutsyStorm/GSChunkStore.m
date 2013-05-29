@@ -480,7 +480,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                         blocking:NO
                                           object:&v
                                  createIfMissing:YES
-                                allowAsyncCreate:NO]; // TODO: can I set allowAsyncCreate to YES here?
+                                allowAsyncCreate:YES];
 
     if(success) {
         *chunk = v;
