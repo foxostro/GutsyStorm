@@ -20,7 +20,8 @@
 #endif
 
 
-#define CHUNK_LIGHTING_MAX (MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z) - 1)
+#define CHUNK_LIGHTING_MAX (7)
+#define WORLD_CEILING_HEIGHT (128)
 
 #define FOR_BOX(p, minP, maxP) for((p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \
                                    for((p).y = (minP).y; (p).y < (maxP).y; ++(p).y) \
@@ -111,6 +112,9 @@ typedef struct
 
     /* Voxel texture. This is used as an index into the terrain texture array. */
     uint8_t tex:2;
+    
+    /* Indicates the voxel has an occluded path to the sky along the Y axis. (used by the lighting engine) */
+    uint8_t outside:1;
 } voxel_t;
 
 _Static_assert(NUM_VOXEL_DIRECTIONS <= (1<<2), "NUM_VOXEL_DIRECTIONS must be able to work with a 2-bit `dir' field.");
@@ -137,7 +141,7 @@ extern const GSIntegerVector3 combinedMaxP;
 
 
 #define CHUNK_SIZE_X (16)
-#define CHUNK_SIZE_Y (32)
+#define CHUNK_SIZE_Y (64)
 #define CHUNK_SIZE_Z (16)
 
 _Static_assert(CHUNK_SIZE_X > 0 && CHUNK_SIZE_X < 256, "CHUNK_SIZE_X must be representable by an 8-bit unsigned integer");

@@ -755,6 +755,7 @@ static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, GLKVector
 
     outVoxel->dir = VOXEL_DIR_NORTH;
     outVoxel->opaque = groundLayer || floatingMountain;
+    outVoxel->outside = 0; // used by the lighting engine for temporary calculations
     outVoxel->tex = VOXEL_TEX_GRASS;
     outVoxel->type = (groundLayer || floatingMountain) ? VOXEL_TYPE_CUBE : VOXEL_TYPE_EMPTY;
 }
