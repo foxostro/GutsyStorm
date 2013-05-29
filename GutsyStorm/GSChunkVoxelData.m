@@ -129,37 +129,58 @@
 - (GSBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
                                 postProcessor:(terrain_post_processor_t)postProcessor
 {
-    GSIntegerVector3 p, a, b;
-    a = GSIntegerVector3_Make(-1, -1, -1);
-    b = GSIntegerVector3_Make(chunkSize.x+1, chunkSize.y+1, chunkSize.z+1);
+    if (minP.y >= WORLD_CEILING_HEIGHT) { // Fast path for chunks above the ceiling: always empty on natural terrain generation.
+        static const voxel_t template = {
+            .dir = VOXEL_DIR_NORTH,
+            .opaque = NO,
+            .outside = 0, // used as a temporary value by the lighting engine
+            .tex = VOXEL_TEX_GRASS,
+            .type = VOXEL_TYPE_EMPTY,
+            .upsideDown = NO
+        };
+        GSMutableBuffer *data = [[GSMutableBuffer alloc] initWithDimensions:chunkSize];
+        voxel_t *buf = (voxel_t *)[data mutableData];
+        GSIntegerVector3 p;
+        
+        FOR_BOX(p, ivecZero, chunkSize)
+        {
+            buf[INDEX_BOX(p, ivecZero, chunkSize)] = template;
+        }
+        
+        return data;
+    } else {
+        GSIntegerVector3 p, a, b;
+        a = GSIntegerVector3_Make(-1, -1, -1);
+        b = GSIntegerVector3_Make(chunkSize.x+1, chunkSize.y+1, chunkSize.z+1);
 
-    const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
-    voxel_t *voxels = calloc(count, sizeof(voxel_t));
+        const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
+        voxel_t *voxels = calloc(count, sizeof(voxel_t));
 
-    // First, generate voxels for the region of the chunk, plus a 1 block wide border.
-    // Note that whether the block is outside or not is calculated later.
-    FOR_BOX(p, a, b)
-    {
-        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), self.minP), &voxels[INDEX_BOX(p, a, b)]);
+        // First, generate voxels for the region of the chunk, plus a 1 block wide border.
+        // Note that whether the block is outside or not is calculated later.
+        FOR_BOX(p, a, b)
+        {
+            generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), self.minP), &voxels[INDEX_BOX(p, a, b)]);
+        }
+
+        // Post-process the voxels to add ramps, &c.
+        postProcessor(count, voxels, a, b);
+
+        // Copy the voxels for the chunk to their final destination.
+        GSMutableBuffer *data = [[GSMutableBuffer alloc] initWithDimensions:chunkSize];
+        voxel_t *buf = (voxel_t *)[data mutableData];
+        
+        FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+        {
+            size_t srcOffset = INDEX_BOX(p, a, b);
+            size_t dstOffset = INDEX_BOX(p, ivecZero, chunkSize);
+            memcpy(buf + dstOffset, voxels + srcOffset, CHUNK_SIZE_Y * sizeof(voxel_t));
+        }
+        
+        free(voxels);
+
+        return data;
     }
-
-    // Post-process the voxels to add ramps, &c.
-    postProcessor(count, voxels, a, b);
-
-    // Copy the voxels for the chunk to their final destination.
-    GSMutableBuffer *data = [[GSMutableBuffer alloc] initWithDimensions:chunkSize];
-    voxel_t *buf = (voxel_t *)[data mutableData];
-    
-    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
-    {
-        size_t srcOffset = INDEX_BOX(p, a, b);
-        size_t dstOffset = INDEX_BOX(p, ivecZero, chunkSize);
-        memcpy(buf + dstOffset, voxels + srcOffset, CHUNK_SIZE_Y * sizeof(voxel_t));
-    }
-    
-    free(voxels);
-
-    return data;
 }
 
 - (void)saveToFile
