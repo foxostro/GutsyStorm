@@ -155,7 +155,10 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
 - (GSBuffer *)newSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
                                            chunkStore:(GSChunkStore *)chunkStore
 {
+#ifdef DEBUG
     CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
+#endif
+
     GLKVector3 mp = minP;
     buffer_element_t *combinedSunlightData = calloc((combinedMaxP.x - combinedMinP.x) *
                                                     (combinedMaxP.y - combinedMinP.y) *
@@ -227,9 +230,11 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y+2, CHU
                                                         srcMaxP:combinedMaxP];
 
     free(combinedSunlightData);
-    
+
+#ifdef DEBUG
     CFAbsoluteTime endTime = CFAbsoluteTimeGetCurrent();
-    NSLog(@"finished calculating chunk lighting. It took %fs.", endTime - startTime);
+    DebugLog(@"finished calculating chunk lighting. It took %fs.", endTime - startTime);
+#endif
 
     return sunlight;
 }
