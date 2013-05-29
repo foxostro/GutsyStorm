@@ -11,6 +11,7 @@
 #import <OpenGL/glu.h>
 #import <GLKit/GLKMath.h>
 #import "GSCamera.h"
+#import "Voxel.h" // for WORLD_CEILING_HEIGHT
 #import "GSIntegerVector3.h"
 
 @implementation GSCamera
@@ -53,7 +54,7 @@
 // Set the default camera and reset camera properties.
 - (void)resetCamera
 {    
-    _ceilingHeight = 128.0;
+    _ceilingHeight = WORLD_CEILING_HEIGHT;
     _cameraSpeed = 10.0;
     _cameraRotSpeed = 1.0;
     _cameraEye = GLKVector3Make(0.0f, 0.0f, 0.0f);
@@ -130,7 +131,6 @@
 
     if(cameraModifiedFlags) {
         _cameraEye.y = MIN(_cameraEye.y, _ceilingHeight);
-        _cameraEye.y = MAX(_cameraEye.y, 0.0);
         
         [self updateCameraLookVectors];
         [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];

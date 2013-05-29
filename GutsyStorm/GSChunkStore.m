@@ -409,10 +409,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     // which voxel boundary is nearest) and walk that way.
     for(int i = 0; i < maxDepth; i++)
     {
-        if(y >= _activeRegionExtent.y || y < 0) {
-            return YES; // The vertical extent of the world is limited.
-        }
-        
         BOOL stop = NO;
         BOOL fail = NO;
         block(GLKVector3Make(x, y, z), &stop, &fail);
