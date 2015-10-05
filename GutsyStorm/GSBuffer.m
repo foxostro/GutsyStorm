@@ -63,17 +63,30 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         // Map the data object to a buffer in memory and use it to initialize a new GSByteBuffer object.
         size_t size = 0;
         const void *buffer = NULL;
-        dispatch_data_t mappedData = dispatch_data_create_map(dd, &buffer, &size);
+        
+        // The line below causes a false-positive static analyzer error.
+        // The value is never read because the dispatch_data object only exists to keep the buffer alive.
+        // When we're done with the buffer we would call dispatch_release to release the buffer. However, due to ARC,
+        // that's not possible.
+#ifndef __clang_analyzer__
+        dispatch_data_t mappedData =
+#endif
+        dispatch_data_create_map(dd, &buffer, &size);
+    
         assert(len == size);
         GSBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const buffer_element_t *)buffer];
-        dispatch_release(mappedData);
+
+#ifndef __clang_analyzer__
+        mappedData = NULL; //dispatch_release(mappedData);
+#endif
+
         completionHandler(aBuffer, nil);
     });
 }
 
-+ (id)newBufferFromLargerRawBuffer:(const buffer_element_t *)srcBuf
-                           srcMinP:(GSIntegerVector3)combinedMinP
-                           srcMaxP:(GSIntegerVector3)combinedMaxP
++ (instancetype)newBufferFromLargerRawBuffer:(const buffer_element_t *)srcBuf
+                                     srcMinP:(GSIntegerVector3)combinedMinP
+                                     srcMaxP:(GSIntegerVector3)combinedMaxP
 {
     static const GSIntegerVector3 dimensions = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
 
@@ -101,7 +114,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     return aBuffer;
 }
 
-- (id)initWithDimensions:(GSIntegerVector3)dim
+- (instancetype)initWithDimensions:(GSIntegerVector3)dim
 {
     self = [super init];
     if (self) {
@@ -127,7 +140,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     return self;
 }
 
-- (id)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data
+- (instancetype)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data
 {
     assert(data);
     self = [self initWithDimensions:dim]; // NOTE: this call will allocate memory for _data
@@ -144,7 +157,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     free(_data);
 }
 
-- (id)copyWithZone:(NSZone *)zone
+- (instancetype)copyWithZone:(NSZone *)zone
 {
     return self; // GSBuffer is immutable. Return self rather than perform a deep copy.
 }
@@ -212,7 +225,6 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
                 raiseExceptionForPOSIXError(error, [NSString stringWithFormat:@"error with write(fd=%u)", fd]);
             }
 
-            dispatch_release(dd);
             dispatch_group_leave(group);
         });
     });

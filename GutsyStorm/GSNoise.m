@@ -16,7 +16,7 @@
     void *_context;
 }
 
-- (id)initWithSeed:(NSUInteger)seed
+- (instancetype)initWithSeed:(NSUInteger)seed
 {
     self = [super init];
     if (self) {

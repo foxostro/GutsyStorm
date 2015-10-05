@@ -13,9 +13,9 @@
 
 @interface GSTerrain : NSObject
 
-- (id)initWithSeed:(NSUInteger)seed
-            camera:(GSCamera *)camera
-         glContext:(NSOpenGLContext *)glContext;
+- (instancetype)initWithSeed:(NSUInteger)seed
+                      camera:(GSCamera *)camera
+                   glContext:(NSOpenGLContext *)glContext;
 
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.

@@ -10,13 +10,13 @@
 
 @implementation GSMutableBuffer
 
-+ (id)newMutableBufferWithBuffer:(GSBuffer *)buffer
++ (instancetype)newMutableBufferWithBuffer:(GSBuffer *)buffer
 {
     assert(buffer);
     return [[GSMutableBuffer alloc] initWithDimensions:buffer.dimensions data:buffer->_data];
 }
 
-- (id)initWithDimensions:(GSIntegerVector3)dim
+- (instancetype)initWithDimensions:(GSIntegerVector3)dim
 {
     if (self = [super initWithDimensions:dim]) {
         // initialize here
@@ -25,7 +25,7 @@
     return self;
 }
 
-- (id)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data
+- (instancetype)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data
 {
     if (self = [super initWithDimensions:dim data:data]) {
         // initialize here
@@ -34,7 +34,7 @@
     return self;
 }
 
-- (id)copyWithZone:(NSZone *)zone
+- (instancetype)copyWithZone:(NSZone *)zone
 {
     // Copies the underlying buffer to a new buffer.
     return [[GSMutableBuffer allocWithZone:zone] initWithDimensions:self.dimensions data:_data];

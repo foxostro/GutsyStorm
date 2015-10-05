@@ -16,13 +16,18 @@ extern int checkGLErrors(void);
     NSRect _bounds;
 }
 
-- (id)initWithImagePath:(NSString *)path
-            numTextures:(GLuint)numTextures
+- (instancetype)initWithImagePath:(NSString *)path numTextures:(GLuint)numTextures
 {
     self = [super init];
     if (self) {
         // Initialization code here.
-        NSBitmapImageRep *bitmap = [NSBitmapImageRep imageRepWithContentsOfFile:path];
+        NSBitmapImageRep *bitmap = (NSBitmapImageRep *)[NSBitmapImageRep imageRepWithContentsOfFile:path];
+
+        if (!bitmap) {
+            NSString *s = [NSString stringWithFormat:@"Failed to load \"%@\" and no way to handle it here.", path];
+            @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
+        }
+
         _bounds = NSMakeRect(0, 0, [bitmap size].width, [bitmap size].height / numTextures);
         
         GLenum format = [bitmap hasAlpha] ? GL_RGBA : GL_RGB;

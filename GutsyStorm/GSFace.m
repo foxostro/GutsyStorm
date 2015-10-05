@@ -40,7 +40,7 @@
     return fabsf(area1+area2-2.0f) < FLT_EPSILON;
 }
 
-- (id)initWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face
+- (instancetype)initWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face
 {
     self = [super init];
     if (self) {

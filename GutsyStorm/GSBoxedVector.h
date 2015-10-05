@@ -13,8 +13,8 @@
 
 + (GSBoxedVector *)boxedVectorWithVector:(GLKVector3)vector;
 + (GSBoxedVector *)boxedVectorWithIntegerVector:(GSIntegerVector3)vector;
-- (id)initWithVector:(GLKVector3)vector;
-- (id)initWithIntegerVector:(GSIntegerVector3)vector;
+- (instancetype)initWithVector:(GLKVector3)vector;
+- (instancetype)initWithIntegerVector:(GSIntegerVector3)vector;
 - (BOOL)isEqual:(id)other;
 - (BOOL)isEqualToVector:(GSBoxedVector *)vector;
 - (NSUInteger)hash;

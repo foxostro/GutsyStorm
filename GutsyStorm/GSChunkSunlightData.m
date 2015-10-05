@@ -29,12 +29,12 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.sunlight.dat", minP.x, minP.y, minP.z];
 }
 
-- (id)initWithMinP:(GLKVector3)minCorner
-            folder:(NSURL *)folder
-    groupForSaving:(dispatch_group_t)groupForSaving
-    queueForSaving:(dispatch_queue_t)queueForSaving
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-      neighborhood:(GSNeighborhood *)neighborhood
+- (instancetype)initWithMinP:(GLKVector3)minCorner
+                      folder:(NSURL *)folder
+              groupForSaving:(dispatch_group_t)groupForSaving
+              queueForSaving:(dispatch_queue_t)queueForSaving
+              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+                neighborhood:(GSNeighborhood *)neighborhood
 {
     if(self = [super init]) {
         assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
@@ -42,14 +42,8 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
         minP = minCorner;
 
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
-        dispatch_retain(_groupForSaving);
-
         _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
-        dispatch_retain(_chunkTaskQueue);
-
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
-        dispatch_retain(_queueForSaving);
-
         _neighborhood = neighborhood;
         _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder];
     }
@@ -58,12 +52,12 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
 
 - (void)dealloc
 {
-    dispatch_release(_groupForSaving);
-    dispatch_release(_chunkTaskQueue);
-    dispatch_release(_queueForSaving);
+    _groupForSaving = NULL;
+    _chunkTaskQueue = NULL;
+    _queueForSaving = NULL;
 }
 
-- (id)copyWithZone:(NSZone *)zone
+- (instancetype)copyWithZone:(NSZone *)zone
 {
     return self; // GSChunkSunlightData is immutable, so return self instead of deep copying
 }

@@ -66,8 +66,8 @@ typedef GLint index_t;
     return buffer;
 }
 
-- (id)initWithChunkGeometry:(GSChunkGeometryData *)geometry
-                  glContext:(NSOpenGLContext *)context
+- (instancetype)initWithChunkGeometry:(GSChunkGeometryData *)geometry
+                            glContext:(NSOpenGLContext *)context
 {
     assert(geometry);
     assert(context);
@@ -85,7 +85,7 @@ typedef GLint index_t;
     return self;
 }
 
-- (id)copyWithZone:(NSZone *)zone
+- (instancetype)copyWithZone:(NSZone *)zone
 {
     return self; // All GSChunkVBO objects are immutable, so return self instead of deep copying.
 }

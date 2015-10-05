@@ -35,8 +35,8 @@ extern int checkGLErrors(void);
     BOOL _linked;
 }
 
-- (id)initWithVertexShaderSource:(NSString *)vert
-            fragmentShaderSource:(NSString *)frag;
+- (instancetype)initWithVertexShaderSource:(NSString *)vert
+                      fragmentShaderSource:(NSString *)frag;
 {
     self = [super init];
     if (self) {

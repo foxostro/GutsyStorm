@@ -22,7 +22,7 @@
     float _cameraRotSpeed;
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {
@@ -30,7 +30,7 @@
         [self resetCamera];
         
         _frustum = [[GSFrustum alloc] init];
-        [_frustum setCamInternalsWithAngle:60.0 ratio:640.0/480.0 nearD:0.1 farD:1000.0]; // TODO: Set for real later on.
+        [_frustum setCamInternalsWithAngle:(60.0*M_PI/180.0) ratio:640.0/480.0 nearD:0.1 farD:1000.0]; // TODO: Set for real later on.
         [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
     }
     
@@ -40,9 +40,9 @@
 // Submits the camera transformation to OpenGL.
 - (void)submitCameraTransform
 {
-    gluLookAt(_cameraEye.x,    _cameraEye.y,    _cameraEye.z,
-              _cameraCenter.x, _cameraCenter.y, _cameraCenter.z,
-              _cameraUp.x,     _cameraUp.y,     _cameraUp.z);
+    glMultMatrixf(GLKMatrix4MakeLookAt(_cameraEye.x,    _cameraEye.y,    _cameraEye.z,
+                                       _cameraCenter.x, _cameraCenter.y, _cameraCenter.z,
+                                       _cameraUp.x,     _cameraUp.y,     _cameraUp.z).m);
 }
 
 // Updated the camera look vectors.

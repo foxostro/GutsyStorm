@@ -20,7 +20,7 @@
     NSURL *_folder;
 }
 
-- (id)initWithCacheFolder:(NSURL *)folder factory:(grid_item_factory_t)factory
+- (instancetype)initWithCacheFolder:(NSURL *)folder factory:(grid_item_factory_t)factory
 {
     if(self = [super initWithFactory:factory]) {
         _folder = folder;

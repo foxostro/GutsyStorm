@@ -44,58 +44,42 @@
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
 }
 
-- (id)initWithMinP:(GLKVector3)mp
-            folder:(NSURL *)folder
-    groupForSaving:(dispatch_group_t)groupForSaving
-    queueForSaving:(dispatch_queue_t)queueForSaving
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-         generator:(terrain_generator_t)generator
-     postProcessor:(terrain_post_processor_t)postProcessor
+- (instancetype)initWithMinP:(GLKVector3)mp
+                      folder:(NSURL *)folder
+              groupForSaving:(dispatch_group_t)groupForSaving
+              queueForSaving:(dispatch_queue_t)queueForSaving
+              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+                   generator:(terrain_generator_t)generator
+               postProcessor:(terrain_post_processor_t)postProcessor
 {
+    assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
+
     if (self = [super init]) {
-        assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
-
         minP = mp;
-        
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
-        dispatch_retain(_groupForSaving);
-        
         _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
-        dispatch_retain(_chunkTaskQueue);
-
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
-        dispatch_retain(_queueForSaving);
-        
         _folder = folder;
-        
-        _voxels = [self newVoxelDataBufferFromFileOrFromScratchWithGenerator:generator
-                                                               postProcessor:postProcessor];
+        _voxels = [self newVoxelDataBufferFromFileOrFromScratchWithGenerator:generator postProcessor:postProcessor];
     }
-    
+
     return self;
 }
 
-- (id)initWithMinP:(GLKVector3)mp
-            folder:(NSURL *)folder
-    groupForSaving:(dispatch_group_t)groupForSaving
-    queueForSaving:(dispatch_queue_t)queueForSaving
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-              data:(GSBuffer *)data
+- (instancetype)initWithMinP:(GLKVector3)mp
+                      folder:(NSURL *)folder
+              groupForSaving:(dispatch_group_t)groupForSaving
+              queueForSaving:(dispatch_queue_t)queueForSaving
+              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+                        data:(GSBuffer *)data
 {
     if (self = [super init]) {
         minP = mp;
 
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
-        dispatch_retain(_groupForSaving);
-
         _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
-        dispatch_retain(_chunkTaskQueue);
-
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
-        dispatch_retain(_queueForSaving);
-
         _folder = folder;
-
         GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
         [self markOutsideVoxels:dataWithUpdatedOutside];
         _voxels = dataWithUpdatedOutside;
@@ -106,12 +90,12 @@
 
 - (void)dealloc
 {
-    dispatch_release(_groupForSaving);
-    dispatch_release(_chunkTaskQueue);
-    dispatch_release(_queueForSaving);
+    _groupForSaving = NULL;
+    _chunkTaskQueue = NULL;
+    _queueForSaving = NULL;
 }
 
-- (id)copyWithZone:(NSZone *)zone
+- (instancetype)copyWithZone:(NSZone *)zone
 {
     return self; // all voxel data objects are immutable, so return self instead of deep copying
 }

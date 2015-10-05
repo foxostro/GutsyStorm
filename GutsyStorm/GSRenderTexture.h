@@ -21,7 +21,7 @@
 @property (assign, nonatomic) NSRect dimensions;
 @property (readonly, nonatomic) BOOL isCubeMap;
 
-- (id)initWithDimensions:(NSRect)dimensions isCubeMap:(BOOL)isCubeMap;
+- (instancetype)initWithDimensions:(NSRect)dimensions isCubeMap:(BOOL)isCubeMap;
 - (void)startRender;
 - (void)startRenderForCubeFace:(unsigned)face;
 - (void)finishRender;

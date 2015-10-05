@@ -377,9 +377,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     return str;
 }
 
-- (id)initWithSeed:(NSUInteger)seed
-            camera:(GSCamera *)cam
-         glContext:(NSOpenGLContext *)context
+- (instancetype)initWithSeed:(NSUInteger)seed
+                      camera:(GSCamera *)cam
+                   glContext:(NSOpenGLContext *)context
 {
     self = [super init];
     if(self) {

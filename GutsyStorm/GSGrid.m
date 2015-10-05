@@ -42,13 +42,13 @@
     NSMutableDictionary *_mappingToDependentGrids;
 }
 
-- (id)init
+- (instancetype)init
 {
     assert(!"call -initWithFactory: instead");
-    return nil;
+    @throw nil;
 }
 
-- (id)initWithFactory:(grid_item_factory_t)factory
+- (instancetype)initWithFactory:(grid_item_factory_t)factory
 {
     if(self = [super init]) {
         _factory = [factory copy];

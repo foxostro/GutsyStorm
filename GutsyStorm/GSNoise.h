@@ -10,7 +10,7 @@
 
 @interface GSNoise : NSObject
 
-- (id)initWithSeed:(NSUInteger)seed;
+- (instancetype)initWithSeed:(NSUInteger)seed;
 - (float)noiseAtPoint:(GLKVector3)p;
 - (float)noiseAtPoint:(GLKVector3)p numOctaves:(NSUInteger)numOctaves;
 - (float)noiseAtPointWithFourOctaves:(GLKVector3)p;

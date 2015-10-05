@@ -13,12 +13,12 @@
 
 @interface GSChunkStore : NSObject
 
-- (id)initWithSeed:(NSUInteger)seed
-            camera:(GSCamera *)camera
-     terrainShader:(GSShader *)terrainShader
-         glContext:(NSOpenGLContext *)glContext
-         generator:(terrain_generator_t)generator
-     postProcessor:(terrain_post_processor_t)postProcessor;
+- (instancetype)initWithSeed:(NSUInteger)seed
+                      camera:(GSCamera *)camera
+               terrainShader:(GSShader *)terrainShader
+                   glContext:(NSOpenGLContext *)glContext
+                   generator:(terrain_generator_t)generator
+               postProcessor:(terrain_post_processor_t)postProcessor;
 
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.

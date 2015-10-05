@@ -13,6 +13,6 @@
 
 @property (readonly) GLuint handle;
 
-- (id)initWithHandle:(GLuint)handle context:(NSOpenGLContext *)context;
+- (instancetype)initWithHandle:(GLuint)handle context:(NSOpenGLContext *)context;
 
 @end

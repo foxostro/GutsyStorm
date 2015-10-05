@@ -22,11 +22,11 @@
 
 + (NSString *)fileNameForSunlightDataFromMinP:(GLKVector3)minP;
 
-- (id)initWithMinP:(GLKVector3)minCorner
-            folder:(NSURL *)folder
-    groupForSaving:(dispatch_group_t)groupForSaving
-    queueForSaving:(dispatch_queue_t)queueForSaving
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-      neighborhood:(GSNeighborhood *)neighborhood;
+- (instancetype)initWithMinP:(GLKVector3)minCorner
+                      folder:(NSURL *)folder
+              groupForSaving:(dispatch_group_t)groupForSaving
+              queueForSaving:(dispatch_queue_t)queueForSaving
+              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+                neighborhood:(GSNeighborhood *)neighborhood;
 
 @end

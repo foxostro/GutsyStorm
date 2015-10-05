@@ -28,11 +28,11 @@ struct vertex
 
 + (GSVertex *)vertexWithVertex:(struct vertex *)pv;
 
-- (id)initWithVertex:(struct vertex *)pv;
+- (instancetype)initWithVertex:(struct vertex *)pv;
 
-- (id)initWithPosition:(GLKVector3)position
-                normal:(GSIntegerVector3)normal
-              texCoord:(GSIntegerVector3)texCoord;
+- (instancetype)initWithPosition:(GLKVector3)position
+                          normal:(GSIntegerVector3)normal
+                        texCoord:(GSIntegerVector3)texCoord;
 
 - (GLKVector3)position;
 

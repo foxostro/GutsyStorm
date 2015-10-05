@@ -10,6 +10,6 @@
 
 @interface GSGridSunlight : GSGrid
 
-- (id)initWithCacheFolder:(NSURL *)folder factory:(grid_item_factory_t)factory;
+- (instancetype)initWithCacheFolder:(NSURL *)folder factory:(grid_item_factory_t)factory;
 
 @end

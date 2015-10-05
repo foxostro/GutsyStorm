@@ -23,20 +23,20 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, GSIntege
 
 + (NSString *)fileNameForVoxelDataFromMinP:(GLKVector3)minP;
 
-- (id)initWithMinP:(GLKVector3)minP
-            folder:(NSURL *)folder
-    groupForSaving:(dispatch_group_t)groupForSaving
-    queueForSaving:(dispatch_queue_t)queueForSaving
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-         generator:(terrain_generator_t)generator
-     postProcessor:(terrain_post_processor_t)postProcessor;
+- (instancetype)initWithMinP:(GLKVector3)minP
+                      folder:(NSURL *)folder
+              groupForSaving:(dispatch_group_t)groupForSaving
+              queueForSaving:(dispatch_queue_t)queueForSaving
+              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+                   generator:(terrain_generator_t)generator
+               postProcessor:(terrain_post_processor_t)postProcessor;
 
-- (id)initWithMinP:(GLKVector3)minP
-            folder:(NSURL *)folder
-    groupForSaving:(dispatch_group_t)groupForSaving
-    queueForSaving:(dispatch_queue_t)queueForSaving
-    chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-              data:(GSBuffer *)data;
+- (instancetype)initWithMinP:(GLKVector3)minP
+                      folder:(NSURL *)folder
+              groupForSaving:(dispatch_group_t)groupForSaving
+              queueForSaving:(dispatch_queue_t)queueForSaving
+              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
+                        data:(GSBuffer *)data;
 
 - (voxel_t)voxelAtLocalPosition:(GSIntegerVector3)chunkLocalP;
 

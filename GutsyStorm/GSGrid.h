@@ -12,9 +12,12 @@
 
 @interface GSGrid : NSObject
 
-- (id)initWithFactory:(grid_item_factory_t)factory;
+- (instancetype)init NS_UNAVAILABLE;
+
+- (instancetype)initWithFactory:(grid_item_factory_t)factory;
 
 /* Returns the object corresponding to the given point on the grid. Creates the object from the factory, if necessary. */
+// XXX: Can I use a more explicit type than `id'?
 - (id)objectAtPoint:(GLKVector3)p;
 
 /* Tries to get the object corresponding to the given point on the grid, returning it in "object".
@@ -29,7 +32,7 @@
  */
 - (BOOL)objectAtPoint:(GLKVector3)p
              blocking:(BOOL)blocking
-               object:(id *)object
+               object:(id *)object // XXX: Can I use a more explicit type than `id'?
       createIfMissing:(BOOL)createIfMissing;
 
 // Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids.

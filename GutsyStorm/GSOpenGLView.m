@@ -20,8 +20,9 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                       CVOptionFlags flagsIn,
                                       CVOptionFlags* flagsOut,
                                       void* displayLinkContext);
-int checkGLErrors(void);
 BOOL checkForOpenGLExtension(NSString *extension);
+NSString *stringForOpenGLError(GLenum error);
+int checkGLErrors(void);
 
 
 @implementation GSOpenGLView
@@ -74,6 +75,8 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)prepareOpenGL
 {
+    CVReturn ret;
+
     [[self openGLContext] makeCurrentContext];
     assert(checkGLErrors() == 0);
     
@@ -137,18 +140,23 @@ BOOL checkForOpenGLExtension(NSString *extension);
     assert(checkGLErrors() == 0);
     
     // Create a display link capable of being used with all active displays
-    CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
+    ret = CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
+    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
     
     // Set the renderer output callback function
-    CVDisplayLinkSetOutputCallback(_displayLink, &MyDisplayLinkCallback, (__bridge void *)self);
+    ret = CVDisplayLinkSetOutputCallback(_displayLink, &MyDisplayLinkCallback, (__bridge void *)self);
+    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
     
     // Set the display link for the current renderer
     CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
     CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
-    CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
+    ret = CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
+    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
     
     // Activate the display link
-    CVDisplayLinkStart(_displayLink);
+    appDelegate.displayLink = _displayLink;
+    ret = CVDisplayLinkStart(_displayLink);
+    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
 }
 
 // Reset mouse input mechanism for camera.
@@ -238,18 +246,17 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)reshape
 {
-    const float fov = 60.0;
+    const float fovRadians = 60.0 * (M_PI / 180.0);
     const float nearD = 0.1;
     const float farD = 724.0;
     
     NSRect r = [self convertRectToBacking:[self bounds]];
     glViewport(0, 0, r.size.width, r.size.height);
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(fov, r.size.width/r.size.height, nearD, farD);
+    glLoadMatrixf(GLKMatrix4MakePerspective(fovRadians, r.size.width/r.size.height, nearD, farD).m);
     glMatrixMode(GL_MODELVIEW);
     
-    [_camera reshapeWithBounds:r fov:fov nearD:nearD farD:farD];
+    [_camera reshapeWithBounds:r fov:fovRadians nearD:nearD farD:farD];
     
     assert(checkGLErrors() == 0);
 }
@@ -414,7 +421,9 @@ BOOL checkForOpenGLExtension(NSString *extension);
 
 - (void)dealloc
 {
-    CVDisplayLinkStop(_displayLink);
+    CVReturn ret = CVDisplayLinkStop(_displayLink);
+    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
+
     CVDisplayLinkRelease(_displayLink);
 }
 
@@ -430,6 +439,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                       void *displayLinkContext)
 {
     @autoreleasepool {
+        assert(CVDisplayLinkIsRunning(displayLink));
         return [(__bridge GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
     }
 }
@@ -451,6 +461,39 @@ BOOL checkForOpenGLExtension(NSString *extension)
     return NO;
 }
 
+NSString *stringForOpenGLError(GLenum error)
+{
+    switch(error)
+    {
+    case GL_NO_ERROR:
+        return @"No error has been recorded.";
+
+    case GL_INVALID_ENUM:
+        return @"An unacceptable value is specified for an enumerated argument. The offending command is ignored and has no other side effect than to set the error flag.";
+
+    case GL_INVALID_VALUE:
+        return @"A numeric argument is out of range. The offending command is ignored and has no other side effect than to set the error flag.";
+
+    case GL_INVALID_OPERATION:
+        return @"The specified operation is not allowed in the current state. The offending command is ignored and has no other side effect than to set the error flag.";
+
+    case GL_INVALID_FRAMEBUFFER_OPERATION:
+        return @"The framebuffer object is not complete. The offending command is ignored and has no other side effect than to set the error flag.";
+
+    case GL_OUT_OF_MEMORY:
+        return @"There is not enough memory left to execute the command. The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
+
+    case GL_STACK_UNDERFLOW:
+        return @"An attempt has been made to perform an operation that would cause an internal stack to underflow.";
+
+    case GL_STACK_OVERFLOW:
+        return @"An attempt has been made to perform an operation that would cause an internal stack to overflow.";
+
+    default:
+        return @"Unknown OpenGL error";
+    }
+}
+
 // Checks for OpenGL errors and logs any that it find. Returns the number of errors.
 int checkGLErrors(void)
 {
@@ -458,7 +501,7 @@ int checkGLErrors(void)
     
     for(GLenum currError = glGetError(); currError != GL_NO_ERROR; currError = glGetError())
     {
-        NSLog(@"OpenGL Error: %s", (const char *)gluErrorString(currError));
+        NSLog(@"OpenGL Error: %@", stringForOpenGLError(currError));
         ++errCount;
     }
 

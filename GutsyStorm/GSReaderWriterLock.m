@@ -15,7 +15,7 @@
     unsigned _readcount;
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {
@@ -30,8 +30,8 @@
 
 - (void)dealloc
 {
-    dispatch_release(_mutex);
-    dispatch_release(_writing);
+    _mutex = NULL;
+    _writing = NULL;
 }
 
 - (BOOL)tryLockForReading

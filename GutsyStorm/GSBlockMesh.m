@@ -31,7 +31,7 @@
     NSArray *_faces[2][NUM_VOXEL_DIRECTIONS];
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {

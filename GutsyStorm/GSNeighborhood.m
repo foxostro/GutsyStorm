@@ -67,7 +67,7 @@
     return GLKVector3Make(0, 0, 0);
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {

@@ -14,7 +14,7 @@
 
 @implementation GSGridVBOs
 
-- (id)initWithFactory:(grid_item_factory_t)factory
+- (instancetype)initWithFactory:(grid_item_factory_t)factory
 {
     if (self = [super initWithFactory:factory]) {
         self.invalidationNotification = ^{ /* do nothing */ };

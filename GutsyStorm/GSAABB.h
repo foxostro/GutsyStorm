@@ -14,7 +14,7 @@
 @property (assign, nonatomic) GLKVector3 maxs;
 
 - (GLKVector3)getVertex:(size_t)i;
-- (id)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts;
-- (id)initWithMinP:(GLKVector3)minP maxP:(GLKVector3)maxP;
+- (instancetype)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts;
+- (instancetype)initWithMinP:(GLKVector3)minP maxP:(GLKVector3)maxP;
 
 @end

@@ -21,9 +21,9 @@
  * vboProducer -- This block may be invoked at any time to retrieve the GSChunkVBO for any point in space.
  *                The block may return NULL if no VBO has been generated for that point or if the call would block on a lock.
  */
-- (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
-                          camera:(GSCamera *)camera
-                     vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer;
+- (instancetype)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
+                                    camera:(GSCamera *)camera
+                               vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer;
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
 

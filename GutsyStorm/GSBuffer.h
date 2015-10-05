@@ -53,15 +53,15 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
 /* Creates a new buffer of dimensions (CHUNK_SIZE_X+2) x (CHUNK_SIZE_Y) x (CHUNK_SIZE_Z+2).
  * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are discarded.
  */
-+ (id)newBufferFromLargerRawBuffer:(const buffer_element_t *)srcBuf
-                           srcMinP:(GSIntegerVector3)srcMinP
-                           srcMaxP:(GSIntegerVector3)srcMaxP;
++ (instancetype)newBufferFromLargerRawBuffer:(const buffer_element_t *)srcBuf
+                                     srcMinP:(GSIntegerVector3)srcMinP
+                                     srcMaxP:(GSIntegerVector3)srcMaxP;
 
 /* Initialize a buffer of the specified dimensions */
-- (id)initWithDimensions:(GSIntegerVector3)dim;
+- (instancetype)initWithDimensions:(GSIntegerVector3)dim;
 
 /* Initialize a buffer of the specified dimensions. The specified backing data is copied into the internal buffer. */
-- (id)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data;
+- (instancetype)initWithDimensions:(GSIntegerVector3)dim data:(const buffer_element_t *)data;
 
 /* Returns the value for the specified point in chunk-local space.
  * Always returns 0 for points which have no corresponding mapping in the buffer.

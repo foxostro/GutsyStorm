@@ -71,9 +71,9 @@ static void applyLightToVertices(size_t numChunkVerts,
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.geometry.dat", minP.x, minP.y, minP.z];
 }
 
-- (id)initWithMinP:(GLKVector3)minCorner
-            folder:(NSURL *)folder
-          sunlight:(GSChunkSunlightData *)sunlight
+- (instancetype)initWithMinP:(GLKVector3)minCorner
+                      folder:(NSURL *)folder
+                    sunlight:(GSChunkSunlightData *)sunlight
 {
     self = [super init];
     if (self) {
@@ -98,7 +98,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     return self;
 }
 
-- (id)copyWithZone:(NSZone *)zone
+- (instancetype)copyWithZone:(NSZone *)zone
 {
     return self; // all geometry objects are immutable, so return self instead of deep copying
 }

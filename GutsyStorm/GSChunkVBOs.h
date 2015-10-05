@@ -10,8 +10,8 @@
 
 @interface GSChunkVBOs : NSObject <GSGridItem>
 
-- (id)initWithChunkGeometry:(GSChunkGeometryData *)geometry
-                  glContext:(NSOpenGLContext *)glContext;
+- (instancetype)initWithChunkGeometry:(GSChunkGeometryData *)geometry
+                            glContext:(NSOpenGLContext *)glContext;
 
 // Assumes the caller has already locked the context on the current thread.
 - (void)draw;

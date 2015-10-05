@@ -45,9 +45,9 @@
     dispatch_queue_t _updateQueue;
 }
 
-- (id)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
-                          camera:(GSCamera *)camera
-                     vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer
+- (instancetype)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
+                                    camera:(GSCamera *)camera
+                               vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer
 {
     self = [super init];
     if (self) {
@@ -70,7 +70,7 @@
 
 - (void)dealloc
 {
-    dispatch_release(_updateQueue);
+    _updateQueue = NULL;
 }
 
 - (void)draw

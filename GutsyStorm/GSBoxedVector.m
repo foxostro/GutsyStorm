@@ -10,8 +10,6 @@
 #import "GLKVector3Extra.h" // for GLKVector3_ArePrettyMuchEqual
 #import "GSBoxedVector.h"
 
-static const float EPS = 1e-5;
-
 
 @interface GSBoxedVector ()
 
@@ -36,7 +34,7 @@ static const float EPS = 1e-5;
     return [[GSBoxedVector alloc] initWithIntegerVector:vector];
 }
 
-- (id)initWithVector:(GLKVector3)v
+- (instancetype)initWithVector:(GLKVector3)v
 {
     self = [super init];
     if (self) {
@@ -48,7 +46,7 @@ static const float EPS = 1e-5;
     return self;
 }
 
-- (id)initWithIntegerVector:(GSIntegerVector3)v
+- (instancetype)initWithIntegerVector:(GSIntegerVector3)v
 {
     self = [super init];
     if (self) {
@@ -103,7 +101,7 @@ static const float EPS = 1e-5;
     return [NSString stringWithFormat:@"%f_%f_%f", _vector.x, _vector.y, _vector.z];
 }
 
-- (id)copyWithZone:(NSZone *)zone
+- (instancetype)copyWithZone:(NSZone *)zone
 {
     return self; // GSBoxedVector is immutable. Return self rather than performing a deep copy.
 }

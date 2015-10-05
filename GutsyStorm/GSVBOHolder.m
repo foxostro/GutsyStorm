@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
+#import <OpenGL/gl.h>
 #import "GSVBOHolder.h"
 
 
@@ -17,7 +18,7 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
     NSOpenGLContext *_glContext;
 }
 
-- (id)initWithHandle:(GLuint)handle context:(NSOpenGLContext *)context
+- (instancetype)initWithHandle:(GLuint)handle context:(NSOpenGLContext *)context
 {
     if(self = [super init]) {
 #ifdef NDEBUG

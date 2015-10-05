@@ -14,7 +14,7 @@
     CVDisplayLinkRef _displayLink;
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {
@@ -37,13 +37,19 @@
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
+    // Make sure to cleanly shutdown the terrain engine first before stopping the display link.
+    // Stopping the display link kills the display link thread.
+
     [_terrain shutdown];
     _terrain = nil; // explicitly give up the reference
+
     CVDisplayLinkStop(_displayLink);
 }
 
 - (void)setDisplayLink:(CVDisplayLinkRef)displayLink
 {
+    assert(displayLink);
+
     static dispatch_semaphore_t mutex;
     static dispatch_once_t onceToken;
     

@@ -45,7 +45,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p;
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk;
-- (id)newChunkWithMinimumCorner:(GLKVector3)minP;
+- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(GLKVector3)minP;
 
 @end
 
@@ -175,12 +175,12 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     };
 }
 
-- (id)initWithSeed:(NSUInteger)seed
-            camera:(GSCamera *)cam
-       terrainShader:(GSShader *)shader
-           glContext:(NSOpenGLContext *)context
-           generator:(terrain_generator_t)generatorCallback
-       postProcessor:(terrain_post_processor_t)postProcessorCallback
+- (instancetype)initWithSeed:(NSUInteger)seed
+                      camera:(GSCamera *)cam
+               terrainShader:(GSShader *)shader
+                   glContext:(NSOpenGLContext *)context
+                   generator:(terrain_generator_t)generatorCallback
+               postProcessor:(terrain_post_processor_t)postProcessorCallback
 {
     self = [super init];
     if (self) {
@@ -195,10 +195,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
         _postProcessor = [postProcessorCallback copy];
         
         _chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
-        dispatch_retain(_chunkTaskQueue);
-
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-        dispatch_retain(_queueForSaving);
         
         [self createGrids];
         [self setupGridDependencies];
@@ -218,7 +215,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 - (void)shutdown
 {
     dispatch_source_cancel(_timer);
-    dispatch_release(_timer);
+    _timer = NULL;
 
     // Shutdown drawing on the display link thread.
     _shutdownDrawing = YES;
@@ -516,7 +513,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     return url;
 }
 
-- (id)newChunkWithMinimumCorner:(GLKVector3)minP
+- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(GLKVector3)minP
 {
     return [[GSChunkVoxelData alloc] initWithMinP:minP
                                            folder:_folder

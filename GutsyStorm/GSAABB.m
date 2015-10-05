@@ -12,7 +12,7 @@
 
 @implementation GSAABB
 
-- (id)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts
+- (instancetype)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts
 {
     self = [super init];
     if (self) {
@@ -37,7 +37,7 @@
     return self;
 }
 
-- (id)initWithMinP:(GLKVector3)minP maxP:(GLKVector3)maxP
+- (instancetype)initWithMinP:(GLKVector3)minP maxP:(GLKVector3)maxP
 {
     GLKVector3 verts[2] = {minP, maxP};
     return [self initWithVerts:verts numVerts:2];

@@ -11,7 +11,7 @@
 
 @interface GSMutableBuffer : GSBuffer
 
-+ (id)newMutableBufferWithBuffer:(GSBuffer *)buffer;
++ (instancetype)newMutableBufferWithBuffer:(GSBuffer *)buffer;
 
 - (buffer_element_t *)mutableData;
 

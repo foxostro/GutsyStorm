@@ -19,7 +19,7 @@
     int _originalViewport[4];
 }
 
-- (id)initWithDimensions:(NSRect)dimensions isCubeMap:(BOOL)isCubeMap
+- (instancetype)initWithDimensions:(NSRect)dimensions isCubeMap:(BOOL)isCubeMap
 {
     self = [super init];
     if(self) {

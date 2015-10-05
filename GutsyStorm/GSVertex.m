@@ -29,7 +29,7 @@
     return [[GSVertex alloc] initWithVertex:pv];
 }
 
-- (id)initWithVertex:(struct vertex *)pv
+- (instancetype)initWithVertex:(struct vertex *)pv
 {
     assert(pv);
     
@@ -41,9 +41,9 @@
     return self;
 }
 
-- (id)initWithPosition:(GLKVector3)position
-                normal:(GSIntegerVector3)normal
-              texCoord:(GSIntegerVector3)texCoord
+- (instancetype)initWithPosition:(GLKVector3)position
+                          normal:(GSIntegerVector3)normal
+                        texCoord:(GSIntegerVector3)texCoord
 {
     self = [super init];
     if (self) {

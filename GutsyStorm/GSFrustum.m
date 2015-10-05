@@ -23,7 +23,7 @@
 
 @implementation GSFrustum
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {
@@ -66,7 +66,7 @@
     farD = _farD;
 
     // compute width and height of the near and far plane sections
-    tang = tanf((M_PI/180.0) * angle * 0.5);
+    tang = tanf(angle * 0.5);
     nh = nearD * tang;
     nw = nh * ratio;
     fh = farD * tang;

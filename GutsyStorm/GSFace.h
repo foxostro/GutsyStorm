@@ -16,6 +16,6 @@
 
 + (GSFace *)faceWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face;
 
-- (id)initWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face;
+- (instancetype)initWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face;
 
 @end

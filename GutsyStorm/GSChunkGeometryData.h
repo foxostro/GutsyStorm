@@ -26,9 +26,9 @@ struct vertex;
 /* Returns the shared block mesh factory for the specified voxel type. */
 + (GSBlockMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type;
 
-- (id)initWithMinP:(GLKVector3)minCorner
-            folder:(NSURL *)folder
-          sunlight:(GSChunkSunlightData *)sunlight;
+- (instancetype)initWithMinP:(GLKVector3)minCorner
+                      folder:(NSURL *)folder
+                    sunlight:(GSChunkSunlightData *)sunlight;
 
 /* Copy the chunk vertex buffer to a new buffer and return that in `dst'. Return the number of vertices in the buffer. */
 - (GLsizei)copyVertsToBuffer:(struct vertex **)dst;

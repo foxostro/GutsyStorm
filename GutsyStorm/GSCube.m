@@ -56,7 +56,7 @@ static const GLsizei numCubeVerts = 12*3;
 	GLuint _vboCubeVerts, _vboCubeNorms, _vboCubeTexCoords;
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {
