@@ -42,6 +42,12 @@ int checkGLErrors(void);
     BOOL _bKeyDebounce;
     BOOL _uKeyDebounce;
     CVDisplayLinkRef _displayLink;
+
+    BOOL _timerShouldShutdown;
+    dispatch_semaphore_t _semaTimerShutdown;
+
+    BOOL _displayLinkShouldShutdown;
+    dispatch_semaphore_t _semaDisplayLinkShutdown;
 }
 
 // Enables vertical sync for drawing to limit FPS to the screen's refresh rate.
@@ -154,7 +160,7 @@ int checkGLErrors(void);
     assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
     
     // Activate the display link
-    appDelegate.displayLink = _displayLink;
+    appDelegate.openGlView = self;
     ret = CVDisplayLinkStart(_displayLink);
     assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
 }
@@ -181,23 +187,29 @@ int checkGLErrors(void);
     _spaceBarDebounce = NO;
     _bKeyDebounce = NO;
     _uKeyDebounce = NO;
-    
+
+    _timerShouldShutdown = NO;
+    _semaTimerShutdown = dispatch_semaphore_create(0);
+
+    _displayLinkShouldShutdown = NO;
+    _semaDisplayLinkShutdown = dispatch_semaphore_create(0);
+
     _camera = [[GSCamera alloc] init];
     [_camera moveToPosition:GLKVector3Make(85.1, 16.1, 140.1)];
     [_camera updateCameraLookVectors];
     [self resetMouseInputSettings];
-    
+
     // Register with window to accept user input.
     [[self window] makeFirstResponder: self];
     [[self window] setAcceptsMouseMovedEvents: YES];
-    
+
     // Register a timer to drive the game loop.
     _updateTimer = [NSTimer timerWithTimeInterval:1.0 / 30.0
                                           target:self
                                         selector:@selector(timerFired:)
                                         userInfo:nil
                                          repeats:YES];
-                   
+
     [[NSRunLoop currentRunLoop] addTimer:_updateTimer 
                                  forMode:NSDefaultRunLoopMode];
 }
@@ -265,13 +277,13 @@ int checkGLErrors(void);
 - (unsigned)handleUserInput:(float)dt
 {
     unsigned cameraModifiedFlags;
-    
+
     cameraModifiedFlags = [_camera handleUserInputForFlyingCameraWithDeltaTime:dt
                                                                    keysDown:_keysDown
                                                                 mouseDeltaX:_mouseDeltaX
                                                                 mouseDeltaY:_mouseDeltaY
                                                            mouseSensitivity:_mouseSensitivity];
-    
+
     if([_keysDown[@(' ')] boolValue]) {
         if(!_spaceBarDebounce) {
             _spaceBarDebounce = YES;
@@ -280,7 +292,7 @@ int checkGLErrors(void);
     } else {
         _spaceBarDebounce = NO;
     }
-    
+
     if([_keysDown[@('b')] boolValue]) {
         if(!_bKeyDebounce) {
             _bKeyDebounce = YES;
@@ -298,17 +310,22 @@ int checkGLErrors(void);
     } else {
         _uKeyDebounce = NO;
     }
-    
+
     // Reset for the next update
     _mouseDeltaX = 0;
     _mouseDeltaY = 0;
-    
+
     return cameraModifiedFlags;
 }
 
 // Timer callback method
 - (void)timerFired:(id)sender
 {
+    if (_timerShouldShutdown) {
+        dispatch_semaphore_signal(_semaTimerShutdown);
+        return;
+    }
+
     CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
     float dt = (float)(frameTime - _prevFrameTime);
     unsigned cameraModifiedFlags = 0;
@@ -328,12 +345,12 @@ int checkGLErrors(void);
     NSRect r = [self bounds];
     GLfloat height = r.size.height;
     GLfloat width = r.size.width;
-    
+
     glDisable(GL_LIGHTING);
     glEnable(GL_TEXTURE_RECTANGLE_EXT);
     glEnable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
-    
+
     // set orthograhic 1:1 pixel transform in local view coords
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -343,7 +360,7 @@ int checkGLErrors(void);
     glLoadIdentity();
     glScalef(2.0f / width, -2.0f /  height, 1.0f);
     glTranslatef(-width / 2.0f, -height / 2.0f, 0.0f);
-    
+
     // Draw the crosshairs.
     glPointSize(5.0);
     glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
@@ -351,17 +368,17 @@ int checkGLErrors(void);
     glVertex2f(width/2, height/2);
     glEnd();
     glPointSize(1.0);
-    
+
     // Draw the FPS counter.
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     [_fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f)];
-    
+
     // reset orginal martices
     glPopMatrix(); // GL_MODELVIEW
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
-    
+
     glEnable(GL_LIGHTING);
     glDisable(GL_TEXTURE_RECTANGLE_EXT);
     glDisable(GL_BLEND);
@@ -370,11 +387,16 @@ int checkGLErrors(void);
 
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime
 {
+    if (_displayLinkShouldShutdown) {
+        dispatch_semaphore_signal(_semaDisplayLinkShutdown);
+        return kCVReturnSuccess;
+    }
+
     static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
-    
+
     NSOpenGLContext *currentContext = [self openGLContext];
     [currentContext makeCurrentContext];
-    
+
     // must lock GL context because display link is threaded
     CGLLockContext((CGLContextObj)[currentContext CGLContextObj]);
 
@@ -389,20 +411,20 @@ int checkGLErrors(void);
 
     glPushMatrix();
     glLoadIdentity();
-    
+
     [_camera submitCameraTransform];
     glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
 
     [_terrain draw];
-    
+
     glPopMatrix(); // camera transform
-    
+
     [self drawHUD];
 
     [currentContext flushBuffer];
-    
+
     CFAbsoluteTime time = CFAbsoluteTimeGetCurrent();
-    
+
     // Update the FPS label every so often.
     if(time - _lastFpsLabelUpdateTime > _fpsLabelUpdateInterval) {
         float fps = _numFramesSinceLastFpsLabelUpdate / (time - _lastFpsLabelUpdateTime);
@@ -411,7 +433,7 @@ int checkGLErrors(void);
         NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
         [_fpsStringTex setString:label withAttributes:_stringAttribs];
     }
-    
+
     _lastRenderTime = time;
     _numFramesSinceLastFpsLabelUpdate++;
 
@@ -421,10 +443,21 @@ int checkGLErrors(void);
 
 - (void)dealloc
 {
+    CVDisplayLinkRelease(_displayLink);
+}
+
+- (void)shutdown
+{
+    _timerShouldShutdown = YES;
+    _displayLinkShouldShutdown = YES;
+
+    dispatch_semaphore_wait(_semaTimerShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/30.0));
+    [_updateTimer invalidate];
+
+    // Calling CVDisplayLinkStop will kill the display link thread. So, cleanly shutdown first.
+    dispatch_semaphore_wait(_semaDisplayLinkShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/60.0));
     CVReturn ret = CVDisplayLinkStop(_displayLink);
     assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
-
-    CVDisplayLinkRelease(_displayLink);
 }
 
 @end
@@ -439,7 +472,6 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                       void *displayLinkContext)
 {
     @autoreleasepool {
-        assert(CVDisplayLinkIsRunning(displayLink));
         return [(__bridge GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
     }
 }
@@ -450,14 +482,14 @@ BOOL checkForOpenGLExtension(NSString *extension)
     NSString *extensions = [NSString stringWithCString:(const char *)glGetString(GL_EXTENSIONS)
                                               encoding:NSMacOSRomanStringEncoding];
     NSArray *extensionsArray = [extensions componentsSeparatedByString:@" "];
-    
+
     for(NSString *item in extensionsArray)
     {
         if([item isEqualToString:extension]) {
             return YES;
         }
     }
-    
+
     return NO;
 }
 
@@ -498,7 +530,7 @@ NSString *stringForOpenGLError(GLenum error)
 int checkGLErrors(void)
 {
     int errCount = 0;
-    
+
     for(GLenum currError = glGetError(); currError != GL_NO_ERROR; currError = glGetError())
     {
         NSLog(@"OpenGL Error: %@", stringForOpenGLError(currError));

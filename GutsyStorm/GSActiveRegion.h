@@ -37,7 +37,9 @@
  */
 - (void)notifyOfChangeInActiveRegionVBOs;
 
-/* Give up all stored references to active region VBO objects. */
-- (void)purge;
+/* Drain the internal async queue and shut it down.
+ * Give up all stored references to active region VBO objects.
+ */
+- (void)shutdown;
 
 @end

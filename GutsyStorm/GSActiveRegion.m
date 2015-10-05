@@ -35,6 +35,7 @@
 
     /* List of GSChunkVBOs which are within the camera frustum. */
     NSArray *_vbosInCameraFrustum;
+    NSLock *_lockVbosInCameraFrustum;
 
     /* This block may be invoked at any time to retrieve the GSChunkVBOs for any point in space. The block may return NULL if no
      * VBO has been generated for that point.
@@ -43,6 +44,9 @@
 
     /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
     dispatch_queue_t _updateQueue;
+
+    /* Flag indicates that the queue should shutdown. */
+    BOOL _shouldShutdown;
 }
 
 - (instancetype)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
@@ -59,8 +63,10 @@
         _camera = camera;
         _activeRegionExtent = activeRegionExtent;
         _vbosInCameraFrustum = nil;
+        _lockVbosInCameraFrustum = [NSLock new];
         _vboProducer = [vboProducer copy];
         _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
+        _shouldShutdown = NO;
 
         [self updateVBOsInCameraFrustum];
     }
@@ -75,11 +81,17 @@
 
 - (void)draw
 {
-    NSArray *vbos = _vbosInCameraFrustum; // Reading the pointer is atomic.
+    if (!_shouldShutdown) {
+        NSArray *vbos;
 
-    for(GSChunkVBOs *vbo in vbos)
-    {
-        [vbo draw];
+        [_lockVbosInCameraFrustum lock];
+        vbos = [_vbosInCameraFrustum copy];
+        [_lockVbosInCameraFrustum unlock];
+
+        for(GSChunkVBOs *vbo in vbos)
+        {
+            [vbo draw];
+        }
     }
 }
 
@@ -109,9 +121,11 @@
     }];
     
     /* Publish the list of chunk VBOs which are in the camera frustum.
-     * This is consumed on the rendering thread by -draw. Assignment is atomic.
+     * This is consumed on the rendering thread by -draw.
      */
+    [_lockVbosInCameraFrustum lock];
     _vbosInCameraFrustum = vbosInCameraFrustum;
+    [_lockVbosInCameraFrustum unlock];
 }
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
@@ -157,13 +171,21 @@
 - (void)notifyOfChangeInActiveRegionVBOs
 {
     dispatch_async(_updateQueue, ^{
-        [self updateVBOsInCameraFrustum];
+        if (!_shouldShutdown) {
+            [self updateVBOsInCameraFrustum];
+        }
     });
 }
 
-- (void)purge
+- (void)shutdown
 {
-    _vbosInCameraFrustum = nil; // assignment is atomic here
+    _shouldShutdown = YES;
+
+    dispatch_barrier_sync(_updateQueue, ^{
+        [_lockVbosInCameraFrustum lock];
+        _vbosInCameraFrustum = nil;
+        [_lockVbosInCameraFrustum unlock];
+    });
 }
 
 @end

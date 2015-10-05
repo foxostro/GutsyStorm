@@ -22,5 +22,6 @@
 - (unsigned)handleUserInput:(float)dt;
 - (void)buildFontsAndStrings;
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
+- (void)shutdown;
 
 @end

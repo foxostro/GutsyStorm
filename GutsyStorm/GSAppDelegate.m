@@ -8,26 +8,19 @@
 
 #import <GLKit/GLKMath.h>
 #import "GSAppDelegate.h"
+#import "GSOpenGLView.h"
+#import "GSTerrain.h"
 
 @implementation GSAppDelegate
-{
-    CVDisplayLinkRef _displayLink;
-}
 
 - (instancetype)init
 {
     self = [super init];
     if (self) {
-        // Initialization code here.
         _terrain = nil;
+        _openGlView = nil;
     }
-    
     return self;
-}
-
-- (void)dealloc
-{
-    CVDisplayLinkRelease(_displayLink);
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
@@ -37,35 +30,11 @@
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
-    // Make sure to cleanly shutdown the terrain engine first before stopping the display link.
-    // Stopping the display link kills the display link thread.
-
+    [_openGlView shutdown];
     [_terrain shutdown];
-    _terrain = nil; // explicitly give up the reference
 
-    CVDisplayLinkStop(_displayLink);
-}
-
-- (void)setDisplayLink:(CVDisplayLinkRef)displayLink
-{
-    assert(displayLink);
-
-    static dispatch_semaphore_t mutex;
-    static dispatch_once_t onceToken;
-    
-    dispatch_once(&onceToken, ^{
-        mutex = dispatch_semaphore_create(1);
-    });
-    
-    dispatch_semaphore_wait(mutex, DISPATCH_TIME_FOREVER);
-    _displayLink = displayLink;
-    CVDisplayLinkRetain(_displayLink);
-    dispatch_semaphore_signal(mutex);
-}
-
-- (CVDisplayLinkRef)displayLink
-{
-    return _displayLink;
+    _terrain = nil;
+    _openGlView = nil;
 }
 
 @end

@@ -7,15 +7,15 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import "GSTerrain.h"
+
+@class GSTerrain;
+@class GSOpenGLView;
+
 
 @interface GSAppDelegate : NSObject <NSApplicationDelegate>
 
 @property (weak) IBOutlet NSWindow *window;
 @property (strong) GSTerrain *terrain;
-@property (assign, getter = displayLink, setter = setDisplayLink:) CVDisplayLinkRef displayLink;
-
-- (CVDisplayLinkRef)displayLink;
-- (void)setDisplayLink:(CVDisplayLinkRef)displayLink;
+@property (strong) GSOpenGLView *openGlView;
 
 @end

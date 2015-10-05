@@ -61,8 +61,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     dispatch_queue_t _chunkTaskQueue;
     dispatch_queue_t _queueForSaving;
 
-    BOOL _shutdownDrawing;
-    dispatch_semaphore_t _semaDrawingIsShutdown;
+    BOOL _chunkStoreHasBeenShutdown;
 
     dispatch_source_t _timer;
 
@@ -98,10 +97,15 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)createGrids
 {
+    assert(!_chunkStoreHasBeenShutdown);
+    assert(!_gridVoxelData);
+    assert(!_gridSunlightData);
+    assert(!_gridVBOs);
+
     _gridVoxelData = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
         return [self newChunkWithMinimumCorner:minCorner];
     }];
-    
+
     _gridSunlightData = [[GSGridSunlight alloc]
                          initWithCacheFolder:_folder
                          factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
@@ -131,6 +135,11 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)setupGridDependencies
 {
+    assert(!_chunkStoreHasBeenShutdown);
+    assert(_gridVoxelData);
+    assert(_gridSunlightData);
+    assert(_gridGeometryData);
+
     // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
     [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet *(GLKVector3 p) {
         NSMutableArray *correspondingPoint = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
@@ -158,6 +167,10 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)setupActiveRegionWithCamera:(GSCamera *)cam
 {
+    assert(!_chunkStoreHasBeenShutdown);
+    assert(cam);
+    assert(_gridVBOs);
+
     // Active region is bounded at y>=0.
     const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
     _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
@@ -186,14 +199,12 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     if (self) {
         _folder = [GSChunkStore newTerrainCacheFolderURL];
         _groupForSaving = dispatch_group_create();
-        _shutdownDrawing = NO;
-        _semaDrawingIsShutdown = dispatch_semaphore_create(0);
+        _chunkStoreHasBeenShutdown = NO;
         _camera = cam;
         _terrainShader = shader;
         _glContext = context;
         _generator = [generatorCallback copy];
         _postProcessor = [postProcessorCallback copy];
-        
         _chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
         
@@ -214,16 +225,31 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)shutdown
 {
+    assert(!_chunkStoreHasBeenShutdown);
+    assert(_timer);
+    assert(_gridVoxelData);
+    assert(_gridSunlightData);
+    assert(_gridGeometryData);
+    assert(_gridVBOs);
+    assert(_groupForSaving);
+    assert(_chunkTaskQueue);
+    assert(_queueForSaving);
+
+    // Shutdown the timer, which runs the periodic automatic purge.
     dispatch_source_cancel(_timer);
     _timer = NULL;
+    
+    // Shutdown the active region, which maintains it's own queue of async updates.
+    [_activeRegion shutdown];
+    _activeRegion = nil;
 
-    // Shutdown drawing on the display link thread.
-    _shutdownDrawing = YES;
-    dispatch_semaphore_wait(_semaDrawingIsShutdown, DISPATCH_TIME_FOREVER);
-
+    // Wait for save operations to complete.
     NSLog(@"Waiting for all chunk-saving tasks to complete.");
-    dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER); // wait for save operations to complete
+    dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
     NSLog(@"All chunks have been saved.");
+    
+    // From this point on, we do not expect anyone to access the chunk store data.
+    _chunkStoreHasBeenShutdown = YES;
     
     [_gridVoxelData evictAllItems];
     _gridVoxelData = nil;
@@ -236,53 +262,49 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
     [_gridVBOs evictAllItems];
     _gridVBOs = nil;
-    
-    [_activeRegion purge];
-    _activeRegion = nil;
 
-    dispatch_release(_groupForSaving);
     _groupForSaving = NULL;
-
-    dispatch_release(_chunkTaskQueue);
     _chunkTaskQueue = NULL;
-
-    dispatch_release(_queueForSaving);
     _queueForSaving = NULL;
 }
 
 - (void)drawActiveChunks
 {
-    if(_shutdownDrawing) {
-        dispatch_semaphore_signal(_semaDrawingIsShutdown);
-        return;
-    }
+    assert(_terrainShader);
+    assert(_activeRegion);
 
     [_terrainShader bind];
-    
+
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
-    
+
     glTranslatef(0.5, 0.5, 0.5);
 
     [_activeRegion draw];
-    
+
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
-    
+
     [_terrainShader unbind];
 }
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags
 {
+    assert(!_chunkStoreHasBeenShutdown);
+    assert(_activeRegion);
     [_activeRegion updateWithCameraModifiedFlags:flags];
 }
 
 - (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block
 {
+    assert(!_chunkStoreHasBeenShutdown);
+    assert(_gridVoxelData);
+    assert(_activeRegion);
+
     [_gridVoxelData replaceItemAtPoint:pos transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
         GSChunkVoxelData *modifiedItem = [((GSChunkVoxelData *)originalItem) copyWithEditAtPoint:pos block:block];
         [modifiedItem saveToFile];
@@ -297,11 +319,14 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 {
     GSChunkVoxelData *chunk = nil;
 
+    assert(!_chunkStoreHasBeenShutdown);
     assert(voxel);
 
     if(![self tryToGetChunkVoxelsAtPoint:pos chunk:&chunk]) {
         return NO;
     }
+
+    assert(chunk);
 
     *voxel = [chunk voxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
                                                                pos.y-chunk.minP.y,
@@ -312,8 +337,12 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (voxel_t)voxelAtPoint:(GLKVector3)pos
 {
+    assert(!_chunkStoreHasBeenShutdown);
+
     GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
-    
+
+    assert(chunk);
+
     return [chunk voxelAtLocalPosition:GSIntegerVector3_Make(pos.x-chunk.minP.x,
                                                              pos.y-chunk.minP.y,
                                                              pos.z-chunk.minP.z)];
@@ -321,6 +350,8 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (BOOL)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop, BOOL *fail))block
 {
+    assert(!_chunkStoreHasBeenShutdown);
+
     /* Implementation is based on:
      * "A Fast Voxel Traversal Algorithm for Ray Tracing"
      * John Amanatides, Andrew Woo
@@ -416,12 +447,15 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p
 {
+    assert(!_chunkStoreHasBeenShutdown);
+
     GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
-    
+
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         GLKVector3 a = GLKVector3Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
         GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a]; // NOTE: may block
+        assert(voxels);
         [neighborhood setNeighborAtIndex:i neighbor:voxels];
     }
     
@@ -431,6 +465,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 - (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p
                        neighborhood:(GSNeighborhood **)outNeighborhood
 {
+    assert(!_chunkStoreHasBeenShutdown);
     assert(outNeighborhood);
 
     GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
@@ -444,6 +479,8 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
             return NO;
         }
 
+        assert(voxels);
+
         [neighborhood setNeighborAtIndex:i neighbor:voxels];
     }
 
@@ -453,26 +490,36 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p
 {
+    if (_chunkStoreHasBeenShutdown) {
+        @throw nil;
+    }
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
+    assert(_gridGeometryData);
     return [_gridGeometryData objectAtPoint:p];
 }
 
 - (GSChunkSunlightData *)chunkSunlightAtPoint:(GLKVector3)p
 {
+    assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
+    assert(_gridSunlightData);
     return [_gridSunlightData objectAtPoint:p];
 }
 
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p
 {
+    assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
+    assert(_gridVoxelData);
     return [_gridVoxelData objectAtPoint:p];
 }
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk
 {
+    assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(chunk);
+    assert(_gridVoxelData);
 
     GSChunkVoxelData *v = nil;
     BOOL success = [_gridVoxelData objectAtPoint:p
@@ -515,6 +562,8 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(GLKVector3)minP
 {
+    assert(!_chunkStoreHasBeenShutdown);
+
     return [[GSChunkVoxelData alloc] initWithMinP:minP
                                            folder:_folder
                                    groupForSaving:_groupForSaving
@@ -526,10 +575,17 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 - (void)purge
 {
-    [_gridVoxelData evictAllItems];
-    [_gridGeometryData evictAllItems];
-    [_gridSunlightData evictAllItems];
-    [_gridVBOs evictAllItems];
+    if (!_chunkStoreHasBeenShutdown) {
+        assert(_gridVoxelData);
+        assert(_gridGeometryData);
+        assert(_gridSunlightData);
+        assert(_gridVBOs);
+
+        [_gridVoxelData evictAllItems];
+        [_gridGeometryData evictAllItems];
+        [_gridSunlightData evictAllItems];
+        [_gridVBOs evictAllItems];
+    }
 }
 
 @end
