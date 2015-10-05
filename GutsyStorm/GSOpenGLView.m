@@ -147,22 +147,34 @@ int checkGLErrors(void);
     
     // Create a display link capable of being used with all active displays
     ret = CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
-    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
+    if (ret != kCVReturnSuccess) {
+        NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
+        @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
+    }
     
     // Set the renderer output callback function
     ret = CVDisplayLinkSetOutputCallback(_displayLink, &MyDisplayLinkCallback, (__bridge void *)self);
-    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
+    if (ret != kCVReturnSuccess) {
+        NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
+        @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
+    }
     
     // Set the display link for the current renderer
     CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
     CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
     ret = CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
-    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
+    if (ret != kCVReturnSuccess) {
+        NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
+        @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
+    }
     
     // Activate the display link
     appDelegate.openGlView = self;
     ret = CVDisplayLinkStart(_displayLink);
-    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
+    if (ret != kCVReturnSuccess) {
+        NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
+        @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
+    }
 }
 
 // Reset mouse input mechanism for camera.
@@ -457,7 +469,11 @@ int checkGLErrors(void);
     // Calling CVDisplayLinkStop will kill the display link thread. So, cleanly shutdown first.
     dispatch_semaphore_wait(_semaDisplayLinkShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/60.0));
     CVReturn ret = CVDisplayLinkStop(_displayLink);
-    assert(ret == kCVReturnSuccess); // XXX: better way to handle this?
+    
+    if (ret != kCVReturnSuccess) {
+        NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
+        @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
+    }
 }
 
 @end
