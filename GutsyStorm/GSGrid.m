@@ -48,7 +48,8 @@
     @throw nil;
 }
 
-- (instancetype)initWithFactory:(grid_item_factory_t)factory
+- (instancetype)initWithName:(NSString *)name
+                     factory:(grid_item_factory_t)factory
 {
     if(self = [super init]) {
         _factory = [factory copy];
@@ -69,9 +70,11 @@
         for(NSUInteger i=0; i<_numLocks; ++i)
         {
             _locks[i] = [[NSLock alloc] init];
+            _locks[i].name = [NSString stringWithFormat:@"%u", (unsigned)i];
         }
 
         _lockTheTableItself = [[GSReaderWriterLock alloc] init];
+        _lockTheTableItself.name = [NSString stringWithFormat:@"%@", name];
     }
 
     return self;
@@ -183,6 +186,7 @@
     if(result && item) {
         *item = anObject;
     }
+
     return result;
 }
 
@@ -261,38 +265,35 @@
 
 - (void)invalidateItemAtPoint:(GLKVector3)p
 {
-    // Invalidate asynchronously to avoid deadlock.
-    dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        [_lockTheTableItself lockForReading];
+    [_lockTheTableItself lockForReading];
 
-        GLKVector3 minP = MinCornerForChunkAtPoint(p);
-        NSUInteger hash = GLKVector3Hash(minP);
-        NSUInteger idxBucket = hash % _numBuckets;
-        NSUInteger idxLock = hash % _numLocks;
-        NSLock *lock = _locks[idxLock];
-        NSMutableArray *bucket = _buckets[idxBucket];
+    GLKVector3 minP = MinCornerForChunkAtPoint(p);
+    NSUInteger hash = GLKVector3Hash(minP);
+    NSUInteger idxBucket = hash % _numBuckets;
+    NSUInteger idxLock = hash % _numLocks;
+    NSLock *lock = _locks[idxLock];
+    NSMutableArray *bucket = _buckets[idxBucket];
 
-        [lock lock];
+    [lock lock];
 
-        NSObject <GSGridItem> *foundItem = nil;
+    NSObject <GSGridItem> *foundItem = nil;
 
-        foundItem = [self searchForItemAtPosition:minP bucket:bucket];
+    foundItem = [self searchForItemAtPosition:minP bucket:bucket];
 
-        if(foundItem && [foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
-            [foundItem itemWillBeInvalidated];
-        }
+    if(foundItem && [foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
+        [foundItem itemWillBeInvalidated];
+    }
 
-        [self willInvalidateItem:foundItem atPoint:minP];
+    [self willInvalidateItem:foundItem atPoint:minP];
 
-        if(foundItem) {
-            [bucket removeObject:foundItem];
-        }
-        
-        [self invalidateItemsDependentOnItemAtPoint:minP];
-        
-        [lock unlock];
-        [_lockTheTableItself unlockForReading];
-    });
+    if(foundItem) {
+        [bucket removeObject:foundItem];
+    }
+    
+    [self invalidateItemsDependentOnItemAtPoint:minP];
+    
+    [lock unlock];
+    [_lockTheTableItself unlockForReading];
 }
 
 - (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p

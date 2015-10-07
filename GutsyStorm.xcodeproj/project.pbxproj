@@ -386,6 +386,12 @@
 				AC56651416F03B440041E34F /* GSGridItem.h */,
 				AC48C44416F563E40017BA94 /* GSGrid.h */,
 				AC48C44516F563E40017BA94 /* GSGrid.m */,
+				AC3BDE9617002EE10005E6C2 /* GSGridSunlight.h */,
+				AC3BDE9717002EE20005E6C2 /* GSGridSunlight.m */,
+				ACE6ABE516F984D300DE88E3 /* GSGridGeometry.h */,
+				ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */,
+				AC941757170149AD00EDAB98 /* GSGridVBOs.h */,
+				AC941758170149AD00EDAB98 /* GSGridVBOs.m */,
 				4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */,
 				4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */,
 				AC3BDE93170016CE0005E6C2 /* GSChunkSunlightData.h */,
@@ -394,12 +400,6 @@
 				4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */,
 				ACDD767416F6E556008169D1 /* GSChunkVBOs.h */,
 				ACDD767516F6E557008169D1 /* GSChunkVBOs.m */,
-				AC3BDE9617002EE10005E6C2 /* GSGridSunlight.h */,
-				AC3BDE9717002EE20005E6C2 /* GSGridSunlight.m */,
-				ACE6ABE516F984D300DE88E3 /* GSGridGeometry.h */,
-				ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */,
-				AC941757170149AD00EDAB98 /* GSGridVBOs.h */,
-				AC941758170149AD00EDAB98 /* GSGridVBOs.m */,
 			);
 			name = Grid;
 			sourceTree = "<group>";
@@ -586,7 +586,6 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
-				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -629,6 +628,10 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "GutsyStorm/GutsyStorm-Prefix.pch";
 				INFOPLIST_FILE = "GutsyStorm/GutsyStorm-Info.plist";
@@ -648,6 +651,10 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "GutsyStorm/GutsyStorm-Prefix.pch";
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "NDEBUG=1";

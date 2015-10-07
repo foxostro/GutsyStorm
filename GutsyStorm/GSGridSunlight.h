@@ -7,9 +7,12 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "GSGrid.h"
 
 @interface GSGridSunlight : GSGrid
 
-- (instancetype)initWithCacheFolder:(NSURL *)folder factory:(grid_item_factory_t)factory;
+- (instancetype)initWithName:(NSString *)name
+                 cacheFolder:(NSURL *)folder
+                     factory:(grid_item_factory_t)factory;
 
 @end

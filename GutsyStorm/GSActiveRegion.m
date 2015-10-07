@@ -16,13 +16,6 @@
 #import "GSChunkVBOs.h"
 
 
-@interface GSActiveRegion ()
-
-- (void)updateVBOsInCameraFrustum;
-
-@end
-
-
 @implementation GSActiveRegion
 {
     /* The camera at the center of the active region. */
@@ -41,9 +34,6 @@
      * VBO has been generated for that point.
      */
     GSChunkVBOs * (^_vboProducer)(GLKVector3 p);
-
-    /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
-    dispatch_queue_t _updateQueue;
 
     /* Flag indicates that the queue should shutdown. */
     BOOL _shouldShutdown;
@@ -65,18 +55,12 @@
         _vbosInCameraFrustum = nil;
         _lockVbosInCameraFrustum = [NSLock new];
         _vboProducer = [vboProducer copy];
-        _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
         _shouldShutdown = NO;
 
-        [self updateVBOsInCameraFrustum];
+        [self notifyOfChangeInActiveRegionVBOs];
     }
     
     return self;
-}
-
-- (void)dealloc
-{
-    _updateQueue = NULL;
 }
 
 - (void)draw
@@ -85,7 +69,7 @@
         NSArray *vbos;
 
         [_lockVbosInCameraFrustum lock];
-        vbos = [_vbosInCameraFrustum copy];
+        vbos = _vbosInCameraFrustum;
         [_lockVbosInCameraFrustum unlock];
 
         for(GSChunkVBOs *vbo in vbos)
@@ -95,14 +79,14 @@
     }
 }
 
-- (void)updateVBOsInCameraFrustum
+- (void)notifyOfChangeInActiveRegionVBOs
 {
     GSFrustum *frustum = _camera.frustum;
     NSMutableArray *vbosInCameraFrustum = [[NSMutableArray alloc] init];
-    
+
     [self enumeratePointsWithBlock:^(GLKVector3 p) {
         GLKVector3 corners[8];
-        
+
         corners[0] = MinCornerForChunkAtPoint(p);
         corners[1] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            0));
         corners[2] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
@@ -111,7 +95,7 @@
         corners[5] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
         corners[6] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
         corners[7] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
-        
+
         if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
             GSChunkVBOs *vbo = _vboProducer(corners[0]);
             if(vbo) {
@@ -119,7 +103,7 @@
             }
         }
     }];
-    
+
     /* Publish the list of chunk VBOs which are in the camera frustum.
      * This is consumed on the rendering thread by -draw.
      */
@@ -128,12 +112,10 @@
     [_lockVbosInCameraFrustum unlock];
 }
 
-- (void)updateWithCameraModifiedFlags:(unsigned)flags;
+- (void)updateWithCameraModifiedFlags:(unsigned)flags
 {
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        dispatch_async(_updateQueue, ^{
-            [self updateVBOsInCameraFrustum];
-        });
+        [self notifyOfChangeInActiveRegionVBOs];
     }
 }
 
@@ -168,24 +150,13 @@
     }
 }
 
-- (void)notifyOfChangeInActiveRegionVBOs
-{
-    dispatch_async(_updateQueue, ^{
-        if (!_shouldShutdown) {
-            [self updateVBOsInCameraFrustum];
-        }
-    });
-}
-
 - (void)shutdown
 {
     _shouldShutdown = YES;
 
-    dispatch_barrier_sync(_updateQueue, ^{
-        [_lockVbosInCameraFrustum lock];
-        _vbosInCameraFrustum = nil;
-        [_lockVbosInCameraFrustum unlock];
-    });
+    [_lockVbosInCameraFrustum lock];
+    _vbosInCameraFrustum = nil;
+    [_lockVbosInCameraFrustum unlock];
 }
 
 @end

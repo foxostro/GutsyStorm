@@ -14,9 +14,10 @@
 
 @implementation GSGridVBOs
 
-- (instancetype)initWithFactory:(grid_item_factory_t)factory
+- (instancetype)initWithName:(NSString *)name
+                     factory:(grid_item_factory_t)factory
 {
-    if (self = [super initWithFactory:factory]) {
+    if (self = [super initWithName:name factory:factory]) {
         self.invalidationNotification = ^{ /* do nothing */ };
     }
     return self;

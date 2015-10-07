@@ -11,6 +11,8 @@
 
 @interface GSReaderWriterLock : NSObject
 
+@property (nonatomic, strong) NSString *name;
+
 - (BOOL)tryLockForReading;
 - (void)lockForReading;
 - (void)unlockForReading;

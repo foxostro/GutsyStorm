@@ -102,13 +102,15 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     assert(!_gridSunlightData);
     assert(!_gridVBOs);
 
-    _gridVoxelData = [[GSGrid alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
-        return [self newChunkWithMinimumCorner:minCorner];
-    }];
+    _gridVoxelData = [[GSGrid alloc] initWithName:@"_gridVoxelData"
+                                          factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                                              return [self newChunkWithMinimumCorner:minCorner];
+                                          }];
 
     _gridSunlightData = [[GSGridSunlight alloc]
-                         initWithCacheFolder:_folder
-                         factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                         initWithName:@"_gridSunlightData"
+                          cacheFolder:_folder
+                              factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
                              GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
                              return [[GSChunkSunlightData alloc] initWithMinP:minCorner
                                                                        folder:_folder
@@ -117,20 +119,25 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                                                chunkTaskQueue:_chunkTaskQueue
                                                                  neighborhood:neighborhood];
                          }];
-    
+
     _gridGeometryData = [[GSGridGeometry alloc]
-                         initWithCacheFolder:_folder
-                         factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
-                             GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
-                             return [[GSChunkGeometryData alloc] initWithMinP:minCorner
+                         initWithName:@"_gridGeometryData"
+                          cacheFolder:_folder
+                              factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                                  GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
+                                  return [[GSChunkGeometryData alloc] initWithMinP:minCorner
                                                                        folder:_folder
                                                                      sunlight:sunlight];
-                         }];
+                              }];
     
-    _gridVBOs = [[GSGridVBOs alloc] initWithFactory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
-        GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
-        return [[GSChunkVBOs alloc] initWithChunkGeometry:geometry glContext:_glContext];
-    }];
+    _gridVBOs = [[GSGridVBOs alloc] initWithName:@"_gridVBOs"
+                                         factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                                             GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
+                                             NSObject <GSGridItem> *vbo;
+                                             vbo = [[GSChunkVBOs alloc] initWithChunkGeometry:geometry
+                                                                                    glContext:_glContext];
+                                             return vbo;
+                                         }];
 }
 
 - (void)setupGridDependencies
@@ -180,12 +187,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                                                assert(p.y >= 0 && p.y < _activeRegionExtent.y);
                                                                return [_gridVBOs objectAtPoint:p];
                                                            }];
-
-    // Whenever a VBO is invalidated, the active region must be invalidated.
-    __weak GSActiveRegion *weakActiveRegion = _activeRegion;
-    _gridVBOs.invalidationNotification = ^{
-        [weakActiveRegion notifyOfChangeInActiveRegionVBOs];
-    };
 }
 
 - (instancetype)initWithSeed:(NSUInteger)seed

@@ -216,8 +216,12 @@
         NSData *data = [NSData dataWithContentsOfFile:[url path]
                                               options:NSDataReadingMapped
                                                 error:&error];
+        BOOL goodSize = [data length] == BUFFER_SIZE_IN_BYTES(chunkSize);
 
-        if(data) {
+        if (data && goodSize) {
+            if (!goodSize) {
+                NSLog(@"ERROR: bad size for chunk data; assuming data corruption");
+            }
             buffer = [[GSBuffer alloc] initWithDimensions:chunkSize data:[data bytes]];
         } else {
             buffer = [self newVoxelDataBufferWithGenerator:generator postProcessor:postProcessor];
