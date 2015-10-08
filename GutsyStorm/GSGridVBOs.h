@@ -11,6 +11,4 @@
 
 @interface GSGridVBOs : GSGrid
 
-@property (copy) void (^invalidationNotification)(void);
-
 @end

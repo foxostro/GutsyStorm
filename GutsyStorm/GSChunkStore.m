@@ -102,13 +102,13 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     assert(!_gridSunlightData);
     assert(!_gridVBOs);
 
-    _gridVoxelData = [[GSGrid alloc] initWithName:@"_gridVoxelData"
+    _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"
                                           factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
                                               return [self newChunkWithMinimumCorner:minCorner];
                                           }];
 
     _gridSunlightData = [[GSGridSunlight alloc]
-                         initWithName:@"_gridSunlightData"
+                         initWithName:@"gridSunlightData"
                           cacheFolder:_folder
                               factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
                              GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
@@ -121,7 +121,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                          }];
 
     _gridGeometryData = [[GSGridGeometry alloc]
-                         initWithName:@"_gridGeometryData"
+                         initWithName:@"gridGeometryData"
                           cacheFolder:_folder
                               factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
                                   GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
@@ -130,7 +130,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                                                      sunlight:sunlight];
                               }];
     
-    _gridVBOs = [[GSGridVBOs alloc] initWithName:@"_gridVBOs"
+    _gridVBOs = [[GSGridVBOs alloc] initWithName:@"gridVBOs"
                                          factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
                                              GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
                                              NSObject <GSGridItem> *vbo;
@@ -138,6 +138,55 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                                                                     glContext:_glContext];
                                              return vbo;
                                          }];
+}
+
+- (NSSet *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(struct grid_edit *)edit
+{
+    assert(edit);
+    GLKVector3 p = edit->pos;
+    BOOL fullRebuild = YES;
+    voxel_t voxel;
+
+    {
+        GSChunkVoxelData *voxelChunk = edit->originalObject;
+        GLKVector3 minP = voxelChunk.minP;
+        GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(p.x-minP.x, p.y-minP.y+1, p.z-minP.z);
+        voxel = [voxelChunk voxelAtLocalPosition:chunkLocalPos];
+    }
+
+    if (!voxel.outside) {
+        fullRebuild = NO;
+    }
+
+    if (fullRebuild) {
+        NSMutableArray *correspondingPoints = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
+        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
+        {
+            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, offset)];
+            [correspondingPoints addObject:boxedPoint];
+        }
+        return [NSSet setWithArray:correspondingPoints];
+    } else {
+        /* If the modified block is below an Inside block then changes to it can only affect lighting for blocks at most
+         * CHUNK_LIGHTING_MAX steps away, but even this is too generous for many changes. To precisely determine the range of the
+         * lighting change, take the light levels of all blocks directly adjacent to the one that was modified. In the case where a
+         * block is being added, the brightest adjacent block was flooding over the space and now will no longer do that. The range
+         * of the change is determined by the difference between the lighting levels of the brightest and the dimmest adjacent
+         * blocks. Ditto the case where a block is being removed.
+         */
+        // XXX: Do the precise change range computation described above.
+        const unsigned m = CHUNK_LIGHTING_MAX;
+        NSMutableSet *set = [[NSMutableSet alloc] init];
+        [set addObjectsFromArray:@[[GSBoxedVector boxedVectorWithVector:p],
+                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make(+m,  0,  0))],
+                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make(-m,  0,  0))],
+                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make( 0, -m,  0))],
+                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make( 0,  0, +m))],
+                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make( 0,  0, -m))],
+                                   ]];
+        return set;
+    }
 }
 
 - (void)setupGridDependencies
@@ -148,28 +197,20 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     assert(_gridGeometryData);
 
     // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
-    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet *(GLKVector3 p) {
-        NSMutableArray *correspondingPoint = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
-        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
-        {
-            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
-            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, offset)];
-            [correspondingPoint addObject:boxedPoint];
-        }
-        return [[NSSet alloc] initWithArray:correspondingPoint];
+    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet * (struct grid_edit *edit) {
+        return [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
     }];
-    
+
+    NSSet * (^oneToOne)(struct grid_edit *) = ^NSSet * (struct grid_edit *edit) {
+        assert(edit);
+        return [NSSet setWithObject:[GSBoxedVector boxedVectorWithVector:edit->pos]];
+    };
+
     // Each chunk geometry object depends on the single, corresponding chunk sunlight object.
-    [_gridSunlightData registerDependentGrid:_gridGeometryData mapping:^NSSet *(GLKVector3 p) {
-        GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:p];
-        return [[NSSet alloc] initWithArray:@[boxedPoint]];
-    }];
-    
+    [_gridSunlightData registerDependentGrid:_gridGeometryData mapping:oneToOne];
+
     // Each chunk VBO object depends on the single, corresponding chunk geometry object.
-    [_gridGeometryData registerDependentGrid:_gridVBOs mapping:^NSSet *(GLKVector3 p) {
-        GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:p];
-        return [[NSSet alloc] initWithArray:@[boxedPoint]];
-    }];
+    [_gridGeometryData registerDependentGrid:_gridVBOs mapping:oneToOne];
 }
 
 - (void)setupActiveRegionWithCamera:(GSCamera *)cam

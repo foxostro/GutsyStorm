@@ -61,26 +61,14 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
         }
 
         // Map the data object to a buffer in memory and use it to initialize a new GSByteBuffer object.
-        size_t size = 0;
-        const void *buffer = NULL;
-        
-        // The line below causes a false-positive static analyzer error.
-        // The value is never read because the dispatch_data object only exists to keep the buffer alive.
-        // When we're done with the buffer we would call dispatch_release to release the buffer. However, due to ARC,
-        // that's not possible.
-#ifndef __clang_analyzer__
-        dispatch_data_t mappedData =
-#endif
-        dispatch_data_create_map(dd, &buffer, &size);
-    
-        assert(len == size);
-        GSBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const buffer_element_t *)buffer];
-
-#ifndef __clang_analyzer__
-        mappedData = NULL; //dispatch_release(mappedData);
-#endif
-
-        completionHandler(aBuffer, nil);
+        {
+            size_t size = 0;
+            const void *buffer = NULL;
+            NS_VALID_UNTIL_END_OF_SCOPE dispatch_data_t mappedData = dispatch_data_create_map(dd, &buffer, &size);
+            assert(len == size);
+            GSBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const buffer_element_t *)buffer];
+            completionHandler(aBuffer, nil);
+        }
     });
 }
 

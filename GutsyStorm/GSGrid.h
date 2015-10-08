@@ -1,5 +1,5 @@
 //
-//  GSNewGrid.h
+//  GSGrid.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/13.
@@ -10,6 +10,15 @@
 #import "GSGridItem.h"
 #import "GSReaderWriterLock.h"
 
+
+struct grid_edit
+{
+    __unsafe_unretained id originalObject;
+    __unsafe_unretained id modifiedObject;
+    GLKVector3 pos;
+};
+
+
 @interface GSGrid : NSObject
 
 - (instancetype)init NS_UNAVAILABLE;
@@ -18,7 +27,6 @@
                      factory:(grid_item_factory_t)factory NS_DESIGNATED_INITIALIZER;
 
 /* Returns the object corresponding to the given point on the grid. Creates the object from the factory, if necessary. */
-// XXX: Can I use a more explicit type than `id'?
 - (id)objectAtPoint:(GLKVector3)p;
 
 /* Tries to get the object corresponding to the given point on the grid, returning it in "object".
@@ -33,7 +41,7 @@
  */
 - (BOOL)objectAtPoint:(GLKVector3)p
              blocking:(BOOL)blocking
-               object:(id *)object // XXX: Can I use a more explicit type than `id'?
+               object:(id *)object
       createIfMissing:(BOOL)createIfMissing;
 
 // Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids.
@@ -45,7 +53,7 @@
 /* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are notified
  * that the item has been invalidated.
  */
-- (void)invalidateItemAtPoint:(GLKVector3)p;
+- (void)invalidateItemWithChange:(struct grid_edit *)change;
 
 /* Method is called when the grid is just about to invalidate an item.
  * The item is passed in 'item' unless it is currently non-resident/evicted. In that case, 'item' will be nil.
@@ -54,14 +62,14 @@
  */
 - (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p;
 
-// Items in dependent grids are invalidated at points which map to the specified point in this grid.
-- (void)invalidateItemsDependentOnItemAtPoint:(GLKVector3)p;
+// The specified change to the grid causes certain items to be invalidated in dependent grids.
+- (void)invalidateItemsInDependentGridsWithChange:(struct grid_edit *)change;
 
 /* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns the points in
  * 'dependentGrid' which actually depend on that point.
  */
 - (void)registerDependentGrid:(GSGrid *)dependentGrid
-                      mapping:(NSSet * (^)(GLKVector3))mapping;
+                      mapping:(NSSet * (^)(struct grid_edit *))mapping;
 
 /* Applies the given transformation function to the item at the specified point.
  * This function returns a new grid item which is then inserted into the grid at the same position.

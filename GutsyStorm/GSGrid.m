@@ -1,5 +1,5 @@
 //
-//  GSNewGrid.m
+//  GSGrid.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/13.
@@ -263,11 +263,11 @@
     return nil;
 }
 
-- (void)invalidateItemAtPoint:(GLKVector3)p
+- (void)invalidateItemWithChange:(struct grid_edit *)change
 {
     [_lockTheTableItself lockForReading];
 
-    GLKVector3 minP = MinCornerForChunkAtPoint(p);
+    GLKVector3 minP = MinCornerForChunkAtPoint(change->pos);
     NSUInteger hash = GLKVector3Hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
@@ -290,7 +290,7 @@
         [bucket removeObject:foundItem];
     }
     
-    [self invalidateItemsDependentOnItemAtPoint:minP];
+    [self invalidateItemsInDependentGridsWithChange:change];
     
     [lock unlock];
     [_lockTheTableItself unlockForReading];
@@ -301,21 +301,28 @@
     // do nothing
 }
 
-- (void)invalidateItemsDependentOnItemAtPoint:(GLKVector3)p
+- (void)invalidateItemsInDependentGridsWithChange:(struct grid_edit *)change
 {
+    assert(change);
+
     for(GSGrid *grid in _dependentGrids)
     {
-        NSSet * (^mapping)(GLKVector3) = [_mappingToDependentGrids objectForKey:[grid description]];
-        NSSet *correspondingPoints = mapping(p);
+        NSSet * (^mapping)(struct grid_edit *) = [_mappingToDependentGrids objectForKey:[grid description]];
+        NSSet *correspondingPoints = mapping(change);
         for(GSBoxedVector *q in correspondingPoints)
         {
-            [grid invalidateItemAtPoint:[q vectorValue]];
+            struct grid_edit secondaryChange = {
+                .originalObject = nil,
+                .modifiedObject = nil,
+                .pos = [q vectorValue]
+            };
+            [grid invalidateItemWithChange:&secondaryChange];
         }
     }
 }
 
 - (void)registerDependentGrid:(GSGrid *)grid
-                      mapping:(NSSet * (^)(GLKVector3))mapping
+                      mapping:(NSSet * (^)(struct grid_edit *))mapping
 {
     [_dependentGrids addObject:grid];
     [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
@@ -336,17 +343,23 @@
     [lock lock];
 
     // Search for an existing item at the specified point. If it exists then just do a straight-up replacement.
-    for(NSObject <GSGridItem> *item in bucket)
+    for(NS_VALID_UNTIL_END_OF_SCOPE NSObject <GSGridItem> *item in bucket)
     {
         if(GLKVector3AllEqualToVector3(item.minP, minP)) {
-            NSObject <GSGridItem> *replacement = newReplacementItem(item);
+            NS_VALID_UNTIL_END_OF_SCOPE NSObject <GSGridItem> *replacement = newReplacementItem(item);
             if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
                 [item itemWillBeInvalidated];
             }
             [bucket removeObject:item];
             [bucket addObject:replacement];
 
-            [self invalidateItemsDependentOnItemAtPoint:p];
+            struct grid_edit change = {
+                .originalObject = item,
+                .modifiedObject = replacement,
+                .pos = p
+            };
+
+            [self invalidateItemsInDependentGridsWithChange:&change];
 
             [lock unlock];
             [_lockTheTableItself unlockForReading];
