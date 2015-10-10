@@ -228,6 +228,12 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                                                assert(p.y >= 0 && p.y < _activeRegionExtent.y);
                                                                return [_gridVBOs objectAtPoint:p];
                                                            }];
+
+    // Whenever a VBO is invalidated, the active region must be invalidated.
+    __weak GSActiveRegion *weakActiveRegion = _activeRegion;
+    _gridVBOs.invalidationNotification = ^{
+        [weakActiveRegion notifyOfChangeInActiveRegionVBOs];
+    };
 }
 
 - (instancetype)initWithSeed:(NSUInteger)seed
