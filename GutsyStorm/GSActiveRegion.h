@@ -31,6 +31,11 @@
 
 - (void)enumeratePointsWithBlock:(void (^)(GLKVector3 p))block;
 
+/* Synchronously compute and update the set of VBOs that are in the camera frustum.
+ * Unless you have are performing a latency sensitive operation, use -notifyOfChangeInActiveRegionVBOs instead.
+ */
+- (void)updateVBOsInCameraFrustum;
+
 /* Call this to notify the active region that a VBO in the active region has been updated. (replaced, invalidated, &c)
  * If this is not called immediately when a VBO has been replaced then updates to the world will not be visible until
  * the next automatic update occurs.

@@ -35,6 +35,9 @@
      */
     GSChunkVBOs * (^_vboProducer)(GLKVector3 p);
 
+    /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
+    dispatch_queue_t _updateQueue;
+
     /* Flag indicates that the queue should shutdown. */
     BOOL _shouldShutdown;
 }
@@ -55,9 +58,10 @@
         _vbosInCameraFrustum = nil;
         _lockVbosInCameraFrustum = [NSLock new];
         _vboProducer = [vboProducer copy];
+        _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
         _shouldShutdown = NO;
 
-        [self notifyOfChangeInActiveRegionVBOs];
+        [self updateVBOsInCameraFrustum];
     }
     
     return self;
@@ -79,7 +83,7 @@
     }
 }
 
-- (void)notifyOfChangeInActiveRegionVBOs
+- (void)updateVBOsInCameraFrustum
 {
     GSFrustum *frustum = _camera.frustum;
     NSMutableArray *vbosInCameraFrustum = [[NSMutableArray alloc] init];
@@ -115,7 +119,9 @@
 - (void)updateWithCameraModifiedFlags:(unsigned)flags
 {
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        [self notifyOfChangeInActiveRegionVBOs];
+        dispatch_async(_updateQueue, ^{
+            [self updateVBOsInCameraFrustum];
+        });
     }
 }
 
@@ -150,13 +156,24 @@
     }
 }
 
+- (void)notifyOfChangeInActiveRegionVBOs
+{
+    dispatch_async(_updateQueue, ^{
+        if (!_shouldShutdown) {
+            [self updateVBOsInCameraFrustum];
+        }
+    });
+}
+
 - (void)shutdown
 {
     _shouldShutdown = YES;
 
-    [_lockVbosInCameraFrustum lock];
-    _vbosInCameraFrustum = nil;
-    [_lockVbosInCameraFrustum unlock];
+    dispatch_barrier_sync(_updateQueue, ^{
+        [_lockVbosInCameraFrustum lock];
+        _vbosInCameraFrustum = nil;
+        [_lockVbosInCameraFrustum unlock];
+    });
 }
 
 @end

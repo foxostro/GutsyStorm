@@ -354,7 +354,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     }];
 
     // Must notify the active region so that the change will get picked up right away.
-    [_activeRegion notifyOfChangeInActiveRegionVBOs];
+    [_activeRegion updateVBOsInCameraFrustum];
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel
