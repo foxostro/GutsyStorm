@@ -20,7 +20,14 @@
 #endif
 
 
-#define CHUNK_LIGHTING_MAX (MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z) - 1)
+#define CHUNK_LIGHTING_MAX (8)
+
+#define CHUNK_SIZE_X (16)
+#define CHUNK_SIZE_Y (128)
+#define CHUNK_SIZE_Z (16)
+
+_Static_assert((CHUNK_LIGHTING_MAX <= (CHUNK_SIZE_X - 1)) && (CHUNK_LIGHTING_MAX <= (CHUNK_SIZE_Z - 1)),
+               "Lots of logic here assumes that lighting changes will never affect more than one chunk and it's neighbors.");
 
 #define FOR_BOX(p, minP, maxP) for((p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \
                                    for((p).y = (minP).y; (p).y < (maxP).y; ++(p).y) \
@@ -140,11 +147,6 @@ extern const GSIntegerVector3 chunkSize;
 extern const GSIntegerVector3 offsetForFace[FACE_NUM_FACES];
 extern const GSIntegerVector3 combinedMinP;
 extern const GSIntegerVector3 combinedMaxP;
-
-
-#define CHUNK_SIZE_X (16)
-#define CHUNK_SIZE_Y (128)
-#define CHUNK_SIZE_Z (16)
 
 
 static inline GLKVector3 MinCornerForChunkAtPoint(GLKVector3 p)
