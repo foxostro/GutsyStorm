@@ -61,7 +61,7 @@
         _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
         _shouldShutdown = NO;
 
-        [self updateVBOsInCameraFrustum];
+        [self notifyOfChangeInActiveRegionVBOs];
     }
     
     return self;
@@ -89,6 +89,10 @@
     NSMutableArray *vbosInCameraFrustum = [[NSMutableArray alloc] init];
 
     [self enumeratePointsWithBlock:^(GLKVector3 p) {
+        if (_shouldShutdown) {
+            return;
+        }
+
         GLKVector3 corners[8];
 
         corners[0] = MinCornerForChunkAtPoint(p);

@@ -80,19 +80,11 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 
 + (void)initialize
 {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    
-    if(![defaults objectForKey:@"ActiveRegionExtent"]) {
-        NSDictionary *values = @{@"ActiveRegionExtent": @"256"};
-        [[NSUserDefaults standardUserDefaults] registerDefaults:values];
-    }
-    
-    if(![defaults objectForKey:@"NumVBOGenerationsAllowedPerFrame"]) {
-        NSDictionary *values = @{@"NumVBOGenerationsAllowedPerFrame": @"64"};
-        [[NSUserDefaults standardUserDefaults] registerDefaults:values];
-    }
-    
-    [[NSUserDefaults standardUserDefaults] synchronize];
+    NSDictionary *values = @{
+                             @"ActiveRegionExtent": @"256",
+                             @"NumVBOGenerationsAllowedPerFrame": @"64"
+                             };
+    [[NSUserDefaults standardUserDefaults] registerDefaults:values];
 }
 
 - (void)createGrids
