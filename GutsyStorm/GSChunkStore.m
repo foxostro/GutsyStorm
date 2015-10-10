@@ -62,10 +62,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     dispatch_queue_t _queueForSaving;
 
     BOOL _chunkStoreHasBeenShutdown;
-
-    dispatch_source_t _timer;
-
-    NSUInteger _numVBOGenerationsAllowedPerFrame;
     GSCamera *_camera;
     NSURL *_folder;
     GSShader *_terrainShader;
@@ -81,8 +77,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 + (void)initialize
 {
     NSDictionary *values = @{
-                             @"ActiveRegionExtent": @"256",
-                             @"NumVBOGenerationsAllowedPerFrame": @"64"
+                             @"ActiveRegionExtent": @"256"
                              };
     [[NSUserDefaults standardUserDefaults] registerDefaults:values];
 }
@@ -216,10 +211,7 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
     _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
                                                                 camera:cam
-                                                           vboProducer:^GSChunkVBOs *(GLKVector3 p) {
-                                                               assert(p.y >= 0 && p.y < _activeRegionExtent.y);
-                                                               return [_gridVBOs objectAtPoint:p];
-                                                           }];
+                                                               vboGrid:_gridVBOs];
 
     // Whenever a VBO is invalidated, the active region must be invalidated.
     __weak GSActiveRegion *weakActiveRegion = _activeRegion;
@@ -251,13 +243,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
         [self createGrids];
         [self setupGridDependencies];
         [self setupActiveRegionWithCamera:cam];
-
-        _timer = createDispatchTimer(60 * NSEC_PER_SEC, // interval
-                                     NSEC_PER_SEC,     // leeway
-                                     ^{
-                                         [self purge];
-                                         NSLog(@"automatic purge");
-                                     });
     }
     
     return self;
@@ -266,7 +251,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 - (void)shutdown
 {
     assert(!_chunkStoreHasBeenShutdown);
-    assert(_timer);
     assert(_gridVoxelData);
     assert(_gridSunlightData);
     assert(_gridGeometryData);
@@ -274,10 +258,6 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     assert(_groupForSaving);
     assert(_chunkTaskQueue);
     assert(_queueForSaving);
-
-    // Shutdown the timer, which runs the periodic automatic purge.
-    dispatch_source_cancel(_timer);
-    _timer = NULL;
     
     // Shutdown the active region, which maintains it's own queue of async updates.
     [_activeRegion shutdown];
@@ -565,7 +545,8 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     BOOL success = [_gridVoxelData objectAtPoint:p
                                         blocking:NO
                                           object:&v
-                                 createIfMissing:YES];
+                                 createIfMissing:YES
+                                   didCreateItem:nil];
 
     if(success) {
         *chunk = v;
@@ -629,20 +610,3 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
 }
 
 @end
-
-
-static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway, void (^eventHandler)())
-{
-    dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0,
-                                                     dispatch_get_global_queue(0, 0));
-
-    dispatch_source_set_timer(timer,
-                              dispatch_time(DISPATCH_TIME_NOW, interval),
-                              interval, leeway);
-
-    dispatch_source_set_event_handler(timer, eventHandler);
-
-    dispatch_resume(timer);
-
-    return timer;
-}

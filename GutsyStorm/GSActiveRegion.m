@@ -13,7 +13,14 @@
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
 #import "GSGridItem.h"
+#import "GSGridVBOs.h"
 #import "GSChunkVBOs.h"
+
+#define LOG_PERF 0
+
+#if LOG_PERF
+#import <mach/mach_time.h>
+#endif
 
 
 @implementation GSActiveRegion
@@ -30,13 +37,12 @@
     NSArray *_vbosInCameraFrustum;
     NSLock *_lockVbosInCameraFrustum;
 
-    /* This block may be invoked at any time to retrieve the GSChunkVBOs for any point in space. The block may return NULL if no
-     * VBO has been generated for that point.
-     */
-    GSChunkVBOs * (^_vboProducer)(GLKVector3 p);
+    /* Used to generate and retrieve VBOs. */
+    GSGridVBOs *_gridVBOs;
 
     /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
     dispatch_queue_t _updateQueue;
+    dispatch_semaphore_t _semaQueueDepth;
 
     /* Flag indicates that the queue should shutdown. */
     BOOL _shouldShutdown;
@@ -44,7 +50,7 @@
 
 - (instancetype)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
                                     camera:(GSCamera *)camera
-                               vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer
+                                   vboGrid:(GSGridVBOs *)gridVBOs
 {
     self = [super init];
     if (self) {
@@ -57,8 +63,9 @@
         _activeRegionExtent = activeRegionExtent;
         _vbosInCameraFrustum = nil;
         _lockVbosInCameraFrustum = [NSLock new];
-        _vboProducer = [vboProducer copy];
+        _gridVBOs = gridVBOs;
         _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
+        _semaQueueDepth = dispatch_semaphore_create(2);
         _shouldShutdown = NO;
 
         [self notifyOfChangeInActiveRegionVBOs];
@@ -69,8 +76,13 @@
 
 - (void)draw
 {
+#if LOG_PERF
+    uint64_t startAbs = mach_absolute_time();
+#endif
+
+    NSArray *vbos;
+
     if (!_shouldShutdown) {
-        NSArray *vbos;
 
         [_lockVbosInCameraFrustum lock];
         vbos = _vbosInCameraFrustum;
@@ -81,36 +93,54 @@
             [vbo draw];
         }
     }
+
+#if LOG_PERF
+    uint64_t endAbs = mach_absolute_time();
+    uint64_t elapsedAbs = endAbs - startAbs;
+    Nanoseconds elapsedNano = AbsoluteToNanoseconds( *(AbsoluteTime *) &elapsedAbs );
+    uint64_t elapsedNs = *(uint64_t *)&elapsedNano;
+    float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
+    NSLog(@"draw: %.3f ms (count=%lu)", elapsedMs, vbos.count);
+#endif
 }
 
 - (void)updateVBOsInCameraFrustum
 {
-    GSFrustum *frustum = _camera.frustum;
+#if LOG_PERF
+    uint64_t startAbs = mach_absolute_time();
+#endif
+    
+    BOOL didSkipSomeCreationTasks = NO;
     NSMutableArray *vbosInCameraFrustum = [[NSMutableArray alloc] init];
-
-    [self enumeratePointsWithBlock:^(GLKVector3 p) {
+    NSArray *points = [self pointsInCameraFrustum];
+    
+    NSUInteger vboGenLimit = 2;
+    NSUInteger vboGenCount = 0;
+    
+    for(GSBoxedVector *boxedPosition in points)
+    {
         if (_shouldShutdown) {
             return;
-        }
+        } else {
+            BOOL createIfMissing = vboGenCount < vboGenLimit;
+            BOOL vboGenDidHappen = NO;
+            GSChunkVBOs *vbo = nil;
+            [_gridVBOs objectAtPoint:[boxedPosition vectorValue]
+                            blocking:NO
+                              object:&vbo
+                     createIfMissing:createIfMissing
+                       didCreateItem:&vboGenDidHappen];
 
-        GLKVector3 corners[8];
-
-        corners[0] = MinCornerForChunkAtPoint(p);
-        corners[1] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            0));
-        corners[2] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
-        corners[3] = GLKVector3Add(corners[0], GLKVector3Make(0,            0,            CHUNK_SIZE_Z));
-        corners[4] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-        corners[5] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-        corners[6] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
-        corners[7] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
-
-        if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
-            GSChunkVBOs *vbo = _vboProducer(corners[0]);
-            if(vbo) {
+            if (vbo) {
+                vboGenCount += vboGenDidHappen ? 1 : 0;
                 [vbosInCameraFrustum addObject:vbo];
             }
+            
+            if (!createIfMissing) {
+                didSkipSomeCreationTasks = YES;
+            }
         }
-    }];
+    }
 
     /* Publish the list of chunk VBOs which are in the camera frustum.
      * This is consumed on the rendering thread by -draw.
@@ -118,19 +148,33 @@
     [_lockVbosInCameraFrustum lock];
     _vbosInCameraFrustum = vbosInCameraFrustum;
     [_lockVbosInCameraFrustum unlock];
+    
+    if (didSkipSomeCreationTasks) {
+        [self notifyOfChangeInActiveRegionVBOs]; // Remember to pick up where we left off later.
+    }
+
+#if LOG_PERF
+    uint64_t endAbs = mach_absolute_time();
+    uint64_t elapsedAbs = endAbs - startAbs;
+    Nanoseconds elapsedNano = AbsoluteToNanoseconds( *(AbsoluteTime *) &elapsedAbs );
+    uint64_t elapsedNs = *(uint64_t *)&elapsedNano;
+    float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
+    NSLog(@"updateVBOsInCameraFrustum: %.3f ms (count=%lu)", elapsedMs, vbosInCameraFrustum.count);
+#endif
 }
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags
 {
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        dispatch_async(_updateQueue, ^{
-            [self updateVBOsInCameraFrustum];
-        });
+        [self notifyOfChangeInActiveRegionVBOs];
     }
 }
 
-- (void)enumeratePointsWithBlock:(void (^)(GLKVector3 p))block
+- (NSArray *)pointsInCameraFrustum
 {
+    NSMutableArray *points = [NSMutableArray new];
+
+    GSFrustum *frustum = _camera.frustum;
     const GLKVector3 center = _camera.cameraEye;
     const ssize_t activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
     const ssize_t activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
@@ -156,17 +200,48 @@
                                             floorf(p1.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
                                             floorf(p1.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z + CHUNK_SIZE_Z/2);
         
-        block(centerP);
+        GLKVector3 corners[8];
+        
+        corners[0] = MinCornerForChunkAtPoint(centerP);
+        corners[1] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            0));
+        corners[2] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
+        corners[3] = GLKVector3Add(corners[0], GLKVector3Make(0,            0,            CHUNK_SIZE_Z));
+        corners[4] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        corners[5] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+        corners[6] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
+        corners[7] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
+
+        if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
+            [points addObject:[GSBoxedVector boxedVectorWithVector:centerP]];
+        }
     }
+    
+    [points sortUsingComparator:^NSComparisonResult(GSBoxedVector *p1, GSBoxedVector *p2) {
+        float d1 = GLKVector3Distance([p1 vectorValue], center);
+        float d2 = GLKVector3Distance([p2 vectorValue], center);
+        
+        if (d1 > d2) {
+            return NSOrderedDescending;
+        } else if (d1 > d2) {
+            return NSOrderedAscending;
+        } else {
+            return NSOrderedSame;
+        }
+    }];
+    
+    return points;
 }
 
 - (void)notifyOfChangeInActiveRegionVBOs
 {
-    dispatch_async(_updateQueue, ^{
-        if (!_shouldShutdown) {
-            [self updateVBOsInCameraFrustum];
-        }
-    });
+    if(0 == dispatch_semaphore_wait(_semaQueueDepth, DISPATCH_TIME_NOW)) {
+        dispatch_async(_updateQueue, ^{
+            if (!_shouldShutdown) {
+                [self updateVBOsInCameraFrustum];
+            }
+            dispatch_semaphore_signal(_semaQueueDepth);
+        });
+    }
 }
 
 - (void)shutdown

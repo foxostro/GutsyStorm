@@ -138,6 +138,7 @@
              blocking:(BOOL)blocking
                object:(id *)item
       createIfMissing:(BOOL)createIfMissing
+        didCreateItem:(BOOL *)outDidCreateItem
 {
     if(blocking) {
         [_lockTheTableItself lockForReading];
@@ -146,6 +147,7 @@
     }
 
     BOOL result = NO;
+    BOOL createdAnItem = NO;
     float load = 0;
     NSObject <GSGridItem> * anObject = nil;
     GLKVector3 minP = MinCornerForChunkAtPoint(p);
@@ -170,6 +172,7 @@
         [bucket addObject:anObject];
         OSAtomicIncrement32Barrier(&_n);
         load = (float)_n / _numBuckets;
+        createdAnItem = YES;
     }
 
     if(anObject) {
@@ -183,8 +186,14 @@
         [self resizeTable];
     }
 
-    if(result && item) {
-        *item = anObject;
+    if (result) {
+        if (item) {
+            *item = anObject;
+        }
+        
+        if (outDidCreateItem) {
+            *outDidCreateItem = createdAnItem;
+        }
     }
 
     return result;
@@ -196,7 +205,8 @@
     [self objectAtPoint:p
                blocking:YES
                  object:&anItem
-        createIfMissing:YES];
+        createIfMissing:YES
+          didCreateItem:nil];
     assert(anItem);
     return anItem;
 }

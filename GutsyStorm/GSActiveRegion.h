@@ -8,6 +8,7 @@
 
 @class GSCamera;
 @class GSChunkVBOs;
+@class GSGridVBOs;
 
 
 @interface GSActiveRegion : NSObject
@@ -18,18 +19,17 @@
  * activeRegionExtent -- Vector specifies the AABB of the active region. The camera position plus/minus this vector equals the
  *                       max/min corners of the AABB.
  * camera -- The camera at the center of the active region.
- * vboProducer -- This block may be invoked at any time to retrieve the GSChunkVBO for any point in space.
- *                The block may return NULL if no VBO has been generated for that point or if the call would block on a lock.
+ * vboGrid -- Used to generate and retrieve VBOs.
  */
 - (instancetype)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
                                     camera:(GSCamera *)camera
-                               vboProducer:(GSChunkVBOs * (^)(GLKVector3 p))vboProducer;
+                                   vboGrid:(GSGridVBOs *)gridVBOs;
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
 
 - (void)draw;
 
-- (void)enumeratePointsWithBlock:(void (^)(GLKVector3 p))block;
+- (NSArray *)pointsInCameraFrustum;
 
 /* Synchronously compute and update the set of VBOs that are in the camera frustum.
  * Unless you have are performing a latency sensitive operation, use -notifyOfChangeInActiveRegionVBOs instead.

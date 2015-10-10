@@ -35,7 +35,8 @@
 - (BOOL)objectAtPoint:(GLKVector3)p
              blocking:(BOOL)blocking
                object:(id *)object
-      createIfMissing:(BOOL)createIfMissing;
+      createIfMissing:(BOOL)createIfMissing
+        didCreateItem:(BOOL *)outDidCreateItem;
 
 // Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids.
 - (void)evictItemAtPoint:(GLKVector3)p;
