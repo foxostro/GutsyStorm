@@ -7,10 +7,10 @@
 //
 
 #import <Foundation/Foundation.h>
-#include <stdio.h>
-#include <math.h>
-#include <GLKit/GLKMath.h>
-#include "GLKVector3Extra.h"
+#import <stdio.h>
+#import <math.h>
+#import <GLKit/GLKMath.h>
+#import "GLKVector3Extra.h"
 
 
 NSUInteger GLKVector3Hash(GLKVector3 v)

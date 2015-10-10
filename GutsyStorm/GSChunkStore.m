@@ -140,15 +140,15 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
                                          }];
 }
 
-- (NSSet *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(struct grid_edit *)edit
+- (NSSet *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(GSGridEdit *)edit
 {
     assert(edit);
-    GLKVector3 p = edit->pos;
+    GLKVector3 p = edit.pos;
     BOOL fullRebuild = YES;
     voxel_t voxel;
 
     {
-        GSChunkVoxelData *voxelChunk = edit->originalObject;
+        GSChunkVoxelData *voxelChunk = edit.originalObject;
         GLKVector3 minP = voxelChunk.minP;
         GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(p.x-minP.x, p.y-minP.y+1, p.z-minP.z);
         voxel = [voxelChunk voxelAtLocalPosition:chunkLocalPos];
@@ -197,13 +197,13 @@ static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway,
     assert(_gridGeometryData);
 
     // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
-    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet * (struct grid_edit *edit) {
+    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet * (GSGridEdit *edit) {
         return [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
     }];
 
-    NSSet * (^oneToOne)(struct grid_edit *) = ^NSSet * (struct grid_edit *edit) {
-        assert(edit);
-        return [NSSet setWithObject:[GSBoxedVector boxedVectorWithVector:edit->pos]];
+    NSSet * (^oneToOne)(GSGridEdit *) = ^NSSet * (GSGridEdit *edit) {
+        GSBoxedVector *p = [GSBoxedVector boxedVectorWithVector:edit.pos];
+        return [NSSet setWithObject:p];
     };
 
     // Each chunk geometry object depends on the single, corresponding chunk sunlight object.

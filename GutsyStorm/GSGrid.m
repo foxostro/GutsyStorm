@@ -263,37 +263,41 @@
     return nil;
 }
 
-- (void)invalidateItemWithChange:(struct grid_edit *)change
+- (void)invalidateItemWithChange:(GSGridEdit *)change
 {
-    [_lockTheTableItself lockForReading];
+    // Invalidate asynchronously to avoid deadlock.
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        [_lockTheTableItself lockForReading];
 
-    GLKVector3 minP = MinCornerForChunkAtPoint(change->pos);
-    NSUInteger hash = GLKVector3Hash(minP);
-    NSUInteger idxBucket = hash % _numBuckets;
-    NSUInteger idxLock = hash % _numLocks;
-    NSLock *lock = _locks[idxLock];
-    NSMutableArray *bucket = _buckets[idxBucket];
+        GLKVector3 pos = change.pos;
+        GLKVector3 minP = MinCornerForChunkAtPoint(pos);
+        NSUInteger hash = GLKVector3Hash(minP);
+        NSUInteger idxBucket = hash % _numBuckets;
+        NSUInteger idxLock = hash % _numLocks;
+        NSLock *lock = _locks[idxLock];
+        NSMutableArray *bucket = _buckets[idxBucket];
 
-    [lock lock];
+        [lock lock];
 
-    NSObject <GSGridItem> *foundItem = nil;
+        NSObject <GSGridItem> *foundItem = nil;
 
-    foundItem = [self searchForItemAtPosition:minP bucket:bucket];
+        foundItem = [self searchForItemAtPosition:minP bucket:bucket];
 
-    if(foundItem && [foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
-        [foundItem itemWillBeInvalidated];
-    }
+        if(foundItem && [foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
+            [foundItem itemWillBeInvalidated];
+        }
 
-    [self willInvalidateItem:foundItem atPoint:minP];
+        [self willInvalidateItem:foundItem atPoint:minP];
 
-    if(foundItem) {
-        [bucket removeObject:foundItem];
-    }
-    
-    [self invalidateItemsInDependentGridsWithChange:change];
-    
-    [lock unlock];
-    [_lockTheTableItself unlockForReading];
+        if(foundItem) {
+            [bucket removeObject:foundItem];
+        }
+
+        [self invalidateItemsInDependentGridsWithChange:change];
+
+        [lock unlock];
+        [_lockTheTableItself unlockForReading];
+    });
 }
 
 - (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p
@@ -301,28 +305,25 @@
     // do nothing
 }
 
-- (void)invalidateItemsInDependentGridsWithChange:(struct grid_edit *)change
+- (void)invalidateItemsInDependentGridsWithChange:(GSGridEdit *)change
 {
     assert(change);
 
     for(GSGrid *grid in _dependentGrids)
     {
-        NSSet * (^mapping)(struct grid_edit *) = [_mappingToDependentGrids objectForKey:[grid description]];
+        NSSet * (^mapping)(GSGridEdit *) = [_mappingToDependentGrids objectForKey:[grid description]];
         NSSet *correspondingPoints = mapping(change);
         for(GSBoxedVector *q in correspondingPoints)
         {
-            struct grid_edit secondaryChange = {
-                .originalObject = nil,
-                .modifiedObject = nil,
-                .pos = [q vectorValue]
-            };
-            [grid invalidateItemWithChange:&secondaryChange];
+            GSGridEdit *secondaryChange = [[GSGridEdit alloc] initWithOriginalItem:nil
+                                                                      modifiedItem:nil
+                                                                               pos:[q vectorValue]];
+            [grid invalidateItemWithChange:secondaryChange];
         }
     }
 }
 
-- (void)registerDependentGrid:(GSGrid *)grid
-                      mapping:(NSSet * (^)(struct grid_edit *))mapping
+- (void)registerDependentGrid:(GSGrid *)grid mapping:(NSSet * (^)(GSGridEdit *))mapping
 {
     [_dependentGrids addObject:grid];
     [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
@@ -352,14 +353,12 @@
             }
             [bucket removeObject:item];
             [bucket addObject:replacement];
+            
+            GSGridEdit *change = [[GSGridEdit alloc] initWithOriginalItem:item
+                                                           modifiedItem:replacement
+                                                                    pos:p];
 
-            struct grid_edit change = {
-                .originalObject = item,
-                .modifiedObject = replacement,
-                .pos = p
-            };
-
-            [self invalidateItemsInDependentGridsWithChange:&change];
+            [self invalidateItemsInDependentGridsWithChange:change];
 
             [lock unlock];
             [_lockTheTableItself unlockForReading];
