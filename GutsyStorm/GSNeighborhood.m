@@ -16,13 +16,6 @@
 #import "GSChunkStore.h"
 
 
-@interface GSNeighborhood ()
-
-+ (NSLock *)sharedVoxelDataLock;
-
-@end
-
-
 @implementation GSNeighborhood
 {
     GSChunkVoxelData *_neighbors[CHUNK_NUM_NEIGHBORS];
@@ -226,19 +219,6 @@
     assert(lightLevel >= 0 && lightLevel <= CHUNK_LIGHTING_MAX);
     
     return lightLevel;
-}
-
-+ (NSLock *)sharedVoxelDataLock
-{
-    static dispatch_once_t onceToken;
-    static NSLock *a = nil;
-
-    dispatch_once(&onceToken, ^{
-        a = [[NSLock alloc] init];
-        [a setName:@"GSNeighborhood.sharedVoxelDataLock"];
-    });
-
-    return a;
 }
 
 @end
