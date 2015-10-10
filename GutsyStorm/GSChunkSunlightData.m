@@ -204,6 +204,7 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
     GSBuffer *buffer = nil;
 
     @autoreleasepool {
+        BOOL failedToLoadFromFile = YES;
         NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:self.minP];
         NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
         NSError *error = nil;
@@ -212,8 +213,16 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
                                                 error:&error];
 
         if(data) {
-            buffer = [[GSBuffer alloc] initWithDimensions:sunlightDim data:[data bytes]];
-        } else {
+            if ([data length] != BUFFER_SIZE_IN_BYTES(sunlightDim)) {
+                NSLog(@"unexpected number of bytes in sunlight file \"%@\": found %lu but expected %zu bytes",
+                      fileName, (unsigned long)[data length], BUFFER_SIZE_IN_BYTES(sunlightDim));
+            } else {
+                buffer = [[GSBuffer alloc] initWithDimensions:sunlightDim data:[data bytes]];
+                failedToLoadFromFile = NO;
+            }
+        }
+        
+        if (failedToLoadFromFile) {
             voxel_t *data = [self newVoxelBufferWithNeighborhood:neighborhood];
             buffer = [self newSunlightBufferUsingCombinedVoxelData:data];
             free(data);
