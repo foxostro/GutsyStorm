@@ -91,6 +91,7 @@
 
 - (void)dealloc
 {
+    // XXX: This will have problems if the dealloc method is called from anything other than the currently active GL thread.
     glDeleteTextures(1, &_texID);
     glDeleteRenderbuffers(1, &_depthBuffer);
     glDeleteFramebuffers(1, &_fbo);
