@@ -145,7 +145,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
             BOOL vboGenDidHappen = NO;
             GSChunkVBOs *vbo = nil;
             [_gridVBOs objectAtPoint:[boxedPosition vectorValue]
-                            blocking:NO
+                            blocking:YES
                               object:&vbo
                      createIfMissing:createIfMissing
                        didCreateItem:&vboGenDidHappen];
