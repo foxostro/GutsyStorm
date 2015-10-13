@@ -27,9 +27,6 @@
 #import "GSGridSunlight.h"
 
 
-static dispatch_source_t createDispatchTimer(uint64_t interval, uint64_t leeway, void (^eventHandler)());
-
-
 @interface GSChunkStore ()
 
 - (void)createGrids;
