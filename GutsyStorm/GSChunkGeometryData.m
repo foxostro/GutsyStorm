@@ -147,7 +147,9 @@ static void applyLightToVertices(size_t numChunkVerts,
         @autoreleasepool
         {
             GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minCorner.x, pos.y-minCorner.y, pos.z-minCorner.z);
-            voxel_type_t type = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos].type;
+            voxel_t voxel = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
+            voxel_type_t type = voxel.type;
+            assert(type < NUM_VOXEL_TYPES);
 
             if(type != VOXEL_TYPE_EMPTY) {
                 GSBlockMesh *factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
