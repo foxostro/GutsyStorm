@@ -26,10 +26,7 @@
 
         [self setFaces:@[
             // Top (ramp surface)
-            [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(-L, +L, -L)
-                                                             normal:GSIntegerVector3_Make(0, 1, 0)
-                                                           texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_GRASS)],
-                                       [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, +L)
+            [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(-L, +L, +L)
                                                              normal:GSIntegerVector3_Make(0, 1, 0)
                                                            texCoord:GSIntegerVector3_Make(1, 0, VOXEL_TEX_GRASS)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(+L, +L, +L)
@@ -37,7 +34,11 @@
                                                            texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_GRASS)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, -L)
                                                              normal:GSIntegerVector3_Make(0, 0, -1)
-                                                           texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_GRASS)]]
+                                                           texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_GRASS)],
+                                       [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, -L)
+                                                             normal:GSIntegerVector3_Make(0, 1, 0)
+                                                           texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_GRASS)]
+                                       ]
                correspondingCubeFace:FACE_TOP],
 
             // Bottom
