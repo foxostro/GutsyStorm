@@ -436,7 +436,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             free(temp1);
             free(temp2);
         };
-        
+
         _chunkStore = [[GSChunkStore alloc] initWithSeed:seed
                                                  camera:cam
                                             terrainShader:terrainShader
@@ -569,13 +569,13 @@ static BOOL cellPositionMatchesRule(struct PostProcessingRule *rule, GSIntegerVe
                                     voxel_t *voxels, GSIntegerVector3 minP, GSIntegerVector3 maxP)
 {
     assert(rule);
-    assert(clp.x >= 0 && clp.x < CHUNK_SIZE_X);
-    assert(clp.y >= 0 && clp.y < CHUNK_SIZE_Y);
-    assert(clp.z >= 0 && clp.z < CHUNK_SIZE_Z);
+    assert(clp.x >= minP.x && clp.x < maxP.x);
+    assert(clp.y >= minP.y && clp.y < maxP.y);
+    assert(clp.z >= minP.z && clp.z < maxP.z);
 
-    for(ssize_t x=-1; x<=1; ++x)
+    for(ssize_t z=-1; z<=1; ++z)
     {
-        for(ssize_t z=-1; z<=1; ++z)
+        for(ssize_t x=-1; x<=1; ++x)
         {
             if(x==0 && z==0) { // (0,0) refers to the target block, so the value in the diagram doesn't matter.
                 continue;
@@ -623,8 +623,9 @@ static void postProcessingInnerLoop(GSIntegerVector3 maxP, GSIntegerVector3 minP
 
     const size_t idx = INDEX_BOX(p, minP, maxP);
     voxel_t *voxel = &voxelsIn[idx];
+    voxel_type_t prevType = *prevType_p;
 
-    if(voxel->type == VOXEL_TYPE_EMPTY && *prevType_p == ruleSet->appliesAboveBlockType) {
+    if(voxel->type == VOXEL_TYPE_EMPTY && (prevType == ruleSet->appliesAboveBlockType)) {
         // Find and apply the first post-processing rule which matches this position.
         struct PostProcessingRule *rule = findRuleForCellPosition(ruleSet->count, ruleSet->rules, p, voxelsIn, minP, maxP);
         if(rule) {
@@ -653,8 +654,11 @@ static void postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
     // Copy all voxels directly and then, below, replace a few according to the processing rules.
     const size_t numVoxels = (maxP.x-minP.x) * (maxP.y-minP.y) * (maxP.z-minP.z);
     memcpy(voxelsOut, voxelsIn, numVoxels * sizeof(voxel_t));
+    
+    GSIntegerVector3 a = {minP.x+1, minP.y+1, minP.z+1};
+    GSIntegerVector3 b = {maxP.x-1, maxP.y-1, maxP.z-1};
 
-    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+    FOR_Y_COLUMN_IN_BOX(p, a, b)
     {
         if(ruleSet->upsideDown) {
             // Find a voxel which is empty and is directly below a cube voxel.

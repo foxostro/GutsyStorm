@@ -165,8 +165,8 @@
                                 postProcessor:(terrain_post_processor_t)postProcessor
 {
     GSIntegerVector3 p, a, b;
-    a = GSIntegerVector3_Make(-1, 0, -1);
-    b = GSIntegerVector3_Make(chunkSize.x+1, chunkSize.y, chunkSize.z+1);
+    a = GSIntegerVector3_Make(-2, 0, -2);
+    b = GSIntegerVector3_Make(chunkSize.x+2, chunkSize.y, chunkSize.z+2);
 
     const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
     voxel_t *voxels = calloc(count, sizeof(voxel_t));
