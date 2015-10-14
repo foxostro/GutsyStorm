@@ -32,9 +32,25 @@
                                        [GSVertex vertexWithPosition:GLKVector3Make(+L, +L, +L)
                                                              normal:GSIntegerVector3_Make(0, 1, 0)
                                                            texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_GRASS)],
+                                       [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, -L)
+                                                             normal:GSIntegerVector3_Make(0, 0, -1)
+                                                           texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_GRASS)],
+                                       [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, -L)
+                                                             normal:GSIntegerVector3_Make(0, 1, 0)
+                                                           texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_GRASS)]
+                                       ]
+               correspondingCubeFace:FACE_TOP],
+            
+            // Top 2: Since non-planar quads have undefined behavior in OpenGL, we split this surface into two tris.
+            [GSFace faceWithVertices:@[[GSVertex vertexWithPosition:GLKVector3Make(+L, +L, +L)
+                                                             normal:GSIntegerVector3_Make(0, 1, 0)
+                                                           texCoord:GSIntegerVector3_Make(0, 0, VOXEL_TEX_GRASS)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(+L, -L, -L)
                                                              normal:GSIntegerVector3_Make(0, 0, -1)
                                                            texCoord:GSIntegerVector3_Make(0, 1, VOXEL_TEX_GRASS)],
+                                       [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, -L)
+                                                             normal:GSIntegerVector3_Make(0, 1, 0)
+                                                           texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_GRASS)],
                                        [GSVertex vertexWithPosition:GLKVector3Make(-L, +L, -L)
                                                              normal:GSIntegerVector3_Make(0, 1, 0)
                                                            texCoord:GSIntegerVector3_Make(1, 1, VOXEL_TEX_GRASS)]
