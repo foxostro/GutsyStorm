@@ -7,6 +7,7 @@
 //
 
 #import "GSCube.h"
+#import "GSShader.h"
 #import "GSVBOHolder.h"
 
 #import <OpenGL/gl.h>
@@ -34,6 +35,7 @@ static const GLfloat vertices[] = {
 @implementation GSCube
 {
     GSVBOHolder *_vertexBuffer, *_indexBuffer;
+    GSShader *_shader;
 }
 
 - (instancetype)init
@@ -42,15 +44,14 @@ static const GLfloat vertices[] = {
     return nil;
 }
 
-- (instancetype)initWithContext:(NSOpenGLContext *)context
+- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(GSShader *)shader
 {
     NSParameterAssert(context);
+    assert(checkGLErrors() == 0);
 
     self = [super init];
     if (self) {
         GLuint vboVertexBuffer = 0, vboIndexBuffer = 0;
-
-        checkGLErrors();
 
         glGenBuffers(1, &vboVertexBuffer);
         glBindBuffer(GL_ARRAY_BUFFER, vboVertexBuffer);
@@ -59,13 +60,14 @@ static const GLfloat vertices[] = {
         glGenBuffers(1, &vboIndexBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndexBuffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-        
-        
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        checkGLErrors();
+
+        assert(checkGLErrors() == 0);
 
         _vertexBuffer = [[GSVBOHolder alloc] initWithHandle:vboVertexBuffer context:context];
         _indexBuffer = [[GSVBOHolder alloc] initWithHandle:vboIndexBuffer context:context];
+        _shader = shader;
     }
 
     return self;
@@ -75,25 +77,27 @@ static const GLfloat vertices[] = {
 {
     GLsizei count = sizeof(indices)/sizeof(*indices);
 
-    glLineWidth(2.0);
+    [_shader bind];
 
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_LIGHTING);
+    glLineWidth(2.0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_POLYGON_OFFSET_FILL);
-    glEnableClientState(GL_VERTEX_ARRAY);
 
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBuffer.handle);
     glVertexPointer(3, GL_FLOAT, 0, 0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indexBuffer.handle);
+    glEnableClientState(GL_VERTEX_ARRAY);
+
     glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, NULL);
 
     glDisableClientState(GL_VERTEX_ARRAY);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); // clear
+
     glDisable(GL_POLYGON_OFFSET_FILL);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); // clear
+
+    [_shader unbind];
 }
 
 @end

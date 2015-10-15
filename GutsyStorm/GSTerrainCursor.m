@@ -7,6 +7,7 @@
 //
 
 #import <GLKit/GLKMath.h>
+#import "GSRay.h"
 #import "GSTerrainCursor.h"
 
 #import <OpenGL/gl.h>
@@ -22,13 +23,13 @@
     return nil;
 }
 
-- (instancetype)initWithContext:(NSOpenGLContext *)context
+- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(GSShader *)shader
 {
     self = [super init];
     if (self) {
         _cursorIsActive = NO;
         _cursorPos = _cursorPlacePos = GLKVector3Make(0, 0, 0);
-        _cursor = [[GSCube alloc] initWithContext:context];
+        _cursor = [[GSCube alloc] initWithContext:context shader:shader];
     }
     return self;
 }

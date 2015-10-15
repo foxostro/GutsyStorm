@@ -7,9 +7,10 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSRay.h"
 #import "GSChunkStore.h"
 #import "GSCube.h"
+
+@class GSShader;
 
 @interface GSTerrainCursor : NSObject
 
@@ -18,7 +19,7 @@
 @property (assign) GLKVector3 cursorPlacePos;
 
 - (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithContext:(NSOpenGLContext *)context NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(GSShader *)shader NS_DESIGNATED_INITIALIZER;
 - (void)drawWithEdgeOffset:(GLfloat)edgeOffset;
 
 @end

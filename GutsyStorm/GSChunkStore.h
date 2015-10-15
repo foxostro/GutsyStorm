@@ -7,6 +7,7 @@
 //
 
 #import "GSChunkVoxelData.h"
+#import "GSRay.h"
 
 @class GSCamera;
 @class GSShader;

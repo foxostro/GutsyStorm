@@ -16,6 +16,7 @@
 #import "GSShader.h"
 #import "GSCamera.h"
 #import "GSTerrain.h"
+#import "GSRay.h"
 
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
 #define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
@@ -377,6 +378,39 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     return str;
 }
 
+- (GSShader *)newCursorShader
+{
+    NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"cursor.vert" ofType:@"txt"];
+    NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"cursor.frag" ofType:@"txt"];
+    
+    NSString *vertSrc = [self newShaderSourceStringFromFileAt:vertFn];
+    NSString *fragSrc = [self newShaderSourceStringFromFileAt:fragFn];
+    
+    GSShader *cursorShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+    
+    assert(checkGLErrors() == 0);
+
+    return cursorShader;
+}
+
+- (GSShader *)newTerrainShader
+{
+    NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"terrain.vert" ofType:@"txt"];
+    NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"terrain.frag" ofType:@"txt"];
+    
+    NSString *vertSrc = [self newShaderSourceStringFromFileAt:vertFn];
+    NSString *fragSrc = [self newShaderSourceStringFromFileAt:fragFn];
+    
+    GSShader *terrainShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+    
+    [terrainShader bind];
+    [terrainShader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
+
+    assert(checkGLErrors() == 0);
+    
+    return terrainShader;
+}
+
 - (instancetype)initWithSeed:(NSUInteger)seed
                       camera:(GSCamera *)cam
                    glContext:(NSOpenGLContext *)context
@@ -387,18 +421,8 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         
         assert(checkGLErrors() == 0);
         
-        NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.vert" ofType:@"txt"];
-        NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"shader.frag" ofType:@"txt"];
-        
-        NSString *vertSrc = [self newShaderSourceStringFromFileAt:vertFn];
-        NSString *fragSrc = [self newShaderSourceStringFromFileAt:fragFn];
-        
-        GSShader *terrainShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
-        
-        [terrainShader bind];
-        [terrainShader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
-        
-        assert(checkGLErrors() == 0);
+        GSShader *cursorShader = [self newCursorShader];
+        GSShader *terrainShader = [self newTerrainShader];
         
         _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
                                                                   pathForResource:@"terrain"
@@ -444,7 +468,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                 generator:generator
                                             postProcessor:postProcessor];
         
-        _cursor = [[GSTerrainCursor alloc] initWithContext:context];
+        _cursor = [[GSTerrainCursor alloc] initWithContext:context shader:cursorShader];
         
         _maxPlaceDistance = 6.0; // XXX: make this configurable
     }
