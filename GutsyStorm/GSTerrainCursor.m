@@ -9,6 +9,8 @@
 #import <GLKit/GLKMath.h>
 #import "GSTerrainCursor.h"
 
+#import <OpenGL/gl.h>
+
 @implementation GSTerrainCursor
 {
     GSCube *_cursor;
@@ -16,19 +18,24 @@
 
 - (instancetype)init
 {
+    @throw nil;
+    return nil;
+}
+
+- (instancetype)initWithContext:(NSOpenGLContext *)context
+{
     self = [super init];
-    if(self) {
+    if (self) {
         _cursorIsActive = NO;
         _cursorPos = _cursorPlacePos = GLKVector3Make(0, 0, 0);
-        _cursor = [[GSCube alloc] init];
-        [_cursor generateVBO];
+        _cursor = [[GSCube alloc] initWithContext:context];
     }
     return self;
 }
 
 - (void)drawWithEdgeOffset:(GLfloat)edgeOffset
 {
-    if(_cursorIsActive) {
+    if (_cursorIsActive) {
         glDepthRange(0.0, 1.0 - edgeOffset);
         glPushMatrix();
         glTranslatef(_cursorPos.x, _cursorPos.y, _cursorPos.z);

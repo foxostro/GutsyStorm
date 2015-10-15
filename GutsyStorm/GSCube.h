@@ -7,12 +7,12 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <OpenGL/gl.h>
 #import <OpenGL/OpenGL.h>
 
 @interface GSCube : NSObject
 
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithContext:(NSOpenGLContext *)context NS_DESIGNATED_INITIALIZER;
 - (void)draw;
-- (void)generateVBO;
 
 @end

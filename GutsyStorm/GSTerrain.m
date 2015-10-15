@@ -444,7 +444,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                 generator:generator
                                             postProcessor:postProcessor];
         
-        _cursor = [[GSTerrainCursor alloc] init];
+        _cursor = [[GSTerrainCursor alloc] initWithContext:context];
         
         _maxPlaceDistance = 6.0; // XXX: make this configurable
     }

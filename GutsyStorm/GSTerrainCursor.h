@@ -17,6 +17,8 @@
 @property (assign) GLKVector3 cursorPos;
 @property (assign) GLKVector3 cursorPlacePos;
 
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithContext:(NSOpenGLContext *)context NS_DESIGNATED_INITIALIZER;
 - (void)drawWithEdgeOffset:(GLfloat)edgeOffset;
 
 @end

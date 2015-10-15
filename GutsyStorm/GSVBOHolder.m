@@ -10,9 +10,6 @@
 #import "GSVBOHolder.h"
 
 
-static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
-
-
 @implementation GSVBOHolder
 {
     NSOpenGLContext *_glContext;
@@ -44,20 +41,14 @@ static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo);
     assert(context);
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        syncDestroySingleVBO(context, handle);
+        assert(context);
+        if(handle) {
+            [context makeCurrentContext];
+            CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
+            glDeleteBuffers(1, &handle);
+            CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
+        }
     });
 }
 
 @end
-
-
-static void syncDestroySingleVBO(NSOpenGLContext *context, GLuint vbo)
-{
-    assert(context);
-    if(vbo) {
-        [context makeCurrentContext];
-        CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
-        glDeleteBuffers(1, &vbo);
-        CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
-    }
-}
