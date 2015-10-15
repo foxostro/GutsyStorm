@@ -18,15 +18,6 @@
 - (instancetype)initWithHandle:(GLuint)handle context:(NSOpenGLContext *)context
 {
     if(self = [super init]) {
-#ifdef NDEBUG
-        assert(context);
-        assert(handle);
-        [context makeCurrentContext];
-        CGLLockContext((CGLContextObj)[context CGLContextObj]);
-        assert(glIsBuffer(handle));
-        CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
-#endif
-
         _glContext = context;
         _handle = handle;
     }

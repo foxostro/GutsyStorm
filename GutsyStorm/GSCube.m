@@ -87,11 +87,11 @@ static const GLfloat vertices[] = {
     glVertexPointer(3, GL_FLOAT, 0, 0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indexBuffer.handle);
+    
     glEnableClientState(GL_VERTEX_ARRAY);
-
     glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, NULL);
-
     glDisableClientState(GL_VERTEX_ARRAY);
+
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); // clear
 
     glDisable(GL_POLYGON_OFFSET_FILL);
