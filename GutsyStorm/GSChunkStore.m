@@ -6,7 +6,6 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKMath.h>
 #import "GSIntegerVector3.h"
 #import "GSRay.h"
 #import "GSCamera.h"
@@ -26,6 +25,8 @@
 #import "GSGridGeometry.h"
 #import "GSGridSunlight.h"
 
+#import "GSMatrixUtils.h"
+
 
 @interface GSChunkStore ()
 
@@ -34,15 +35,15 @@
 - (void)setupActiveRegionWithCamera:(GSCamera *)cam;
 
 + (NSURL *)newTerrainCacheFolderURL;
-- (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p;
-- (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p neighborhood:(GSNeighborhood **)neighborhood;
+- (GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
+- (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p neighborhood:(GSNeighborhood **)neighborhood;
 
-- (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p;
-- (GSChunkSunlightData *)chunkSunlightAtPoint:(GLKVector3)p;
-- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p;
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
+- (GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
-- (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk;
-- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(GLKVector3)minP;
+- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData **)chunk;
+- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP;
 
 @end
 
@@ -68,7 +69,7 @@
     terrain_post_processor_t _postProcessor;
 
     GSActiveRegion *_activeRegion;
-    GLKVector3 _activeRegionExtent; // The active region is specified relative to the camera position.
+    vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
 }
 
 + (void)initialize
@@ -87,14 +88,14 @@
     assert(!_gridVBOs);
 
     _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"
-                                          factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                                          factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                               return [self newChunkWithMinimumCorner:minCorner];
                                           }];
 
     _gridSunlightData = [[GSGridSunlight alloc]
                          initWithName:@"gridSunlightData"
                           cacheFolder:_folder
-                              factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                              GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
                              return [[GSChunkSunlightData alloc] initWithMinP:minCorner
                                                                        folder:_folder
@@ -107,7 +108,7 @@
     _gridGeometryData = [[GSGridGeometry alloc]
                          initWithName:@"gridGeometryData"
                           cacheFolder:_folder
-                              factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                   GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
                                   return [[GSChunkGeometryData alloc] initWithMinP:minCorner
                                                                        folder:_folder
@@ -115,7 +116,7 @@
                               }];
     
     _gridVBOs = [[GSGridVBOs alloc] initWithName:@"gridVBOs"
-                                         factory:^NSObject <GSGridItem> * (GLKVector3 minCorner) {
+                                         factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                              GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
                                              NSObject <GSGridItem> *vbo;
                                              vbo = [[GSChunkVBOs alloc] initWithChunkGeometry:geometry
@@ -127,13 +128,13 @@
 - (NSSet *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(GSGridEdit *)edit
 {
     assert(edit);
-    GLKVector3 p = edit.pos;
+    vector_float3 p = edit.pos;
     BOOL fullRebuild = YES;
     voxel_t voxel;
 
     {
         GSChunkVoxelData *voxelChunk = edit.originalObject;
-        GLKVector3 minP = voxelChunk.minP;
+        vector_float3 minP = voxelChunk.minP;
         GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(p.x-minP.x, p.y-minP.y+1, p.z-minP.z);
         voxel = [voxelChunk voxelAtLocalPosition:chunkLocalPos];
     }
@@ -146,8 +147,8 @@
         NSMutableArray *correspondingPoints = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
         for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
-            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
-            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, offset)];
+            vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:(p + offset)];
             [correspondingPoints addObject:boxedPoint];
         }
         return [NSSet setWithArray:correspondingPoints];
@@ -163,11 +164,11 @@
         const unsigned m = CHUNK_LIGHTING_MAX;
         NSMutableSet *set = [[NSMutableSet alloc] init];
         [set addObjectsFromArray:@[[GSBoxedVector boxedVectorWithVector:p],
-                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make(+m,  0,  0))],
-                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make(-m,  0,  0))],
-                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make( 0, -m,  0))],
-                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make( 0,  0, +m))],
-                                   [GSBoxedVector boxedVectorWithVector:GLKVector3Add(p, GLKVector3Make( 0,  0, -m))],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make(+m,  0,  0))],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make(-m,  0,  0))],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make( 0, -m,  0))],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make( 0,  0, +m))],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make( 0,  0, -m))],
                                    ]];
         return set;
     }
@@ -205,7 +206,7 @@
 
     // Active region is bounded at y>=0.
     const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
-    _activeRegionExtent = GLKVector3Make(w, CHUNK_SIZE_Y, w);
+    _activeRegionExtent = vector_make(w, CHUNK_SIZE_Y, w);
     _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
                                                                 camera:cam
                                                                vboGrid:_gridVBOs];
@@ -290,14 +291,17 @@
     assert(_terrainShader);
     assert(_activeRegion);
 
+    matrix_float4x4 translation = matrix_from_translation(vector_make(0.5f, 0.5f, 0.5f));
+    matrix_float4x4 modelView = matrix_multiply(translation, _camera.modelViewMatrix);
+    matrix_float4x4 mvp = matrix_multiply(modelView, _camera.projectionMatrix);
+
     [_terrainShader bind];
+    [_terrainShader bindUniformWithMatrix4x4:mvp name:@"mvp"];
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
-
-    glTranslatef(0.5, 0.5, 0.5);
 
     [_activeRegion draw];
 
@@ -316,7 +320,7 @@
     [_activeRegion updateWithCameraModifiedFlags:flags];
 }
 
-- (void)placeBlockAtPoint:(GLKVector3)pos block:(voxel_t)block
+- (void)placeBlockAtPoint:(vector_float3)pos block:(voxel_t)block
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(_gridVoxelData);
@@ -332,7 +336,7 @@
     [_activeRegion updateVBOsInCameraFrustum];
 }
 
-- (BOOL)tryToGetVoxelAtPoint:(GLKVector3)pos voxel:(voxel_t *)voxel
+- (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(voxel_t *)voxel
 {
     GSChunkVoxelData *chunk = nil;
 
@@ -352,7 +356,7 @@
     return YES;
 }
 
-- (voxel_t)voxelAtPoint:(GLKVector3)pos
+- (voxel_t)voxelAtPoint:(vector_float3)pos
 {
     assert(!_chunkStoreHasBeenShutdown);
 
@@ -365,7 +369,7 @@
                                                              pos.z-chunk.minP.z)];
 }
 
-- (BOOL)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(GLKVector3 p, BOOL *stop, BOOL *fail))block
+- (BOOL)enumerateVoxelsOnRay:(GSRay)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(vector_float3 p, BOOL *stop, BOOL *fail))block
 {
     assert(!_chunkStoreHasBeenShutdown);
 
@@ -408,7 +412,7 @@
     // value of the division also equals zero, the result is Single.NaN, which is not OK.
     
     // Determine how far we can travel along the ray before we hit a voxel boundary.
-    GLKVector3 tMax = GLKVector3Make((cellBoundary.x - ray.origin.x) / ray.direction.x,    // Boundary is a plane on the YZ axis.
+    vector_float3 tMax = vector_make((cellBoundary.x - ray.origin.x) / ray.direction.x,    // Boundary is a plane on the YZ axis.
                                     (cellBoundary.y - ray.origin.y) / ray.direction.y,    // Boundary is a plane on the XZ axis.
                                     (cellBoundary.z - ray.origin.z) / ray.direction.z);   // Boundary is a plane on the XY axis.
     if(isnan(tMax.x)) { tMax.x = +INFINITY; }
@@ -416,7 +420,7 @@
     if(isnan(tMax.z)) { tMax.z = +INFINITY; }
 
     // Determine how far we must travel along the ray before we have crossed a gridcell.
-    GLKVector3 tDelta = GLKVector3Make(stepX / ray.direction.x,                    // Crossing the width of a cell.
+    vector_float3 tDelta = vector_make(stepX / ray.direction.x,                    // Crossing the width of a cell.
                                       stepY / ray.direction.y,                    // Crossing the height of a cell.
                                       stepZ / ray.direction.z);                   // Crossing the depth of a cell.
     if(isnan(tDelta.x)) { tDelta.x = +INFINITY; }
@@ -433,7 +437,7 @@
         
         BOOL stop = NO;
         BOOL fail = NO;
-        block(GLKVector3Make(x, y, z), &stop, &fail);
+        block(vector_make(x, y, z), &stop, &fail);
 
         if(fail) {
             return NO; // the block was going to block so it stopped and called for an abort
@@ -462,7 +466,7 @@
     return YES;
 }
 
-- (GSNeighborhood *)neighborhoodAtPoint:(GLKVector3)p
+- (GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
 
@@ -470,7 +474,7 @@
 
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        GLKVector3 a = GLKVector3Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
+        vector_float3 a = p + [GSNeighborhood offsetForNeighborIndex:i];
         GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a]; // NOTE: may block
         assert(voxels);
         [neighborhood setNeighborAtIndex:i neighbor:voxels];
@@ -479,7 +483,7 @@
     return neighborhood;
 }
 
-- (BOOL)tryToGetNeighborhoodAtPoint:(GLKVector3)p
+- (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p
                        neighborhood:(GSNeighborhood **)outNeighborhood
 {
     assert(!_chunkStoreHasBeenShutdown);
@@ -489,7 +493,7 @@
 
     for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        GLKVector3 a = GLKVector3Add(p, [GSNeighborhood offsetForNeighborIndex:i]);
+        vector_float3 a = p + [GSNeighborhood offsetForNeighborIndex:i];
         GSChunkVoxelData *voxels = nil;
 
         if(![self tryToGetChunkVoxelsAtPoint:a chunk:&voxels]) {
@@ -505,7 +509,7 @@
     return YES;
 }
 
-- (GSChunkGeometryData *)chunkGeometryAtPoint:(GLKVector3)p
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
 {
     if (_chunkStoreHasBeenShutdown) {
         @throw nil;
@@ -515,7 +519,7 @@
     return [_gridGeometryData objectAtPoint:p];
 }
 
-- (GSChunkSunlightData *)chunkSunlightAtPoint:(GLKVector3)p
+- (GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
@@ -523,7 +527,7 @@
     return [_gridSunlightData objectAtPoint:p];
 }
 
-- (GSChunkVoxelData *)chunkVoxelsAtPoint:(GLKVector3)p
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
@@ -531,7 +535,7 @@
     return [_gridVoxelData objectAtPoint:p];
 }
 
-- (BOOL)tryToGetChunkVoxelsAtPoint:(GLKVector3)p chunk:(GSChunkVoxelData **)chunk
+- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData **)chunk
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
@@ -578,7 +582,7 @@
     return url;
 }
 
-- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(GLKVector3)minP
+- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP
 {
     assert(!_chunkStoreHasBeenShutdown);
 

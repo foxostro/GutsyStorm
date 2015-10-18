@@ -21,12 +21,12 @@ struct vertex;
 
 @interface GSChunkGeometryData : NSObject <GSGridItem>
 
-+ (NSString *)fileNameForGeometryDataFromMinP:(GLKVector3)minP;
++ (NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP;
 
 /* Returns the shared block mesh factory for the specified voxel type. */
 + (GSBlockMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type;
 
-- (instancetype)initWithMinP:(GLKVector3)minCorner
+- (instancetype)initWithMinP:(vector_float3)minCorner
                       folder:(NSURL *)folder
                     sunlight:(GSChunkSunlightData *)sunlight;
 

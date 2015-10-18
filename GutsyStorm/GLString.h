@@ -53,6 +53,7 @@
 #import <OpenGL/glext.h>
 #import <OpenGL/OpenGL.h>
 #import <OpenGL/CGLContext.h>
+#import <simd/matrix.h>
 
 @interface NSBezierPath (RoundRect)
 + (NSBezierPath *)bezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius;
@@ -89,8 +90,8 @@
 - (NSSize) marginSize; // current margins for text offset and pads for dynamic frame
 
 - (void) genTexture; // generates the texture without drawing texture to current context
-- (void) drawWithBounds:(NSRect)bounds; // will update the texture if required due to change in settings (note context should be setup to be orthographic scaled to per pixel scale)
-- (void) drawAtPoint:(NSPoint)point;
+- (void) drawWithBounds:(NSRect)bounds withModelViewProjectionMatrix:(matrix_float4x4)mvp; // will update the texture if required due to change in settings (note context should be setup to be orthographic scaled to per pixel scale)
+- (void) drawAtPoint:(NSPoint)point withModelViewProjectionMatrix:(matrix_float4x4)mvp;
 
 // these will force the texture to be regenerated at the next draw
 - (void) setMargins:(NSSize)size; // set offset size and size to fit with offset

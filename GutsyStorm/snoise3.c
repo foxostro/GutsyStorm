@@ -37,7 +37,7 @@
 
 #include <xmmintrin.h>
 #include <emmintrin.h>
-#import <GLKit/GLKMath.h>
+#include <simd/simd.h>
 #include "snoise3.h"
 
 typedef float v4sf __attribute__ ((vector_size (16)));
@@ -138,7 +138,7 @@ struct NoiseContext *FeepingCreature_CreateNoiseContext(unsigned *pseed)
     return nc;
 }
 
-float FeepingCreature_noise3(GLKVector3 p, struct NoiseContext *nc) {
+float FeepingCreature_noise3(vector_float3 p, struct NoiseContext *nc) {
     v4sf vs[4], vsum;
     int gi[4], mask, c;
     v4sf v = vec4f(p.x, p.y, p.z, 0);

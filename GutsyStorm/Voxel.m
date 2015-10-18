@@ -6,7 +6,6 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKQuaternion.h>
 #import "GSIntegerVector3.h"
 #import "GSBuffer.h"
 #import "Voxel.h"

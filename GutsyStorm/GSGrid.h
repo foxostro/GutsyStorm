@@ -20,7 +20,7 @@
                      factory:(grid_item_factory_t)factory NS_DESIGNATED_INITIALIZER;
 
 /* Returns the object corresponding to the given point on the grid. Creates the object from the factory, if necessary. */
-- (id)objectAtPoint:(GLKVector3)p;
+- (id)objectAtPoint:(vector_float3)p;
 
 /* Tries to get the object corresponding to the given point on the grid, returning it in "object".
  *
@@ -32,14 +32,14 @@
  *
  * The method may fail if getting the object would require blocking to take a lock. This behavior is specified via "blocking".
  */
-- (BOOL)objectAtPoint:(GLKVector3)p
+- (BOOL)objectAtPoint:(vector_float3)p
              blocking:(BOOL)blocking
                object:(id *)object
       createIfMissing:(BOOL)createIfMissing
         didCreateItem:(BOOL *)outDidCreateItem;
 
 // Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids.
-- (void)evictItemAtPoint:(GLKVector3)p;
+- (void)evictItemAtPoint:(vector_float3)p;
 
 // Evicts all items in the grid. (For example, to evict all items when the system comes under memory pressure.)
 - (void)evictAllItems;
@@ -54,7 +54,7 @@
  * Sub-classes should override this to get custom behavior on item invalidation.
  * For example, a sub-class may wish to delete on-disk caches for items which are currently evicted and are now invalid.
  */
-- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p;
+- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p;
 
 // The specified change to the grid causes certain items to be invalidated in dependent grids.
 - (void)invalidateItemsInDependentGridsWithChange:(GSGridEdit *)change;
@@ -68,7 +68,7 @@
 /* Applies the given transformation function to the item at the specified point.
  * This function returns a new grid item which is then inserted into the grid at the same position.
  */
-- (void)replaceItemAtPoint:(GLKVector3)p
+- (void)replaceItemAtPoint:(vector_float3)p
                  transform:(NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *))fn;
 
 @end

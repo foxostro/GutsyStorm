@@ -1,0 +1,10 @@
+uniform mat4 mvp;
+
+void main()
+{
+    vec4 vertex = vec4(gl_Vertex.z, gl_Vertex.w, 0.0, 1.0);
+    vec4 texcoords = vec4(gl_Vertex.x, gl_Vertex.y, 0, 0);
+    gl_FrontColor = texcoords;
+    gl_TexCoord[0] = texcoords;
+    gl_Position = mvp * vertex;
+}

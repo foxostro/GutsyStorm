@@ -8,10 +8,11 @@
 
 #import <ApplicationServices/ApplicationServices.h>
 #import <OpenGL/gl.h>
-#import <OpenGL/glu.h>
-#import <GLKit/GLKMath.h>
 #import "GSOpenGLView.h"
 #import "GSAppDelegate.h"
+#import "GSVBOHolder.h"
+#import "GSShader.h"
+#import "GSMatrixUtils.h"
 
 
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
@@ -42,12 +43,40 @@ int checkGLErrors(void);
     BOOL _bKeyDebounce;
     BOOL _uKeyDebounce;
     CVDisplayLinkRef _displayLink;
+    GSVBOHolder *_vboCrosshairs;
+    GSShader *_shaderCrosshairs;
 
     BOOL _timerShouldShutdown;
     dispatch_semaphore_t _semaTimerShutdown;
 
     BOOL _displayLinkShouldShutdown;
     dispatch_semaphore_t _semaDisplayLinkShutdown;
+}
+
++ (GSShader *)newCrosshairShader
+{
+    NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"];
+    NSString *vertFn = [bundle pathForResource:@"crosshairs.vert" ofType:@"txt"];
+    NSString *fragFn = [bundle pathForResource:@"crosshairs.frag" ofType:@"txt"];
+    NSString *vertSrc = [[NSString alloc] initWithContentsOfFile:vertFn
+                                                        encoding:NSMacOSRomanStringEncoding
+                                                           error:nil];
+    NSString *fragSrc = [[NSString alloc] initWithContentsOfFile:fragFn
+                                                        encoding:NSMacOSRomanStringEncoding
+                                                           error:nil];
+    GSShader *shader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+    return shader;
+}
+
++ (GSVBOHolder *)newCrosshairsVboWithContext:(NSOpenGLContext *)context
+{
+    vector_float4 crosshair_vertex = {400, 300, 0, 1};
+    GLuint handle = 0;
+    glGenBuffers(1, &handle);
+    glBindBuffer(GL_ARRAY_BUFFER, handle);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(crosshair_vertex), &crosshair_vertex, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    return [[GSVBOHolder alloc] initWithHandle:handle context:context];
 }
 
 // Enables vertical sync for drawing to limit FPS to the screen's refresh rate.
@@ -83,7 +112,7 @@ int checkGLErrors(void);
 {
     CVReturn ret;
 
-    [[self openGLContext] makeCurrentContext];
+    [self.openGLContext makeCurrentContext];
     assert(checkGLErrors() == 0);
     
     float glVersion;
@@ -107,40 +136,19 @@ int checkGLErrors(void);
     glDisable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
     
-    // Simple light setup.
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    
-    GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
-    GLfloat lightAmbient[] = {0.05, 0.05, 0.05, 1.0};
-    GLfloat lightDiffuse[] = {0.6, 0.6, 0.6, 1.0};
-    GLfloat lightSpecular[] = {1.0, 1.0, 1.0, 1.0};
-    
-    glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
-    
-    GLfloat materialAmbient[] = {0.05, 0.05, 0.05, 1.0};
-    GLfloat materialDiffuse[] = {0.6, 0.6, 0.6, 1.0};
-    GLfloat materialSpecular[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat materialShininess = 5.0;
-    
-    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, materialAmbient);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, materialDiffuse);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, materialSpecular);
-    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, materialShininess);
-    
     [self buildFontsAndStrings];
 
     GSTerrain *terrain = [[GSTerrain alloc] initWithSeed:0
                                                   camera:_camera
-                                               glContext:[self openGLContext]];
+                                               glContext:self.openGLContext];
     
     GSAppDelegate *appDelegate = [[NSApplication sharedApplication] delegate];
     appDelegate.terrain = terrain;
     _terrain = terrain;
     
+    _vboCrosshairs = [[self class] newCrosshairsVboWithContext:self.openGLContext];
+    _shaderCrosshairs = [[self class] newCrosshairShader];
+
     [self enableVSync];
     
     assert(checkGLErrors() == 0);
@@ -207,7 +215,7 @@ int checkGLErrors(void);
     _semaDisplayLinkShutdown = dispatch_semaphore_create(0);
 
     _camera = [[GSCamera alloc] init];
-    [_camera moveToPosition:GLKVector3Make(85.1, 16.1, 140.1)];
+    [_camera moveToPosition:(vector_float3){85.1, 16.1, 140.1}];
     [_camera updateCameraLookVectors];
     [self resetMouseInputSettings];
 
@@ -270,19 +278,12 @@ int checkGLErrors(void);
 
 - (void)reshape
 {
-    const float fovRadians = 60.0 * (M_PI / 180.0);
-    const float nearD = 0.1;
-    const float farD = 724.0;
-    
+    const float fovyRadians = 60.0 * (M_PI / 180.0);
+    const float nearZ = 0.1;
+    const float farZ = 2048.0;
     NSRect r = [self convertRectToBacking:[self bounds]];
     glViewport(0, 0, r.size.width, r.size.height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(GLKMatrix4MakePerspective(fovRadians, r.size.width/r.size.height, nearD, farD).m);
-    glMatrixMode(GL_MODELVIEW);
-    
-    [_camera reshapeWithBounds:r fov:fovRadians nearD:nearD farD:farD];
-    
-    assert(checkGLErrors() == 0);
+    [_camera reshapeWithBounds:r fov:fovyRadians nearD:nearZ farD:farZ];
 }
 
 // Handle user input and update the camera if it was modified.
@@ -351,50 +352,39 @@ int checkGLErrors(void);
     _prevFrameTime = frameTime;
 }
 
-// Draws the HUD UI.
 - (void)drawHUD
 {
-    NSRect r = [self bounds];
-    GLfloat height = r.size.height;
-    GLfloat width = r.size.width;
+    NSRect bounds = self.bounds;
+    GLfloat height = bounds.size.height;
+    GLfloat width = bounds.size.width;
+    matrix_float4x4 scale = matrix_from_scale((vector_float4){2.0f / width, -2.0f /  height, 1.0f, 1.0f});
+    matrix_float4x4 translation = matrix_from_translation((vector_float3){-width / 2.0f, -height / 2.0f, 0.0f});
+    matrix_float4x4 mvp = matrix_multiply(translation, scale);
 
-    glDisable(GL_LIGHTING);
-    glEnable(GL_TEXTURE_RECTANGLE_EXT);
+    vector_float4 crosshairPosition = {width / 2.0f, height / 2.0f, 0.0, 1.0};
+    
+    // Draw the cross hairs.
     glEnable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
-
-    // set orthograhic 1:1 pixel transform in local view coords
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glScalef(2.0f / width, -2.0f /  height, 1.0f);
-    glTranslatef(-width / 2.0f, -height / 2.0f, 0.0f);
-
-    // Draw the crosshairs.
     glPointSize(5.0);
-    glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
-    glBegin(GL_POINTS);
-    glVertex2f(width/2, height/2);
-    glEnd();
+    [_shaderCrosshairs bind];
+    [_shaderCrosshairs bindUniformWithMatrix4x4:mvp name:@"mvp"];
+    glBindBuffer(GL_ARRAY_BUFFER, _vboCrosshairs.handle);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(crosshairPosition), &crosshairPosition, GL_DYNAMIC_DRAW);
+    glVertexPointer(4, GL_FLOAT, 0, 0);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glDrawArrays(GL_POINTS, 0, 1);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    [_shaderCrosshairs unbind];
     glPointSize(1.0);
-
-    // Draw the FPS counter.
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    [_fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f)];
-
-    // reset orginal martices
-    glPopMatrix(); // GL_MODELVIEW
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-
-    glEnable(GL_LIGHTING);
-    glDisable(GL_TEXTURE_RECTANGLE_EXT);
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+    
+    // Draw the FPS counter.
+    [_fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f) withModelViewProjectionMatrix:mvp];
+
+    assert(checkGLErrors() == 0);
 }
 
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime
@@ -404,35 +394,16 @@ int checkGLErrors(void);
         return kCVReturnSuccess;
     }
 
-    static const GLfloat lightDir[] = {0.707, -0.707, -0.707, 0.0};
-
     NSOpenGLContext *currentContext = [self openGLContext];
     [currentContext makeCurrentContext];
 
     // must lock GL context because display link is threaded
     CGLLockContext((CGLContextObj)[currentContext CGLContextObj]);
 
-    // FIXME: Frequently, the call to glClear will fail with "invalid framebuffer operation" when the application is quitting.
     assert(checkGLErrors() == 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if(checkGLErrors() > 0) {
-        NSLog(@"ignoring OpenGL error");
-        CGLUnlockContext((CGLContextObj)[currentContext CGLContextObj]);
-        return kCVReturnError;
-    }
-
-    glPushMatrix();
-    glLoadIdentity();
-
-    [_camera submitCameraTransform];
-    glLightfv(GL_LIGHT0, GL_POSITION, lightDir);
-
     [_terrain draw];
-
-    glPopMatrix(); // camera transform
-
     [self drawHUD];
-
     [currentContext flushBuffer];
 
     CFAbsoluteTime time = CFAbsoluteTimeGetCurrent();

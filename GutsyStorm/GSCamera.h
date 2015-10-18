@@ -14,22 +14,23 @@
 
 @interface GSCamera : NSObject
 
-@property (readonly, nonatomic) GLKVector3 cameraEye;
-@property (readonly, nonatomic) GLKVector3 cameraCenter;
-@property (readonly, nonatomic) GLKVector3 cameraUp;
-@property (readonly, nonatomic) GLKQuaternion cameraRot;
+@property (readonly, nonatomic) vector_float3 cameraEye;
+@property (readonly, nonatomic) vector_float3 cameraCenter;
+@property (readonly, nonatomic) vector_float3 cameraUp;
+@property (readonly, nonatomic) vector_float4 cameraRot;
+@property (readonly, nonatomic) matrix_float4x4 modelViewMatrix;
+@property (readonly, nonatomic) matrix_float4x4 projectionMatrix;
 @property (strong) GSFrustum *frustum;
 
 - (void)updateCameraLookVectors;
 - (void)resetCamera;
-- (void)submitCameraTransform;
 - (unsigned)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
                                                keysDown:(NSDictionary*)keysDown
                                             mouseDeltaX:(int)mouseDeltaX
                                             mouseDeltaY:(int)mouseDeltaY
                                        mouseSensitivity:(float)mouseSensitivity;
-- (void)moveToPosition:(GLKVector3)p;
-- (void)setCameraRot:(GLKQuaternion)rot;
+- (void)moveToPosition:(vector_float3)p;
+- (void)setCameraRot:(vector_float4)rot;
 - (void)reshapeWithBounds:(NSRect)bounds
                       fov:(float)fov
                     nearD:(float)nearD

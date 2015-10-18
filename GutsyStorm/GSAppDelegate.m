@@ -6,7 +6,6 @@
 //  Copyright © 2012 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKMath.h>
 #import "GSAppDelegate.h"
 #import "GSOpenGLView.h"
 #import "GSTerrain.h"

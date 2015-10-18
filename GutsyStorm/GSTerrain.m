@@ -6,7 +6,6 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKMath.h>
 #import "GSIntegerVector3.h"
 #import "Voxel.h"
 #import "GSNoise.h"
@@ -17,6 +16,7 @@
 #import "GSCamera.h"
 #import "GSTerrain.h"
 #import "GSRay.h"
+#import "GSMatrixUtils.h"
 
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
 #define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
@@ -350,8 +350,8 @@ static void postProcessingInnerLoop(GSIntegerVector3 maxP, GSIntegerVector3 minP
 static void postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
                               voxel_t *voxelsIn, voxel_t *voxelsOut,
                               GSIntegerVector3 minP, GSIntegerVector3 maxP);
-static float groundGradient(float terrainHeight, GLKVector3 p);
-static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, GLKVector3 p, voxel_t *outVoxel);
+static float groundGradient(float terrainHeight, vector_float3 p);
+static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, voxel_t *outVoxel);
 int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 
@@ -388,6 +388,10 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     
     GSShader *cursorShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
     
+    [cursorShader bind];
+    [cursorShader bindUniformWithMatrix4x4:matrix_identity_float4x4 name:@"mvp"];
+    [cursorShader unbind];
+    
     assert(checkGLErrors() == 0);
 
     return cursorShader;
@@ -404,7 +408,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     GSShader *terrainShader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
     
     [terrainShader bind];
-    [terrainShader bindUniformWithNSString:@"tex" val:0]; // texture unit 0
+    [terrainShader bindUniformWithInt:0 name:@"tex"]; // texture unit 0
+    [terrainShader bindUniformWithMatrix4x4:matrix_identity_float4x4 name:@"mvp"];
+    [terrainShader unbind];
 
     assert(checkGLErrors() == 0);
     
@@ -429,7 +435,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                                   ofType:@"png"]
                                                      numTextures:4];
 
-        terrain_generator_t generator = ^(GLKVector3 a, voxel_t *voxel) {
+        terrain_generator_t generator = ^(vector_float3 a, voxel_t *voxel) {
             const float terrainHeight = 40.0f;
             generateTerrainVoxel(seed, terrainHeight, a, voxel);
         };
@@ -479,10 +485,12 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 {
     static const float edgeOffset = 1e-4;
     glDepthRange(edgeOffset, 1.0); // Use glDepthRange so the block cursor is properly offset from the block itself.
+
     [_textureArray bind];
     [_chunkStore drawActiveChunks];
     [_textureArray unbind];
-    [_cursor drawWithEdgeOffset:edgeOffset];
+    [_cursor drawWithCamera:_camera edgeOffset:edgeOffset];
+
     glDepthRange(0.0, 1.0);
 }
 
@@ -533,12 +541,13 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (void)recalcCursorPosition
 {
-    GSRay ray = GSRay_Make(_camera.cameraEye, GLKQuaternionRotateVector3(_camera.cameraRot, GLKVector3Make(0, 0, -1)));
+    vector_float3 rotated = quaternion_rotate_vector(_camera.cameraRot, vector_make(0, 0, -1));
+    GSRay ray = GSRay_Make(_camera.cameraEye, vector_make(rotated.x, rotated.y, rotated.z));
     __block BOOL cursorIsActive = NO;
-    __block GLKVector3 prev = ray.origin;
-    __block GLKVector3 cursorPos;
+    __block vector_float3 prev = ray.origin;
+    __block vector_float3 cursorPos;
     
-    [_chunkStore enumerateVoxelsOnRay:ray maxDepth:_maxPlaceDistance withBlock:^(GLKVector3 p, BOOL *stop, BOOL *fail) {
+    [_chunkStore enumerateVoxelsOnRay:ray maxDepth:_maxPlaceDistance withBlock:^(vector_float3 p, BOOL *stop, BOOL *fail) {
         voxel_t voxel;
 
         if(![_chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {
@@ -705,7 +714,7 @@ static void postProcessVoxels(struct PostProcessingRuleSet *ruleSet,
 }
 
 // Return a value between -1 and +1 so that a line through the y-axis maps to a smooth gradient of values from -1 to +1.
-static float groundGradient(float terrainHeight, GLKVector3 p)
+static float groundGradient(float terrainHeight, vector_float3 p)
 {
     const float y = p.y;
 
@@ -719,7 +728,7 @@ static float groundGradient(float terrainHeight, GLKVector3 p)
 }
 
 // Generates a voxel for the specified point in space. Returns that voxel in `outVoxel'.
-static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, GLKVector3 p, voxel_t *outVoxel)
+static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, voxel_t *outVoxel)
 {
     static dispatch_once_t onceToken;
     static GSNoise *noiseSource0;
@@ -738,12 +747,12 @@ static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, GLKVector
     // Normal rolling hills
     {
         const float freqScale = 0.025;
-        float n = [noiseSource0 noiseAtPointWithFourOctaves:GLKVector3MultiplyScalar(p, freqScale)];
+        float n = [noiseSource0 noiseAtPointWithFourOctaves:(p * freqScale)];
         float turbScaleX = 2.0;
         float turbScaleY = terrainHeight / 2.0;
         float yFreq = turbScaleX * ((n+1) / 2.0);
-        float t = turbScaleY * [noiseSource1 noiseAtPoint:GLKVector3Make(p.x*freqScale, p.y*yFreq*freqScale, p.z*freqScale)];
-        groundLayer = groundGradient(terrainHeight, GLKVector3Make(p.x, p.y + t, p.z)) <= 0;
+        float t = turbScaleY * [noiseSource1 noiseAtPoint:vector_make(p.x*freqScale, p.y*yFreq*freqScale, p.z*freqScale)];
+        groundLayer = groundGradient(terrainHeight, vector_make(p.x, p.y + t, p.z)) <= 0;
     }
 
     // Giant floating mountain
@@ -752,9 +761,9 @@ static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, GLKVector
          * The upper hemisphere is also squashed to make the top flatter.
          */
 
-        GLKVector3 mountainCenter = GLKVector3Make(50, 50, 80);
-        GLKVector3 toMountainCenter = GLKVector3Subtract(mountainCenter, p);
-        float distance = GLKVector3Length(toMountainCenter);
+        vector_float3 mountainCenter = vector_make(50, 50, 80);
+        vector_float3 toMountainCenter = mountainCenter - p;
+        float distance = vector_length(toMountainCenter);
         float radius = 30.0;
 
         // Apply turbulence to the surface of the mountain.
@@ -769,7 +778,7 @@ static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, GLKVector
             float azimuthalAngle = acosf(toMountainCenter.z / distance);
             float polarAngle = atan2f(toMountainCenter.y, toMountainCenter.x);
 
-            float t = turbScale * [noiseSource0 noiseAtPointWithFourOctaves:GLKVector3Make(azimuthalAngle * freqScale,
+            float t = turbScale * [noiseSource0 noiseAtPointWithFourOctaves:vector_make(azimuthalAngle * freqScale,
                                                                                            polarAngle * freqScale,
                                                                                            0.0)];
 

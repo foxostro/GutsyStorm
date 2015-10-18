@@ -6,11 +6,13 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKMath.h>
 #import "GSRay.h"
+#import "GSCamera.h"
+#import "GSMatrixUtils.h"
 #import "GSTerrainCursor.h"
 
 #import <OpenGL/gl.h>
+#import <simd/matrix.h>
 
 @implementation GSTerrainCursor
 {
@@ -28,21 +30,26 @@
     self = [super init];
     if (self) {
         _cursorIsActive = NO;
-        _cursorPos = _cursorPlacePos = GLKVector3Make(0, 0, 0);
+        _cursorPos = _cursorPlacePos = vector_make(0, 0, 0);
         _cursor = [[GSCube alloc] initWithContext:context shader:shader];
     }
     return self;
 }
 
-- (void)drawWithEdgeOffset:(GLfloat)edgeOffset
+- (void)drawWithCamera:(GSCamera *)camera edgeOffset:(GLfloat)edgeOffset
 {
-    if (_cursorIsActive) {
-        glDepthRange(0.0, 1.0 - edgeOffset);
-        glPushMatrix();
-        glTranslatef(_cursorPos.x, _cursorPos.y, _cursorPos.z);
-        [_cursor draw];
-        glPopMatrix();
+    if (!_cursorIsActive) {
+        return;
     }
+
+    glDepthRange(0.0, 1.0 - edgeOffset);
+
+    matrix_float4x4 translation = matrix_from_translation(_cursorPos + vector_make(0.5f, 0.5f, 0.5f));
+    matrix_float4x4 modelView = matrix_multiply(translation, camera.modelViewMatrix);
+    matrix_float4x4 projection = camera.projectionMatrix;
+
+    matrix_float4x4 mvp = matrix_multiply(modelView, projection);
+    [_cursor drawWithModelViewProjectionMatrix:mvp];
 }
 
 @end

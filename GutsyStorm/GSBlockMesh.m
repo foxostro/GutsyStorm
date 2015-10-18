@@ -6,7 +6,6 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKMath.h>
 #import "GSVertex.h"
 #import "GSBuffer.h" // for buffer_element_t, needed by Voxel.h
 #import "Voxel.h"
@@ -18,8 +17,8 @@
 
 @interface GSBlockMesh ()
 
-- (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat;
-- (NSArray *)transformVerticesForFace:(GSFace *)face upsideDown:(BOOL)upsideDown quatY_p:(GLKQuaternion *)quatY_p;
+- (void)rotateVertex:(struct vertex *)v quaternion:(vector_float4)quat;
+- (NSArray *)transformVerticesForFace:(GSFace *)face upsideDown:(BOOL)upsideDown quatY:(vector_float4)quatY;
 - (NSArray *)transformFaces:(NSArray *)faces direction:(voxel_dir_t)dir upsideDown:(BOOL)upsideDown;
 - (face_t)transformCubeFaceEnum:(face_t)correspondingCubeFace upsideDown:(BOOL)upsideDown;
 
@@ -41,29 +40,27 @@
     return self;
 }
 
-- (void)rotateVertex:(struct vertex *)v quaternion:(GLKQuaternion *)quat
+- (void)rotateVertex:(struct vertex *)v quaternion:(vector_float4)quat
 {
-    GLKVector3 vertexPos, normal;
+    vector_float3 vertexPos, normal;
 
-    vertexPos = GLKVector3Make(v->position[0], v->position[1], v->position[2]);
-    vertexPos = GLKQuaternionRotateVector3(*quat, vertexPos);
-    v->position[0] = vertexPos.v[0];
-    v->position[1] = vertexPos.v[1];
-    v->position[2] = vertexPos.v[2];
+    vertexPos = vector_make(v->position[0], v->position[1], v->position[2]);
+    vertexPos = quaternion_rotate_vector(quat, vertexPos);
+    v->position[0] = vertexPos.x;
+    v->position[1] = vertexPos.y;
+    v->position[2] = vertexPos.z;
 
-    normal = GLKVector3Make(v->normal[0], v->normal[1], v->normal[2]);
-    normal = GLKQuaternionRotateVector3(*quat, normal);
-    v->normal[0] = normal.v[0];
-    v->normal[1] = normal.v[1];
-    v->normal[2] = normal.v[2];
+    normal = vector_make(v->normal[0], v->normal[1], v->normal[2]);
+    normal = quaternion_rotate_vector(quat, normal);
+    v->normal[0] = normal.x;
+    v->normal[1] = normal.y;
+    v->normal[2] = normal.z;
 }
 
-- (NSArray *)transformVerticesForFace:(GSFace *)face upsideDown:(BOOL)upsideDown quatY_p:(GLKQuaternion *)quatY_p
+- (NSArray *)transformVerticesForFace:(GSFace *)face upsideDown:(BOOL)upsideDown quatY:(vector_float4)quatY
 {
     assert(face);
-    assert(quatY_p);
-    assert(4 == [face.vertexList count]);
-    
+
     NSMutableArray *transformedVertices = [[NSMutableArray alloc] initWithCapacity:[face.vertexList count]];
 
     NSEnumerator *enumerator = upsideDown ? [face.vertexList reverseObjectEnumerator] : [face.vertexList objectEnumerator];
@@ -77,7 +74,7 @@
             v.normal[1] *= -1;
         }
         
-        [self rotateVertex:&v quaternion:quatY_p];
+        [self rotateVertex:&v quaternion:quatY];
         
         [transformedVertices addObject:[GSVertex vertexWithVertex:&v]];
     }
@@ -87,16 +84,18 @@
 
 - (NSArray *)transformFaces:(NSArray *)faces direction:(voxel_dir_t)dir upsideDown:(BOOL)upsideDown
 {
-    GLKQuaternion quatY = quaternionForDirection(dir);
+    vector_float4 quatY = quaternionForDirection(dir);
     NSUInteger faceCount = [faces count];
     NSMutableArray *transformedFaces = [[NSMutableArray alloc] initWithCapacity:faceCount];
     
     for(GSFace *face in faces)
     {
-        NSArray *transformedVertices = [self transformVerticesForFace:face upsideDown:upsideDown quatY_p:&quatY];
+        NSArray *transformedVertices = [self transformVerticesForFace:face upsideDown:upsideDown quatY:quatY];
         face_t faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace upsideDown:upsideDown];
-        
-        [transformedFaces addObject:[GSFace faceWithVertices:transformedVertices correspondingCubeFace:faceDir]];
+        GSFace *transformedFace = [[GSFace alloc] initWithVertices:transformedVertices
+                                             correspondingCubeFace:faceDir
+                                               eligibleForOmission:face.eligibleForOmission];
+        [transformedFaces addObject:transformedFace];
     }
     
     return transformedFaces;
@@ -128,10 +127,10 @@
     }
 }
 
-- (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
+- (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
                                       vertexList:(NSMutableArray *)vertexList
                                        voxelData:(GSNeighborhood *)voxelData
-                                            minP:(GLKVector3)minP
+                                            minP:(vector_float3)minP
 {
     assert(vertexList);
     assert(voxelData);
@@ -142,6 +141,9 @@
     for(GSFace *face in _faces[voxel.upsideDown?1:0][voxel.dir])
     {
         // Omit the face if the face is eligible for such omission and is adjacent to a cube block.
+        // There are several configurations of several types of adjacent blocks that would permit faces to be omitted.
+        // However, the logic for determining whether a face polygon is perfectly occluded by an adjacent block face
+        // polygon is tricky. So, we're just going to skip that.
         if(face.eligibleForOmission &&
            [voxelData voxelAtPoint:GSIntegerVector3_Add(chunkLocalPos,
                                                         offsetForFace[face.correspondingCubeFace])].type == VOXEL_TYPE_CUBE) {
@@ -152,9 +154,9 @@
         {
             struct vertex v = vertex.v;
             
-            v.position[0] += pos.v[0];
-            v.position[1] += pos.v[1];
-            v.position[2] += pos.v[2];
+            v.position[0] += pos.x;
+            v.position[1] += pos.y;
+            v.position[2] += pos.z;
 
             // Grass and dirt are handled specially because it uses two textures and the others use one.
             if(voxel.tex == VOXEL_TEX_DIRT || voxel.tex == VOXEL_TEX_GRASS) {

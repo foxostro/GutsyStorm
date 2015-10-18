@@ -6,12 +6,14 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
+#import <simd/vector.h>
+
 @protocol GSGridItem <NSCopying>
 
 @required
 
 /* The minimum corner of the item, which is a rectangular prism (box). */
-@property (readonly, nonatomic) GLKVector3 minP;
+@property (readonly, nonatomic) vector_float3 minP;
 
 @optional
 
@@ -28,4 +30,4 @@
 @end
 
 /* This block defines a factory to generate new grid item objects given only the unique minP of the item. */
-typedef NSObject <GSGridItem> * (^grid_item_factory_t)(GLKVector3 minP);
+typedef NSObject <GSGridItem> * (^grid_item_factory_t)(vector_float3 minP);

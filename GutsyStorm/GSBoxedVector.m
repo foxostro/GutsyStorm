@@ -6,8 +6,7 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKMath.h>
-#import "GLKVector3Extra.h" // for GLKVector3_ArePrettyMuchEqual
+#import "GSVectorUtils.h"
 #import "GSBoxedVector.h"
 
 
@@ -20,11 +19,11 @@
 
 @implementation GSBoxedVector
 {
-    GLKVector3 _vector;
+    vector_float3 _vector;
     NSUInteger _cachedHash;
 }
 
-+ (GSBoxedVector *)boxedVectorWithVector:(GLKVector3)vector
++ (GSBoxedVector *)boxedVectorWithVector:(vector_float3)vector
 {
     return [[GSBoxedVector alloc] initWithVector:vector];
 }
@@ -34,7 +33,7 @@
     return [[GSBoxedVector alloc] initWithIntegerVector:vector];
 }
 
-- (instancetype)initWithVector:(GLKVector3)v
+- (instancetype)initWithVector:(vector_float3)v
 {
     self = [super init];
     if (self) {
@@ -50,14 +49,14 @@
 {
     self = [super init];
     if (self) {
-        _vector = GLKVector3Make(v.x, v.y, v.z);
+        _vector = (vector_float3){v.x, v.y, v.z};
         _cachedHash = [self computeHash];
     }
     
     return self;
 }
 
-- (GLKVector3)vectorValue
+- (vector_float3)vectorValue
 {
     return _vector;
 }
@@ -85,10 +84,10 @@
     if(self == otherVector) {
         return YES;
     }
-    
-    GLKVector3 vector2 = [otherVector vectorValue];
-    
-    return GLKVector3AllEqualToVector3(_vector, vector2);
+
+    vector_float3 vector2 = [otherVector vectorValue];
+
+    return (_vector.x == vector2.x) && (_vector.y == vector2.y) && (_vector.z == vector2.z);
 }
 
 - (NSUInteger)hash
@@ -108,7 +107,7 @@
 
 - (NSUInteger)computeHash
 {
-    return GLKVector3Hash(_vector);
+    return vector_hash(_vector);
 }
 
 @end

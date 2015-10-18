@@ -73,13 +73,14 @@ static const GLfloat vertices[] = {
     return self;
 }
 
-- (void)draw
+- (void)drawWithModelViewProjectionMatrix:(matrix_float4x4)mvp
 {
     GLsizei count = sizeof(indices)/sizeof(*indices);
 
     [_shader bind];
+    [_shader bindUniformWithMatrix4x4:mvp name:@"mvp"];
 
-    glLineWidth(2.0);
+    glLineWidth(5.0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_POLYGON_OFFSET_FILL);
 

@@ -8,7 +8,7 @@
 
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
-#import <OpenGL/OpenGL.h>
+#import <simd/matrix.h>
 
 @interface GSShader : NSObject
 
@@ -16,6 +16,8 @@
                       fragmentShaderSource:(NSString *)frag;
 - (void)bind;
 - (void)unbind;
-- (void)bindUniformWithNSString:(NSString *)name val:(GLint)val;
+- (void)bindUniformWithInt:(GLint)value name:(NSString *)name;
+- (void)bindUniformWithMatrix4x4:(matrix_float4x4)value name:(NSString *)name;
+- (void)bindUniformWithVector2:(vector_float2)value name:(NSString *)name;
 
 @end

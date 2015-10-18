@@ -6,9 +6,7 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKVector3.h>
-#import <GLKit/GLKQuaternion.h>
-#import "GLKVector3Extra.h"
+#import "GSVectorUtils.h" // for vector_hash
 #import "GSIntegerVector3.h"
 #import "Voxel.h"
 #import "GSGrid.h"
@@ -18,7 +16,7 @@
 
 @interface GSGrid ()
 
-- (NSObject <GSGridItem> *)searchForItemAtPosition:(GLKVector3)minP bucket:(NSMutableArray *)bucket;
+- (NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP bucket:(NSMutableArray *)bucket;
 
 @end
 
@@ -118,7 +116,7 @@
     {
         for(NSObject <GSGridItem> *item in oldBuckets[i])
         {
-            NSUInteger hash = GLKVector3Hash(item.minP);
+            NSUInteger hash = vector_hash(item.minP);
             [_buckets[hash % _numBuckets] addObject:item];
             _n++;
         }
@@ -134,7 +132,7 @@
     free(oldBuckets);
 }
 
-- (BOOL)objectAtPoint:(GLKVector3)p
+- (BOOL)objectAtPoint:(vector_float3)p
              blocking:(BOOL)blocking
                object:(id *)item
       createIfMissing:(BOOL)createIfMissing
@@ -150,8 +148,8 @@
     BOOL createdAnItem = NO;
     float load = 0;
     NSObject <GSGridItem> * anObject = nil;
-    GLKVector3 minP = MinCornerForChunkAtPoint(p);
-    NSUInteger hash = GLKVector3Hash(minP);
+    vector_float3 minP = MinCornerForChunkAtPoint(p);
+    NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
@@ -199,7 +197,7 @@
     return result;
 }
 
-- (id)objectAtPoint:(GLKVector3)p
+- (id)objectAtPoint:(vector_float3)p
 {
     id anItem = nil;
     [self objectAtPoint:p
@@ -211,12 +209,12 @@
     return anItem;
 }
 
-- (void)evictItemAtPoint:(GLKVector3)p
+- (void)evictItemAtPoint:(vector_float3)p
 {
     [_lockTheTableItself lockForReading];
 
-    GLKVector3 minP = MinCornerForChunkAtPoint(p);
-    NSUInteger hash = GLKVector3Hash(minP);
+    vector_float3 minP = MinCornerForChunkAtPoint(p);
+    NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
@@ -258,14 +256,14 @@
     [_lockTheTableItself unlockForWriting];
 }
 
-- (NSObject <GSGridItem> *)searchForItemAtPosition:(GLKVector3)minP bucket:(NSMutableArray *)bucket
+- (NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP bucket:(NSMutableArray *)bucket
 {
     assert(bucket);
 
     for(NSObject <GSGridItem> *item in bucket)
     {
         assert(item);
-        if(GLKVector3AllEqualToVector3(item.minP, minP)) {
+        if(vector_equal(item.minP, minP)) {
             return item;
         }
     }
@@ -279,9 +277,9 @@
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
         [_lockTheTableItself lockForReading];
 
-        GLKVector3 pos = change.pos;
-        GLKVector3 minP = MinCornerForChunkAtPoint(pos);
-        NSUInteger hash = GLKVector3Hash(minP);
+        vector_float3 pos = change.pos;
+        vector_float3 minP = MinCornerForChunkAtPoint(pos);
+        NSUInteger hash = vector_hash(minP);
         NSUInteger idxBucket = hash % _numBuckets;
         NSUInteger idxLock = hash % _numLocks;
         NSLock *lock = _locks[idxLock];
@@ -310,7 +308,7 @@
     });
 }
 
-- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p
+- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
 {
     // do nothing
 }
@@ -339,13 +337,13 @@
     [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
 }
 
-- (void)replaceItemAtPoint:(GLKVector3)p
+- (void)replaceItemAtPoint:(vector_float3)p
                  transform:(NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *original))newReplacementItem
 {
     [_lockTheTableItself lockForReading];
 
-    GLKVector3 minP = MinCornerForChunkAtPoint(p);
-    NSUInteger hash = GLKVector3Hash(minP);
+    vector_float3 minP = MinCornerForChunkAtPoint(p);
+    NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
@@ -356,7 +354,7 @@
     // Search for an existing item at the specified point. If it exists then just do a straight-up replacement.
     for(NS_VALID_UNTIL_END_OF_SCOPE NSObject <GSGridItem> *item in bucket)
     {
-        if(GLKVector3AllEqualToVector3(item.minP, minP)) {
+        if(vector_equal(item.minP, minP)) {
             NS_VALID_UNTIL_END_OF_SCOPE NSObject <GSGridItem> *replacement = newReplacementItem(item);
             if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
                 [item itemWillBeInvalidated];

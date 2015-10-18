@@ -7,12 +7,15 @@
 //
 
 #import <Foundation/Foundation.h>
+#include <simd/simd.h>
 
 @interface GSNoise : NSObject
 
+// XXX: We need a noise API that generates batch noise. For example, it could fill an array with 3D noise.
+
 - (instancetype)initWithSeed:(NSUInteger)seed;
-- (float)noiseAtPoint:(GLKVector3)p;
-- (float)noiseAtPoint:(GLKVector3)p numOctaves:(NSUInteger)numOctaves;
-- (float)noiseAtPointWithFourOctaves:(GLKVector3)p;
+- (float)noiseAtPoint:(vector_float3)p;
+- (float)noiseAtPoint:(vector_float3)p numOctaves:(NSUInteger)numOctaves;
+- (float)noiseAtPointWithFourOctaves:(vector_float3)p;
 
 @end

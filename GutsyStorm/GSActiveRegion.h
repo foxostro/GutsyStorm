@@ -6,6 +6,8 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
+#import <simd/vector.h>
+
 @class GSCamera;
 @class GSChunkVBOs;
 @class GSGridVBOs;
@@ -21,7 +23,7 @@
  * camera -- The camera at the center of the active region.
  * vboGrid -- Used to generate and retrieve VBOs.
  */
-- (instancetype)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
+- (instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                     camera:(GSCamera *)camera
                                    vboGrid:(GSGridVBOs *)gridVBOs;
 

@@ -7,16 +7,16 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <GLKit/GLKMath.h>
+#include <simd/simd.h>
 
 @interface GSGridEdit : NSObject
 
 @property (nonatomic, strong) id originalObject;
 @property (nonatomic, strong) id modifiedObject;
-@property (nonatomic, assign) GLKVector3 pos;
+@property (nonatomic, assign) vector_float3 pos;
 
 - (instancetype)initWithOriginalItem:(id)item
                         modifiedItem:(id)replacement
-                                 pos:(GLKVector3)p;
+                                 pos:(vector_float3)p;
 
 @end

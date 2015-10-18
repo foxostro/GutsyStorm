@@ -10,14 +10,12 @@
 #import <OpenGL/gl.h>
 #import <OpenGL/glext.h>
 #import <OpenGL/OpenGL.h>
-#import <GLKit/GLKMath.h>
 
-#import "GLKVector3Extra.h"
 #import "GSVertex.h"
 
 @implementation GSVertex
 
-+ (GSVertex *)vertexWithPosition:(GLKVector3)position
++ (GSVertex *)vertexWithPosition:(vector_float3)position
                           normal:(GSIntegerVector3)normal
                         texCoord:(GSIntegerVector3)texCoord
 {
@@ -41,15 +39,15 @@
     return self;
 }
 
-- (instancetype)initWithPosition:(GLKVector3)position
+- (instancetype)initWithPosition:(vector_float3)position
                           normal:(GSIntegerVector3)normal
                         texCoord:(GSIntegerVector3)texCoord
 {
     self = [super init];
     if (self) {
-        _v.position[0] = position.v[0];
-        _v.position[1] = position.v[1];
-        _v.position[2] = position.v[2];
+        _v.position[0] = position.x;
+        _v.position[1] = position.y;
+        _v.position[2] = position.z;
 
         _v.normal[0] = normal.x;
         _v.normal[1] = normal.y;
@@ -68,9 +66,9 @@
     return self;
 }
 
-- (GLKVector3)position
+- (vector_float3)position
 {
-    return GLKVector3Make(_v.position[0], _v.position[1], _v.position[2]);
+    return (vector_float3){_v.position[0], _v.position[1], _v.position[2]};
 }
 
 @end

@@ -6,7 +6,6 @@
 //  Copyright (c) 2012 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKMath.h>
 #import "GSActiveRegion.h"
 #import "GSFrustum.h"
 #import "Voxel.h"
@@ -53,7 +52,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     /* Vector specifies the AABB of the active region.
      * The camera position plus/minus this vector equals the max/min corners of the AABB.
      */
-    GLKVector3 _activeRegionExtent;
+    vector_float3 _activeRegionExtent;
 
     /* List of GSChunkVBOs which are within the camera frustum. */
     NSArray *_vbosInCameraFrustum;
@@ -70,7 +69,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     BOOL _shouldShutdown;
 }
 
-- (instancetype)initWithActiveRegionExtent:(GLKVector3)activeRegionExtent
+- (instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                     camera:(GSCamera *)camera
                                    vboGrid:(GSGridVBOs *)gridVBOs
 {
@@ -191,7 +190,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     NSMutableArray *points = [NSMutableArray new];
 
     GSFrustum *frustum = _camera.frustum;
-    const GLKVector3 center = _camera.cameraEye;
+    const vector_float3 center = _camera.cameraEye;
     const ssize_t activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
     const ssize_t activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
     const ssize_t activeRegionSizeY = _activeRegionExtent.y/CHUNK_SIZE_Y;
@@ -210,22 +209,22 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
         assert(p.y >= 0);
         assert(p.y < activeRegionSizeY);
         
-        GLKVector3 p1 = GLKVector3Make(center.x + p.x*CHUNK_SIZE_X, p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z);
+        vector_float3 p1 = (vector_float3){center.x + p.x*CHUNK_SIZE_X, p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z};
         
-        GLKVector3 centerP = GLKVector3Make(floorf(p1.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,
-                                            floorf(p1.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
-                                            floorf(p1.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z + CHUNK_SIZE_Z/2);
+        vector_float3 centerP = (vector_float3){floorf(p1.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,
+                                                floorf(p1.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
+                                                floorf(p1.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z + CHUNK_SIZE_Z/2};
         
-        GLKVector3 corners[8];
+        vector_float3 corners[8];
         
         corners[0] = MinCornerForChunkAtPoint(centerP);
-        corners[1] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            0));
-        corners[2] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z));
-        corners[3] = GLKVector3Add(corners[0], GLKVector3Make(0,            0,            CHUNK_SIZE_Z));
-        corners[4] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-        corners[5] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-        corners[6] = GLKVector3Add(corners[0], GLKVector3Make(CHUNK_SIZE_X, CHUNK_SIZE_Y, 0));
-        corners[7] = GLKVector3Add(corners[0], GLKVector3Make(0,            CHUNK_SIZE_Y, 0));
+        corners[1] = corners[0] + (vector_float3){CHUNK_SIZE_X, 0,            0};
+        corners[2] = corners[0] + (vector_float3){CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z};
+        corners[3] = corners[0] + (vector_float3){0,            0,            CHUNK_SIZE_Z};
+        corners[4] = corners[0] + (vector_float3){0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z};
+        corners[5] = corners[0] + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
+        corners[6] = corners[0] + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y, 0};
+        corners[7] = corners[0] + (vector_float3){0,            CHUNK_SIZE_Y, 0};
 
         if(GS_FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
             [points addObject:[GSBoxedVector boxedVectorWithVector:centerP]];
@@ -233,8 +232,8 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     }
     
     [points sortUsingComparator:^NSComparisonResult(GSBoxedVector *p1, GSBoxedVector *p2) {
-        float d1 = GLKVector3Distance([p1 vectorValue], center);
-        float d2 = GLKVector3Distance([p2 vectorValue], center);
+        float d1 = vector_distance([p1 vectorValue], center);
+        float d2 = vector_distance([p2 vectorValue], center);
         
         if (d1 > d2) {
             return NSOrderedDescending;

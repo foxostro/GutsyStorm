@@ -7,12 +7,11 @@
 //
 
 #import <assert.h>
-#import <GLKit/GLKMath.h>
 #import "GSAABB.h"
 
 @implementation GSAABB
 
-- (instancetype)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts
+- (instancetype)initWithVerts:(vector_float3 *)vertices numVerts:(size_t)numVerts
 {
     self = [super init];
     if (self) {
@@ -37,31 +36,31 @@
     return self;
 }
 
-- (instancetype)initWithMinP:(GLKVector3)minP maxP:(GLKVector3)maxP
+- (instancetype)initWithMinP:(vector_float3)minP maxP:(vector_float3)maxP
 {
-    GLKVector3 verts[2] = {minP, maxP};
+    vector_float3 verts[2] = {minP, maxP};
     return [self initWithVerts:verts numVerts:2];
 }
 
-- (GLKVector3)getVertex:(size_t)i
+- (vector_float3)getVertex:(size_t)i
 {
     switch(i)
     {
-    case 0: return GLKVector3Make(_mins.x, _mins.y, _mins.z);
-    case 1: return GLKVector3Make(_mins.x, _mins.y, _maxs.z);
-    case 2: return GLKVector3Make(_maxs.x, _mins.y, _mins.z);
-    case 3: return GLKVector3Make(_maxs.x, _mins.y, _maxs.z);
+        case 0: return (vector_float3){_mins.x, _mins.y, _mins.z};
+        case 1: return (vector_float3){_mins.x, _mins.y, _maxs.z};
+        case 2: return (vector_float3){_maxs.x, _mins.y, _mins.z};
+        case 3: return (vector_float3){_maxs.x, _mins.y, _maxs.z};
             
-    case 4: return GLKVector3Make(_mins.x, _maxs.y, _mins.z);
-    case 5: return GLKVector3Make(_mins.x, _maxs.y, _maxs.z);
-    case 6: return GLKVector3Make(_maxs.x, _maxs.y, _mins.z);
-    case 7: return GLKVector3Make(_maxs.x, _maxs.y, _maxs.z);
-            
+        case 4: return (vector_float3){_mins.x, _maxs.y, _mins.z};
+        case 5: return (vector_float3){_mins.x, _maxs.y, _maxs.z};
+        case 6: return (vector_float3){_maxs.x, _maxs.y, _mins.z};
+        case 7: return (vector_float3){_maxs.x, _maxs.y, _maxs.z};
+
     default:
         [NSException raise:@"Bad index" format:@"Bad index in -getVertex:"];
-        break;        
+        break;
     }
-    
+
     return _mins; // never reached
 }
 

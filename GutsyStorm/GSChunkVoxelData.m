@@ -6,7 +6,6 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKMath.h>
 #import "GSIntegerVector3.h"
 #import "GSChunkVoxelData.h"
 #import "GSRay.h"
@@ -39,12 +38,12 @@
 
 @synthesize minP;
 
-+ (NSString *)fileNameForVoxelDataFromMinP:(GLKVector3)minP
++ (NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
 }
 
-- (instancetype)initWithMinP:(GLKVector3)mp
+- (instancetype)initWithMinP:(vector_float3)mp
                       folder:(NSURL *)folder
               groupForSaving:(dispatch_group_t)groupForSaving
               queueForSaving:(dispatch_queue_t)queueForSaving
@@ -66,7 +65,7 @@
     return self;
 }
 
-- (instancetype)initWithMinP:(GLKVector3)mp
+- (instancetype)initWithMinP:(vector_float3)mp
                       folder:(NSURL *)folder
               groupForSaving:(dispatch_group_t)groupForSaving
               queueForSaving:(dispatch_queue_t)queueForSaving
@@ -164,6 +163,7 @@
 - (GSBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
                                 postProcessor:(terrain_post_processor_t)postProcessor
 {
+    vector_float3 thisMinP = self.minP;
     GSIntegerVector3 p, a, b;
     a = GSIntegerVector3_Make(-2, 0, -2);
     b = GSIntegerVector3_Make(chunkSize.x+2, chunkSize.y, chunkSize.z+2);
@@ -173,9 +173,10 @@
 
     // First, generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.
+    // XXX: Remove this loop and replace with a modified generator() that performs batch voxel generation.
     FOR_BOX(p, a, b)
     {
-        generator(GLKVector3Add(GLKVector3Make(p.x, p.y, p.z), self.minP), &voxels[INDEX_BOX(p, a, b)]);
+        generator(vector_make(p.x, p.y, p.z) + thisMinP, &voxels[INDEX_BOX(p, a, b)]);
     }
 
     // Post-process the voxels to add ramps, &c.
@@ -183,6 +184,7 @@
 
     // Copy the voxels for the chunk to their final destination.
     // TODO: Copy each column wholesale using memcpy
+    // XXX: I suspect that a highly efficient bit-blit could be written which copies voxels much faster than this.
     GSMutableBuffer *data = [[GSMutableBuffer alloc] initWithDimensions:chunkSize];
     voxel_t *buf = (voxel_t *)[data mutableData];
     FOR_BOX(p, ivecZero, chunkSize)
@@ -234,7 +236,7 @@
     return buffer;
 }
 
-- (GSChunkVoxelData *)copyWithEditAtPoint:(GLKVector3)pos block:(voxel_t)newBlock
+- (GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(voxel_t)newBlock
 {
     GSIntegerVector3 chunkLocalPos = GSIntegerVector3_Make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     buffer_element_t newValue = *((buffer_element_t *)&newBlock);

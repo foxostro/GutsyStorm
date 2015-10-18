@@ -7,6 +7,7 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import <simd/matrix.h>
 
 @class NSOpenGLContext;
 @class GSShader;
@@ -14,7 +15,8 @@
 @interface GSCube : NSObject
 
 - (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(GSShader *)shader NS_DESIGNATED_INITIALIZER;
-- (void)draw;
+- (instancetype)initWithContext:(NSOpenGLContext *)context
+                         shader:(GSShader *)shader NS_DESIGNATED_INITIALIZER;
+- (void)drawWithModelViewProjectionMatrix:(matrix_float4x4)mvp;
 
 @end

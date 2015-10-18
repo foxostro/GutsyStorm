@@ -9,7 +9,6 @@
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
 #import <OpenGL/OpenGL.h>
-#import <GLKit/GLKMath.h>
 #import <math.h>
 #import "GSFrustum.h"
 
@@ -28,7 +27,7 @@
     self = [super init];
     if (self) {
         // Initialization code here.
-        const GLKVector3 zero = GLKVector3Make(0,0,0);
+        const vector_float3 zero = {0};
         bzero(pl, 6*sizeof(GSPlane));
         ntl = zero;
         ntr = zero;
@@ -79,38 +78,38 @@
  * the camera is pointing and the up vector. Each time the camera position
  * or orientation changes, this function should be called as well.
  */
-- (void)setCamDefWithCameraEye:(GLKVector3)p cameraCenter:(GLKVector3)l cameraUp:(GLKVector3)u
+- (void)setCamDefWithCameraEye:(vector_float3)p cameraCenter:(vector_float3)l cameraUp:(vector_float3)u
 {
     // compute the Z axis of camera
     // this axis points in the opposite direction from
     // the looking direction
-    const GLKVector3 Z = GLKVector3Normalize(GLKVector3Subtract(l, p));
+    const vector_float3 Z = vector_normalize(l - p);
 
     // X axis of camera with given "up" vector and Z axis
-    const GLKVector3 X = GLKVector3Normalize(GLKVector3CrossProduct(u, Z));
+    const vector_float3 X = vector_normalize(vector_cross(u, Z));
 
     // the real "up" vector is the cross product of Z and X
-    const GLKVector3 Y = GLKVector3CrossProduct(Z, X);
+    const vector_float3 Y = vector_cross(Z, X);
 
     // compute the centers of the near and far planes
-    const GLKVector3 nc = GLKVector3Add(p, GLKVector3MultiplyScalar(Z, nearD));
-    const GLKVector3 fc = GLKVector3Add(p, GLKVector3MultiplyScalar(Z, farD));
+    const vector_float3 nc = p + (Z * nearD);
+    const vector_float3 fc = p + (Z * farD);
     
     // compute the 4 corners of the frustum on the near plane
-    const GLKVector3 yScaledByNh = GLKVector3MultiplyScalar(Y, nh);
-    const GLKVector3 xScaledByNw = GLKVector3MultiplyScalar(X, nw);
-    ntl = GLKVector3Subtract(GLKVector3Add(nc, yScaledByNh), xScaledByNw);
-    ntr = GLKVector3Add(GLKVector3Add(nc, yScaledByNh), xScaledByNw);
-    nbl = GLKVector3Subtract(GLKVector3Subtract(nc, yScaledByNh), xScaledByNw);
-    nbr = GLKVector3Add(GLKVector3Subtract(nc, yScaledByNh), xScaledByNw);
+    const vector_float3 yScaledByNh = Y * nh;
+    const vector_float3 xScaledByNw = X * nw;
+    ntl = (nc + yScaledByNh) - xScaledByNw;
+    ntr = nc + yScaledByNh + xScaledByNw;
+    nbl = nc - yScaledByNh - xScaledByNw;
+    nbr = (nc - yScaledByNh) + xScaledByNw;
 
     // compute the 4 corners of the frustum on the far plane
-    const GLKVector3 yScaledByFh = GLKVector3MultiplyScalar(Y, fh);
-    const GLKVector3 xScaledByFw = GLKVector3MultiplyScalar(X, fw);
-    ftl = GLKVector3Subtract(GLKVector3Add(fc, yScaledByFh), xScaledByFw);
-    ftr = GLKVector3Add(GLKVector3Add(fc, yScaledByFh), xScaledByFw);
-    fbl = GLKVector3Subtract(GLKVector3Subtract(fc, yScaledByFh), xScaledByFw);
-    fbr = GLKVector3Add(GLKVector3Subtract(fc, yScaledByFh), xScaledByFw);
+    const vector_float3 yScaledByFh = Y * fh;
+    const vector_float3 xScaledByFw = X * fw;
+    ftl = (fc + yScaledByFh) - xScaledByFw;
+    ftr = (fc + yScaledByFh) + xScaledByFw;
+    fbl = (fc - yScaledByFh) - xScaledByFw;
+    fbr = (fc - yScaledByFh) + xScaledByFw;
 
     // compute the six planes
     // the function set3Points assumes that the points
@@ -124,7 +123,7 @@
 }
 
 
-- (int)boxInFrustumWithBoxVertices:(GLKVector3 *)vertices
+- (int)boxInFrustumWithBoxVertices:(vector_float3 *)vertices
 {
     int result = GS_FRUSTUM_INSIDE, out,in;
     
@@ -192,8 +191,8 @@
     glBegin(GL_LINES);
     for(int i = 0; i < 6; ++i)
     {
-        GLKVector3 p1 = pl[i].p;
-        GLKVector3 p2 = GLKVector3Add(pl[i].p, pl[i].n);
+        vector_float3 p1 = pl[i].p;
+        vector_float3 p2 = pl[i].p + pl[i].n;
         
         glVertex3f(p1.x, p1.y, p1.z);
         glVertex3f(p2.x, p2.y, p2.z);

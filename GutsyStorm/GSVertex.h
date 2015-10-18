@@ -22,7 +22,7 @@ struct vertex
 
 @property (assign, nonatomic) struct vertex v;
 
-+ (GSVertex *)vertexWithPosition:(GLKVector3)position
++ (GSVertex *)vertexWithPosition:(vector_float3)position
                           normal:(GSIntegerVector3)normal
                         texCoord:(GSIntegerVector3)texCoord;
 
@@ -30,10 +30,10 @@ struct vertex
 
 - (instancetype)initWithVertex:(struct vertex *)pv;
 
-- (instancetype)initWithPosition:(GLKVector3)position
+- (instancetype)initWithPosition:(vector_float3)position
                           normal:(GSIntegerVector3)normal
                         texCoord:(GSIntegerVector3)texCoord;
 
-- (GLKVector3)position;
+- (vector_float3)position;
 
 @end

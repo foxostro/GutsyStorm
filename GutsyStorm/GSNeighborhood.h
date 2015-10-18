@@ -18,7 +18,7 @@
 
 @interface GSNeighborhood : NSObject
 
-+ (GLKVector3)offsetForNeighborIndex:(neighbor_index_t)idx;
++ (vector_float3)offsetForNeighborIndex:(neighbor_index_t)idx;
 
 - (GSChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx;
 - (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(GSChunkVoxelData *)neighbor;

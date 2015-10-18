@@ -6,7 +6,6 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKMath.h>
 #import "GSNoise.h"
 #include "snoise3.h"
 
@@ -34,12 +33,12 @@
     FeepingCreature_DestroyNoiseContext(_context);
 }
 
-- (float)noiseAtPoint:(GLKVector3)p
+- (float)noiseAtPoint:(vector_float3)p
 {
     return FeepingCreature_noise3(p, _context);
 }
 
-- (float)noiseAtPoint:(GLKVector3)p numOctaves:(NSUInteger)numOctaves
+- (float)noiseAtPoint:(vector_float3)p numOctaves:(NSUInteger)numOctaves
 {
     const float persistence = 0.5;
     float noise = 0.0;
@@ -48,20 +47,20 @@
     {
         float frequency = pow(2, octave);
         float amplitude = pow(persistence, octave+1);
-        noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, frequency), _context) * amplitude;
+        noise += FeepingCreature_noise3(p * frequency, _context) * amplitude;
     }
     
     return noise;
 }
 
-- (float)noiseAtPointWithFourOctaves:(GLKVector3)p
+- (float)noiseAtPointWithFourOctaves:(vector_float3)p
 {
     float noise;
     
-    noise =  FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 1.0f), _context) * 0.5000f;
-    noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 2.0f), _context) * 0.2500f;
-    noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 4.0f), _context) * 0.1250f;
-    noise += FeepingCreature_noise3(GLKVector3MultiplyScalar(p, 8.0f), _context) * 0.0625f;
+    noise =  FeepingCreature_noise3(p * 1.0f, _context) * 0.5000f;
+    noise += FeepingCreature_noise3(p * 2.0f, _context) * 0.2500f;
+    noise += FeepingCreature_noise3(p * 4.0f, _context) * 0.1250f;
+    noise += FeepingCreature_noise3(p * 8.0f, _context) * 0.0625f;
     
     return noise;
 }

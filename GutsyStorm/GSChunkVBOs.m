@@ -7,8 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <GLKit/GLKVector3.h>
-#import <GLKit/GLKQuaternion.h>
 #import "GSGridItem.h"
 #import "GSChunkVBOs.h"
 #import "GSIntegerVector3.h"
@@ -24,8 +22,9 @@ extern int checkGLErrors(void);
 
 
 // Make sure the number of indices can be stored in the type used for the shared index buffer.
-static const GLsizei SHARED_INDEX_BUFFER_LEN = 200000; // NOTE: use a different value when index_t is GLushort.
-typedef GLint index_t;
+// NOTE: use a different value when index_t is GLushort.
+static const GLsizei SHARED_INDEX_BUFFER_LEN = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * 36;
+typedef GLuint index_t;
 
 
 @implementation GSChunkVBOs
@@ -147,7 +146,7 @@ typedef GLint index_t;
         assert(!"I don't know the GLenum to use with index_t.");
     }
     
-    glDrawElements(GL_QUADS, _numIndicesForDrawing, indexEnum, NULL);
+    glDrawElements(GL_TRIANGLES, _numIndicesForDrawing, indexEnum, NULL);
 
     assert(checkGLErrors() == 0);
 }

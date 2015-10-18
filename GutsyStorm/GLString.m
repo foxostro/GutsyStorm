@@ -51,6 +51,9 @@
 //
 
 #import "GLString.h"
+#import "GSShader.h"
+#import "GSVBOHolder.h"
+#import <simd/matrix.h>
 
 // The following is a NSBezierPath category to allow
 // for rounded corners of the border
@@ -112,6 +115,9 @@
     NSSize _marginSize; // offset or frame size, default is 4 width 2 height
     NSSize _frameSize; // offset or frame size, default is 4 width 2 height
     float    _cRadius; // Corner radius, if 0 just a rectangle. Defaults to 4.0f
+    
+    GSShader *_shader;
+    GSVBOHolder *_vbo;
 
     BOOL _requiresUpdate;
 }
@@ -374,43 +380,73 @@
 #pragma mark -
 #pragma mark Drawing
 
-- (void) drawWithBounds:(NSRect)bounds
+- (void) drawWithBounds:(NSRect)bounds withModelViewProjectionMatrix:(matrix_float4x4)mvp
 {
-    if (_requiresUpdate)
+    vector_float4 vertices[] = {
+        (vector_float4){0.0f,           0.0f,            bounds.origin.x,                     bounds.origin.y},
+        (vector_float4){0.0f,           _texSize.height, bounds.origin.x,                     bounds.origin.y + bounds.size.height},
+        (vector_float4){_texSize.width, _texSize.height, bounds.origin.x + bounds.size.width, bounds.origin.y + bounds.size.height},
+        (vector_float4){_texSize.width, 0.0f,            bounds.origin.x + bounds.size.width, bounds.origin.y}
+    };
+
+    if (_requiresUpdate) {
         [self genTexture];
+    }
+
     if (_texName) {
-        glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT | GL_COLOR_BUFFER_BIT); // GL_COLOR_BUFFER_BIT for glBlendFunc, GL_ENABLE_BIT for glEnable / glDisable
-        
-        glDisable (GL_DEPTH_TEST); // ensure text is not remove by depth buffer test.
-        glEnable (GL_BLEND); // for text fading
-        glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // ditto
-        glEnable (GL_TEXTURE_RECTANGLE_EXT);    
-        
+        glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT | GL_COLOR_BUFFER_BIT);
+        glActiveTexture(GL_TEXTURE0);
+        glEnable(GL_TEXTURE_2D);
         glBindTexture (GL_TEXTURE_RECTANGLE_EXT, _texName);
-        glBegin (GL_QUADS);
-            glTexCoord2f (0.0f, 0.0f); // draw upper left in world coordinates
-            glVertex2f (bounds.origin.x, bounds.origin.y);
-    
-            glTexCoord2f (0.0f, _texSize.height); // draw lower left in world coordinates
-            glVertex2f (bounds.origin.x, bounds.origin.y + bounds.size.height);
-    
-            glTexCoord2f (_texSize.width, _texSize.height); // draw upper right in world coordinates
-            glVertex2f (bounds.origin.x + bounds.size.width, bounds.origin.y + bounds.size.height);
-    
-            glTexCoord2f (_texSize.width, 0.0f); // draw lower right in world coordinates
-            glVertex2f (bounds.origin.x + bounds.size.width, bounds.origin.y);
-        glEnd ();
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_TEXTURE_RECTANGLE_EXT);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_TEXTURE_RECTANGLE_EXT);
+
+        [_shader bind];
+        [_shader bindUniformWithMatrix4x4:mvp name:@"mvp"];
+        [_shader bindUniformWithInt:0 name:@"tex"];
         
+        glBindBuffer(GL_ARRAY_BUFFER, _vbo.handle);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        glVertexPointer(4, GL_FLOAT, 0, 0);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glDrawArrays(GL_QUADS, 0, 4);
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        [_shader unbind];
+
         glPopAttrib();
     }
 }
 
-- (void) drawAtPoint:(NSPoint)point
+- (void) drawAtPoint:(NSPoint)point withModelViewProjectionMatrix:(matrix_float4x4)mvp
 {
-    if (_requiresUpdate)
+    if (!_vbo) {
+        GLuint handle = 0;
+        glGenBuffers(1, &handle);
+        _vbo = [[GSVBOHolder alloc] initWithHandle:handle context:[NSOpenGLContext currentContext]];
+    }
+
+    if (!_shader) {
+        NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"];
+        NSString *vertFn = [bundle pathForResource:@"text.vert" ofType:@"txt"];
+        NSString *fragFn = [bundle pathForResource:@"text.frag" ofType:@"txt"];
+        NSString *vertSrc = [[NSString alloc] initWithContentsOfFile:vertFn encoding:NSMacOSRomanStringEncoding error:nil];
+        NSString *fragSrc = [[NSString alloc] initWithContentsOfFile:fragFn encoding:NSMacOSRomanStringEncoding error:nil];
+        _shader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+    }
+
+    if (_requiresUpdate) {
         [self genTexture]; // ensure size is calculated for bounds
-    if (_texName) // if successful
-        [self drawWithBounds:NSMakeRect (point.x, point.y, _texSize.width, _texSize.height)];
+    }
+
+    if (_texName) { // if successful
+        NSRect bounds = NSMakeRect (point.x, point.y, _texSize.width, _texSize.height);
+        [self drawWithBounds:bounds withModelViewProjectionMatrix:mvp];
+    }
 }
 
 @end

@@ -6,9 +6,7 @@
 //  Copyright 2012 Andrew Fox. All rights reserved.
 //
 
-#include <stdlib.h>
-#include <math.h>
-#import <GLKit/GLKMath.h>
+#include <float.h>
 #include "GSRay.h"
 
 #define TOP    (0)
@@ -22,7 +20,7 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 
-GSRay GSRay_Make(GLKVector3 origin, GLKVector3 direction)
+GSRay GSRay_Make(vector_float3 origin, vector_float3 direction)
 {
     GSRay ray;
     ray.origin = origin;
@@ -31,9 +29,9 @@ GSRay GSRay_Make(GLKVector3 origin, GLKVector3 direction)
 }
 
 
-int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GLKVector3 *intersectionPointOut)
+int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, vector_float3 *intersectionPointOut)
 {
-    float denominator = GLKVector3DotProduct(ray.direction, plane.n);
+    float denominator = vector_dot(ray.direction, plane.n);
     
     if(fabsf(denominator) < FLT_EPSILON) {
         // Ray is parallel to the plane. So, it intersections at the origin.
@@ -43,14 +41,14 @@ int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GLKVector3 *intersectionPoin
         return 1;
     }
     
-    float d = -GLKVector3DotProduct(plane.p, plane.n);
-    float numerator = -GLKVector3DotProduct(ray.origin, plane.n) + d;
+    float d = -vector_dot(plane.p, plane.n);
+    float numerator = -vector_dot(ray.origin, plane.n) + d;
     float t = numerator / denominator;
     
     if(t >= 0) {
         // Ray intersects plane.
         if(intersectionPointOut) {
-            *intersectionPointOut = GLKVector3Add(ray.origin, GLKVector3MultiplyScalar(ray.direction, t));
+            *intersectionPointOut = ray.origin + (ray.direction * t);
         }
         return 1;
     }
@@ -64,7 +62,7 @@ int GSRay_IntersectsPlane(GSRay ray, GSPlane plane, GLKVector3 *intersectionPoin
  * exits the box. If the ray originates within the box then distanceToEntrance will be set to NAN.
  * Returns 1 if there is an intersection, and 0 if there is no intersection at all.
  */
-int GSRay_IntersectsAABB(GSRay r, GLKVector3 minP, GLKVector3 maxP, float *distanceToEntrance, float *distanceToExit)
+int GSRay_IntersectsAABB(GSRay r, vector_float3 minP, vector_float3 maxP, float *distanceToEntrance, float *distanceToExit)
 {
 	struct {
 		float t1, t2;

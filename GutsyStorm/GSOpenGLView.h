@@ -14,7 +14,6 @@
 
 @interface GSOpenGLView : NSOpenGLView
 
-- (void)drawHUD;
 - (void)setMouseAtCenter;
 - (void)enableVSync;
 - (void)resetMouseInputSettings;

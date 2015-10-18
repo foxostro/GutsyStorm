@@ -12,7 +12,7 @@
 
 - (instancetype)initWithOriginalItem:(id)item
                         modifiedItem:(id)replacement
-                                 pos:(GLKVector3)p
+                                 pos:(vector_float3)p
 {
     self = [super init];
     if (self) {

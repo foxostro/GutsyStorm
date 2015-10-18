@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <GLKit/GLKVector3.h>
 #import "GSIntegerVector3.h"
 #import "Voxel.h"
 
@@ -77,9 +76,9 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(GSIntegerVector3 dimensions, GSI
  *
  * As the lighting buffer has no knowledge of the neighboring chunks, expect values on the border to be incorrect.
  */
-- (buffer_element_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
+- (buffer_element_t)lightForVertexAtPoint:(vector_float3)vertexPosInWorldSpace
                                withNormal:(GSIntegerVector3)normal
-                                     minP:(GLKVector3)minP;
+                                     minP:(vector_float3)minP;
 
 /* Saves the buffer contents to file asynchronously on the specified dispatch */
 - (void)saveToFile:(NSURL *)url

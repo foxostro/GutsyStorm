@@ -24,12 +24,12 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
 
 @synthesize minP;
 
-+ (NSString *)fileNameForSunlightDataFromMinP:(GLKVector3)minP
++ (NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.sunlight.dat", minP.x, minP.y, minP.z];
 }
 
-- (instancetype)initWithMinP:(GLKVector3)minCorner
+- (instancetype)initWithMinP:(vector_float3)minCorner
                       folder:(NSURL *)folder
               groupForSaving:(dispatch_group_t)groupForSaving
               queueForSaving:(dispatch_queue_t)queueForSaving
@@ -83,7 +83,7 @@ static const GSIntegerVector3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK
     dispatch_once(&onceToken, ^{
         for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
-            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+            vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
             offsetsX[i] = offset.x;
             offsetsZ[i] = offset.z;
         }

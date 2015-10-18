@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <GLKit/GLKMath.h>
 #import "GSGridItem.h"
 
 
@@ -20,9 +19,9 @@
 @property (readonly, nonatomic) GSBuffer *sunlight;
 @property (readonly, nonatomic) GSNeighborhood *neighborhood;
 
-+ (NSString *)fileNameForSunlightDataFromMinP:(GLKVector3)minP;
++ (NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP;
 
-- (instancetype)initWithMinP:(GLKVector3)minCorner
+- (instancetype)initWithMinP:(vector_float3)minCorner
                       folder:(NSURL *)folder
               groupForSaving:(dispatch_group_t)groupForSaving
               queueForSaving:(dispatch_queue_t)queueForSaving

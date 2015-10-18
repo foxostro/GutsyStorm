@@ -6,17 +6,15 @@
 //  Copyright (c) 2013 Andrew Fox. All rights reserved.
 //
 
-#import <GLKit/GLKQuaternion.h>
 #import "GSBuffer.h"
 #import "Voxel.h"
 #import "GutsyStormErrorCodes.h"
 #import "SyscallWrappers.h"
 #import "GSNeighborhood.h"
-#import <GLKit/GLKQuaternion.h> // used by Voxel.h
 #import "Voxel.h" // for INDEX_BOX
 
 
-static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 normal);
+static void samplingPoints(size_t count, vector_float3 *sample, GSIntegerVector3 normal);
 
 
 @implementation GSBuffer
@@ -166,12 +164,12 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     }
 }
 
-- (buffer_element_t)lightForVertexAtPoint:(GLKVector3)vertexPosInWorldSpace
+- (buffer_element_t)lightForVertexAtPoint:(vector_float3)vertexPosInWorldSpace
                                withNormal:(GSIntegerVector3)normal
-                                     minP:(GLKVector3)minP
+                                     minP:(vector_float3)minP
 {
     static const size_t count = 4;
-    GLKVector3 sample[count];
+    vector_float3 sample[count];
     float light;
     int i;
 
@@ -229,7 +227,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
     dispatch_once(&onceToken, ^{
         for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
-            GLKVector3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+            vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
             offsetsX[i] = offset.x;
             offsetsZ[i] = offset.z;
         }
@@ -288,7 +286,7 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 no
 @end
 
 
-static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 n)
+static void samplingPoints(size_t count, vector_float3 *sample, GSIntegerVector3 n)
 {
     assert(count == 4);
     assert(sample);
@@ -296,40 +294,40 @@ static void samplingPoints(size_t count, GLKVector3 *sample, GSIntegerVector3 n)
     const float a = 0.5f;
 
     if(n.x==1 && n.y==0 && n.z==0) {
-        sample[0] = GLKVector3Make(+a, -a, -a);
-        sample[1] = GLKVector3Make(+a, -a, +a);
-        sample[2] = GLKVector3Make(+a, +a, -a);
-        sample[3] = GLKVector3Make(+a, +a, +a);
+        sample[0] = vector_make(+a, -a, -a);
+        sample[1] = vector_make(+a, -a, +a);
+        sample[2] = vector_make(+a, +a, -a);
+        sample[3] = vector_make(+a, +a, +a);
     } else if(n.x==-1 && n.y==0 && n.z==0) {
-        sample[0] = GLKVector3Make(-a, -a, -a);
-        sample[1] = GLKVector3Make(-a, -a, +a);
-        sample[2] = GLKVector3Make(-a, +a, -a);
-        sample[3] = GLKVector3Make(-a, +a, +a);
+        sample[0] = vector_make(-a, -a, -a);
+        sample[1] = vector_make(-a, -a, +a);
+        sample[2] = vector_make(-a, +a, -a);
+        sample[3] = vector_make(-a, +a, +a);
     } else if(n.x==0 && n.y==1 && n.z==0) {
-        sample[0] = GLKVector3Make(-a, +a, -a);
-        sample[1] = GLKVector3Make(-a, +a, +a);
-        sample[2] = GLKVector3Make(+a, +a, -a);
-        sample[3] = GLKVector3Make(+a, +a, +a);
+        sample[0] = vector_make(-a, +a, -a);
+        sample[1] = vector_make(-a, +a, +a);
+        sample[2] = vector_make(+a, +a, -a);
+        sample[3] = vector_make(+a, +a, +a);
     } else if(n.x==0 && n.y==-1 && n.z==0) {
-        sample[0] = GLKVector3Make(-a, -a, -a);
-        sample[1] = GLKVector3Make(-a, -a, +a);
-        sample[2] = GLKVector3Make(+a, -a, -a);
-        sample[3] = GLKVector3Make(+a, -a, +a);
+        sample[0] = vector_make(-a, -a, -a);
+        sample[1] = vector_make(-a, -a, +a);
+        sample[2] = vector_make(+a, -a, -a);
+        sample[3] = vector_make(+a, -a, +a);
     } else if(n.x==0 && n.y==0 && n.z==1) {
-        sample[0] = GLKVector3Make(-a, -a, +a);
-        sample[1] = GLKVector3Make(-a, +a, +a);
-        sample[2] = GLKVector3Make(+a, -a, +a);
-        sample[3] = GLKVector3Make(+a, +a, +a);
+        sample[0] = vector_make(-a, -a, +a);
+        sample[1] = vector_make(-a, +a, +a);
+        sample[2] = vector_make(+a, -a, +a);
+        sample[3] = vector_make(+a, +a, +a);
     } else if(n.x==0 && n.y==0 && n.z==-1) {
-        sample[0] = GLKVector3Make(-a, -a, -a);
-        sample[1] = GLKVector3Make(-a, +a, -a);
-        sample[2] = GLKVector3Make(+a, -a, -a);
-        sample[3] = GLKVector3Make(+a, +a, -a);
+        sample[0] = vector_make(-a, -a, -a);
+        sample[1] = vector_make(-a, +a, -a);
+        sample[2] = vector_make(+a, -a, -a);
+        sample[3] = vector_make(+a, +a, -a);
     } else {
         assert(!"shouldn't get here");
-        sample[0] = GLKVector3Make(0, 0, 0);
-        sample[1] = GLKVector3Make(0, 0, 0);
-        sample[2] = GLKVector3Make(0, 0, 0);
-        sample[3] = GLKVector3Make(0, 0, 0);
+        sample[0] = vector_make(0, 0, 0);
+        sample[1] = vector_make(0, 0, 0);
+        sample[2] = vector_make(0, 0, 0);
+        sample[3] = vector_make(0, 0, 0);
     }
 }

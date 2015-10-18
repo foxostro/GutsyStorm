@@ -7,14 +7,15 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <simd/vector.h>
 
 @interface GSAABB : NSObject
 
-@property (assign, nonatomic) GLKVector3 mins;
-@property (assign, nonatomic) GLKVector3 maxs;
+@property (assign, nonatomic) vector_float3 mins;
+@property (assign, nonatomic) vector_float3 maxs;
 
-- (GLKVector3)getVertex:(size_t)i;
-- (instancetype)initWithVerts:(GLKVector3 *)vertices numVerts:(size_t)numVerts;
-- (instancetype)initWithMinP:(GLKVector3)minP maxP:(GLKVector3)maxP;
+- (vector_float3)getVertex:(size_t)i;
+- (instancetype)initWithVerts:(vector_float3 *)vertices numVerts:(size_t)numVerts;
+- (instancetype)initWithMinP:(vector_float3)minP maxP:(vector_float3)maxP;
 
 @end

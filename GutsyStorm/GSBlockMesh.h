@@ -10,9 +10,9 @@
 
 - (void)setFaces:(NSArray *)faces;
 
-- (void)generateGeometryForSingleBlockAtPosition:(GLKVector3)pos
+- (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
                                       vertexList:(NSMutableArray *)vertexList
                                        voxelData:(GSNeighborhood *)voxelData
-                                            minP:(GLKVector3)minP;
+                                            minP:(vector_float3)minP;
 
 @end

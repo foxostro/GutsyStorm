@@ -63,10 +63,30 @@ extern int checkGLErrors(void);
     glUseProgram(0);
 }
 
-- (void)bindUniformWithNSString:(NSString *)name val:(GLint)val
+- (void)bindUniformWithInt:(GLint)value name:(NSString *)name
 {
+    // XXX: Could speed this up by storing the uniform location instead of searching for it every time.
     const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
-    glUniform1i(glGetUniformLocation(_handle, nameCStr), val);
+    GLint loc = glGetUniformLocation(_handle, nameCStr);
+    glUniform1i(loc, value);
+    assert(checkGLErrors() == 0);
+}
+
+- (void)bindUniformWithMatrix4x4:(matrix_float4x4)value name:(NSString *)name
+{
+    // XXX: Could speed this up by storing the uniform location instead of searching for it every time.
+    const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
+    GLint loc = glGetUniformLocation(_handle, nameCStr);
+    glUniformMatrix4fv(loc, 1, GL_TRUE, (float *)&value);
+    assert(checkGLErrors() == 0);
+}
+
+- (void)bindUniformWithVector2:(vector_float2)value name:(NSString *)name
+{
+    // XXX: Could speed this up by storing the uniform location instead of searching for it every time.
+    const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
+    GLint loc = glGetUniformLocation(_handle, nameCStr);
+    glUniform2fv(loc, 1, (float *)&value);
     assert(checkGLErrors() == 0);
 }
 

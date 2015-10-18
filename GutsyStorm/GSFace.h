@@ -14,8 +14,13 @@
 @property (copy) NSArray *vertexList;
 @property (readonly) face_t correspondingCubeFace;
 
-+ (GSFace *)faceWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face;
++ (GSFace *)faceWithQuad:(NSArray *)vertices correspondingCubeFace:(face_t)face;
++ (GSFace *)faceWithTri:(NSArray *)vertices correspondingCubeFace:(face_t)face;
 
-- (instancetype)initWithVertices:(NSArray *)vertices correspondingCubeFace:(face_t)face;
+- (instancetype)init NS_UNAVAILABLE;
+
+- (instancetype)initWithVertices:(NSArray *)vertices
+           correspondingCubeFace:(face_t)face
+             eligibleForOmission:(BOOL)omittable NS_DESIGNATED_INITIALIZER;
 
 @end

@@ -7,8 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <GLKit/GLKVector3.h>
-#import <GLKit/GLKQuaternion.h>
 #import "GSIntegerVector3.h"
 #import "GSGrid.h"
 #import "GSChunkGeometryData.h"
@@ -29,9 +27,9 @@
     return self;
 }
 
-- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p
+- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
 {
-    GLKVector3 minP = MinCornerForChunkAtPoint(p);
+    vector_float3 minP = MinCornerForChunkAtPoint(p);
     NSString *fileName = [GSChunkGeometryData fileNameForGeometryDataFromMinP:minP];
     NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
     const char *path = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];

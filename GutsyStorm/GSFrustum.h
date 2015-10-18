@@ -21,14 +21,14 @@
 @interface GSFrustum : NSObject
 {
     GSPlane pl[6];
-    GLKVector3 ntl;
-    GLKVector3 ntr;
-    GLKVector3 nbl;
-    GLKVector3 nbr;
-    GLKVector3 ftl;
-    GLKVector3 ftr;
-    GLKVector3 fbl;
-    GLKVector3 fbr;
+    vector_float3 ntl;
+    vector_float3 ntr;
+    vector_float3 nbl;
+    vector_float3 nbr;
+    vector_float3 ftl;
+    vector_float3 ftr;
+    vector_float3 fbl;
+    vector_float3 fbr;
     float nearD;
     float farD;
     float ratio;
@@ -41,8 +41,8 @@
 }
 
 - (void)setCamInternalsWithAngle:(float)angle ratio:(float)ratio nearD:(float)nearD farD:(float)farD;
-- (void)setCamDefWithCameraEye:(GLKVector3)p cameraCenter:(GLKVector3)l cameraUp:(GLKVector3)u;
-- (int)boxInFrustumWithBoxVertices:(GLKVector3 *)vertices;
+- (void)setCamDefWithCameraEye:(vector_float3)p cameraCenter:(vector_float3)l cameraUp:(vector_float3)u;
+- (int)boxInFrustumWithBoxVertices:(vector_float3 *)vertices;
 - (void)draw;
 
 @end

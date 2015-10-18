@@ -9,8 +9,9 @@
 #ifndef GutsyStorm_Voxel_h
 #define GutsyStorm_Voxel_h
 
-#import <GLKit/GLKQuaternion.h>
+#import "GSVectorUtils.h"
 #import "GSIntegerVector3.h"
+#import "GSQuaternion.h"
 
 
 #if 0 && defined(DEBUG) // TODO: find a better home for this macro
@@ -77,15 +78,15 @@ _Static_assert(2 == (int)VOXEL_DIR_SOUTH, "The ordering of voxel_dir_t matters."
 _Static_assert(3 == (int)VOXEL_DIR_WEST,  "The ordering of voxel_dir_t matters.");
 
 
-static inline GLKQuaternion quaternionForDirection(voxel_dir_t dir)
+static inline vector_float4 quaternionForDirection(voxel_dir_t dir)
 {
-    return GLKQuaternionMakeWithAngleAndAxis((int)dir * M_PI_2, 0, 1, 0);
+    return quaternion_make_with_angle_and_axis((int)dir * M_PI_2, 0, 1, 0);
 }
 
 
 static inline GSIntegerVector3 integerVectorForDirection(voxel_dir_t dir)
 {
-    GLKVector3 vector = GLKQuaternionRotateVector3(quaternionForDirection(dir), GLKVector3Make(0, 0, 1));
+    vector_float3 vector = quaternion_rotate_vector(quaternionForDirection(dir), vector_make(0, 0, 1));
     GSIntegerVector3 iVector = GSIntegerVector3_Make(vector.x, vector.y, vector.z);
     return iVector;
 }
@@ -149,18 +150,18 @@ extern const GSIntegerVector3 combinedMinP;
 extern const GSIntegerVector3 combinedMaxP;
 
 
-static inline GLKVector3 MinCornerForChunkAtPoint(GLKVector3 p)
+static inline vector_float3 MinCornerForChunkAtPoint(vector_float3 p)
 {
-    return GLKVector3Make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
-                          floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
-                          floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
+    return vector_make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
+                       floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
+                       floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
 }
 
-static inline GLKVector3 MinCornerForChunkAtPoint2(float x, float y, float z)
+static inline vector_float3 MinCornerForChunkAtPoint2(float x, float y, float z)
 {
-    return GLKVector3Make(floorf(x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
-                          floorf(y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
-                          floorf(z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
+    return vector_make(floorf(x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
+                       floorf(y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
+                       floorf(z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
 }
 
 typedef enum

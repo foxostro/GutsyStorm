@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <GLKit/GLKVector3.h>
 #import "GSGrid.h"
 #import "GSChunkVBOs.h"
 #import "GSGridVBOs.h"
@@ -22,7 +21,7 @@
     return self;
 }
 
-- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(GLKVector3)p
+- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
 {
     self.invalidationNotification();
 }

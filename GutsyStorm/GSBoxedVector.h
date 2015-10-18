@@ -7,19 +7,20 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <simd/vector.h>
 #import "GSIntegerVector3.h"
 
 @interface GSBoxedVector : NSObject <NSCopying>
 
-+ (GSBoxedVector *)boxedVectorWithVector:(GLKVector3)vector;
++ (GSBoxedVector *)boxedVectorWithVector:(vector_float3)vector;
 + (GSBoxedVector *)boxedVectorWithIntegerVector:(GSIntegerVector3)vector;
-- (instancetype)initWithVector:(GLKVector3)vector;
+- (instancetype)initWithVector:(vector_float3)vector;
 - (instancetype)initWithIntegerVector:(GSIntegerVector3)vector;
 - (BOOL)isEqual:(id)other;
 - (BOOL)isEqualToVector:(GSBoxedVector *)vector;
 - (NSUInteger)hash;
 - (NSString *)toString;
-- (GLKVector3)vectorValue;
+- (vector_float3)vectorValue;
 - (GSIntegerVector3)integerVectorValue;
 
 @end

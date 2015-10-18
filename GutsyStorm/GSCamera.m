@@ -8,12 +8,11 @@
 
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
-#import <OpenGL/glu.h>
-#import <GLKit/GLKMath.h>
 #import "GSCamera.h"
 #import "GSIntegerVector3.h"
 #import "GSBuffer.h" // for buffer_element_t, needed by Voxel.h
 #import "Voxel.h"
+#import "GSQuaternion.h"
 
 @implementation GSCamera
 {
@@ -37,19 +36,27 @@
     return self;
 }
 
-// Submits the camera transformation to OpenGL.
-- (void)submitCameraTransform
-{
-    glMultMatrixf(GLKMatrix4MakeLookAt(_cameraEye.x,    _cameraEye.y,    _cameraEye.z,
-                                       _cameraCenter.x, _cameraCenter.y, _cameraCenter.z,
-                                       _cameraUp.x,     _cameraUp.y,     _cameraUp.z).m);
-}
-
 // Updated the camera look vectors.
 - (void)updateCameraLookVectors
 {
-    _cameraCenter = GLKVector3Add(_cameraEye, GLKVector3Normalize(GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(0,0,-1))));
-    _cameraUp = GLKVector3Normalize(GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(0,1,0)));
+    _cameraCenter = _cameraEye + vector_normalize(quaternion_rotate_vector(_cameraRot, vector_make(0,0,-1)));
+    _cameraUp = vector_normalize(quaternion_rotate_vector(_cameraRot, vector_make(0,1,0)));
+
+    vector_float3 ev = _cameraEye;
+    vector_float3 cv = _cameraCenter;
+    vector_float3 uv = _cameraUp;
+    vector_float3 n = vector_normalize(ev + -cv);
+    vector_float3 u = vector_normalize(vector_cross(uv, n));
+    vector_float3 v = vector_cross(n, u);
+
+    matrix_float4x4 m = {
+        (vector_float4){u.x, u.y, u.z, vector_dot(-u, ev)},
+        (vector_float4){v.x, v.y, v.z, vector_dot(-v, ev)},
+        (vector_float4){n.x, n.y, n.z, vector_dot(-n, ev)},
+        (vector_float4){0,   0,   0,   1}
+    };
+
+    _modelViewMatrix = m;
 }
 
 // Set the default camera and reset camera properties.
@@ -58,10 +65,10 @@
     _ceilingHeight = CHUNK_SIZE_Y;
     _cameraSpeed = 10.0;
     _cameraRotSpeed = 1.0;
-    _cameraEye = GLKVector3Make(0.0f, 0.0f, 0.0f);
-    _cameraCenter = GLKVector3Make(0.0f, 0.0f, -1.0f);
-    _cameraUp = GLKVector3Make(0.0f, 1.0f, 0.0f);
-    _cameraRot = GLKQuaternionMakeWithAngleAndAxis(0, 0, 1, 0);
+    _cameraEye = vector_make(0.0f, 0.0f, 0.0f);
+    _cameraCenter = vector_make(0.0f, 0.0f, -1.0f);
+    _cameraUp = vector_make(0.0f, 1.0f, 0.0f);
+    _cameraRot = quaternion_make_with_angle_and_axis(0, 0, 1, 0);
     [self updateCameraLookVectors];
 }
 
@@ -75,58 +82,58 @@
     unsigned cameraModifiedFlags = 0;
 
     if([keysDown[@('w')] boolValue]) {
-        GLKVector3 velocity = GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(0, 0, -_cameraSpeed*dt));
-        _cameraEye = GLKVector3Add(_cameraEye, velocity);
+        vector_float3 velocity = quaternion_rotate_vector(_cameraRot, vector_make(0, 0, -_cameraSpeed*dt));
+        _cameraEye = _cameraEye + vector_make(velocity.x, velocity.y, velocity.z);
         cameraModifiedFlags |= CAMERA_MOVED;
     } else if([keysDown[@('s')] boolValue]) {
-        GLKVector3 velocity = GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(0, 0, _cameraSpeed*dt));
-        _cameraEye = GLKVector3Add(_cameraEye, velocity);
+        vector_float3 velocity = quaternion_rotate_vector(_cameraRot, vector_make(0, 0, _cameraSpeed*dt));
+        _cameraEye = _cameraEye + vector_make(velocity.x, velocity.y, velocity.z);
         cameraModifiedFlags |= CAMERA_MOVED;
     }
 
     if([keysDown[@('a')] boolValue]) {
-        GLKVector3 velocity = GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(-_cameraSpeed*dt, 0, 0));
-        _cameraEye = GLKVector3Add(_cameraEye, velocity);
+        vector_float3 velocity = quaternion_rotate_vector(_cameraRot, vector_make(-_cameraSpeed*dt, 0, 0));
+        _cameraEye = _cameraEye + vector_make(velocity.x, velocity.y, velocity.z);
         cameraModifiedFlags |= CAMERA_MOVED;
     } else if([keysDown[@('d')] boolValue]) {
-        GLKVector3 velocity = GLKQuaternionRotateVector3(_cameraRot, GLKVector3Make(_cameraSpeed*dt, 0, 0));
-        _cameraEye = GLKVector3Add(_cameraEye, velocity);
+        vector_float3 velocity = quaternion_rotate_vector(_cameraRot, vector_make(_cameraSpeed*dt, 0, 0));
+        _cameraEye = _cameraEye + vector_make(velocity.x, velocity.y, velocity.z);
         cameraModifiedFlags |= CAMERA_MOVED;
     }
 
     if([keysDown[@('j')] boolValue]) {
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(_cameraRotSpeed*dt, 0, 1, 0);
-        _cameraRot = GLKQuaternionMultiply(deltaRot, _cameraRot);
+        vector_float4 deltaRot = quaternion_make_with_angle_and_axis(_cameraRotSpeed*dt, 0, 1, 0);
+        _cameraRot = quaternion_multiply(deltaRot, _cameraRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     } else if([keysDown[@('l')] boolValue]) {
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(-_cameraRotSpeed*dt, 0, 1, 0);
-        _cameraRot = GLKQuaternionMultiply(deltaRot, _cameraRot);
+        vector_float4 deltaRot = quaternion_make_with_angle_and_axis(-_cameraRotSpeed*dt, 0, 1, 0);
+        _cameraRot = quaternion_multiply(deltaRot, _cameraRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     }
 
     if([keysDown[@('i')] boolValue]) {
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(-_cameraRotSpeed*dt, 1, 0, 0);
-        _cameraRot = GLKQuaternionMultiply(_cameraRot, deltaRot);
+        vector_float4 deltaRot = quaternion_make_with_angle_and_axis(-_cameraRotSpeed*dt, 1, 0, 0);
+        _cameraRot = quaternion_multiply(_cameraRot, deltaRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     } else if([keysDown[@('k')] boolValue]) {
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(_cameraRotSpeed*dt, 1, 0, 0);
-        _cameraRot = GLKQuaternionMultiply(_cameraRot, deltaRot);
+        vector_float4 deltaRot = quaternion_make_with_angle_and_axis(_cameraRotSpeed*dt, 1, 0, 0);
+        _cameraRot = quaternion_multiply(_cameraRot, deltaRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     }
 
     if(mouseDeltaX != 0) {
         float mouseDirectionX = -mouseDeltaX/mouseSensitivity/dt;
         float angle = mouseDirectionX*dt;
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(angle, 0, 1, 0);
-        _cameraRot = GLKQuaternionMultiply(deltaRot, _cameraRot);
+        vector_float4 deltaRot = quaternion_make_with_angle_and_axis(angle, 0, 1, 0);
+        _cameraRot = quaternion_multiply(deltaRot, _cameraRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     }
 
     if(mouseDeltaY != 0) {
         float mouseDirectionY = -mouseDeltaY/mouseSensitivity/dt;
         float angle = mouseDirectionY*dt;
-        GLKQuaternion deltaRot = GLKQuaternionMakeWithAngleAndAxis(angle, 1, 0, 0);
-        _cameraRot = GLKQuaternionMultiply(_cameraRot, deltaRot);
+        vector_float4 deltaRot = quaternion_make_with_angle_and_axis(angle, 1, 0, 0);
+        _cameraRot = quaternion_multiply(_cameraRot, deltaRot);
         cameraModifiedFlags |= CAMERA_TURNED;
     }
 
@@ -141,21 +148,31 @@
     return cameraModifiedFlags;
 }
 
-- (void)moveToPosition:(GLKVector3)p
+- (void)moveToPosition:(vector_float3)p
 {
     _cameraEye = p;
     [self updateCameraLookVectors];
     [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
 }
 
-- (void)reshapeWithBounds:(NSRect)bounds fov:(float)fov nearD:(float)nearD farD:(float)farD
+- (void)reshapeWithBounds:(NSRect)bounds fov:(float)fovyRadians nearD:(float)nearZ farD:(float)farZ
 {
     const float ratio = bounds.size.width / bounds.size.height;
-    [_frustum setCamInternalsWithAngle:fov ratio:ratio nearD:nearD farD:farD];
+    [_frustum setCamInternalsWithAngle:fovyRadians ratio:ratio nearD:nearZ farD:farZ];
     [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
+
+    float aspect = bounds.size.width / bounds.size.height;
+    float cotan = 1.0f / tanf(fovyRadians / 2.0f);
+
+    _projectionMatrix = (matrix_float4x4){
+        (vector_float4){cotan / aspect, 0,     0,                               0},
+        (vector_float4){0,              cotan, 0,                               0},
+        (vector_float4){0,              0,     (farZ + nearZ) / (nearZ - farZ), (2.0f * farZ * nearZ) / (nearZ - farZ)},
+        (vector_float4){0,              0,     -1,                              0},
+    };;
 }
 
-- (void)setCameraRot:(GLKQuaternion)rot
+- (void)setCameraRot:(vector_float4)rot
 {
     _cameraRot = rot;
     [self updateCameraLookVectors];
