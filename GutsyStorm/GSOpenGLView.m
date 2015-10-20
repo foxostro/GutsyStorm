@@ -9,10 +9,10 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <OpenGL/gl.h>
 #import "GSOpenGLView.h"
-#import "GSAppDelegate.h"
 #import "GSVBOHolder.h"
 #import "GSShader.h"
 #import "GSMatrixUtils.h"
+#import "GSViewController.h"
 
 
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
@@ -26,28 +26,22 @@ NSString *stringForOpenGLError(GLenum error);
 int checkGLErrors(void);
 
 
+@interface GSOpenGLView ()
+
+- (void)enableVSync;
+- (void)buildFontsAndStrings;
+- (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
+
+@end
+
+
 @implementation GSOpenGLView
 {
-    NSTimer *_updateTimer;
-    CFAbsoluteTime _prevFrameTime, _lastRenderTime;
-    CFAbsoluteTime _lastFpsLabelUpdateTime, _fpsLabelUpdateInterval;
-    size_t _numFramesSinceLastFpsLabelUpdate;
-    NSMutableDictionary *_keysDown;
-    int32_t _mouseDeltaX, _mouseDeltaY;
-    float _mouseSensitivity;
-    GSCamera *_camera;
     GLString *_fpsStringTex;
     NSMutableDictionary *_stringAttribs; // attributes for string textures
-    __weak GSTerrain *_terrain;
-    BOOL _spaceBarDebounce;
-    BOOL _bKeyDebounce;
-    BOOL _uKeyDebounce;
     CVDisplayLinkRef _displayLink;
     GSVBOHolder *_vboCrosshairs;
     GSShader *_shaderCrosshairs;
-
-    BOOL _timerShouldShutdown;
-    dispatch_semaphore_t _semaTimerShutdown;
 
     BOOL _displayLinkShouldShutdown;
     dispatch_semaphore_t _semaDisplayLinkShutdown;
@@ -137,14 +131,6 @@ int checkGLErrors(void);
     glActiveTexture(GL_TEXTURE0);
     
     [self buildFontsAndStrings];
-
-    GSTerrain *terrain = [[GSTerrain alloc] initWithSeed:0
-                                                  camera:_camera
-                                               glContext:self.openGLContext];
-    
-    GSAppDelegate *appDelegate = [[NSApplication sharedApplication] delegate];
-    appDelegate.terrain = terrain;
-    _terrain = terrain;
     
     _vboCrosshairs = [[self class] newCrosshairsVboWithContext:self.openGLContext];
     _shaderCrosshairs = [[self class] newCrosshairShader];
@@ -177,7 +163,6 @@ int checkGLErrors(void);
     }
     
     // Activate the display link
-    appDelegate.openGlView = self;
     ret = CVDisplayLinkStart(_displayLink);
     if (ret != kCVReturnSuccess) {
         NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
@@ -185,171 +170,19 @@ int checkGLErrors(void);
     }
 }
 
-// Reset mouse input mechanism for camera.
-- (void)resetMouseInputSettings
-{
-    // Reset mouse input mechanism for camera.
-    _mouseSensitivity = 500;
-    _mouseDeltaX = 0;
-    _mouseDeltaY = 0;
-    [self setMouseAtCenter];
-}
-
 - (void)awakeFromNib
 {
-    [self  setWantsBestResolutionOpenGLSurface:YES];
-    
-    _prevFrameTime = _lastRenderTime = _lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
-    _fpsLabelUpdateInterval = 0.3;
-    _numFramesSinceLastFpsLabelUpdate = 0;
-    _keysDown = [[NSMutableDictionary alloc] init];
-    _terrain = nil;
-    _spaceBarDebounce = NO;
-    _bKeyDebounce = NO;
-    _uKeyDebounce = NO;
-
-    _timerShouldShutdown = NO;
-    _semaTimerShutdown = dispatch_semaphore_create(0);
+    [self setWantsBestResolutionOpenGLSurface:YES];
 
     _displayLinkShouldShutdown = NO;
     _semaDisplayLinkShutdown = dispatch_semaphore_create(0);
-
-    _camera = [[GSCamera alloc] init];
-    [_camera moveToPosition:(vector_float3){85.1, 16.1, 140.1}];
-    [_camera updateCameraLookVectors];
-    [self resetMouseInputSettings];
-
-    // Register with window to accept user input.
-    [[self window] makeFirstResponder: self];
-    [[self window] setAcceptsMouseMovedEvents: YES];
-
-    // Register a timer to drive the game loop.
-    _updateTimer = [NSTimer timerWithTimeInterval:1.0 / 30.0
-                                          target:self
-                                        selector:@selector(timerFired:)
-                                        userInfo:nil
-                                         repeats:YES];
-
-    [[NSRunLoop currentRunLoop] addTimer:_updateTimer 
-                                 forMode:NSDefaultRunLoopMode];
-}
-
-- (BOOL)acceptsFirstResponder
-{
-    return YES;
-}
-
-- (void)mouseMoved:(NSEvent *)theEvent
-{
-    static BOOL first = YES;
-    
-    CGGetLastMouseDelta(&_mouseDeltaX, &_mouseDeltaY);
-    
-    if(first) {
-        first = NO;
-        _mouseDeltaX = 0;
-        _mouseDeltaY = 0;
-    }
-    
-    [self setMouseAtCenter];
-}
-
-// Reset mouse to the center of the view so it can't leave the window.
-- (void)setMouseAtCenter
-{
-    NSRect bounds = [self bounds];
-    CGPoint viewCenter;
-    viewCenter.x = bounds.origin.x + bounds.size.width / 2;
-    viewCenter.y = bounds.origin.y + bounds.size.height / 2;
-    CGWarpMouseCursorPosition(viewCenter);
-}
-
-- (void)keyDown:(NSEvent *)theEvent
-{
-    int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    _keysDown[@(key)] = @YES;
-}
-
-- (void)keyUp:(NSEvent *)theEvent
-{
-    int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    _keysDown[@(key)] = @NO;
 }
 
 - (void)reshape
 {
-    const float fovyRadians = 60.0 * (M_PI / 180.0);
-    const float nearZ = 0.1;
-    const float farZ = 2048.0;
-    NSRect r = [self convertRectToBacking:[self bounds]];
+    NSRect r = [self convertRectToBacking:self.bounds];
     glViewport(0, 0, r.size.width, r.size.height);
-    [_camera reshapeWithBounds:r fov:fovyRadians nearD:nearZ farD:farZ];
-}
-
-// Handle user input and update the camera if it was modified.
-- (unsigned)handleUserInput:(float)dt
-{
-    unsigned cameraModifiedFlags;
-
-    cameraModifiedFlags = [_camera handleUserInputForFlyingCameraWithDeltaTime:dt
-                                                                   keysDown:_keysDown
-                                                                mouseDeltaX:_mouseDeltaX
-                                                                mouseDeltaY:_mouseDeltaY
-                                                           mouseSensitivity:_mouseSensitivity];
-
-    if([_keysDown[@(' ')] boolValue]) {
-        if(!_spaceBarDebounce) {
-            _spaceBarDebounce = YES;
-            [_terrain placeBlockUnderCrosshairs];
-        }
-    } else {
-        _spaceBarDebounce = NO;
-    }
-
-    if([_keysDown[@('b')] boolValue]) {
-        if(!_bKeyDebounce) {
-            _bKeyDebounce = YES;
-            [_terrain removeBlockUnderCrosshairs];
-        }
-    } else {
-        _bKeyDebounce = NO;
-    }
-
-    if([_keysDown[@('u')] boolValue]) {
-        if(!_uKeyDebounce) {
-            _uKeyDebounce = YES;
-            [_terrain testPurge];
-        }
-    } else {
-        _uKeyDebounce = NO;
-    }
-
-    // Reset for the next update
-    _mouseDeltaX = 0;
-    _mouseDeltaY = 0;
-
-    return cameraModifiedFlags;
-}
-
-// Timer callback method
-- (void)timerFired:(id)sender
-{
-    if (_timerShouldShutdown) {
-        dispatch_semaphore_signal(_semaTimerShutdown);
-        return;
-    }
-
-    CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
-    float dt = (float)(frameTime - _prevFrameTime);
-    unsigned cameraModifiedFlags = 0;
-    
-    // Handle user input and update the camera if it was modified.
-    cameraModifiedFlags = [self handleUserInput:dt];
-    
-    // Allow the chunkStore to update every frame.
-    [_terrain updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
-    
-    _prevFrameTime = frameTime;
+    [self.viewController reshapeWithBounds:r];
 }
 
 - (void)drawHUD
@@ -402,23 +235,9 @@ int checkGLErrors(void);
 
     assert(checkGLErrors() == 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    [_terrain draw];
+    [self.viewController onDraw];
     [self drawHUD];
     [currentContext flushBuffer];
-
-    CFAbsoluteTime time = CFAbsoluteTimeGetCurrent();
-
-    // Update the FPS label every so often.
-    if(time - _lastFpsLabelUpdateTime > _fpsLabelUpdateInterval) {
-        float fps = _numFramesSinceLastFpsLabelUpdate / (time - _lastFpsLabelUpdateTime);
-        _lastFpsLabelUpdateTime = time;
-        _numFramesSinceLastFpsLabelUpdate = 0;
-        NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
-        [_fpsStringTex setString:label withAttributes:_stringAttribs];
-    }
-
-    _lastRenderTime = time;
-    _numFramesSinceLastFpsLabelUpdate++;
 
     CGLUnlockContext((CGLContextObj)[currentContext CGLContextObj]);
     return kCVReturnSuccess;
@@ -431,11 +250,7 @@ int checkGLErrors(void);
 
 - (void)shutdown
 {
-    _timerShouldShutdown = YES;
     _displayLinkShouldShutdown = YES;
-
-    dispatch_semaphore_wait(_semaTimerShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/30.0));
-    [_updateTimer invalidate];
 
     // Calling CVDisplayLinkStop will kill the display link thread. So, cleanly shutdown first.
     dispatch_semaphore_wait(_semaDisplayLinkShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/60.0));
@@ -445,6 +260,11 @@ int checkGLErrors(void);
         NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
         @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
     }
+}
+
+- (void)setFrameRateLabel:(NSString *)label
+{
+    [_fpsStringTex setString:label withAttributes:_stringAttribs];
 }
 
 @end

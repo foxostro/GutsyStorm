@@ -8,19 +8,15 @@
 
 #import <Cocoa/Cocoa.h>
 #import <CoreVideo/CVDisplayLink.h>
-#import "GSCamera.h"
 #import "GLString.h"
-#import "GSTerrain.h"
+
+@class GSViewController;
 
 @interface GSOpenGLView : NSOpenGLView
 
-- (void)setMouseAtCenter;
-- (void)enableVSync;
-- (void)resetMouseInputSettings;
-- (void)timerFired:(id)sender;
-- (unsigned)handleUserInput:(float)dt;
-- (void)buildFontsAndStrings;
-- (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
+@property (nonatomic, weak) GSViewController *viewController;
+
 - (void)shutdown;
+- (void)setFrameRateLabel:(NSString *)label;
 
 @end
