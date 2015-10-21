@@ -3,7 +3,7 @@
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 1/14/13.
-//  Copyright (c) 2013 Andrew Fox. All rights reserved.
+//  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
 #import "SyscallWrappers.h"

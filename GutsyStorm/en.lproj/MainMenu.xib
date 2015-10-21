@@ -5,13 +5,9 @@
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="8191"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
-            <connections>
-                <outlet property="delegate" destination="494" id="495"/>
-            </connections>
-        </customObject>
+        <customObject id="-2" userLabel="File's Owner" customClass="NSApplication"/>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <menu title="AMainMenu" systemMenu="main" id="29">
             <items>
                 <menuItem title="GutsyStorm" id="56">
@@ -88,7 +84,7 @@
                 <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <openGLView depthSize="24bit" useAuxiliaryDepthBufferStencil="NO" useDoubleBufferingEnabled="YES" useRecovery="YES" id="554" customClass="GSOpenGLView">
+                    <openGLView depthSize="24bit" useAuxiliaryDepthBufferStencil="NO" useDoubleBufferingEnabled="YES" useRecovery="YES" id="554" customClass="FoxOpenGLView">
                         <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
                         <autoresizingMask key="autoresizingMask" flexibleMinX="YES" widthSizable="YES" flexibleMaxX="YES" flexibleMinY="YES" heightSizable="YES" flexibleMaxY="YES"/>
                         <animations/>
@@ -98,13 +94,8 @@
             </view>
             <point key="canvasLocation" x="-272" y="-172"/>
         </window>
-        <customObject id="494" customClass="GSAppDelegate">
-            <connections>
-                <outlet property="window" destination="371" id="532"/>
-            </connections>
-        </customObject>
         <customObject id="420" customClass="NSFontManager"/>
-        <viewController id="Ub8-5Z-DHw" customClass="GSViewController">
+        <viewController id="Ub8-5Z-DHw" customClass="FoxOpenGLViewController">
             <connections>
                 <outlet property="view" destination="554" id="a8Z-oM-neY"/>
             </connections>

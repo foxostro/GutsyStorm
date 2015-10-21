@@ -51,8 +51,8 @@
 //
 
 #import "GLString.h"
-#import "GSShader.h"
-#import "GSVBOHolder.h"
+#import "FoxShader.h"
+#import "FoxVBOHolder.h"
 #import <simd/matrix.h>
 
 // The following is a NSBezierPath category to allow
@@ -116,8 +116,8 @@
     NSSize _frameSize; // offset or frame size, default is 4 width 2 height
     float    _cRadius; // Corner radius, if 0 just a rectangle. Defaults to 4.0f
     
-    GSShader *_shader;
-    GSVBOHolder *_vbo;
+    FoxShader *_shader;
+    FoxVBOHolder *_vbo;
 
     BOOL _requiresUpdate;
 }
@@ -427,7 +427,7 @@
     if (!_vbo) {
         GLuint handle = 0;
         glGenBuffers(1, &handle);
-        _vbo = [[GSVBOHolder alloc] initWithHandle:handle context:[NSOpenGLContext currentContext]];
+        _vbo = [[FoxVBOHolder alloc] initWithHandle:handle context:[NSOpenGLContext currentContext]];
     }
 
     if (!_shader) {
@@ -436,7 +436,7 @@
         NSString *fragFn = [bundle pathForResource:@"text.frag" ofType:@"txt"];
         NSString *vertSrc = [[NSString alloc] initWithContentsOfFile:vertFn encoding:NSMacOSRomanStringEncoding error:nil];
         NSString *fragSrc = [[NSString alloc] initWithContentsOfFile:fragFn encoding:NSMacOSRomanStringEncoding error:nil];
-        _shader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+        _shader = [[FoxShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
     }
 
     if (_requiresUpdate) {
