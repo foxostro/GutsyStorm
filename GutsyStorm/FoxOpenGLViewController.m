@@ -7,9 +7,11 @@
 //
 
 #import "FoxOpenGLViewController.h"
+#import "FoxTextLabel.h"
 #import "FoxTerrain.h"
 #import "FoxCamera.h"
 #import "FoxOpenGLView.h"
+#import "FoxMatrixUtils.h"
 
 
 @interface FoxOpenGLViewController ()
@@ -28,6 +30,7 @@
 
 @implementation FoxOpenGLViewController
 {
+    FoxTextLabel *_frameRateLabel;
     FoxTerrain *_terrain;
     FoxCamera *_camera;
     FoxOpenGLView *_openGlView;
@@ -83,6 +86,8 @@
     [_camera updateCameraLookVectors];
 
     [self resetMouseInputSettings];
+    
+    _frameRateLabel = [FoxTextLabel new];
     
     _terrain = [[FoxTerrain alloc] initWithSeed:0 camera:_camera glContext:_openGlView.openGLContext];
 
@@ -223,11 +228,19 @@
     const float nearZ = 0.1;
     const float farZ = 2048.0;
     [_camera reshapeWithSize:size fov:fovyRadians nearD:nearZ farD:farZ];
+
+    GLfloat height = size.height;
+    GLfloat width = size.width;
+    matrix_float4x4 scale = matrix_from_scale((vector_float4){2.0f / width, -2.0f /  size.height, 1.0f, 1.0f});
+    matrix_float4x4 translation = matrix_from_translation((vector_float3){-width / 2.0f, -height / 2.0f, 0.0f});
+    matrix_float4x4 projection = matrix_multiply(translation, scale);
+    _frameRateLabel.projectionMatrix = projection;
 }
 
 - (void)drawInOpenGLView:(FoxOpenGLView *)view
 {
     [_terrain draw];
+    [_frameRateLabel drawAtPoint:NSMakePoint(10.0f, 10.0f)];
 
     CFAbsoluteTime time = CFAbsoluteTimeGetCurrent();
     
@@ -236,8 +249,7 @@
         float fps = _numFramesSinceLastFpsLabelUpdate / (time - _lastFpsLabelUpdateTime);
         _lastFpsLabelUpdateTime = time;
         _numFramesSinceLastFpsLabelUpdate = 0;
-        NSString *label = [NSString stringWithFormat:@"FPS: %.1f",fps];
-        [_openGlView setFrameRateLabel:label];
+        _frameRateLabel.text = [NSString stringWithFormat:@"FPS: %.1f", fps];
     }
     
     _lastRenderTime = time;

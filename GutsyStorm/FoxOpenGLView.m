@@ -14,7 +14,7 @@
 #import "FoxShader.h"
 #import "FoxMatrixUtils.h"
 #import "FoxOpenGLViewController.h"
-#import "GLString.h"
+#import "FoxTextLabel.h"
 
 
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
@@ -31,7 +31,6 @@ int checkGLErrors(void);
 @interface FoxOpenGLView ()
 
 - (void)enableVSync;
-- (void)buildFontsAndStrings;
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
 
 @end
@@ -39,8 +38,6 @@ int checkGLErrors(void);
 
 @implementation FoxOpenGLView
 {
-    GLString *_fpsStringTex;
-    NSMutableDictionary<NSString *, id> *_stringAttribs; // attributes for string textures
     CVDisplayLinkRef _displayLink;
     FoxVBOHolder *_vboCrosshairs;
     FoxShader *_shaderCrosshairs;
@@ -82,28 +79,6 @@ int checkGLErrors(void);
     [[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
 }
 
-- (void)buildFontsAndStrings
-{
-    // init fonts for use with strings
-    NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
-    _stringAttribs = [NSMutableDictionary<NSString *, id> dictionary];
-    _stringAttribs[NSFontAttributeName] = font;
-    _stringAttribs[NSForegroundColorAttributeName] = [NSColor whiteColor];
-    
-    _fpsStringTex = [[GLString alloc] initWithString:[NSString stringWithFormat:@"FPS: ?"]
-                                      withAttributes:_stringAttribs
-                                       withTextColor:[NSColor whiteColor]
-                                        withBoxColor:[NSColor colorWithDeviceRed:0.3f
-                                                                           green:0.3f
-                                                                            blue:0.3f
-                                                                           alpha:1.0f]
-                                     withBorderColor:[NSColor colorWithDeviceRed:0.7f
-                                                                           green:0.7f
-                                                                            blue:0.7f
-                                                                           alpha:1.0f]];
-
-}
-
 - (void)prepareOpenGL
 {
     CVReturn ret;
@@ -131,8 +106,6 @@ int checkGLErrors(void);
     
     glDisable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
-    
-    [self buildFontsAndStrings];
     
     _vboCrosshairs = [[self class] newCrosshairsVboWithContext:self.openGLContext];
     _shaderCrosshairs = [[self class] newCrosshairShader];
@@ -216,9 +189,6 @@ int checkGLErrors(void);
     glPointSize(1.0);
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-    
-    // Draw the FPS counter.
-    [_fpsStringTex drawAtPoint:NSMakePoint(10.0f, 10.0f) withModelViewProjectionMatrix:mvp];
 
     assert(checkGLErrors() == 0);
 }
@@ -263,11 +233,6 @@ int checkGLErrors(void);
         NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
         @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
     }
-}
-
-- (void)setFrameRateLabel:(NSString *)label
-{
-    [_fpsStringTex setString:label withAttributes:_stringAttribs];
 }
 
 @end

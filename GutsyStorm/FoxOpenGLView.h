@@ -25,6 +25,5 @@
 @property (nonatomic, weak) id<FoxOpenGLViewDelegate> delegate;
 
 - (void)shutdown;
-- (void)setFrameRateLabel:(nonnull NSString *)label;
 
 @end
