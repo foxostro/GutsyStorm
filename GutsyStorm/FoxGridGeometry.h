@@ -6,7 +6,7 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-@interface FoxGridGeometry : FoxGrid
+@interface FoxGridGeometry : FoxGrid<FoxChunkGeometryData *>
 
 - (instancetype)initWithName:(NSString *)name
                  cacheFolder:(NSURL *)folder

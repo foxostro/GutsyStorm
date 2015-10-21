@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "FoxGrid.h"
 
-@interface FoxGridVBOs : FoxGrid
+@interface FoxGridVBOs : FoxGrid<FoxChunkVBOs *>
 
 @property (copy) void (^invalidationNotification)(void);
 

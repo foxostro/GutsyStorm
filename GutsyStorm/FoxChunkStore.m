@@ -53,7 +53,7 @@
     FoxGridVBOs *_gridVBOs;
     FoxGridGeometry *_gridGeometryData;
     FoxGridSunlight *_gridSunlightData;
-    FoxGrid *_gridVoxelData;
+    FoxGrid<FoxChunkVoxelData *> *_gridVoxelData;
 
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _chunkTaskQueue;

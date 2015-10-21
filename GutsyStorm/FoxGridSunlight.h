@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "FoxGrid.h"
 
-@interface FoxGridSunlight : FoxGrid
+@interface FoxGridSunlight : FoxGrid<FoxChunkSunlightData *>
 
 - (instancetype)initWithName:(NSString *)name
                  cacheFolder:(NSURL *)folder

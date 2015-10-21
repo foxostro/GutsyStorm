@@ -15,7 +15,7 @@
 @class FoxBoxedVector;
 
 
-@interface FoxGrid : NSObject
+@interface FoxGrid<__covariant TYPE> : NSObject
 
 - (instancetype)init NS_UNAVAILABLE;
 
@@ -23,7 +23,7 @@
                      factory:(fox_grid_item_factory_t)factory NS_DESIGNATED_INITIALIZER;
 
 /* Returns the object corresponding to the given point on the grid. Creates the object from the factory, if necessary. */
-- (id)objectAtPoint:(vector_float3)p;
+- (TYPE)objectAtPoint:(vector_float3)p;
 
 /* Tries to get the object corresponding to the given point on the grid, returning it in "object".
  *
@@ -33,11 +33,12 @@
  * If the object is not present in the grid cache and "createIfMissing" is YES then the factory will create the object.
  * However, if the object is not present and "createIfMissing" is NO then the method will fail.
  *
- * The method may fail if getting the object would require blocking to take a lock. This behavior is specified via "blocking".
+ * The method may fail if getting the object would require blocking to take a lock. This behavior is specified via
+ * "blocking".
  */
 - (BOOL)objectAtPoint:(vector_float3)p
              blocking:(BOOL)blocking
-               object:(id *)object
+               object:(TYPE *)object
       createIfMissing:(BOOL)createIfMissing
         didCreateItem:(BOOL *)outDidCreateItem;
 
@@ -47,8 +48,8 @@
 // Evicts all items in the grid. (For example, to evict all items when the system comes under memory pressure.)
 - (void)evictAllItems;
 
-/* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are notified
- * that the item has been invalidated.
+/* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are
+ * notified that the item has been invalidated.
  */
 - (void)invalidateItemWithChange:(FoxGridEdit *)change;
 
@@ -62,8 +63,8 @@
 // The specified change to the grid causes certain items to be invalidated in dependent grids.
 - (void)invalidateItemsInDependentGridsWithChange:(FoxGridEdit *)change;
 
-/* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns the points in
- * 'dependentGrid' which actually depend on that point.
+/* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns
+ * the points in 'dependentGrid' which actually depend on that point.
  */
 - (void)registerDependentGrid:(FoxGrid *)dependentGrid
                       mapping:(NSSet<FoxBoxedVector *> * (^)(FoxGridEdit *))mapping;
