@@ -18,8 +18,12 @@
 @interface FoxBlockMesh ()
 
 - (void)rotateVertex:(struct fox_vertex *)v quaternion:(vector_float4)quat;
-- (NSArray *)transformVerticesForFace:(FoxFace *)face upsideDown:(BOOL)upsideDown quatY:(vector_float4)quatY;
-- (NSArray *)transformFaces:(NSArray *)faces direction:(voxel_dir_t)dir upsideDown:(BOOL)upsideDown;
+- (NSArray<FoxVertex *> *)transformVerticesForFace:(FoxFace *)face
+                                        upsideDown:(BOOL)upsideDown
+                                             quatY:(vector_float4)quatY;
+- (NSArray<FoxFace *> *)transformFaces:(NSArray<FoxFace *> *)faces
+                             direction:(voxel_dir_t)dir
+                            upsideDown:(BOOL)upsideDown;
 - (face_t)transformCubeFaceEnum:(face_t)correspondingCubeFace upsideDown:(BOOL)upsideDown;
 
 @end
@@ -27,7 +31,7 @@
 
 @implementation FoxBlockMesh
 {
-    NSArray *_faces[2][NUM_VOXEL_DIRECTIONS];
+    NSArray<FoxFace *> *_faces[2][NUM_VOXEL_DIRECTIONS];
 }
 
 - (instancetype)init
@@ -57,40 +61,48 @@
     v->normal[2] = normal.z;
 }
 
-- (NSArray *)transformVerticesForFace:(FoxFace *)face upsideDown:(BOOL)upsideDown quatY:(vector_float4)quatY
+- (NSArray<FoxVertex *> *)transformVerticesForFace:(FoxFace *)face
+                                        upsideDown:(BOOL)upsideDown
+                                             quatY:(vector_float4)quatY
 {
     assert(face);
 
-    NSMutableArray *transformedVertices = [[NSMutableArray alloc] initWithCapacity:[face.vertexList count]];
+    NSArray<FoxVertex *> *vertexList = face.vertexList;
+    NSUInteger count = [vertexList count];
+    NSMutableArray<FoxVertex *> *transformedVertices = [[NSMutableArray<FoxVertex *> alloc] initWithCapacity:count];
 
-    NSEnumerator *enumerator = upsideDown ? [face.vertexList reverseObjectEnumerator] : [face.vertexList objectEnumerator];
-    
+    NSEnumerator *enumerator = upsideDown ? [vertexList reverseObjectEnumerator] : [vertexList objectEnumerator];
+
     for(FoxVertex *vertex in enumerator)
     {
         struct fox_vertex v = vertex.v;
-        
-        if(upsideDown) {
+
+        if (upsideDown) {
             v.position[1] *= -1;
             v.normal[1] *= -1;
         }
-        
+
         [self rotateVertex:&v quaternion:quatY];
-        
+
         [transformedVertices addObject:[FoxVertex vertexWithVertex:&v]];
     }
-    
+
     return transformedVertices;
 }
 
-- (NSArray *)transformFaces:(NSArray *)faces direction:(voxel_dir_t)dir upsideDown:(BOOL)upsideDown
+- (NSArray<FoxFace *> *)transformFaces:(NSArray<FoxFace *> *)faces
+                             direction:(voxel_dir_t)dir
+                            upsideDown:(BOOL)upsideDown
 {
     vector_float4 quatY = quaternionForDirection(dir);
     NSUInteger faceCount = [faces count];
-    NSMutableArray *transformedFaces = [[NSMutableArray alloc] initWithCapacity:faceCount];
+    NSMutableArray<FoxFace *> *transformedFaces = [[NSMutableArray<FoxFace *> alloc] initWithCapacity:faceCount];
     
     for(FoxFace *face in faces)
     {
-        NSArray *transformedVertices = [self transformVerticesForFace:face upsideDown:upsideDown quatY:quatY];
+        NSArray<FoxVertex *> *transformedVertices = [self transformVerticesForFace:face
+                                                                        upsideDown:upsideDown
+                                                                             quatY:quatY];
         face_t faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace upsideDown:upsideDown];
         FoxFace *transformedFace = [[FoxFace alloc] initWithVertices:transformedVertices
                                              correspondingCubeFace:faceDir
@@ -116,7 +128,7 @@
     }
 }
 
-- (void)setFaces:(NSArray *)faces
+- (void)setFaces:(NSArray<FoxFace *> *)faces
 {
     for(int upsideDown = 0; upsideDown < 2; ++upsideDown)
     {
@@ -128,7 +140,7 @@
 }
 
 - (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
-                                      vertexList:(NSMutableArray *)vertexList
+                                      vertexList:(NSMutableArray<FoxVertex *> *)vertexList
                                        voxelData:(FoxNeighborhood *)voxelData
                                             minP:(vector_float3)minP
 {

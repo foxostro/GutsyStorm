@@ -168,9 +168,14 @@
     return self;
 }
 
-- (instancetype) initWithString:(NSString *)aString withAttributes:(NSDictionary *)attribs withTextColor:(NSColor *)text withBoxColor:(NSColor *)box withBorderColor:(NSColor *)border
+- (instancetype) initWithString:(NSString *)aString
+                 withAttributes:(NSDictionary<NSString *, id> *)attribs
+                  withTextColor:(NSColor *)text
+                   withBoxColor:(NSColor *)box
+                withBorderColor:(NSColor *)border
 {
-    return [self initWithAttributedString:[[NSAttributedString alloc] initWithString:aString attributes:attribs] withTextColor:text withBoxColor:box withBorderColor:border];
+    NSAttributedString *attr = [[NSAttributedString alloc] initWithString:aString attributes:attribs];
+    return [self initWithAttributedString:attr withTextColor:text withBoxColor:box withBorderColor:border];
 }
 
 // basic methods that pick up defaults
@@ -179,7 +184,7 @@
     return [self initWithAttributedString:attributedString withTextColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:1.0f] withBoxColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f] withBorderColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f]];
 }
 
-- (instancetype) initWithString:(NSString *)aString withAttributes:(NSDictionary *)attribs
+- (instancetype) initWithString:(NSString *)aString withAttributes:(NSDictionary<NSString *, id> *)attribs
 {
     return [self initWithAttributedString:[[NSAttributedString alloc] initWithString:aString attributes:attribs] withTextColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:1.0f] withBoxColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f] withBorderColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f]];
 }
@@ -371,7 +376,8 @@
     _requiresUpdate = YES;
 }
 
-- (void) setString:(NSString *)aString withAttributes:(NSDictionary *)attribs; // set string after initial creation
+// set string after initial creation
+- (void) setString:(NSString *)aString withAttributes:(NSDictionary<NSString *, id> *)attribs
 {
     [self setString:[[NSAttributedString alloc] initWithString:aString attributes:attribs]];
 }

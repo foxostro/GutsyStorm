@@ -6,12 +6,14 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
+@class FoxFace;
+
 @interface FoxBlockMesh : NSObject
 
-- (void)setFaces:(NSArray *)faces;
+- (void)setFaces:(NSArray<FoxFace *> *)faces;
 
 - (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
-                                      vertexList:(NSMutableArray *)vertexList
+                                      vertexList:(NSMutableArray<FoxVertex *> *)vertexList
                                        voxelData:(FoxNeighborhood *)voxelData
                                             minP:(vector_float3)minP;
 

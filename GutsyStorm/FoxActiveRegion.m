@@ -101,7 +101,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     uint64_t startAbs = stopwatchStart();
 #endif
 
-    NSArray *vbos;
+    NSArray<FoxChunkVBOs *> *vbos;
 
     if (!_shouldShutdown) {
 
@@ -129,8 +129,8 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
 #endif
     
     BOOL didSkipSomeCreationTasks = NO;
-    NSMutableArray *vbosInCameraFrustum = [[NSMutableArray alloc] init];
-    NSArray *points = [self pointsInCameraFrustum];
+    NSMutableArray<FoxChunkVBOs *> *vbosInCameraFrustum = [NSMutableArray<FoxChunkVBOs *> new];
+    NSArray<FoxBoxedVector *> *points = [self pointsInCameraFrustum];
     
     NSUInteger vboGenLimit = 2;
     NSUInteger vboGenCount = 0;
@@ -185,9 +185,9 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     }
 }
 
-- (NSArray *)pointsInCameraFrustum
+- (NSArray<FoxBoxedVector *> *)pointsInCameraFrustum
 {
-    NSMutableArray *points = [NSMutableArray new];
+    NSMutableArray<FoxBoxedVector *> *points = [NSMutableArray<FoxBoxedVector *> new];
 
     FoxFrustum *frustum = _camera.frustum;
     const vector_float3 center = _camera.cameraEye;

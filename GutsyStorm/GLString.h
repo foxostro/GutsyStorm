@@ -69,10 +69,14 @@
 // designated initializer
 - (instancetype) initWithAttributedString:(NSAttributedString *)attributedString withTextColor:(NSColor *)color withBoxColor:(NSColor *)color withBorderColor:(NSColor *)color;
 
-- (instancetype) initWithString:(NSString *)aString withAttributes:(NSDictionary *)attribs withTextColor:(NSColor *)color withBoxColor:(NSColor *)color withBorderColor:(NSColor *)color;
+- (instancetype) initWithString:(NSString *)aString
+                 withAttributes:(NSDictionary<NSString *, id> *)attribs
+                  withTextColor:(NSColor *)color
+                   withBoxColor:(NSColor *)color
+                withBorderColor:(NSColor *)color;
 
 // basic methods that pick up defaults
-- (instancetype) initWithString:(NSString *)aString withAttributes:(NSDictionary *)attribs;
+- (instancetype) initWithString:(NSString *)aString withAttributes:(NSDictionary<NSString *, id> *)attribs;
 - (instancetype) initWithAttributedString:(NSAttributedString *)attributedString;
 
 - (void) dealloc;
@@ -99,7 +103,7 @@
 - (void) useDynamicFrame; // set static frame size and size to frame
 
 - (void) setString:(NSAttributedString *)attributedString; // set string after initial creation
-- (void) setString:(NSString *)aString withAttributes:(NSDictionary *)attribs; // set string after initial creation
+- (void) setString:(NSString *)aString withAttributes:(NSDictionary<NSString *, id> *)attribs; // set string after initial creation
 
 - (void) setTextColor:(NSColor *)color; // set default text color
 - (void) setBoxColor:(NSColor *)color; // set default text color

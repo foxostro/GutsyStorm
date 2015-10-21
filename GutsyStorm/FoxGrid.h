@@ -12,6 +12,9 @@
 #import "FoxReaderWriterLock.h"
 
 
+@class FoxBoxedVector;
+
+
 @interface FoxGrid : NSObject
 
 - (instancetype)init NS_UNAVAILABLE;
@@ -63,7 +66,7 @@
  * 'dependentGrid' which actually depend on that point.
  */
 - (void)registerDependentGrid:(FoxGrid *)dependentGrid
-                      mapping:(NSSet * (^)(FoxGridEdit *))mapping;
+                      mapping:(NSSet<FoxBoxedVector *> * (^)(FoxGridEdit *))mapping;
 
 /* Applies the given transformation function to the item at the specified point.
  * This function returns a new grid item which is then inserted into the grid at the same position.

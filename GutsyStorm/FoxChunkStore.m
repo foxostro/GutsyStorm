@@ -74,9 +74,7 @@
 
 + (void)initialize
 {
-    NSDictionary *values = @{
-                             @"ActiveRegionExtent": @"256"
-                             };
+    NSDictionary<NSString *, id> *values = @{ @"ActiveRegionExtent": @"256" };
     [[NSUserDefaults standardUserDefaults] registerDefaults:values];
 }
 
@@ -125,7 +123,7 @@
                                          }];
 }
 
-- (NSSet *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(FoxGridEdit *)edit
+- (NSSet<FoxBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(FoxGridEdit *)edit
 {
     assert(edit);
     vector_float3 p = edit.pos;
@@ -144,25 +142,26 @@
     }
 
     if (fullRebuild) {
-        NSMutableArray *correspondingPoints = [[NSMutableArray alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
+        NSMutableArray<FoxBoxedVector *> *correspondingPoints =
+            [[NSMutableArray<FoxBoxedVector *> alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
         for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
             vector_float3 offset = [FoxNeighborhood offsetForNeighborIndex:i];
             FoxBoxedVector *boxedPoint = [FoxBoxedVector boxedVectorWithVector:(p + offset)];
             [correspondingPoints addObject:boxedPoint];
         }
-        return [NSSet setWithArray:correspondingPoints];
+        return [NSSet<FoxBoxedVector *> setWithArray:correspondingPoints];
     } else {
         /* If the modified block is below an Inside block then changes to it can only affect lighting for blocks at most
-         * CHUNK_LIGHTING_MAX steps away, but even this is too generous for many changes. To precisely determine the range of the
-         * lighting change, take the light levels of all blocks directly adjacent to the one that was modified. In the case where a
-         * block is being added, the brightest adjacent block was flooding over the space and now will no longer do that. The range
-         * of the change is determined by the difference between the lighting levels of the brightest and the dimmest adjacent
-         * blocks. Ditto the case where a block is being removed.
+         * CHUNK_LIGHTING_MAX steps away, but even this is too generous for many changes. To precisely determine the
+         * range of the lighting change, take the light levels of all blocks directly adjacent to the one that was
+         * modified. In the case where a block is being added, the brightest adjacent block was flooding over the space
+         * and now will no longer do that. The range of the change is determined by the difference between the lighting
+         * levels of the brightest and the dimmest adjacent blocks. Ditto the case where a block is being removed.
          */
         // XXX: Do the precise change range computation described above.
         const unsigned m = CHUNK_LIGHTING_MAX;
-        NSMutableSet *set = [[NSMutableSet alloc] init];
+        NSMutableSet<FoxBoxedVector *> *set = [NSMutableSet<FoxBoxedVector *> new];
         [set addObjectsFromArray:@[[FoxBoxedVector boxedVectorWithVector:p],
                                    [FoxBoxedVector boxedVectorWithVector:(p + vector_make(+m,  0,  0))],
                                    [FoxBoxedVector boxedVectorWithVector:(p + vector_make(-m,  0,  0))],
@@ -182,13 +181,13 @@
     assert(_gridGeometryData);
 
     // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
-    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet * (FoxGridEdit *edit) {
+    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet<FoxBoxedVector *> * (FoxGridEdit *edit) {
         return [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
     }];
 
-    NSSet * (^oneToOne)(FoxGridEdit *) = ^NSSet * (FoxGridEdit *edit) {
+    NSSet<FoxBoxedVector *> * (^oneToOne)(FoxGridEdit *) = ^NSSet<FoxBoxedVector *> * (FoxGridEdit *edit) {
         FoxBoxedVector *p = [FoxBoxedVector boxedVectorWithVector:edit.pos];
-        return [NSSet setWithObject:p];
+        return [NSSet<FoxBoxedVector *> setWithObject:p];
     };
 
     // Each chunk geometry object depends on the single, corresponding chunk sunlight object.
@@ -558,7 +557,7 @@
 
 + (NSURL *)newTerrainCacheFolderURL
 {
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    NSArray<NSString *> *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *folder = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
     NSString *bundleIdentifier = [[NSRunningApplication currentApplication] bundleIdentifier];
 

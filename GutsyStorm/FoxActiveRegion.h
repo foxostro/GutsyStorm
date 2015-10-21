@@ -11,6 +11,7 @@
 @class FoxCamera;
 @class FoxChunkVBOs;
 @class FoxGridVBOs;
+@class FoxBoxedVector;
 
 
 @interface FoxActiveRegion : NSObject
@@ -31,7 +32,7 @@
 
 - (void)draw;
 
-- (NSArray *)pointsInCameraFrustum;
+- (NSArray<FoxBoxedVector *> *)pointsInCameraFrustum;
 
 /* Synchronously compute and update the set of VBOs that are in the camera frustum.
  * Unless you have are performing a latency sensitive operation, use -notifyOfChangeInActiveRegionVBOs instead.

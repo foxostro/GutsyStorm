@@ -13,11 +13,11 @@
 
 @implementation FoxFace
 
-+ (NSArray *)decomposeQuad:(NSArray *)verticesIn
++ (NSArray<FoxVertex *> *)decomposeQuad:(NSArray<FoxVertex *> *)verticesIn
 {
     NSParameterAssert(verticesIn);
     
-    NSArray *verticesOut = nil;
+    NSArray<FoxVertex *> *verticesOut = nil;
     NSUInteger count = verticesIn.count;
     
     assert(count == 4 || count == 3);
@@ -32,7 +32,7 @@
     return verticesOut;
 }
 
-+ (BOOL)determineEligibilityForOmission:(NSArray *)vertices
++ (BOOL)determineEligibilityForOmission:(NSArray<FoxVertex *> *)vertices
 {
     NSParameterAssert(vertices && vertices.count >= 3);
 
@@ -55,17 +55,17 @@
     return result;
 }
 
-+ (FoxFace *)faceWithQuad:(NSArray *)vertices correspondingCubeFace:(face_t)face
++ (FoxFace *)faceWithQuad:(NSArray<FoxVertex *> *)vertices correspondingCubeFace:(face_t)face
 {
     NSParameterAssert(vertices && vertices.count == 4);
-    NSArray *triangleVertices = [self decomposeQuad:vertices];
+    NSArray<FoxVertex *> *triangleVertices = [self decomposeQuad:vertices];
     BOOL omittable = [self determineEligibilityForOmission:vertices];
     return [[FoxFace alloc] initWithVertices:triangleVertices
                       correspondingCubeFace:face
                         eligibleForOmission:omittable];
 }
 
-+ (FoxFace *)faceWithTri:(NSArray *)vertices correspondingCubeFace:(face_t)face
++ (FoxFace *)faceWithTri:(NSArray<FoxVertex *> *)vertices correspondingCubeFace:(face_t)face
 {
     NSParameterAssert(vertices && vertices.count == 3);
     BOOL omittable = [self determineEligibilityForOmission:vertices];
@@ -80,7 +80,7 @@
     return nil;
 }
 
-- (instancetype)initWithVertices:(NSArray *)vertices
+- (instancetype)initWithVertices:(NSArray<FoxVertex *> *)vertices
            correspondingCubeFace:(face_t)face
              eligibleForOmission:(BOOL)omittable
 {

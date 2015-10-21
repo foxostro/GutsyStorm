@@ -40,7 +40,7 @@ int checkGLErrors(void);
 @implementation FoxOpenGLView
 {
     GLString *_fpsStringTex;
-    NSMutableDictionary *_stringAttribs; // attributes for string textures
+    NSMutableDictionary<NSString *, id> *_stringAttribs; // attributes for string textures
     CVDisplayLinkRef _displayLink;
     FoxVBOHolder *_vboCrosshairs;
     FoxShader *_shaderCrosshairs;
@@ -86,7 +86,7 @@ int checkGLErrors(void);
 {
     // init fonts for use with strings
     NSFont* font = [NSFont fontWithName:@"Helvetica" size:12.0];
-    _stringAttribs = [NSMutableDictionary dictionary];
+    _stringAttribs = [NSMutableDictionary<NSString *, id> dictionary];
     _stringAttribs[NSFontAttributeName] = font;
     _stringAttribs[NSForegroundColorAttributeName] = [NSColor whiteColor];
     
@@ -291,7 +291,7 @@ BOOL checkForOpenGLExtension(NSString *extension)
 {
     NSString *extensions = [NSString stringWithCString:(const char *)glGetString(GL_EXTENSIONS)
                                               encoding:NSMacOSRomanStringEncoding];
-    NSArray *extensionsArray = [extensions componentsSeparatedByString:@" "];
+    NSArray<NSString *> *extensionsArray = [extensions componentsSeparatedByString:@" "];
 
     for(NSString *item in extensionsArray)
     {

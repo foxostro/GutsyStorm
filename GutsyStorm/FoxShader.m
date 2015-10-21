@@ -97,7 +97,7 @@ extern int checkGLErrors(void);
 - (const GLchar **)buildSourceStringsArray:(NSString *)source 
                                     length:(GLsizei *)length
 {
-    NSArray *lines = [source componentsSeparatedByString: @"\n"];
+    NSArray<NSString *> *lines = [source componentsSeparatedByString: @"\n"];
     NSUInteger count = [lines count];
     
     const GLchar **src = malloc(count * sizeof(const GLchar *));

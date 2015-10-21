@@ -38,7 +38,7 @@
     BOOL _spaceBarDebounce;
     BOOL _bKeyDebounce;
     BOOL _uKeyDebounce;
-    NSMutableDictionary *_keysDown;
+    NSMutableDictionary<NSNumber *, NSNumber *> *_keysDown;
     
     NSTimer *_updateTimer;
     BOOL _timerShouldShutdown;
@@ -76,7 +76,7 @@
     _spaceBarDebounce = NO;
     _bKeyDebounce = NO;
     _uKeyDebounce = NO;
-    _keysDown = [NSMutableDictionary new];
+    _keysDown = [NSMutableDictionary<NSNumber *, NSNumber *> new];
     
     _camera = [FoxCamera new];
     [_camera moveToPosition:(vector_float3){85.1, 16.1, 140.1}];

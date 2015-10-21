@@ -74,7 +74,7 @@
 
 // Handles user input to control a flying camera.
 - (unsigned)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
-                                               keysDown:(NSDictionary*)keysDown
+                                               keysDown:(NSDictionary<NSNumber *, NSNumber *> *)keysDown
                                             mouseDeltaX:(int)mouseDeltaX
                                             mouseDeltaY:(int)mouseDeltaY
                                        mouseSensitivity:(float)mouseSensitivity

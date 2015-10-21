@@ -16,7 +16,8 @@
 
 @interface FoxGrid ()
 
-- (NSObject <FoxGridItem> *)searchForItemAtPosition:(vector_float3)minP bucket:(NSMutableArray *)bucket;
+- (NSObject <FoxGridItem> *)searchForItemAtPosition:(vector_float3)minP
+                                             bucket:(NSMutableArray<NSObject <FoxGridItem> *> *)bucket;
 
 @end
 
@@ -26,7 +27,7 @@
     FoxReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
 
     NSUInteger _numBuckets;
-    NSMutableArray * __strong *_buckets;
+    NSMutableArray<NSObject <FoxGridItem> *> * __strong *_buckets;
 
     NSUInteger _numLocks;
     NSLock * __strong *_locks;
@@ -36,7 +37,7 @@
     
     fox_grid_item_factory_t _factory;
 
-    NSMutableArray *_dependentGrids;
+    NSMutableArray<FoxGrid *> *_dependentGrids;
     NSMutableDictionary *_mappingToDependentGrids;
 }
 
@@ -49,29 +50,29 @@
 - (instancetype)initWithName:(NSString *)name
                      factory:(fox_grid_item_factory_t)factory
 {
-    if(self = [super init]) {
+    if (self = [super init]) {
         _factory = [factory copy];
         _numLocks = [[NSProcessInfo processInfo] processorCount] * 2;
         _numBuckets = 1024;
         _n = 0;
         _loadLevelToTriggerResize = 0.80;
-        _dependentGrids = [[NSMutableArray alloc] init];
-        _mappingToDependentGrids = [[NSMutableDictionary alloc] init];
+        _dependentGrids = [NSMutableArray<FoxGrid *> new];
+        _mappingToDependentGrids = [NSMutableDictionary new];
 
-        _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
+        _buckets = (NSMutableArray<NSObject <FoxGridItem> *> * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
         for(NSUInteger i=0; i<_numBuckets; ++i)
         {
-            _buckets[i] = [[NSMutableArray alloc] init];
+            _buckets[i] = [NSMutableArray<NSObject <FoxGridItem> *> new];
         }
 
         _locks = (NSLock * __strong *)calloc(_numLocks, sizeof(NSLock *));
         for(NSUInteger i=0; i<_numLocks; ++i)
         {
-            _locks[i] = [[NSLock alloc] init];
+            _locks[i] = [NSLock new];
             _locks[i].name = [NSString stringWithFormat:@"%u", (unsigned)i];
         }
 
-        _lockTheTableItself = [[FoxReaderWriterLock alloc] init];
+        _lockTheTableItself = [FoxReaderWriterLock new];
         _lockTheTableItself.name = [NSString stringWithFormat:@"%@", name];
     }
 
@@ -100,7 +101,7 @@
     _n = 0;
 
     NSUInteger oldNumBuckets = _numBuckets;
-    NSMutableArray * __strong *oldBuckets = _buckets;
+    NSMutableArray<NSObject <FoxGridItem> *> * __strong *oldBuckets = _buckets;
 
     // Allocate memory for a new set of buckets.
     _numBuckets *= 2;
@@ -108,7 +109,7 @@
     _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
     for(NSUInteger i=0; i<_numBuckets; ++i)
     {
-        _buckets[i] = [[NSMutableArray alloc] init];
+        _buckets[i] = [NSMutableArray new];
     }
 
     // Insert each object into the new hash table.
@@ -153,7 +154,7 @@
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
-    NSMutableArray *bucket = _buckets[idxBucket];
+    NSMutableArray<NSObject <FoxGridItem> *> *bucket = _buckets[idxBucket];
 
     if(blocking) {
         [lock lock];
@@ -218,7 +219,7 @@
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
-    NSMutableArray *bucket = _buckets[idxBucket];
+    NSMutableArray<NSObject <FoxGridItem> *> *bucket = _buckets[idxBucket];
 
     [lock lock];
 
@@ -256,7 +257,8 @@
     [_lockTheTableItself unlockForWriting];
 }
 
-- (NSObject <FoxGridItem> *)searchForItemAtPosition:(vector_float3)minP bucket:(NSMutableArray *)bucket
+- (NSObject <FoxGridItem> *)searchForItemAtPosition:(vector_float3)minP
+                                             bucket:(NSMutableArray<NSObject <FoxGridItem> *> *)bucket
 {
     assert(bucket);
 
@@ -283,7 +285,7 @@
         NSUInteger idxBucket = hash % _numBuckets;
         NSUInteger idxLock = hash % _numLocks;
         NSLock *lock = _locks[idxLock];
-        NSMutableArray *bucket = _buckets[idxBucket];
+        NSMutableArray<NSObject <FoxGridItem> *> *bucket = _buckets[idxBucket];
 
         [lock lock];
 
@@ -324,14 +326,14 @@
         for(FoxBoxedVector *q in correspondingPoints)
         {
             FoxGridEdit *secondaryChange = [[FoxGridEdit alloc] initWithOriginalItem:nil
-                                                                      modifiedItem:nil
-                                                                               pos:[q vectorValue]];
+                                                                        modifiedItem:nil
+                                                                                 pos:[q vectorValue]];
             [grid invalidateItemWithChange:secondaryChange];
         }
     }
 }
 
-- (void)registerDependentGrid:(FoxGrid *)grid mapping:(NSSet * (^)(FoxGridEdit *))mapping
+- (void)registerDependentGrid:(FoxGrid *)grid mapping:(NSSet<FoxBoxedVector *> * (^)(FoxGridEdit *))mapping
 {
     [_dependentGrids addObject:grid];
     [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
@@ -347,7 +349,7 @@
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
-    NSMutableArray *bucket = _buckets[idxBucket];
+    NSMutableArray<NSObject <FoxGridItem> *> *bucket = _buckets[idxBucket];
 
     [lock lock];
 

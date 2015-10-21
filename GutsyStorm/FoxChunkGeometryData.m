@@ -130,7 +130,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 + (NSData *)dataWithSunlight:(FoxChunkSunlightData *)sunlight minP:(vector_float3)minCorner
 {
     vector_float3 pos;
-    NSMutableArray *vertices;
+    NSMutableArray<FoxVertex *> *vertices;
 
     assert(sunlight);
 
@@ -138,7 +138,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     const vector_float3 maxCorner = minCorner + vector_make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 
-    vertices = [[NSMutableArray alloc] init];
+    vertices = [NSMutableArray<FoxVertex *> new];
 
     // Iterate over all voxels in the chunk and generate geometry.
     FOR_BOX(pos, minCorner, maxCorner)
