@@ -203,7 +203,7 @@ static void applyLightToVertices(size_t numChunkVerts,
         struct fox_vertex *v = &vertsBuffer[i];
         
         vector_float3 vertexPos = vector_make(v->position[0], v->position[1], v->position[2]);
-        vector_long3 normal = fox_ivec3_make_with_bytes(v->normal);
+        vector_long3 normal = (vector_long3){v->normal[0], v->normal[1], v->normal[2]};
 
         uint8_t sunlightValue = [sunlight lightForVertexAtPoint:vertexPos
                                                      withNormal:normal
