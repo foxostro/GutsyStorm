@@ -8,7 +8,6 @@
 
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
-#import <OpenGL/OpenGL.h>
 #import "FoxGridItem.h"
 #import "FoxVoxel.h"
 

@@ -22,6 +22,6 @@
 - (nullable instancetype)init NS_UNAVAILABLE;
 - (nullable instancetype)initWithContext:(nonnull NSOpenGLContext *)context
                                   shader:(nonnull FoxShader *)shader NS_DESIGNATED_INITIALIZER;
-- (void)drawWithCamera:(nonnull FoxCamera *)camera edgeOffset:(GLfloat)edgeOffset;
+- (void)drawWithCamera:(nonnull FoxCamera *)camera;
 
 @end

@@ -7,7 +7,6 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <OpenGL/gl.h>
 #import <simd/matrix.h>
 
 @interface FoxShader : NSObject
@@ -16,7 +15,7 @@
                                fragmentShaderSource:(nonnull NSString *)frag;
 - (void)bind;
 - (void)unbind;
-- (void)bindUniformWithInt:(GLint)value name:(nonnull NSString *)name;
+- (void)bindUniformWithInt:(int)value name:(nonnull NSString *)name;
 - (void)bindUniformWithMatrix4x4:(matrix_float4x4)value name:(nonnull NSString *)name;
 - (void)bindUniformWithVector2:(vector_float2)value name:(nonnull NSString *)name;
 

@@ -6,9 +6,8 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import <OpenGL/gl.h>
 #import "FoxVBOHolder.h"
-
+#import <OpenGL/gl.h>
 
 @implementation FoxVBOHolder
 {

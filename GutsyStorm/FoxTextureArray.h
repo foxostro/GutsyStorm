@@ -7,12 +7,10 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <OpenGL/gl.h>
-#import <OpenGL/OpenGL.h>
 
 @interface FoxTextureArray : NSObject
 
-- (nullable instancetype)initWithImagePath:(nonnull NSString *)path numTextures:(GLuint)numTextures;
+- (nullable instancetype)initWithImagePath:(nonnull NSString *)path numTextures:(NSUInteger)numTextures;
 - (void)bind;
 - (void)unbind;
 

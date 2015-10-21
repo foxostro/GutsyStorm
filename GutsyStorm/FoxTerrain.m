@@ -18,6 +18,8 @@
 #import "FoxRay.h"
 #import "FoxMatrixUtils.h"
 
+#import <OpenGL/gl.h>
+
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
 #define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
 
@@ -489,7 +491,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     [_textureArray bind];
     [_chunkStore drawActiveChunks];
     [_textureArray unbind];
-    [_cursor drawWithCamera:_camera edgeOffset:edgeOffset];
+    
+    glDepthRange(0.0, 1.0 - edgeOffset);
+    [_cursor drawWithCamera:_camera];
 
     glDepthRange(0.0, 1.0);
 }

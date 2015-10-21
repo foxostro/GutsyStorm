@@ -36,13 +36,11 @@
     return self;
 }
 
-- (void)drawWithCamera:(FoxCamera *)camera edgeOffset:(GLfloat)edgeOffset
+- (void)drawWithCamera:(FoxCamera *)camera
 {
     if (!_cursorIsActive) {
         return;
     }
-
-    glDepthRange(0.0, 1.0 - edgeOffset);
 
     matrix_float4x4 translation = matrix_from_translation(_cursorPos + vector_make(0.5f, 0.5f, 0.5f));
     matrix_float4x4 modelView = matrix_multiply(translation, camera.modelViewMatrix);

@@ -7,6 +7,7 @@
 //
 
 #import "FoxTextureArray.h"
+#import <OpenGL/gl.h>
 
 extern int checkGLErrors(void);
 
@@ -16,7 +17,7 @@ extern int checkGLErrors(void);
     NSRect _bounds;
 }
 
-- (instancetype)initWithImagePath:(NSString *)path numTextures:(GLuint)numTextures
+- (instancetype)initWithImagePath:(NSString *)path numTextures:(NSUInteger)numTextures
 {
     self = [super init];
     if (self) {
@@ -40,7 +41,7 @@ extern int checkGLErrors(void);
         glTexParameteri(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         
         glTexImage3D(GL_TEXTURE_2D_ARRAY_EXT, 0, format,
-                     _bounds.size.width, _bounds.size.height, numTextures,
+                     _bounds.size.width, _bounds.size.height, (GLuint)numTextures,
                      0, GL_RGBA, GL_UNSIGNED_BYTE, [bitmap bitmapData]);
         
         glGenerateMipmap(GL_TEXTURE_2D_ARRAY_EXT);

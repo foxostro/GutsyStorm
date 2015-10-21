@@ -7,7 +7,6 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <OpenGL/gl.h>
 #import "FoxCamera.h"
 #import "FoxIntegerVector3.h"
 #import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h

@@ -7,6 +7,7 @@
 //
 
 #import <assert.h>
+#import <OpenGL/gl.h>
 #import "FoxShader.h"
 
 
