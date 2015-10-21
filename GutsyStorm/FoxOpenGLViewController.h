@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import "FoxOpenGLView.h"
 
-@interface FoxOpenGLViewController : NSViewController<FoxOpenGLViewDelegate>
+@interface FoxOpenGLViewController : NSViewController<FoxOpenGLViewDelegate, NSApplicationDelegate>
 
 - (void)openGLView:(nonnull FoxOpenGLView *)view drawableSizeWillChange:(CGSize)size;
 - (void)drawInOpenGLView:(nonnull FoxOpenGLView *)view;

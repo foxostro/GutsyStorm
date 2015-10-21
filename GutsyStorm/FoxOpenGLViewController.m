@@ -52,15 +52,15 @@
     size_t _numFramesSinceLastFpsLabelUpdate;
 }
 
-- (void)viewWillDisappear
+- (void)applicationWillTerminate:(NSNotification *)notification
 {
     _timerShouldShutdown = YES;
     dispatch_semaphore_wait(_semaTimerShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/30.0));
     [_updateTimer invalidate];
-    
+
     [_openGlView shutdown];
     [_terrain shutdown];
-    
+
     _updateTimer = nil;
     _terrain = nil;
     _openGlView = nil;
