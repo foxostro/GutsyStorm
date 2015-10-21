@@ -31,9 +31,9 @@
                                        mouseSensitivity:(float)mouseSensitivity;
 - (void)moveToPosition:(vector_float3)p;
 - (void)setCameraRot:(vector_float4)rot;
-- (void)reshapeWithBounds:(NSRect)bounds
-                      fov:(float)fov
-                    nearD:(float)nearD
-                     farD:(float)farD;
+- (void)reshapeWithSize:(CGSize)size
+                    fov:(float)fov
+                  nearD:(float)nearD
+                   farD:(float)farD;
 
 @end

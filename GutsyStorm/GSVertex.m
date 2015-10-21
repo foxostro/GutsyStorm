@@ -7,9 +7,6 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <OpenGL/gl.h>
-#import <OpenGL/glext.h>
-#import <OpenGL/OpenGL.h>
 
 #import "GSVertex.h"
 

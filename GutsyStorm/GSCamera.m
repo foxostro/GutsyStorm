@@ -155,13 +155,13 @@
     [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
 }
 
-- (void)reshapeWithBounds:(NSRect)bounds fov:(float)fovyRadians nearD:(float)nearZ farD:(float)farZ
+- (void)reshapeWithSize:(CGSize)size fov:(float)fovyRadians nearD:(float)nearZ farD:(float)farZ
 {
-    const float ratio = bounds.size.width / bounds.size.height;
+    const float ratio = size.width / size.height;
     [_frustum setCamInternalsWithAngle:fovyRadians ratio:ratio nearD:nearZ farD:farZ];
     [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
 
-    float aspect = bounds.size.width / bounds.size.height;
+    float aspect = size.width / size.height;
     float cotan = 1.0f / tanf(fovyRadians / 2.0f);
 
     _projectionMatrix = (matrix_float4x4){

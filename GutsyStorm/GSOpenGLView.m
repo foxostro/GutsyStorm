@@ -7,12 +7,14 @@
 //
 
 #import <ApplicationServices/ApplicationServices.h>
+#import <CoreVideo/CVDisplayLink.h>
 #import <OpenGL/gl.h>
 #import "GSOpenGLView.h"
 #import "GSVBOHolder.h"
 #import "GSShader.h"
 #import "GSMatrixUtils.h"
 #import "GSViewController.h"
+#import "GLString.h"
 
 
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
@@ -181,8 +183,9 @@ int checkGLErrors(void);
 - (void)reshape
 {
     NSRect r = [self convertRectToBacking:self.bounds];
-    glViewport(0, 0, r.size.width, r.size.height);
-    [self.viewController reshapeWithBounds:r];
+    CGSize size = r.size;
+    glViewport(0, 0, size.width, size.height);
+    [self.delegate gsOpenGLView:self drawableSizeWillChange:size];
 }
 
 - (void)drawHUD
@@ -235,7 +238,7 @@ int checkGLErrors(void);
 
     assert(checkGLErrors() == 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    [self.viewController onDraw];
+    [self.delegate drawInGSOpenGLView:self];
     [self drawHUD];
     [currentContext flushBuffer];
 

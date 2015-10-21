@@ -7,13 +7,11 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import "GSOpenGLView.h"
 
-@interface GSViewController : NSViewController
+@interface GSViewController : NSViewController<GSOpenGLViewDelegate>
 
-- (void)reshapeWithBounds:(NSRect)bounds;
-
-// The associated view is in the middle of drawing a frame.
-// The OpenGL context is bound to the current thread and has been locked.
-- (void)onDraw;
+- (void)gsOpenGLView:(GSOpenGLView *)view drawableSizeWillChange:(CGSize)size;
+- (void)drawInGSOpenGLView:(GSOpenGLView *)view;
 
 @end

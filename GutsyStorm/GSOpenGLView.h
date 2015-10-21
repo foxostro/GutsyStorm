@@ -7,14 +7,22 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <CoreVideo/CVDisplayLink.h>
-#import "GLString.h"
 
-@class GSViewController;
+
+@class GSOpenGLView;
+
+
+@protocol GSOpenGLViewDelegate <NSObject>
+
+- (void)gsOpenGLView:(GSOpenGLView *)view drawableSizeWillChange:(CGSize)size;
+- (void)drawInGSOpenGLView:(GSOpenGLView *)view;
+
+@end
+
 
 @interface GSOpenGLView : NSOpenGLView
 
-@property (nonatomic, weak) GSViewController *viewController;
+@property (nonatomic, weak) id<GSOpenGLViewDelegate> delegate;
 
 - (void)shutdown;
 - (void)setFrameRateLabel:(NSString *)label;

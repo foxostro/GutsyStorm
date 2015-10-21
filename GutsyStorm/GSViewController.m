@@ -69,7 +69,7 @@
     // Do view setup here.
 
     _openGlView = (GSOpenGLView *)self.view;
-    _openGlView.viewController = self;
+    _openGlView.delegate = self;
     [_openGlView.window makeFirstResponder: self];
     [_openGlView.window setAcceptsMouseMovedEvents: YES];
 
@@ -217,15 +217,15 @@
     _prevFrameTime = frameTime;
 }
 
-- (void)reshapeWithBounds:(NSRect)bounds
+- (void)gsOpenGLView:(GSOpenGLView *)view drawableSizeWillChange:(CGSize)size
 {
     const float fovyRadians = 60.0 * (M_PI / 180.0);
     const float nearZ = 0.1;
     const float farZ = 2048.0;
-    [_camera reshapeWithBounds:bounds fov:fovyRadians nearD:nearZ farD:farZ];
+    [_camera reshapeWithSize:size fov:fovyRadians nearD:nearZ farD:farZ];
 }
 
-- (void)onDraw
+- (void)drawInGSOpenGLView:(GSOpenGLView *)view
 {
     [_terrain draw];
 
