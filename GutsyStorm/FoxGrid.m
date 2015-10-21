@@ -59,7 +59,8 @@
         _dependentGrids = [NSMutableArray<FoxGrid *> new];
         _mappingToDependentGrids = [NSMutableDictionary new];
 
-        _buckets = (NSMutableArray<NSObject <FoxGridItem> *> * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
+        _buckets = (NSMutableArray<NSObject <FoxGridItem> *> * __strong *)
+            calloc(_numBuckets, sizeof(NSMutableArray<NSObject <FoxGridItem> *> *));
         for(NSUInteger i=0; i<_numBuckets; ++i)
         {
             _buckets[i] = [NSMutableArray<NSObject <FoxGridItem> *> new];
@@ -106,7 +107,8 @@
     // Allocate memory for a new set of buckets.
     _numBuckets *= 2;
     assert(_numBuckets>0);
-    _buckets = (NSMutableArray * __strong *)calloc(_numBuckets, sizeof(NSMutableArray *));
+    _buckets = (NSMutableArray<NSObject <FoxGridItem> *> * __strong *)
+        calloc(_numBuckets, sizeof(NSMutableArray<NSObject <FoxGridItem> *> *));
     for(NSUInteger i=0; i<_numBuckets; ++i)
     {
         _buckets[i] = [NSMutableArray new];
@@ -135,9 +137,9 @@
 
 - (BOOL)objectAtPoint:(vector_float3)p
              blocking:(BOOL)blocking
-               object:(id *)item
+               object:(id _Nonnull * _Nullable)item
       createIfMissing:(BOOL)createIfMissing
-        didCreateItem:(BOOL *)outDidCreateItem
+        didCreateItem:(nullable BOOL *)outDidCreateItem
 {
     if(blocking) {
         [_lockTheTableItself lockForReading];
