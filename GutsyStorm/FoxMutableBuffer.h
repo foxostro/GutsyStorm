@@ -11,11 +11,11 @@
 
 @interface FoxMutableBuffer : FoxTerrainBuffer
 
-+ (instancetype)newMutableBufferWithBuffer:(FoxTerrainBuffer *)buffer;
++ (nullable instancetype)newMutableBufferWithBuffer:(nonnull FoxTerrainBuffer *)buffer;
 
-- (terrain_buffer_element_t *)mutableData;
+- (nonnull terrain_buffer_element_t *)mutableData;
 
 /* Returns a pointer to the value at the specified point in chunk-local space. */
-- (terrain_buffer_element_t *)pointerToValueAtPosition:(vector_long3)chunkLocalPos;
+- (nonnull terrain_buffer_element_t *)pointerToValueAtPosition:(vector_long3)chunkLocalPos;
 
 @end

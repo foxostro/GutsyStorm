@@ -368,7 +368,9 @@
                                                              pos.z-chunk.minP.z)];
 }
 
-- (BOOL)enumerateVoxelsOnRay:(struct fox_ray)ray maxDepth:(unsigned)maxDepth withBlock:(void (^)(vector_float3 p, BOOL *stop, BOOL *fail))block
+- (BOOL)enumerateVoxelsOnRay:(struct fox_ray)ray
+                    maxDepth:(unsigned)maxDepth
+                   withBlock:(void (^ _Nonnull)(vector_float3 p, BOOL * _Nonnull stop, BOOL * _Nonnull fail))block
 {
     assert(!_chunkStoreHasBeenShutdown);
 

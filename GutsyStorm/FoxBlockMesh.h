@@ -10,11 +10,11 @@
 
 @interface FoxBlockMesh : NSObject
 
-- (void)setFaces:(NSArray<FoxFace *> *)faces;
+- (void)setFaces:(nonnull NSArray<FoxFace *> *)faces;
 
 - (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
-                                      vertexList:(NSMutableArray<FoxVertex *> *)vertexList
-                                       voxelData:(FoxNeighborhood *)voxelData
+                                      vertexList:(nonnull NSMutableArray<FoxVertex *> *)vertexList
+                                       voxelData:(nonnull FoxNeighborhood *)voxelData
                                             minP:(vector_float3)minP;
 
 @end

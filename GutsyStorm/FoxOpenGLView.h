@@ -14,8 +14,8 @@
 
 @protocol FoxOpenGLViewDelegate <NSObject>
 
-- (void)openGLView:(FoxOpenGLView *)view drawableSizeWillChange:(CGSize)size;
-- (void)drawInOpenGLView:(FoxOpenGLView *)view;
+- (void)openGLView:(nonnull FoxOpenGLView *)view drawableSizeWillChange:(CGSize)size;
+- (void)drawInOpenGLView:(nonnull FoxOpenGLView *)view;
 
 @end
 
@@ -25,6 +25,6 @@
 @property (nonatomic, weak) id<FoxOpenGLViewDelegate> delegate;
 
 - (void)shutdown;
-- (void)setFrameRateLabel:(NSString *)label;
+- (void)setFrameRateLabel:(nonnull NSString *)label;
 
 @end

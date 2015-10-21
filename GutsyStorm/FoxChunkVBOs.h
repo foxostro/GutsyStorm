@@ -10,8 +10,8 @@
 
 @interface FoxChunkVBOs : NSObject <FoxGridItem>
 
-- (instancetype)initWithChunkGeometry:(FoxChunkGeometryData *)geometry
-                            glContext:(NSOpenGLContext *)glContext;
+- (nullable instancetype)initWithChunkGeometry:(nonnull FoxChunkGeometryData *)geometry
+                                     glContext:(nonnull NSOpenGLContext *)glContext;
 
 // Assumes the caller has already locked the context on the current thread.
 - (void)draw;

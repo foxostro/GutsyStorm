@@ -70,9 +70,9 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     });
 }
 
-+ (instancetype)newBufferFromLargerRawBuffer:(const terrain_buffer_element_t *)srcBuf
-                                     srcMinP:(vector_long3)combinedMinP
-                                     srcMaxP:(vector_long3)combinedMaxP
++ (nullable instancetype)newBufferFromLargerRawBuffer:(const terrain_buffer_element_t * _Nonnull)srcBuf
+                                              srcMinP:(vector_long3)combinedMinP
+                                              srcMaxP:(vector_long3)combinedMaxP
 {
     static const vector_long3 dimensions = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
 
@@ -100,7 +100,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return aBuffer;
 }
 
-- (instancetype)initWithDimensions:(vector_long3)dim
+- (nullable instancetype)initWithDimensions:(vector_long3)dim
 {
     self = [super init];
     if (self) {
@@ -109,11 +109,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
         assert(dim.z >= CHUNK_SIZE_Z);
 
         _dimensions = dim;
-
-        _offsetFromChunkLocalSpace = fox_ivec3_make((dim.x - CHUNK_SIZE_X) / 2,
-                                                           (dim.y - CHUNK_SIZE_Y) / 2,
-                                                           (dim.z - CHUNK_SIZE_Z) / 2);
-
+        _offsetFromChunkLocalSpace = (dim - chunkSize) / 2;
         _data = malloc(BUFFER_SIZE_IN_BYTES(dim));
 
         if(!_data) {
@@ -126,7 +122,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return self;
 }
 
-- (instancetype)initWithDimensions:(vector_long3)dim data:(const terrain_buffer_element_t *)data
+- (nullable instancetype)initWithDimensions:(vector_long3)dim data:(const terrain_buffer_element_t * _Nonnull)data
 {
     assert(data);
     self = [self initWithDimensions:dim]; // NOTE: this call will allocate memory for _data
@@ -134,7 +130,6 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
         assert(_data);
         memcpy(_data, data, BUFFER_SIZE_IN_BYTES(dim));
     }
-
     return self;
 }
 
@@ -278,7 +273,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return buffer;
 }
 
-- (const terrain_buffer_element_t *)data
+- (const terrain_buffer_element_t * _Nonnull)data
 {
     return _data;
 }

@@ -24,15 +24,15 @@
  * camera -- The camera at the center of the active region.
  * vboGrid -- Used to generate and retrieve VBOs.
  */
-- (instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
-                                    camera:(FoxCamera *)camera
-                                   vboGrid:(FoxGridVBOs *)gridVBOs;
+- (nullable instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
+                                             camera:(nonnull FoxCamera *)camera
+                                            vboGrid:(nonnull FoxGridVBOs *)gridVBOs;
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
 
 - (void)draw;
 
-- (NSArray<FoxBoxedVector *> *)pointsInCameraFrustum;
+- (nonnull NSArray<FoxBoxedVector *> *)pointsInCameraFrustum;
 
 /* Synchronously compute and update the set of VBOs that are in the camera frustum.
  * Unless you have are performing a latency sensitive operation, use -notifyOfChangeInActiveRegionVBOs instead.

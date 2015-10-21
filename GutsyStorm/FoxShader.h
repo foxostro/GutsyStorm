@@ -12,12 +12,12 @@
 
 @interface FoxShader : NSObject
 
-- (instancetype)initWithVertexShaderSource:(NSString *)vert
-                      fragmentShaderSource:(NSString *)frag;
+- (nullable instancetype)initWithVertexShaderSource:(nonnull NSString *)vert
+                               fragmentShaderSource:(nonnull NSString *)frag;
 - (void)bind;
 - (void)unbind;
-- (void)bindUniformWithInt:(GLint)value name:(NSString *)name;
-- (void)bindUniformWithMatrix4x4:(matrix_float4x4)value name:(NSString *)name;
-- (void)bindUniformWithVector2:(vector_float2)value name:(NSString *)name;
+- (void)bindUniformWithInt:(GLint)value name:(nonnull NSString *)name;
+- (void)bindUniformWithMatrix4x4:(matrix_float4x4)value name:(nonnull NSString *)name;
+- (void)bindUniformWithVector2:(vector_float2)value name:(nonnull NSString *)name;
 
 @end

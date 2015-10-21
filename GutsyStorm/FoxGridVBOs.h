@@ -9,8 +9,10 @@
 #import <Foundation/Foundation.h>
 #import "FoxGrid.h"
 
+typedef void (^vbo_invalidation_notification_t)(void);
+
 @interface FoxGridVBOs : FoxGrid<FoxChunkVBOs *>
 
-@property (copy) void (^invalidationNotification)(void);
+@property (copy) vbo_invalidation_notification_t invalidationNotification;
 
 @end

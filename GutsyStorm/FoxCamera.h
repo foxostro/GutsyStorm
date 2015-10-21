@@ -20,12 +20,12 @@
 @property (readonly, nonatomic) vector_float4 cameraRot;
 @property (readonly, nonatomic) matrix_float4x4 modelViewMatrix;
 @property (readonly, nonatomic) matrix_float4x4 projectionMatrix;
-@property (strong) FoxFrustum *frustum;
+@property (strong, nonatomic) FoxFrustum * _Nullable frustum;
 
 - (void)updateCameraLookVectors;
 - (void)resetCamera;
 - (unsigned)handleUserInputForFlyingCameraWithDeltaTime:(float)dt
-                                               keysDown:(NSDictionary<NSNumber *, NSNumber *> *)keysDown
+                                               keysDown:(nonnull NSDictionary<NSNumber *, NSNumber *> *)keysDown
                                             mouseDeltaX:(int)mouseDeltaX
                                             mouseDeltaY:(int)mouseDeltaY
                                        mouseSensitivity:(float)mouseSensitivity;

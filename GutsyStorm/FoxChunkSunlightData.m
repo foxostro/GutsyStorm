@@ -191,8 +191,8 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
     // Copy the sunlight data we just calculated into _sunlight. Discard non-overlapping portions.
     FoxTerrainBuffer *sunlight = [FoxTerrainBuffer newBufferFromLargerRawBuffer:combinedSunlightData
-                                                        srcMinP:combinedMinP
-                                                        srcMaxP:combinedMaxP];
+                                                                        srcMinP:combinedMinP
+                                                                        srcMaxP:combinedMaxP];
 
     free(combinedSunlightData);
 

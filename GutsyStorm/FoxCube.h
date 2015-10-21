@@ -14,9 +14,9 @@
 
 @interface FoxCube : NSObject
 
-- (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithContext:(NSOpenGLContext *)context
-                         shader:(FoxShader *)shader NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)init NS_UNAVAILABLE;
+- (nullable instancetype)initWithContext:(nonnull NSOpenGLContext *)context
+                                  shader:(nonnull FoxShader *)shader NS_DESIGNATED_INITIALIZER;
 - (void)drawWithModelViewProjectionMatrix:(matrix_float4x4)mvp;
 
 @end

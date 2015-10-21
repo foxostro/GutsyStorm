@@ -13,17 +13,16 @@
 
 @interface FoxTerrain : NSObject
 
-- (instancetype)initWithSeed:(NSUInteger)seed
-                      camera:(FoxCamera *)camera
-                   glContext:(NSOpenGLContext *)glContext;
+- (nullable instancetype)initWithSeed:(NSUInteger)seed
+                               camera:(nonnull FoxCamera *)camera
+                            glContext:(nonnull NSOpenGLContext *)glContext;
 
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.
  */
 - (void)draw;
 
-- (void)updateWithDeltaTime:(float)dt
-        cameraModifiedFlags:(unsigned)cameraModifiedFlags;
+- (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
 - (void)placeBlockUnderCrosshairs;
 

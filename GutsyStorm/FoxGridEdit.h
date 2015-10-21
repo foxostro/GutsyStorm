@@ -11,12 +11,12 @@
 
 @interface FoxGridEdit : NSObject
 
-@property (nonatomic, strong) id originalObject;
-@property (nonatomic, strong) id modifiedObject;
+@property (nonatomic, strong) id _Nullable originalObject;
+@property (nonatomic, strong) id _Nullable modifiedObject;
 @property (nonatomic, assign) vector_float3 pos;
 
-- (instancetype)initWithOriginalItem:(id)item
-                        modifiedItem:(id)replacement
-                                 pos:(vector_float3)p;
+- (nullable instancetype)initWithOriginalItem:(id _Nullable)item
+                                 modifiedItem:(id _Nullable)replacement
+                                          pos:(vector_float3)p;
 
 @end

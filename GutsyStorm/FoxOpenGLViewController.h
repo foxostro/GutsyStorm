@@ -11,7 +11,7 @@
 
 @interface FoxOpenGLViewController : NSViewController<FoxOpenGLViewDelegate>
 
-- (void)openGLView:(FoxOpenGLView *)view drawableSizeWillChange:(CGSize)size;
-- (void)drawInOpenGLView:(FoxOpenGLView *)view;
+- (void)openGLView:(nonnull FoxOpenGLView *)view drawableSizeWillChange:(CGSize)size;
+- (void)drawInOpenGLView:(nonnull FoxOpenGLView *)view;
 
 @end

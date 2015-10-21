@@ -12,7 +12,7 @@
 
 @interface FoxTextureArray : NSObject
 
-- (instancetype)initWithImagePath:(NSString *)path numTextures:(GLuint)numTextures;
+- (nullable instancetype)initWithImagePath:(nonnull NSString *)path numTextures:(GLuint)numTextures;
 - (void)bind;
 - (void)unbind;
 

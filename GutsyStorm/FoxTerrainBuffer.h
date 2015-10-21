@@ -27,6 +27,12 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(vector_long3 dimensions, vector_
 }
 
 
+@class FoxTerrainBuffer;
+
+
+typedef void (^buffer_completion_handler_t)(FoxTerrainBuffer * _Nonnull aBuffer, NSError * _Nullable error);
+
+
 /* Represents a three-dimensional grid of bytes.
  * This can be used for myriad purposes including volumetric lighting values and voxel data.
  */
@@ -37,30 +43,30 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(vector_long3 dimensions, vector_
     terrain_buffer_element_t *_data;
 }
 
-@property (readonly, nonatomic) vector_long3 dimensions;
+@property (nonatomic, readonly) vector_long3 dimensions;
 
 /* Creates a new FoxByteBuffer and initializes it with data from file.
  * The dimensions of the buffer must be specified upfront in order to ensure the file contains the correct amount of data.
  * File I/O is performed asynchronously on the specified queue, and the new object is returned through the completion handler block.
  * On error, the completion handler has aBuffer==nil and `error' provides details about the failure.
  */
-+ (void)newBufferFromFile:(NSURL *)url
++ (void)newBufferFromFile:(nonnull NSURL *)url
                dimensions:(vector_long3)dimensions
-                    queue:(dispatch_queue_t)queue
-        completionHandler:(void (^)(FoxTerrainBuffer *aBuffer, NSError *error))completionHandler;
+                    queue:(nonnull dispatch_queue_t)queue
+        completionHandler:(nonnull buffer_completion_handler_t)completionHandler;
 
 /* Creates a new buffer of dimensions (CHUNK_SIZE_X+2) x (CHUNK_SIZE_Y) x (CHUNK_SIZE_Z+2).
  * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are discarded.
  */
-+ (instancetype)newBufferFromLargerRawBuffer:(const terrain_buffer_element_t *)srcBuf
-                                     srcMinP:(vector_long3)srcMinP
-                                     srcMaxP:(vector_long3)srcMaxP;
++ (nullable instancetype)newBufferFromLargerRawBuffer:(const terrain_buffer_element_t * _Nonnull)srcBuf
+                                              srcMinP:(vector_long3)srcMinP
+                                              srcMaxP:(vector_long3)srcMaxP;
 
 /* Initialize a buffer of the specified dimensions */
-- (instancetype)initWithDimensions:(vector_long3)dim;
+- (nullable instancetype)initWithDimensions:(vector_long3)dim;
 
 /* Initialize a buffer of the specified dimensions. The specified backing data is copied into the internal buffer. */
-- (instancetype)initWithDimensions:(vector_long3)dim data:(const terrain_buffer_element_t *)data;
+- (nullable instancetype)initWithDimensions:(vector_long3)dim data:(const terrain_buffer_element_t * _Nonnull)data;
 
 /* Returns the value for the specified point in chunk-local space.
  * Always returns 0 for points which have no corresponding mapping in the buffer.
@@ -77,21 +83,21 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(vector_long3 dimensions, vector_
  * As the lighting buffer has no knowledge of the neighboring chunks, expect values on the border to be incorrect.
  */
 - (terrain_buffer_element_t)lightForVertexAtPoint:(vector_float3)vertexPosInWorldSpace
-                               withNormal:(vector_long3)normal
-                                     minP:(vector_float3)minP;
+                                       withNormal:(vector_long3)normal
+                                             minP:(vector_float3)minP;
 
 /* Saves the buffer contents to file asynchronously on the specified dispatch */
-- (void)saveToFile:(NSURL *)url
-             queue:(dispatch_queue_t)queue
-             group:(dispatch_group_t)group;
+- (void)saveToFile:(nonnull NSURL *)url
+             queue:(nonnull dispatch_queue_t)queue
+             group:(nonnull dispatch_group_t)group;
 
 /* Copies this buffer into a sub-range of another buffer of dimensions defined by combinedMinP and combinedMaxP. */
-- (void)copyToCombinedNeighborhoodBuffer:(terrain_buffer_element_t *)dstBuf
+- (void)copyToCombinedNeighborhoodBuffer:(nonnull terrain_buffer_element_t *)dstBuf
                                    count:(NSUInteger)count
                                 neighbor:(neighbor_index_t)neighbor;
 
-- (FoxTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(terrain_buffer_element_t)newValue;
+- (nonnull FoxTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(terrain_buffer_element_t)value;
 
-- (const terrain_buffer_element_t *)data;
+- (const terrain_buffer_element_t * _Nonnull)data;
 
 @end

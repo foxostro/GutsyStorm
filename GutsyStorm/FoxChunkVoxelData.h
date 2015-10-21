@@ -13,35 +13,35 @@
 #import "FoxTerrainBuffer.h"
 
 
-typedef void (^terrain_generator_t)(vector_float3, voxel_t*);
-typedef void (^terrain_post_processor_t)(size_t count, voxel_t *voxels, vector_long3 minP, vector_long3 maxP);
+typedef void (^terrain_generator_t)(vector_float3, voxel_t * _Nonnull);
+typedef void (^terrain_post_processor_t)(size_t count, voxel_t * _Nonnull voxels, vector_long3 minP, vector_long3 maxP);
 
 
 @interface FoxChunkVoxelData : NSObject <FoxGridItem>
 
-@property (readonly, nonatomic) FoxTerrainBuffer *voxels;
+@property (nonatomic, readonly) FoxTerrainBuffer * _Nonnull voxels;
 
-+ (NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP;
++ (nonnull NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP;
 
-- (instancetype)initWithMinP:(vector_float3)minP
-                      folder:(NSURL *)folder
-              groupForSaving:(dispatch_group_t)groupForSaving
-              queueForSaving:(dispatch_queue_t)queueForSaving
-              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-                   generator:(terrain_generator_t)generator
-               postProcessor:(terrain_post_processor_t)postProcessor;
+- (nullable instancetype)initWithMinP:(vector_float3)minP
+                               folder:(nonnull NSURL *)folder
+                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
+                            generator:(nonnull terrain_generator_t)generator
+                        postProcessor:(nonnull terrain_post_processor_t)postProcessor;
 
-- (instancetype)initWithMinP:(vector_float3)minP
-                      folder:(NSURL *)folder
-              groupForSaving:(dispatch_group_t)groupForSaving
-              queueForSaving:(dispatch_queue_t)queueForSaving
-              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-                        data:(FoxTerrainBuffer *)data;
+- (nullable instancetype)initWithMinP:(vector_float3)minP
+                               folder:(nonnull NSURL *)folder
+                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
+                                 data:(nonnull FoxTerrainBuffer *)data;
 
 - (voxel_t)voxelAtLocalPosition:(vector_long3)chunkLocalP;
 
 - (void)saveToFile;
 
-- (FoxChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(voxel_t)newBlock;
+- (nonnull FoxChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(voxel_t)newBlock;
 
 @end

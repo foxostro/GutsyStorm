@@ -56,7 +56,7 @@
 #import <simd/matrix.h>
 
 @interface NSBezierPath (RoundRect)
-+ (NSBezierPath *)bezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius;
++ (nullable NSBezierPath *)bezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius;
 
 - (void)appendBezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius;
 @end
@@ -67,26 +67,30 @@
 // the same context should be current for all method calls for a particular object instance
 
 // designated initializer
-- (instancetype) initWithAttributedString:(NSAttributedString *)attributedString withTextColor:(NSColor *)color withBoxColor:(NSColor *)color withBorderColor:(NSColor *)color;
+- (nullable instancetype) initWithAttributedString:(nonnull NSAttributedString *)attributedString
+                                     withTextColor:(nonnull NSColor *)color
+                                      withBoxColor:(nonnull NSColor *)color
+                                   withBorderColor:(nonnull NSColor *)color;
 
-- (instancetype) initWithString:(NSString *)aString
-                 withAttributes:(NSDictionary<NSString *, id> *)attribs
-                  withTextColor:(NSColor *)color
-                   withBoxColor:(NSColor *)color
-                withBorderColor:(NSColor *)color;
+- (nullable instancetype) initWithString:(nonnull NSString *)aString
+                          withAttributes:(nonnull NSDictionary<NSString *, id> *)attribs
+                           withTextColor:(nonnull NSColor *)color
+                            withBoxColor:(nonnull NSColor *)color
+                         withBorderColor:(nonnull NSColor *)color;
 
 // basic methods that pick up defaults
-- (instancetype) initWithString:(NSString *)aString withAttributes:(NSDictionary<NSString *, id> *)attribs;
-- (instancetype) initWithAttributedString:(NSAttributedString *)attributedString;
+- (nullable instancetype) initWithString:(nonnull NSString *)aString
+                          withAttributes:(nonnull NSDictionary<NSString *, id> *)attribs;
+- (nullable instancetype) initWithAttributedString:(nonnull NSAttributedString *)attributedString;
 
 - (void) dealloc;
 
 - (GLuint) texName; // 0 if no texture allocated
 - (NSSize) texSize; // actually size of texture generated in texels, (0, 0) if no texture allocated
 
-- (NSColor *) textColor; // get the pre-multiplied default text color (includes alpha) string attributes could override this
-- (NSColor *) boxColor; // get the pre-multiplied box color (includes alpha) alpha of 0.0 means no background box
-- (NSColor *) borderColor; // get the pre-multiplied border color (includes alpha) alpha of 0.0 means no border
+- (nonnull NSColor *) textColor; // get the pre-multiplied default text color (includes alpha) string attributes could override this
+- (nonnull NSColor *) boxColor; // get the pre-multiplied box color (includes alpha) alpha of 0.0 means no background box
+- (nonnull NSColor *) borderColor; // get the pre-multiplied border color (includes alpha) alpha of 0.0 means no border
 - (BOOL) staticFrame; // returns whether or not a static frame will be used
 
 - (NSSize) frameSize; // returns either dynamc frame (text size + margins) or static frame size (switch with staticFrame)
@@ -102,12 +106,13 @@
 - (void) useStaticFrame:(NSSize)size; // set static frame size and size to frame
 - (void) useDynamicFrame; // set static frame size and size to frame
 
-- (void) setString:(NSAttributedString *)attributedString; // set string after initial creation
-- (void) setString:(NSString *)aString withAttributes:(NSDictionary<NSString *, id> *)attribs; // set string after initial creation
+- (void) setString:(nonnull NSAttributedString *)attributedString; // set string after initial creation
+- (void) setString:(nonnull NSString *)aString
+    withAttributes:(nonnull NSDictionary<NSString *, id> *)attribs; // set string after initial creation
 
-- (void) setTextColor:(NSColor *)color; // set default text color
-- (void) setBoxColor:(NSColor *)color; // set default text color
-- (void) setBorderColor:(NSColor *)color; // set default text color
+- (void) setTextColor:(nonnull NSColor *)color; // set default text color
+- (void) setBoxColor:(nonnull NSColor *)color; // set default text color
+- (void) setBorderColor:(nonnull NSColor *)color; // set default text color
 
 - (BOOL) antialias;
 - (void) setAntialias:(bool)request;

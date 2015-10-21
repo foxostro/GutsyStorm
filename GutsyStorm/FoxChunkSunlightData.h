@@ -16,16 +16,16 @@
 
 @interface FoxChunkSunlightData : NSObject <FoxGridItem>
 
-@property (readonly, nonatomic) FoxTerrainBuffer *sunlight;
-@property (readonly, nonatomic) FoxNeighborhood *neighborhood;
+@property (readonly, nonatomic) FoxTerrainBuffer * _Nonnull sunlight;
+@property (readonly, nonatomic) FoxNeighborhood * _Nonnull neighborhood;
 
-+ (NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP;
++ (nonnull NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP;
 
-- (instancetype)initWithMinP:(vector_float3)minCorner
-                      folder:(NSURL *)folder
-              groupForSaving:(dispatch_group_t)groupForSaving
-              queueForSaving:(dispatch_queue_t)queueForSaving
-              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-                neighborhood:(FoxNeighborhood *)neighborhood;
+- (nullable instancetype)initWithMinP:(vector_float3)minCorner
+                               folder:(nonnull NSURL *)folder
+                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
+                         neighborhood:(nonnull FoxNeighborhood *)neighborhood;
 
 @end

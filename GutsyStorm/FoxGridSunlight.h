@@ -11,8 +11,8 @@
 
 @interface FoxGridSunlight : FoxGrid<FoxChunkSunlightData *>
 
-- (instancetype)initWithName:(NSString *)name
-                 cacheFolder:(NSURL *)folder
-                     factory:(fox_grid_item_factory_t)factory;
+- (nullable instancetype)initWithName:(nonnull NSString *)name
+                          cacheFolder:(nonnull NSURL *)folder
+                              factory:(nonnull fox_grid_item_factory_t)factory;
 
 @end

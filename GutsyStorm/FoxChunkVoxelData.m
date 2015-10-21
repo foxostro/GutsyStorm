@@ -224,7 +224,10 @@
             if (!goodSize) {
                 NSLog(@"ERROR: bad size for chunk data; assuming data corruption");
             }
-            buffer = [[FoxTerrainBuffer alloc] initWithDimensions:chunkSize data:[data bytes]];
+            const terrain_buffer_element_t * _Nullable bytes = [data bytes];
+            assert(bytes);
+            buffer = [[FoxTerrainBuffer alloc] initWithDimensions:chunkSize
+                                                             data:(const terrain_buffer_element_t * _Nonnull)bytes];
         } else {
             buffer = [self newVoxelDataBufferWithGenerator:generator postProcessor:postProcessor];
             [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];

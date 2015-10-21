@@ -13,7 +13,7 @@
 
 // XXX: We need a noise API that generates batch noise. For example, it could fill an array with 3D noise.
 
-- (instancetype)initWithSeed:(NSUInteger)seed;
+- (nullable instancetype)initWithSeed:(NSUInteger)seed;
 - (float)noiseAtPoint:(vector_float3)p;
 - (float)noiseAtPoint:(vector_float3)p numOctaves:(NSUInteger)numOctaves;
 - (float)noiseAtPointWithFourOctaves:(vector_float3)p;

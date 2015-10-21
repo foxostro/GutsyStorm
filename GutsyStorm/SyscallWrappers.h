@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
-void raiseExceptionForPOSIXError(int error, NSString *desc);
+void raiseExceptionForPOSIXError(int error, NSString * _Nonnull desc);
 
-int Open(NSURL *url, int oflags, mode_t mode);
+int Open(NSURL * _Nonnull url, int oflags, mode_t mode);
 void Close(int fd);

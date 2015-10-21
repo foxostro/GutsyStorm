@@ -11,7 +11,7 @@
 
 @interface FoxReaderWriterLock : NSObject
 
-@property (nonatomic, strong) NSString *name;
+@property (nonatomic, strong) NSString * _Nonnull name;
 
 - (BOOL)tryLockForReading;
 - (void)lockForReading;

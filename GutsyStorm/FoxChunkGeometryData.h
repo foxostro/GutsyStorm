@@ -21,16 +21,16 @@ struct fox_vertex;
 
 @interface FoxChunkGeometryData : NSObject <FoxGridItem>
 
-+ (NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP;
++ (nonnull NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP;
 
 /* Returns the shared block mesh factory for the specified voxel type. */
-+ (FoxBlockMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type;
++ (nonnull FoxBlockMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type;
 
-- (instancetype)initWithMinP:(vector_float3)minCorner
-                      folder:(NSURL *)folder
-                    sunlight:(FoxChunkSunlightData *)sunlight;
+- (nullable instancetype)initWithMinP:(vector_float3)minCorner
+                               folder:(nonnull NSURL *)folder
+                             sunlight:(nonnull FoxChunkSunlightData *)sunlight;
 
 /* Copy the chunk vertex buffer to a new buffer and return that in `dst'. Return the number of vertices in the buffer. */
-- (GLsizei)copyVertsToBuffer:(struct fox_vertex **)dst;
+- (GLsizei)copyVertsToBuffer:(struct fox_vertex * _Nonnull * _Nonnull)dst;
 
 @end
