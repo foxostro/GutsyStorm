@@ -1,5 +1,5 @@
 //
-//  FoxOpenGLView.h
+//  GSOpenGLView.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/12.
@@ -9,18 +9,18 @@
 #import <Cocoa/Cocoa.h>
 
 
-@class FoxOpenGLView;
+@class GSOpenGLView;
 
 
 @protocol FoxOpenGLViewDelegate <NSObject>
 
-- (void)openGLView:(nonnull FoxOpenGLView *)view drawableSizeWillChange:(CGSize)size;
-- (void)drawInOpenGLView:(nonnull FoxOpenGLView *)view;
+- (void)openGLView:(nonnull GSOpenGLView *)view drawableSizeWillChange:(CGSize)size;
+- (void)drawInOpenGLView:(nonnull GSOpenGLView *)view;
 
 @end
 
 
-@interface FoxOpenGLView : NSOpenGLView
+@interface GSOpenGLView : NSOpenGLView
 
 @property (nonatomic, weak) id<FoxOpenGLViewDelegate> delegate;
 

@@ -10,7 +10,7 @@
 #import "FoxTextLabel.h"
 #import "FoxTerrain.h"
 #import "GSCamera.h"
-#import "FoxOpenGLView.h"
+#import "GSOpenGLView.h"
 #import "FoxMatrixUtils.h"
 
 
@@ -33,7 +33,7 @@
     FoxTextLabel *_frameRateLabel;
     FoxTerrain *_terrain;
     GSCamera *_camera;
-    FoxOpenGLView *_openGlView;
+    GSOpenGLView *_openGlView;
 
     float _mouseSensitivity;
     int32_t _mouseDeltaX, _mouseDeltaY;
@@ -71,7 +71,7 @@
     [super viewDidLoad];
     // Do view setup here.
 
-    _openGlView = (FoxOpenGLView *)self.view;
+    _openGlView = (GSOpenGLView *)self.view;
     _openGlView.delegate = self;
     [_openGlView.window makeFirstResponder: self];
     [_openGlView.window setAcceptsMouseMovedEvents: YES];
@@ -222,7 +222,7 @@
     _prevFrameTime = frameTime;
 }
 
-- (void)openGLView:(FoxOpenGLView *)view drawableSizeWillChange:(CGSize)size
+- (void)openGLView:(GSOpenGLView *)view drawableSizeWillChange:(CGSize)size
 {
     const float fovyRadians = 60.0 * (M_PI / 180.0);
     const float nearZ = 0.1;
@@ -237,7 +237,7 @@
     _frameRateLabel.projectionMatrix = projection;
 }
 
-- (void)drawInOpenGLView:(FoxOpenGLView *)view
+- (void)drawInOpenGLView:(GSOpenGLView *)view
 {
     [_terrain draw];
     [_frameRateLabel drawAtPoint:NSMakePoint(10.0f, 10.0f)];

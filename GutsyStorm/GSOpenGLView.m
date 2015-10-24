@@ -1,5 +1,5 @@
 //
-//  FoxOpenGLView.m
+//  GSOpenGLView.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/12.
@@ -9,7 +9,7 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <CoreVideo/CVDisplayLink.h>
 #import <OpenGL/gl.h>
-#import "FoxOpenGLView.h"
+#import "GSOpenGLView.h"
 #import "FoxVBOHolder.h"
 #import "FoxShader.h"
 #import "FoxMatrixUtils.h"
@@ -28,7 +28,7 @@ NSString *stringForOpenGLError(GLenum error);
 int checkGLErrors(void);
 
 
-@interface FoxOpenGLView ()
+@interface GSOpenGLView ()
 
 - (void)enableVSync;
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
@@ -36,7 +36,7 @@ int checkGLErrors(void);
 @end
 
 
-@implementation FoxOpenGLView
+@implementation GSOpenGLView
 {
     CVDisplayLinkRef _displayLink;
     FoxVBOHolder *_vboCrosshairs;
@@ -247,7 +247,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                       void *displayLinkContext)
 {
     @autoreleasepool {
-        return [(__bridge FoxOpenGLView *)displayLinkContext getFrameForTime:outputTime];
+        return [(__bridge GSOpenGLView *)displayLinkContext getFrameForTime:outputTime];
     }
 }
 
