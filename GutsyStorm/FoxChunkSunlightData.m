@@ -101,7 +101,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
             assert(p.y >= 0 && p.y < GSChunkSizeIntVec3.y);
             assert(p.z >= 0 && p.z < GSChunkSizeIntVec3.z);
 
-            size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
+            size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), GSCombinedMinP, GSCombinedMaxP);
             size_t srcIdx = INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3);
 
             assert(dstIdx < size);
@@ -130,7 +130,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
             continue; // The point is out of bounds, so bail out.
         }
 
-        size_t idx = INDEX_BOX(a, combinedMinP, combinedMaxP);
+        size_t idx = INDEX_BOX(a, GSCombinedMinP, GSCombinedMaxP);
 
         if(combinedVoxelData[idx].opaque) {
             continue;
@@ -152,14 +152,14 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
  */
 - (FoxTerrainBuffer *)newSunlightBufferUsingCombinedVoxelData:(GSVoxel *)combinedVoxelData
 {
-    terrain_buffer_element_t *combinedSunlightData = malloc((combinedMaxP.x - combinedMinP.x) *
-                                                    (combinedMaxP.y - combinedMinP.y) *
-                                                    (combinedMaxP.z - combinedMinP.z) * sizeof(terrain_buffer_element_t));
+    terrain_buffer_element_t *combinedSunlightData = malloc((GSCombinedMaxP.x - GSCombinedMinP.x) *
+                                                    (GSCombinedMaxP.y - GSCombinedMinP.y) *
+                                                    (GSCombinedMaxP.z - GSCombinedMinP.z) * sizeof(terrain_buffer_element_t));
 
     vector_long3 p;
-    FOR_BOX(p, combinedMinP, combinedMaxP)
+    FOR_BOX(p, GSCombinedMinP, GSCombinedMaxP)
     {
-        size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
+        size_t idx = INDEX_BOX(p, GSCombinedMinP, GSCombinedMaxP);
         GSVoxel voxel = combinedVoxelData[idx];
         BOOL directlyLit = (!voxel.opaque) && (voxel.outside);
         combinedSunlightData[idx] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
@@ -171,9 +171,9 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
      */
     for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
     {
-        FOR_BOX(p, combinedMinP, combinedMaxP)
+        FOR_BOX(p, GSCombinedMinP, GSCombinedMaxP)
         {
-            size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
+            size_t idx = INDEX_BOX(p, GSCombinedMinP, GSCombinedMaxP);
             GSVoxel voxel = combinedVoxelData[idx];
 
             if(voxel.opaque || voxel.outside) {
@@ -191,8 +191,8 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
     // Copy the sunlight data we just calculated into _sunlight. Discard non-overlapping portions.
     FoxTerrainBuffer *sunlight = [FoxTerrainBuffer newBufferFromLargerRawBuffer:combinedSunlightData
-                                                                        srcMinP:combinedMinP
-                                                                        srcMaxP:combinedMaxP];
+                                                                        srcMinP:GSCombinedMinP
+                                                                        srcMaxP:GSCombinedMaxP];
 
     free(combinedSunlightData);
 

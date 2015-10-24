@@ -130,8 +130,8 @@ typedef enum
 
 extern const vector_long3 GSChunkSizeIntVec3;
 extern const vector_long3 GSOffsetForVoxelFace[FACE_NUM_FACES];
-extern const vector_long3 combinedMinP;
-extern const vector_long3 combinedMaxP;
+extern const vector_long3 GSCombinedMinP;
+extern const vector_long3 GSCombinedMaxP;
 
 
 static inline vector_float3 MinCornerForChunkAtPoint(vector_float3 p)

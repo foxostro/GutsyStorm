@@ -71,13 +71,13 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
 }
 
 + (nullable instancetype)newBufferFromLargerRawBuffer:(const terrain_buffer_element_t * _Nonnull)srcBuf
-                                              srcMinP:(vector_long3)combinedMinP
-                                              srcMaxP:(vector_long3)combinedMaxP
+                                              srcMinP:(vector_long3)GSCombinedMinP
+                                              srcMaxP:(vector_long3)GSCombinedMaxP
 {
     static const vector_long3 dimensions = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
 
     assert(srcBuf);
-    assert(combinedMaxP.y - combinedMinP.y == CHUNK_SIZE_Y);
+    assert(GSCombinedMaxP.y - GSCombinedMinP.y == CHUNK_SIZE_Y);
 
     vector_long3 offset = GSMakeIntegerVector3(1, 0, 1);
     vector_long3 a = GSMakeIntegerVector3(-1, 0, -1);
@@ -88,7 +88,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
 
     FOR_Y_COLUMN_IN_BOX(p, a, b)
     {
-        size_t srcOffset = INDEX_BOX(p, combinedMinP, combinedMaxP);
+        size_t srcOffset = INDEX_BOX(p, GSCombinedMinP, GSCombinedMaxP);
         size_t dstOffset = INDEX_BOX(p + offset, GSZeroIntVec3, dimensions);
         memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(terrain_buffer_element_t));
     }
@@ -238,7 +238,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
         assert(p.y >= 0 && p.y < GSChunkSizeIntVec3.y);
         assert(p.z >= 0 && p.z < GSChunkSizeIntVec3.z);
 
-        size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
+        size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), GSCombinedMinP, GSCombinedMaxP);
         size_t srcIdx = INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3);
 
         assert(dstIdx < count);

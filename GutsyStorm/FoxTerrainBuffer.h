@@ -91,7 +91,7 @@ typedef void (^buffer_completion_handler_t)(FoxTerrainBuffer * _Nonnull aBuffer,
              queue:(nonnull dispatch_queue_t)queue
              group:(nonnull dispatch_group_t)group;
 
-/* Copies this buffer into a sub-range of another buffer of dimensions defined by combinedMinP and combinedMaxP. */
+/* Copies this buffer into a sub-range of another buffer of dimensions defined by GSCombinedMinP and GSCombinedMaxP. */
 - (void)copyToCombinedNeighborhoodBuffer:(nonnull terrain_buffer_element_t *)dstBuf
                                    count:(NSUInteger)count
                                 neighbor:(neighbor_index_t)neighbor;
