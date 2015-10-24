@@ -1,12 +1,12 @@
 //
-//  FoxOpenGLViewController.m
+//  GSOpenGLViewController.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/20/15.
 //  Copyright © 2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxOpenGLViewController.h"
+#import "GSOpenGLViewController.h"
 #import "FoxTextLabel.h"
 #import "FoxTerrain.h"
 #import "GSCamera.h"
@@ -14,7 +14,7 @@
 #import "FoxMatrixUtils.h"
 
 
-@interface FoxOpenGLViewController ()
+@interface GSOpenGLViewController ()
 
 // Reset mouse input mechanism for camera.
 - (void)resetMouseInputSettings;
@@ -28,7 +28,7 @@
 @end
 
 
-@implementation FoxOpenGLViewController
+@implementation GSOpenGLViewController
 {
     FoxTextLabel *_frameRateLabel;
     FoxTerrain *_terrain;

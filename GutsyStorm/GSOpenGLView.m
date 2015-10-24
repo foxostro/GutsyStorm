@@ -13,7 +13,7 @@
 #import "FoxVBOHolder.h"
 #import "FoxShader.h"
 #import "FoxMatrixUtils.h"
-#import "FoxOpenGLViewController.h"
+#import "GSOpenGLViewController.h"
 #import "FoxTextLabel.h"
 
 

@@ -27,7 +27,7 @@
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
 		4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */; };
-		6F6158081BD69C8E00243A61 /* FoxOpenGLViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6158071BD69C8E00243A61 /* FoxOpenGLViewController.m */; settings = {ASSET_TAGS = (); }; };
+		6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */; settings = {ASSET_TAGS = (); }; };
 		6F9018491BD31EE300CD21FB /* crosshairs.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018471BD31EE300CD21FB /* crosshairs.frag.txt */; settings = {ASSET_TAGS = (); }; };
 		6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */; settings = {ASSET_TAGS = (); }; };
 		6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184B1BD33F8400CD21FB /* text.frag.txt */; settings = {ASSET_TAGS = (); }; };
@@ -111,8 +111,8 @@
 		4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLView.m; sourceTree = "<group>"; };
 		4AE4E550153B982100FC3047 /* GSBoxedTerrainVertex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBoxedTerrainVertex.h; sourceTree = "<group>"; };
 		4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedTerrainVertex.m; sourceTree = "<group>"; };
-		6F6158061BD69C8E00243A61 /* FoxOpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxOpenGLViewController.h; sourceTree = "<group>"; };
-		6F6158071BD69C8E00243A61 /* FoxOpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxOpenGLViewController.m; sourceTree = "<group>"; };
+		6F6158061BD69C8E00243A61 /* GSOpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLViewController.h; sourceTree = "<group>"; };
+		6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLViewController.m; sourceTree = "<group>"; };
 		6F9018471BD31EE300CD21FB /* crosshairs.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = crosshairs.frag.txt; sourceTree = "<group>"; };
 		6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = crosshairs.vert.txt; sourceTree = "<group>"; };
 		6F90184B1BD33F8400CD21FB /* text.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.frag.txt; sourceTree = "<group>"; };
@@ -265,8 +265,8 @@
 				4A9A3BA51517200E00607B1A /* GSCamera.m */,
 				4AD9531B15142B1800C2AF8E /* GSOpenGLView.h */,
 				4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */,
-				6F6158061BD69C8E00243A61 /* FoxOpenGLViewController.h */,
-				6F6158071BD69C8E00243A61 /* FoxOpenGLViewController.m */,
+				6F6158061BD69C8E00243A61 /* GSOpenGLViewController.h */,
+				6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */,
 				4A95D39D154645920042C081 /* FoxReaderWriterLock.h */,
 				4A95D39E154645920042C081 /* FoxReaderWriterLock.m */,
 				AC319A3D16A52E1700F65F11 /* SyscallWrappers.h */,
@@ -524,7 +524,7 @@
 				4ACB9C2A1527CF50005D50B8 /* FoxRay.c in Sources */,
 				4A9EC91A15282ADA009C80FF /* FoxAABB.m in Sources */,
 				AC154885152C04EF00434374 /* FoxBoxedVector.m in Sources */,
-				6F6158081BD69C8E00243A61 /* FoxOpenGLViewController.m in Sources */,
+				6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */,
 				4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */,
 				4A2310C0153E10F100A4EBE6 /* FoxChunkVoxelData.m in Sources */,
 				4A2310C4153E110400A4EBE6 /* FoxChunkGeometryData.m in Sources */,
