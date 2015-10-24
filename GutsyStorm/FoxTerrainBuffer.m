@@ -109,7 +109,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
         assert(dim.z >= CHUNK_SIZE_Z);
 
         _dimensions = dim;
-        _offsetFromChunkLocalSpace = (dim - chunkSize) / 2;
+        _offsetFromChunkLocalSpace = (dim - GSChunkSizeIntVec3) / 2;
         _data = malloc(BUFFER_SIZE_IN_BYTES(dim));
 
         if(!_data) {
@@ -232,14 +232,14 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     ssize_t offsetZ = offsetsZ[neighbor];
 
     vector_long3 p;
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, chunkSize)
+    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
     {
-        assert(p.x >= 0 && p.x < chunkSize.x);
-        assert(p.y >= 0 && p.y < chunkSize.y);
-        assert(p.z >= 0 && p.z < chunkSize.z);
+        assert(p.x >= 0 && p.x < GSChunkSizeIntVec3.x);
+        assert(p.y >= 0 && p.y < GSChunkSizeIntVec3.y);
+        assert(p.z >= 0 && p.z < GSChunkSizeIntVec3.z);
 
         size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
-        size_t srcIdx = INDEX_BOX(p, GSZeroIntVec3, chunkSize);
+        size_t srcIdx = INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3);
 
         assert(dstIdx < count);
         assert(srcIdx < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));

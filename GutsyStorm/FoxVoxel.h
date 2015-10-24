@@ -136,7 +136,7 @@ typedef enum
 } face_t;
 
 
-extern const vector_long3 chunkSize;
+extern const vector_long3 GSChunkSizeIntVec3;
 extern const vector_long3 offsetForFace[FACE_NUM_FACES];
 extern const vector_long3 combinedMinP;
 extern const vector_long3 combinedMaxP;

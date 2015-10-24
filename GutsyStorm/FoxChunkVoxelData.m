@@ -115,7 +115,7 @@
 
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, chunkSize)
+    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
     {
         // Get the y value of the highest non-empty voxel in the chunk.
         ssize_t heightOfHighestVoxel;
@@ -128,7 +128,7 @@
             }
         }
         
-        for(p.y = 0; p.y < chunkSize.y; ++p.y)
+        for(p.y = 0; p.y < GSChunkSizeIntVec3.y; ++p.y)
         {
             voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:p];
             voxel->outside = (p.y >= heightOfHighestVoxel);
@@ -136,7 +136,7 @@
     }
 
     // Determine voxels in the chunk which are exposed to air on top.
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, chunkSize)
+    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
     {
         // Find a voxel which is empty and is directly above a cube voxel.
         p.y = CHUNK_SIZE_Y-1;
@@ -166,7 +166,7 @@
     vector_float3 thisMinP = self.minP;
     vector_long3 p, a, b;
     a = GSMakeIntegerVector3(-2, 0, -2);
-    b = GSMakeIntegerVector3(chunkSize.x+2, chunkSize.y, chunkSize.z+2);
+    b = GSMakeIntegerVector3(GSChunkSizeIntVec3.x+2, GSChunkSizeIntVec3.y, GSChunkSizeIntVec3.z+2);
 
     const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
     voxel_t *voxels = calloc(count, sizeof(voxel_t));
@@ -185,11 +185,11 @@
     // Copy the voxels for the chunk to their final destination.
     // TODO: Copy each column wholesale using memcpy
     // XXX: I suspect that a highly efficient bit-blit could be written which copies voxels much faster than this.
-    FoxMutableBuffer *data = [[FoxMutableBuffer alloc] initWithDimensions:chunkSize];
+    FoxMutableBuffer *data = [[FoxMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
     voxel_t *buf = (voxel_t *)[data mutableData];
-    FOR_BOX(p, GSZeroIntVec3, chunkSize)
+    FOR_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
     {
-        buf[INDEX_BOX(p, GSZeroIntVec3, chunkSize)] = voxels[INDEX_BOX(p, a, b)];
+        buf[INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)] = voxels[INDEX_BOX(p, a, b)];
     }
 
     free(voxels);
@@ -218,7 +218,7 @@
         NSData *data = [NSData dataWithContentsOfFile:[url path]
                                               options:NSDataReadingMapped
                                                 error:&error];
-        BOOL goodSize = [data length] == BUFFER_SIZE_IN_BYTES(chunkSize);
+        BOOL goodSize = [data length] == BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
 
         if (data && goodSize) {
             if (!goodSize) {
@@ -226,7 +226,7 @@
             }
             const terrain_buffer_element_t * _Nullable bytes = [data bytes];
             assert(bytes);
-            buffer = [[FoxTerrainBuffer alloc] initWithDimensions:chunkSize
+            buffer = [[FoxTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3
                                                              data:(const terrain_buffer_element_t * _Nonnull)bytes];
         } else {
             buffer = [self newVoxelDataBufferWithGenerator:generator postProcessor:postProcessor];
