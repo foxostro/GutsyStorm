@@ -76,14 +76,6 @@ static inline vector_float4 GSQuaternionForVoxelDirection(GSVoxelDirection dir)
 }
 
 
-static inline vector_long3 integerVectorForDirection(GSVoxelDirection dir)
-{
-    vector_float3 vector = quaternion_rotate_vector(GSQuaternionForVoxelDirection(dir), vector_make(0, 0, 1));
-    vector_long3 iVector = GSMakeIntegerVector3(vector.x, vector.y, vector.z);
-    return iVector;
-}
-
-
 /* The texture to use for the voxel mesh. */
 typedef enum
 {
