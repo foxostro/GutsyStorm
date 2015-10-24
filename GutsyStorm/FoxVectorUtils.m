@@ -10,8 +10,13 @@
 #import "FoxVectorUtils.h"
 
 
-NSUInteger vector_hash(vector_float3 v)
+NSUInteger vector_hash(vector_float3 inputVector)
 {
+    // We cannot permit padding bytes to affect the hash.
+    vector_float3 v;
+    bzero(&v, sizeof(vector_float3));
+    v.xyz = inputVector.xyz;
+ 
     // Source: <http://www.cse.yorku.ca/~oz/hash.html>
     
     NSUInteger hash = 0;
