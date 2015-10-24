@@ -156,7 +156,7 @@
         // There are several configurations of several types of adjacent blocks that would permit faces to be omitted.
         // However, the logic for determining whether a face polygon is perfectly occluded by an adjacent block face
         // polygon is tricky. So, we're just going to skip that.
-        if(face.eligibleForOmission && [voxelData voxelAtPoint:(chunkLocalPos + offsetForFace[face.correspondingCubeFace])].type == VOXEL_TYPE_CUBE) {
+        if(face.eligibleForOmission && [voxelData voxelAtPoint:(chunkLocalPos + GSOffsetForVoxelFace[face.correspondingCubeFace])].type == VOXEL_TYPE_CUBE) {
             continue;
         }
 

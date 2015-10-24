@@ -14,7 +14,7 @@ _Static_assert(sizeof(GSVoxel) == sizeof(terrain_buffer_element_t),
                "GSVoxel and terrain_buffer_element_t must be the same size");
 
 const vector_long3 GSChunkSizeIntVec3 = {CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
-const vector_long3 offsetForFace[FACE_NUM_FACES] =
+const vector_long3 GSOffsetForVoxelFace[FACE_NUM_FACES] =
 {
     {0, +1, 0},
     {0, -1, 0},

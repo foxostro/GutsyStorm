@@ -122,7 +122,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 {
     for(GSVoxelFace i=0; i<FACE_NUM_FACES; ++i)
     {
-        vector_long3 a = p + offsetForFace[i];
+        vector_long3 a = p + GSOffsetForVoxelFace[i];
 
         if(a.x < -CHUNK_SIZE_X || a.x >= (2*CHUNK_SIZE_X) ||
            a.z < -CHUNK_SIZE_Z || a.z >= (2*CHUNK_SIZE_Z) ||
