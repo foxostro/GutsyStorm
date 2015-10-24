@@ -6,9 +6,6 @@
 //  Copyright © 2015 Andrew Fox. All rights reserved.
 //
 
-#ifndef MatrixExtra_h
-#define MatrixExtra_h
-
 #import <simd/matrix.h>
 #import <simd/vector.h>
 
@@ -26,5 +23,3 @@ static inline matrix_float4x4 matrix_from_scale(vector_float4 v)
 {
     return matrix_from_diagonal(v);
 }
-
-#endif /* MatrixExtra_h */

@@ -6,9 +6,6 @@
 //  Copyright (c) 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#ifndef GutsyStorm_Voxel_h
-#define GutsyStorm_Voxel_h
-
 #import "FoxVectorUtils.h"
 #import "FoxIntegerVector3.h"
 #import "FoxQuaternion.h"
@@ -154,5 +151,3 @@ typedef enum
     CHUNK_NEIGHBOR_CENTER = 8,
     CHUNK_NUM_NEIGHBORS = 9
 } GSVoxelNeighborIndex;
-
-#endif

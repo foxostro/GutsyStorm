@@ -23,7 +23,7 @@
 		4A9A3BAD1517252E00607B1A /* GLString.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9A3BAC1517252E00607B1A /* GLString.m */; };
 		4A9EC91A15282ADA009C80FF /* FoxAABB.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9EC91915282ADA009C80FF /* FoxAABB.m */; };
 		4AC7C9F91559E00000806635 /* FoxCube.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AC7C9F81559E00000806635 /* FoxCube.m */; };
-		4ACB9C2A1527CF50005D50B8 /* FoxRay.c in Sources */ = {isa = PBXBuildFile; fileRef = 4ACB9C291527CF50005D50B8 /* FoxRay.c */; };
+		4ACB9C2A1527CF50005D50B8 /* FoxRay.m in Sources */ = {isa = PBXBuildFile; fileRef = 4ACB9C291527CF50005D50B8 /* FoxRay.m */; };
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
 		4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */; };
@@ -38,7 +38,7 @@
 		6FFCBA661BC98DAD00A8D876 /* FoxGridEdit.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FFCBA651BC98DAD00A8D876 /* FoxGridEdit.m */; settings = {ASSET_TAGS = (); }; };
 		AC154885152C04EF00434374 /* FoxBoxedVector.m in Sources */ = {isa = PBXBuildFile; fileRef = AC154884152C04EF00434374 /* FoxBoxedVector.m */; };
 		AC202CC1151E437C00D91067 /* FoxFrustum.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC0151E437C00D91067 /* FoxFrustum.m */; };
-		AC202CC5151E453E00D91067 /* FoxPlane.c in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* FoxPlane.c */; };
+		AC202CC5151E453E00D91067 /* FoxPlane.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* FoxPlane.m */; };
 		AC2B281816927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281716927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m */; };
 		AC2B281C1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281B1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.m */; };
 		AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */ = {isa = PBXBuildFile; fileRef = AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */; };
@@ -105,7 +105,7 @@
 		4AC7C9F71559E00000806635 /* FoxCube.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxCube.h; sourceTree = "<group>"; };
 		4AC7C9F81559E00000806635 /* FoxCube.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxCube.m; sourceTree = "<group>"; };
 		4ACB9C271527CF45005D50B8 /* FoxRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxRay.h; sourceTree = "<group>"; };
-		4ACB9C291527CF50005D50B8 /* FoxRay.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = FoxRay.c; sourceTree = "<group>"; usesTabs = 1; };
+		4ACB9C291527CF50005D50B8 /* FoxRay.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxRay.m; sourceTree = "<group>"; usesTabs = 1; };
 		4AD9531815142AA000C2AF8E /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = ../../../../../System/Library/Frameworks/OpenGL.framework; sourceTree = "<group>"; };
 		4AD9531B15142B1800C2AF8E /* GSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLView.h; sourceTree = "<group>"; };
 		4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLView.m; sourceTree = "<group>"; };
@@ -131,7 +131,7 @@
 		AC202CBF151E437C00D91067 /* FoxFrustum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxFrustum.h; sourceTree = "<group>"; };
 		AC202CC0151E437C00D91067 /* FoxFrustum.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxFrustum.m; sourceTree = "<group>"; };
 		AC202CC3151E453100D91067 /* FoxPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxPlane.h; sourceTree = "<group>"; };
-		AC202CC4151E453E00D91067 /* FoxPlane.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = FoxPlane.c; sourceTree = "<group>"; };
+		AC202CC4151E453E00D91067 /* FoxPlane.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxPlane.m; sourceTree = "<group>"; };
 		AC2B281616927F6B00BFBF7F /* FoxBlockMeshInsideCorner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBlockMeshInsideCorner.h; sourceTree = "<group>"; };
 		AC2B281716927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxBlockMeshInsideCorner.m; sourceTree = "<group>"; };
 		AC2B281A1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBlockMeshOutsideCorner.h; sourceTree = "<group>"; };
@@ -308,11 +308,11 @@
 				4A9EC91815282ADA009C80FF /* FoxAABB.h */,
 				4A9EC91915282ADA009C80FF /* FoxAABB.m */,
 				4ACB9C271527CF45005D50B8 /* FoxRay.h */,
-				4ACB9C291527CF50005D50B8 /* FoxRay.c */,
+				4ACB9C291527CF50005D50B8 /* FoxRay.m */,
 				AC202CBF151E437C00D91067 /* FoxFrustum.h */,
 				AC202CC0151E437C00D91067 /* FoxFrustum.m */,
 				AC202CC3151E453100D91067 /* FoxPlane.h */,
-				AC202CC4151E453E00D91067 /* FoxPlane.c */,
+				AC202CC4151E453E00D91067 /* FoxPlane.m */,
 				6FE2F2AE1BD171F0009A83DC /* FoxQuaternion.h */,
 				4A4E20751516B07E008745E0 /* FoxVectorUtils.h */,
 				6FE2F2AF1BD180EF009A83DC /* FoxMatrixUtils.h */,
@@ -519,9 +519,9 @@
 				AC5B2800151DC7BB0045B6E4 /* GSNoise.m in Sources */,
 				AC5B2804151E2C1D0045B6E4 /* FoxChunkStore.m in Sources */,
 				AC202CC1151E437C00D91067 /* FoxFrustum.m in Sources */,
-				AC202CC5151E453E00D91067 /* FoxPlane.c in Sources */,
+				AC202CC5151E453E00D91067 /* FoxPlane.m in Sources */,
 				ACE99D70151FE922006055F6 /* snoise3.c in Sources */,
-				4ACB9C2A1527CF50005D50B8 /* FoxRay.c in Sources */,
+				4ACB9C2A1527CF50005D50B8 /* FoxRay.m in Sources */,
 				4A9EC91A15282ADA009C80FF /* FoxAABB.m in Sources */,
 				AC154885152C04EF00434374 /* FoxBoxedVector.m in Sources */,
 				6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */,

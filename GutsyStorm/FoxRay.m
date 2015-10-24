@@ -16,9 +16,6 @@
 #define FRONT  (4)
 #define BACK   (5)
 
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-
 
 struct fox_ray fox_ray_make(vector_float3 origin, vector_float3 direction)
 {

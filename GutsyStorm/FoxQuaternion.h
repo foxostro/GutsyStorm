@@ -1,6 +1,3 @@
-#ifndef GutsyStorm_Quaternion_h
-#define GutsyStorm_Quaternion_h
-
 #import <simd/vector.h>
 
 static inline vector_float4 quaternion_make_with_angle_and_axis(float radians, float x, float y, float z)
@@ -60,5 +57,3 @@ static inline vector_float3 quaternion_rotate_vector(vector_float4 quaternion, v
     rotatedQuaternion = quaternion_multiply(quaternion_multiply(quaternion, rotatedQuaternion), quaternion_invert(quaternion));
     return rotatedQuaternion.xyz;
 }
-
-#endif /* Quaternion_h */

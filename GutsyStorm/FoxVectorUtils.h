@@ -6,9 +6,6 @@
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#ifndef GutsyStorm_VectorUtils_h
-#define GutsyStorm_VectorUtils_h
-
 #import <simd/vector.h>
 
 NSUInteger vector_hash(vector_float3 v);
@@ -22,5 +19,3 @@ static inline BOOL vector_equal(vector_float3 a, vector_float3 b)
 {
     return (a.x == b.x) && (a.y == b.y) && (a.z == b.z);
 }
-
-#endif

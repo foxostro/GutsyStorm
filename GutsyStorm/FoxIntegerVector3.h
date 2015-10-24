@@ -6,9 +6,6 @@
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#ifndef GutsyStorm_FoxIntegerVector3_h
-#define GutsyStorm_FoxIntegerVector3_h
-
 #import <simd/vector.h>
 
 static inline vector_long3 GSMakeIntegerVector3(long x, long y, long z)
@@ -17,5 +14,3 @@ static inline vector_long3 GSMakeIntegerVector3(long x, long y, long z)
 }
 
 static const vector_long3 GSZeroIntVec3 = {0, 0, 0};
-
-#endif
