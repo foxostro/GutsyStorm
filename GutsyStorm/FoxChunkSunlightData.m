@@ -81,7 +81,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     static dispatch_once_t onceToken;
 
     dispatch_once(&onceToken, ^{
-        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
+        for(GSVoxelNeighborIndex i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
             vector_float3 offset = [FoxNeighborhood offsetForNeighborIndex:i];
             offsetsX[i] = offset.x;
@@ -89,7 +89,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         }
     });
 
-    [neighborhood enumerateNeighborsWithBlock2:^(neighbor_index_t i, FoxChunkVoxelData *voxels) {
+    [neighborhood enumerateNeighborsWithBlock2:^(GSVoxelNeighborIndex i, FoxChunkVoxelData *voxels) {
         const GSVoxel *data = (const GSVoxel *)[voxels.voxels data];
         long offsetX = offsetsX[i];
         long offsetZ = offsetsZ[i];

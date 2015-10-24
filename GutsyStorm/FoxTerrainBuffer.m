@@ -213,14 +213,14 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
 
 - (void)copyToCombinedNeighborhoodBuffer:(terrain_buffer_element_t *)dstBuf
                                    count:(NSUInteger)count
-                                neighbor:(neighbor_index_t)neighbor
+                                neighbor:(GSVoxelNeighborIndex)neighbor
 {
     static long offsetsX[CHUNK_NUM_NEIGHBORS];
     static long offsetsZ[CHUNK_NUM_NEIGHBORS];
     static dispatch_once_t onceToken;
 
     dispatch_once(&onceToken, ^{
-        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
+        for(GSVoxelNeighborIndex i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
             vector_float3 offset = [FoxNeighborhood offsetForNeighborIndex:i];
             offsetsX[i] = offset.x;

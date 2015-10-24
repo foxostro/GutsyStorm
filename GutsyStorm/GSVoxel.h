@@ -153,6 +153,6 @@ typedef enum
     CHUNK_NEIGHBOR_ZER_X_POS_Z = 7,
     CHUNK_NEIGHBOR_CENTER = 8,
     CHUNK_NUM_NEIGHBORS = 9
-} neighbor_index_t;
+} GSVoxelNeighborIndex;
 
 #endif

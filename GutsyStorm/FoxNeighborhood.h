@@ -18,12 +18,12 @@
 
 @interface FoxNeighborhood : NSObject
 
-+ (vector_float3)offsetForNeighborIndex:(neighbor_index_t)idx;
++ (vector_float3)offsetForNeighborIndex:(GSVoxelNeighborIndex)idx;
 
-- (nonnull FoxChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx;
-- (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(nonnull FoxChunkVoxelData *)neighbor;
+- (nonnull FoxChunkVoxelData *)neighborAtIndex:(GSVoxelNeighborIndex)idx;
+- (void)setNeighborAtIndex:(GSVoxelNeighborIndex)idx neighbor:(nonnull FoxChunkVoxelData *)neighbor;
 - (void)enumerateNeighborsWithBlock:(void (^ _Nonnull)(FoxChunkVoxelData * _Nonnull voxels))block;
-- (void)enumerateNeighborsWithBlock2:(void (^ _Nonnull)(neighbor_index_t i, FoxChunkVoxelData * _Nonnull voxels))block;
+- (void)enumerateNeighborsWithBlock2:(void (^ _Nonnull)(GSVoxelNeighborIndex i, FoxChunkVoxelData * _Nonnull voxels))block;
 
 /* Copy the voxel data for this neighborhood into a new buffer and return that buffer.
  * The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and may be indexed using the INDEX2 macro.

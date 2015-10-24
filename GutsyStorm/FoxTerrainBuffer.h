@@ -94,7 +94,7 @@ typedef void (^buffer_completion_handler_t)(FoxTerrainBuffer * _Nonnull aBuffer,
 /* Copies this buffer into a sub-range of another buffer of dimensions defined by GSCombinedMinP and GSCombinedMaxP. */
 - (void)copyToCombinedNeighborhoodBuffer:(nonnull terrain_buffer_element_t *)dstBuf
                                    count:(NSUInteger)count
-                                neighbor:(neighbor_index_t)neighbor;
+                                neighbor:(GSVoxelNeighborIndex)neighbor;
 
 - (nonnull FoxTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(terrain_buffer_element_t)value;
 

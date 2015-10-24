@@ -20,7 +20,7 @@
     FoxChunkVoxelData *_neighbors[CHUNK_NUM_NEIGHBORS];
 }
 
-+ (vector_float3)offsetForNeighborIndex:(neighbor_index_t)idx
++ (vector_float3)offsetForNeighborIndex:(GSVoxelNeighborIndex)idx
 {
     switch(idx)
     {
@@ -74,19 +74,19 @@
 
 - (void)dealloc
 {
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         _neighbors[i] = nil;
     }
 }
 
-- (FoxChunkVoxelData *)neighborAtIndex:(neighbor_index_t)idx
+- (FoxChunkVoxelData *)neighborAtIndex:(GSVoxelNeighborIndex)idx
 {
     NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
     return _neighbors[idx];
 }
 
-- (void)setNeighborAtIndex:(neighbor_index_t)idx neighbor:(FoxChunkVoxelData *)neighbor
+- (void)setNeighborAtIndex:(GSVoxelNeighborIndex)idx neighbor:(FoxChunkVoxelData *)neighbor
 {
     NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
     _neighbors[idx] = neighbor;
@@ -94,15 +94,15 @@
 
 - (void)enumerateNeighborsWithBlock:(void (^)(FoxChunkVoxelData*))block
 {
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         block(_neighbors[i]);
     }
 }
 
-- (void)enumerateNeighborsWithBlock2:(void (^)(neighbor_index_t, FoxChunkVoxelData*))block
+- (void)enumerateNeighborsWithBlock2:(void (^)(GSVoxelNeighborIndex, FoxChunkVoxelData*))block
 {
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         block(i, _neighbors[i]);
     }
@@ -118,7 +118,7 @@
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
 
-    [self enumerateNeighborsWithBlock2:^(neighbor_index_t i, FoxChunkVoxelData *voxels) {
+    [self enumerateNeighborsWithBlock2:^(GSVoxelNeighborIndex i, FoxChunkVoxelData *voxels) {
         [voxels.voxels copyToCombinedNeighborhoodBuffer:(terrain_buffer_element_t *)combinedVoxelData
                                                   count:count
                                                neighbor:i];

@@ -144,7 +144,7 @@
     if (fullRebuild) {
         NSMutableArray<FoxBoxedVector *> *correspondingPoints =
             [[NSMutableArray<FoxBoxedVector *> alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
-        for(neighbor_index_t i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
+        for(GSVoxelNeighborIndex i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
             vector_float3 offset = [FoxNeighborhood offsetForNeighborIndex:i];
             FoxBoxedVector *boxedPoint = [FoxBoxedVector boxedVectorWithVector:(p + offset)];
@@ -473,7 +473,7 @@
 
     FoxNeighborhood *neighborhood = [[FoxNeighborhood alloc] init];
 
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         vector_float3 a = p + [FoxNeighborhood offsetForNeighborIndex:i];
         FoxChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a]; // NOTE: may block
@@ -492,7 +492,7 @@
 
     FoxNeighborhood *neighborhood = [[FoxNeighborhood alloc] init];
 
-    for(neighbor_index_t i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         vector_float3 a = p + [FoxNeighborhood offsetForNeighborIndex:i];
         FoxChunkVoxelData *voxels = nil;
