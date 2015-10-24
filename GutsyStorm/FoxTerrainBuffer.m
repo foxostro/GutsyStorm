@@ -8,7 +8,7 @@
 
 #import "FoxTerrainBuffer.h"
 #import "FoxVoxel.h"
-#import "FoxErrorCodes.h"
+#import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
 #import "FoxNeighborhood.h"
 #import "FoxVoxel.h" // for INDEX_BOX
@@ -27,8 +27,8 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     // If the file does not exist then do nothing.
     if(![url checkResourceIsReachableAndReturnError:NULL]) {
         NSString *reason = [NSString stringWithFormat:@"File not found for buffer: %@", url];
-        completionHandler(nil, [NSError errorWithDomain:FoxErrorDomain
-                                                   code:FoxFileNotFoundError
+        completionHandler(nil, [NSError errorWithDomain:GSErrorDomain
+                                                   code:GSFileNotFoundError
                                                userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
         return;
     }
@@ -52,8 +52,8 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
         if(dispatch_data_get_size(dd) != len) {
             NSString *reason = [NSString stringWithFormat:@"Read %zu bytes from file, but expected %zu bytes.",
                                 dispatch_data_get_size(dd), len];
-            completionHandler(nil, [NSError errorWithDomain:FoxErrorDomain
-                                                       code:FoxInvalidChunkDataOnDiskError
+            completionHandler(nil, [NSError errorWithDomain:GSErrorDomain
+                                                       code:GSInvalidChunkDataOnDiskError
                                                    userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
             return;
         }

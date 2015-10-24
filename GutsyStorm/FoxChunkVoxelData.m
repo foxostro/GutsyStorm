@@ -12,7 +12,7 @@
 #import "FoxBoxedVector.h"
 #import "FoxChunkStore.h"
 #import "FoxNeighborhood.h"
-#import "FoxErrorCodes.h"
+#import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
 #import "FoxMutableBuffer.h"
 
