@@ -28,7 +28,7 @@
 /* Copy the voxel data for this neighborhood into a new buffer and return that buffer.
  * The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and may be indexed using the INDEX2 macro.
  */
-- (nonnull voxel_t *)newVoxelBufferFromNeighborhood;
+- (nonnull GSVoxel *)newVoxelBufferFromNeighborhood;
 
 /* Given a position relative to this voxel, return the chunk that contains the specified position.
  * Also returns the position in the local coordinate system of that chunk.
@@ -40,7 +40,7 @@
  * Positions are specified in chunk-local space relative to the center chunk of the neighborhood.
  * Coordinates which exceed the bounds of the center chunk refer to its neighbors.
  */
-- (voxel_t)voxelAtPoint:(vector_long3)p;
+- (GSVoxel)voxelAtPoint:(vector_long3)p;
 
 /* Returns the lighting value at the specified block position for the specified lighting buffer. */
 - (unsigned)lightAtPoint:(vector_long3)p

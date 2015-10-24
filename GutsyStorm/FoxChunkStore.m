@@ -128,7 +128,7 @@
     assert(edit);
     vector_float3 p = edit.pos;
     BOOL fullRebuild = YES;
-    voxel_t voxel;
+    GSVoxel voxel;
 
     {
         FoxChunkVoxelData *voxelChunk = edit.originalObject;
@@ -319,7 +319,7 @@
     [_activeRegion updateWithCameraModifiedFlags:flags];
 }
 
-- (void)placeBlockAtPoint:(vector_float3)pos block:(voxel_t)block
+- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(_gridVoxelData);
@@ -335,7 +335,7 @@
     [_activeRegion updateVBOsInCameraFrustum];
 }
 
-- (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(voxel_t *)voxel
+- (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(GSVoxel *)voxel
 {
     FoxChunkVoxelData *chunk = nil;
 
@@ -355,7 +355,7 @@
     return YES;
 }
 
-- (voxel_t)voxelAtPoint:(vector_float3)pos
+- (GSVoxel)voxelAtPoint:(vector_float3)pos
 {
     assert(!_chunkStoreHasBeenShutdown);
 

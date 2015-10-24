@@ -99,13 +99,13 @@
     return self; // all voxel data objects are immutable, so return self instead of deep copying
 }
 
-- (voxel_t)voxelAtLocalPosition:(vector_long3)p
+- (GSVoxel)voxelAtLocalPosition:(vector_long3)p
 {
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
     assert(p.y >= 0 && p.y < CHUNK_SIZE_Y);
     assert(p.z >= 0 && p.z < CHUNK_SIZE_Z);
     terrain_buffer_element_t value = [_voxels valueAtPosition:p];
-    voxel_t voxel = *((const voxel_t *)&value);
+    GSVoxel voxel = *((const GSVoxel *)&value);
     return voxel;
 }
 
@@ -121,7 +121,7 @@
         long heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
-            voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z)];
+            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z)];
             
             if(voxel->opaque) {
                 break;
@@ -130,7 +130,7 @@
         
         for(p.y = 0; p.y < GSChunkSizeIntVec3.y; ++p.y)
         {
-            voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:p];
+            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
@@ -140,10 +140,10 @@
     {
         // Find a voxel which is empty and is directly above a cube voxel.
         p.y = CHUNK_SIZE_Y-1;
-        GSVoxelType prevType = ((voxel_t *)[data pointerToValueAtPosition:p])->type;
+        GSVoxelType prevType = ((GSVoxel *)[data pointerToValueAtPosition:p])->type;
         for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
         {
-            voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:p];
+            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
 
             // XXX: It would be better to store the relationships between voxel types in some other way. Not here.
             voxel->exposedToAirOnTop = (voxel->type!=VOXEL_TYPE_EMPTY && prevType==VOXEL_TYPE_EMPTY) ||
@@ -169,7 +169,7 @@
     b = GSMakeIntegerVector3(GSChunkSizeIntVec3.x+2, GSChunkSizeIntVec3.y, GSChunkSizeIntVec3.z+2);
 
     const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
-    voxel_t *voxels = calloc(count, sizeof(voxel_t));
+    GSVoxel *voxels = calloc(count, sizeof(GSVoxel));
 
     // First, generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.
@@ -186,7 +186,7 @@
     // TODO: Copy each column wholesale using memcpy
     // XXX: I suspect that a highly efficient bit-blit could be written which copies voxels much faster than this.
     FoxMutableBuffer *data = [[FoxMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
-    voxel_t *buf = (voxel_t *)[data mutableData];
+    GSVoxel *buf = (GSVoxel *)[data mutableData];
     FOR_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
     {
         buf[INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)] = voxels[INDEX_BOX(p, a, b)];
@@ -239,7 +239,7 @@
     return buffer;
 }
 
-- (FoxChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(voxel_t)newBlock
+- (FoxChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
 {
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     terrain_buffer_element_t newValue = *((terrain_buffer_element_t *)&newBlock);

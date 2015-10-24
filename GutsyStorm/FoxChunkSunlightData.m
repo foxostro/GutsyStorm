@@ -66,12 +66,12 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
  * locks on the neighborhood then instead return NULL. The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y
  * elements in size and may be indexed using the INDEX2 macro.
  */
-- (voxel_t *)newVoxelBufferWithNeighborhood:(FoxNeighborhood *)neighborhood
+- (GSVoxel *)newVoxelBufferWithNeighborhood:(FoxNeighborhood *)neighborhood
 {
     static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
 
     // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
-    voxel_t *combinedVoxelData = combinedVoxelData = malloc(size*sizeof(voxel_t));
+    GSVoxel *combinedVoxelData = combinedVoxelData = malloc(size*sizeof(GSVoxel));
     if(!combinedVoxelData) {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
@@ -90,7 +90,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     });
 
     [neighborhood enumerateNeighborsWithBlock2:^(neighbor_index_t i, FoxChunkVoxelData *voxels) {
-        const voxel_t *data = (const voxel_t *)[voxels.voxels data];
+        const GSVoxel *data = (const GSVoxel *)[voxels.voxels data];
         long offsetX = offsetsX[i];
         long offsetZ = offsetsZ[i];
 
@@ -117,7 +117,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
 - (BOOL)isAdjacentToSunlightAtPoint:(vector_long3)p
                          lightLevel:(int)lightLevel
-                  combinedVoxelData:(voxel_t *)combinedVoxelData
+                  combinedVoxelData:(GSVoxel *)combinedVoxelData
                combinedSunlightData:(terrain_buffer_element_t *)combinedSunlightData
 {
     for(face_t i=0; i<FACE_NUM_FACES; ++i)
@@ -150,7 +150,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
  * region of the buffer corresponding to this chunk should be considered to be totally correct.
  * Assumes the caller has already locked the sunlight buffer for reading.
  */
-- (FoxTerrainBuffer *)newSunlightBufferUsingCombinedVoxelData:(voxel_t *)combinedVoxelData
+- (FoxTerrainBuffer *)newSunlightBufferUsingCombinedVoxelData:(GSVoxel *)combinedVoxelData
 {
     terrain_buffer_element_t *combinedSunlightData = malloc((combinedMaxP.x - combinedMinP.x) *
                                                     (combinedMaxP.y - combinedMinP.y) *
@@ -160,7 +160,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     FOR_BOX(p, combinedMinP, combinedMaxP)
     {
         size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
-        voxel_t voxel = combinedVoxelData[idx];
+        GSVoxel voxel = combinedVoxelData[idx];
         BOOL directlyLit = (!voxel.opaque) && (voxel.outside);
         combinedSunlightData[idx] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
     }
@@ -174,7 +174,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         FOR_BOX(p, combinedMinP, combinedMaxP)
         {
             size_t idx = INDEX_BOX(p, combinedMinP, combinedMaxP);
-            voxel_t voxel = combinedVoxelData[idx];
+            GSVoxel voxel = combinedVoxelData[idx];
 
             if(voxel.opaque || voxel.outside) {
                 continue;
@@ -223,7 +223,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         }
         
         if (failedToLoadFromFile) {
-            voxel_t *data = [self newVoxelBufferWithNeighborhood:neighborhood];
+            GSVoxel *data = [self newVoxelBufferWithNeighborhood:neighborhood];
             buffer = [self newSunlightBufferUsingCombinedVoxelData:data];
             free(data);
             [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];

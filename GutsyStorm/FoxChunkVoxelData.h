@@ -13,8 +13,8 @@
 #import "FoxTerrainBuffer.h"
 
 
-typedef void (^terrain_generator_t)(vector_float3, voxel_t * _Nonnull);
-typedef void (^terrain_post_processor_t)(size_t count, voxel_t * _Nonnull voxels, vector_long3 minP, vector_long3 maxP);
+typedef void (^terrain_generator_t)(vector_float3, GSVoxel * _Nonnull);
+typedef void (^terrain_post_processor_t)(size_t count, GSVoxel * _Nonnull voxels, vector_long3 minP, vector_long3 maxP);
 
 
 @interface FoxChunkVoxelData : NSObject <FoxGridItem>
@@ -38,10 +38,10 @@ typedef void (^terrain_post_processor_t)(size_t count, voxel_t * _Nonnull voxels
                        chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
                                  data:(nonnull FoxTerrainBuffer *)data;
 
-- (voxel_t)voxelAtLocalPosition:(vector_long3)chunkLocalP;
+- (GSVoxel)voxelAtLocalPosition:(vector_long3)chunkLocalP;
 
 - (void)saveToFile;
 
-- (nonnull FoxChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(voxel_t)newBlock;
+- (nonnull FoxChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock;
 
 @end

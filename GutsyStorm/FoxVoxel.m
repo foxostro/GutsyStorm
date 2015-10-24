@@ -10,8 +10,8 @@
 #import "FoxTerrainBuffer.h"
 #import "GSVoxel.h"
 
-_Static_assert(sizeof(voxel_t) == sizeof(terrain_buffer_element_t),
-               "voxel_t and terrain_buffer_element_t must be the same size");
+_Static_assert(sizeof(GSVoxel) == sizeof(terrain_buffer_element_t),
+               "GSVoxel and terrain_buffer_element_t must be the same size");
 
 const vector_long3 GSChunkSizeIntVec3 = {CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
 const vector_long3 offsetForFace[FACE_NUM_FACES] =

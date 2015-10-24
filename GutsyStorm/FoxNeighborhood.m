@@ -108,12 +108,12 @@
     }
 }
 
-- (voxel_t *)newVoxelBufferFromNeighborhood
+- (GSVoxel *)newVoxelBufferFromNeighborhood
 {
     // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
-    _Static_assert(sizeof(voxel_t) == sizeof(terrain_buffer_element_t), "expected to be able to store a voxel_t in a terrain_buffer_element_t");
+    _Static_assert(sizeof(GSVoxel) == sizeof(terrain_buffer_element_t), "expected to be able to store a GSVoxel in a terrain_buffer_element_t");
     static const size_t count = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
-    voxel_t *combinedVoxelData = calloc(count, sizeof(voxel_t));
+    GSVoxel *combinedVoxelData = calloc(count, sizeof(GSVoxel));
     if(!combinedVoxelData) {
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
@@ -166,7 +166,7 @@
     }
 }
 
-- (voxel_t)voxelAtPoint:(vector_long3)p
+- (GSVoxel)voxelAtPoint:(vector_long3)p
 {
     /* NOTE:
      *   - The voxels used for above/below the world must be updated when voxel def changes
@@ -175,7 +175,7 @@
     
     if(p.y < 0) {
         // Space below the world is always made of solid cubes.
-        return (voxel_t){.outside=NO,
+        return (GSVoxel){.outside=NO,
                          .exposedToAirOnTop=NO,
                          .opaque=YES,
                          .upsideDown=NO,
@@ -184,7 +184,7 @@
                          .tex=VOXEL_TEX_DIRT};
     } else if(p.y >= CHUNK_SIZE_Y) {
         // Space above the world is always empty.
-        return (voxel_t){.outside=YES,
+        return (GSVoxel){.outside=YES,
                          .exposedToAirOnTop=YES,
                          .opaque=NO,
                          .upsideDown=NO,

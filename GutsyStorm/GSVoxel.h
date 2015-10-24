@@ -41,7 +41,7 @@ static inline long INDEX_BOX(vector_long3 p, vector_long3 minP, vector_long3 max
 
 
 /* The voxel type affects the mesh which is used when drawing it.
- * According to voxel_t, there can only be 8 types.
+ * According to GSVoxel, there can only be 8 types.
  */
 typedef enum
 {
@@ -109,7 +109,7 @@ typedef struct
 
     /* Voxel texture. This is used as an index into the terrain texture array. */
     uint8_t tex:2;
-} voxel_t;
+} GSVoxel;
 
 _Static_assert(NUM_VOXEL_DIRECTIONS <= (1<<2), "NUM_VOXEL_DIRECTIONS must be able to work with a 2-bit `dir' field.");
 _Static_assert(NUM_VOXEL_TYPES <= (1<<3),      "NUM_VOXEL_TYPES must be able to work with a 3-bit `type' field.");

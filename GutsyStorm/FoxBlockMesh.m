@@ -148,7 +148,7 @@
     assert(voxelData);
 
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
-    voxel_t voxel = [[voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
+    GSVoxel voxel = [[voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
 
     for(FoxFace *face in _faces[voxel.upsideDown?1:0][voxel.dir])
     {

@@ -39,7 +39,7 @@ struct fox_post_processing_rule
     char diagram[9];
 
     /* This voxel replaces the original one in th chunk. */
-    voxel_t replacement;
+    GSVoxel replacement;
 };
 
 struct fox_post_processing_rule_set
@@ -342,18 +342,18 @@ static struct fox_post_processing_rule_set replacementRuleSets[] =
 
 static BOOL typeMatchesCharacter(GSVoxelType type, char c);
 static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vector_long3 clp,
-                                    voxel_t *voxels, vector_long3 minP, vector_long3 maxP);
+                                    GSVoxel *voxels, vector_long3 minP, vector_long3 maxP);
 static struct fox_post_processing_rule * findRuleForCellPosition(size_t numRules, struct fox_post_processing_rule *rules,
                                                            vector_long3 clp,
-                                                           voxel_t *voxels, vector_long3 minP, vector_long3 maxP);
+                                                           GSVoxel *voxels, vector_long3 minP, vector_long3 maxP);
 static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
-                                    voxel_t *voxelsIn, voxel_t *voxelsOut,
+                                    GSVoxel *voxelsIn, GSVoxel *voxelsOut,
                                     struct fox_post_processing_rule_set *ruleSet, GSVoxelType *prevType_p);
 static void postProcessVoxels(struct fox_post_processing_rule_set *ruleSet,
-                              voxel_t *voxelsIn, voxel_t *voxelsOut,
+                              GSVoxel *voxelsIn, GSVoxel *voxelsOut,
                               vector_long3 minP, vector_long3 maxP);
 static float groundGradient(float terrainHeight, vector_float3 p);
-static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, voxel_t *outVoxel);
+static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, GSVoxel *outVoxel);
 int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 
@@ -437,20 +437,20 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                                   ofType:@"png"]
                                                      numTextures:4];
 
-        terrain_generator_t generator = ^(vector_float3 a, voxel_t *voxel) {
+        terrain_generator_t generator = ^(vector_float3 a, GSVoxel *voxel) {
             const float terrainHeight = 40.0f;
             generateTerrainVoxel(seed, terrainHeight, a, voxel);
         };
 
-        terrain_post_processor_t postProcessor = ^(size_t count, voxel_t *voxels, vector_long3 minP, vector_long3 maxP) {
+        terrain_post_processor_t postProcessor = ^(size_t count, GSVoxel *voxels, vector_long3 minP, vector_long3 maxP) {
             _Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
 
-            voxel_t *temp1 = malloc(count * sizeof(voxel_t));
+            GSVoxel *temp1 = malloc(count * sizeof(GSVoxel));
             if(!temp1) {
                 [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp1."];
             }
 
-            voxel_t *temp2 = malloc(count * sizeof(voxel_t));
+            GSVoxel *temp2 = malloc(count * sizeof(GSVoxel));
             if(!temp2) {
                 [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp2."];
             }
@@ -463,7 +463,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                 SWAP(temp1, temp2);
             }
 
-            memcpy(voxels, temp1, count * sizeof(voxel_t));
+            memcpy(voxels, temp1, count * sizeof(GSVoxel));
 
             free(temp1);
             free(temp2);
@@ -517,9 +517,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 - (void)placeBlockUnderCrosshairs
 {
     if(_cursor.cursorIsActive) {
-        voxel_t block;
+        GSVoxel block;
         
-        bzero(&block, sizeof(voxel_t));
+        bzero(&block, sizeof(GSVoxel));
         block.opaque = YES;
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_CUBE;
@@ -532,9 +532,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 - (void)removeBlockUnderCrosshairs
 {
     if(_cursor.cursorIsActive) {
-        voxel_t block;
+        GSVoxel block;
         
-        bzero(&block, sizeof(voxel_t));
+        bzero(&block, sizeof(GSVoxel));
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_EMPTY;
         
@@ -552,7 +552,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     __block vector_float3 cursorPos;
     
     [_chunkStore enumerateVoxelsOnRay:ray maxDepth:_maxPlaceDistance withBlock:^(vector_float3 p, BOOL *stop, BOOL *fail) {
-        voxel_t voxel;
+        GSVoxel voxel;
 
         if(![_chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {
             *fail = YES; // Stops enumerations with un-successful condition
@@ -603,7 +603,7 @@ static BOOL typeMatchesCharacter(GSVoxelType type, char c)
 }
 
 static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vector_long3 clp,
-                                    voxel_t *voxels, vector_long3 minP, vector_long3 maxP)
+                                    GSVoxel *voxels, vector_long3 minP, vector_long3 maxP)
 {
     assert(rule);
     assert(clp.x >= minP.x && clp.x < maxP.x);
@@ -635,7 +635,7 @@ static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vecto
 
 static struct fox_post_processing_rule * findRuleForCellPosition(size_t numRules, struct fox_post_processing_rule *rules,
                                                            vector_long3 clp,
-                                                           voxel_t *voxels, vector_long3 minP, vector_long3 maxP)
+                                                           GSVoxel *voxels, vector_long3 minP, vector_long3 maxP)
 {
     assert(rules);
 
@@ -650,7 +650,7 @@ static struct fox_post_processing_rule * findRuleForCellPosition(size_t numRules
 }
 
 static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
-                                    voxel_t *voxelsIn, voxel_t *voxelsOut,
+                                    GSVoxel *voxelsIn, GSVoxel *voxelsOut,
                                     struct fox_post_processing_rule_set *ruleSet, GSVoxelType *prevType_p)
 {
     assert(voxelsIn);
@@ -659,14 +659,14 @@ static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector
     assert(prevType_p);
 
     const size_t idx = INDEX_BOX(p, minP, maxP);
-    voxel_t *voxel = &voxelsIn[idx];
+    GSVoxel *voxel = &voxelsIn[idx];
     GSVoxelType prevType = *prevType_p;
 
     if(voxel->type == VOXEL_TYPE_EMPTY && (prevType == ruleSet->appliesAboveBlockType)) {
         // Find and apply the first post-processing rule which matches this position.
         struct fox_post_processing_rule *rule = findRuleForCellPosition(ruleSet->count, ruleSet->rules, p, voxelsIn, minP, maxP);
         if(rule) {
-            voxel_t replacement = rule->replacement;
+            GSVoxel replacement = rule->replacement;
             replacement.tex = voxel->tex;
             replacement.outside = voxel->outside;
             replacement.exposedToAirOnTop = !ruleSet->upsideDown;
@@ -679,7 +679,7 @@ static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector
 }
 
 static void postProcessVoxels(struct fox_post_processing_rule_set *ruleSet,
-                              voxel_t *voxelsIn, voxel_t *voxelsOut,
+                              GSVoxel *voxelsIn, GSVoxel *voxelsOut,
                               vector_long3 minP, vector_long3 maxP)
 {
     assert(ruleSet);
@@ -690,7 +690,7 @@ static void postProcessVoxels(struct fox_post_processing_rule_set *ruleSet,
 
     // Copy all voxels directly and then, below, replace a few according to the processing rules.
     const size_t numVoxels = (maxP.x-minP.x) * (maxP.y-minP.y) * (maxP.z-minP.z);
-    memcpy(voxelsOut, voxelsIn, numVoxels * sizeof(voxel_t));
+    memcpy(voxelsOut, voxelsIn, numVoxels * sizeof(GSVoxel));
     
     vector_long3 a = {minP.x+1, minP.y+1, minP.z+1};
     vector_long3 b = {maxP.x-1, maxP.y-1, maxP.z-1};
@@ -732,7 +732,7 @@ static float groundGradient(float terrainHeight, vector_float3 p)
 }
 
 // Generates a voxel for the specified point in space. Returns that voxel in `outVoxel'.
-static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, voxel_t *outVoxel)
+static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, GSVoxel *outVoxel)
 {
     static dispatch_once_t onceToken;
     static GSNoise *noiseSource0;

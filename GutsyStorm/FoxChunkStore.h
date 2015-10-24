@@ -44,11 +44,11 @@
  * unsuccessful then this returns NO without modifying the voxel pointed to by 'voxel'. This method may fail in this way
  * when it would have to block to take a lock.
  */
-- (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull voxel_t *)voxel;
+- (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel;
 
-- (voxel_t)voxelAtPoint:(vector_float3)pos;
+- (GSVoxel)voxelAtPoint:(vector_float3)pos;
 
-- (void)placeBlockAtPoint:(vector_float3)pos block:(voxel_t)block;
+- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block;
 
 - (void)purge;
 
