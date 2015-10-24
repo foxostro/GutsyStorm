@@ -8,7 +8,7 @@
 
 #import "FoxIntegerVector3.h"
 #import "FoxVoxel.h"
-#import "FoxNoise.h"
+#import "GSNoise.h"
 #import "FoxTerrainCursor.h"
 #import "FoxChunkStore.h"
 #import "FoxTextureArray.h"
@@ -735,8 +735,8 @@ static float groundGradient(float terrainHeight, vector_float3 p)
 static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, voxel_t *outVoxel)
 {
     static dispatch_once_t onceToken;
-    static FoxNoise *noiseSource0;
-    static FoxNoise *noiseSource1;
+    static GSNoise *noiseSource0;
+    static GSNoise *noiseSource1;
 
     BOOL groundLayer = NO;
     BOOL floatingMountain = NO;
@@ -744,8 +744,8 @@ static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_fl
     assert(outVoxel);
 
     dispatch_once(&onceToken, ^{
-        noiseSource0 = [[FoxNoise alloc] initWithSeed:seed];
-        noiseSource1 = [[FoxNoise alloc] initWithSeed:seed+1];
+        noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
+        noiseSource1 = [[GSNoise alloc] initWithSeed:seed+1];
     });
 
     // Normal rolling hills

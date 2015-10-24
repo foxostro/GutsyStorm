@@ -1,16 +1,16 @@
 //
-//  FoxNoise.m
+//  GSNoise.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxNoise.h"
+#import "GSNoise.h"
 #include "snoise3.h"
 
 
-@implementation FoxNoise
+@implementation GSNoise
 {
     void *_context;
 }

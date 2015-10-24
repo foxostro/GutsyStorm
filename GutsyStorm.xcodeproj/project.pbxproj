@@ -49,7 +49,7 @@
 		AC3BDE95170016CF0005E6C2 /* FoxChunkSunlightData.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3BDE94170016CF0005E6C2 /* FoxChunkSunlightData.m */; };
 		AC3BDE9817002EE30005E6C2 /* FoxGridSunlight.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3BDE9717002EE20005E6C2 /* FoxGridSunlight.m */; };
 		AC48C44616F563E40017BA94 /* FoxGrid.m in Sources */ = {isa = PBXBuildFile; fileRef = AC48C44516F563E40017BA94 /* FoxGrid.m */; };
-		AC5B2800151DC7BB0045B6E4 /* FoxNoise.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B27FF151DC7BA0045B6E4 /* FoxNoise.m */; };
+		AC5B2800151DC7BB0045B6E4 /* GSNoise.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */; };
 		AC5B2804151E2C1D0045B6E4 /* FoxChunkStore.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B2803151E2C1D0045B6E4 /* FoxChunkStore.m */; };
 		AC941759170149AD00EDAB98 /* FoxGridVBOs.m in Sources */ = {isa = PBXBuildFile; fileRef = AC941758170149AD00EDAB98 /* FoxGridVBOs.m */; };
 		AC96B179168CF2A500FF7FFC /* FoxBlockMeshCube.m in Sources */ = {isa = PBXBuildFile; fileRef = AC96B178168CF2A500FF7FFC /* FoxBlockMeshCube.m */; };
@@ -153,8 +153,8 @@
 		AC48C44416F563E40017BA94 /* FoxGrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxGrid.h; sourceTree = "<group>"; };
 		AC48C44516F563E40017BA94 /* FoxGrid.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxGrid.m; sourceTree = "<group>"; };
 		AC56651416F03B440041E34F /* FoxGridItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxGridItem.h; sourceTree = "<group>"; };
-		AC5B27FE151DC7BA0045B6E4 /* FoxNoise.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxNoise.h; sourceTree = "<group>"; };
-		AC5B27FF151DC7BA0045B6E4 /* FoxNoise.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxNoise.m; sourceTree = "<group>"; };
+		AC5B27FE151DC7BA0045B6E4 /* GSNoise.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSNoise.h; sourceTree = "<group>"; };
+		AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSNoise.m; sourceTree = "<group>"; };
 		AC5B2802151E2C1D0045B6E4 /* FoxChunkStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxChunkStore.h; sourceTree = "<group>"; };
 		AC5B2803151E2C1D0045B6E4 /* FoxChunkStore.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxChunkStore.m; sourceTree = "<group>"; };
 		AC68358B1613F20F0063AAFC /* GutsyStorm.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = GutsyStorm.entitlements; sourceTree = "<group>"; };
@@ -259,8 +259,8 @@
 				AC3767A1163DFB4000BAE03F /* GSErrorCodes.m */,
 				ACE99D72151FED59006055F6 /* snoise3.h */,
 				ACE99D6F151FE922006055F6 /* snoise3.c */,
-				AC5B27FE151DC7BA0045B6E4 /* FoxNoise.h */,
-				AC5B27FF151DC7BA0045B6E4 /* FoxNoise.m */,
+				AC5B27FE151DC7BA0045B6E4 /* GSNoise.h */,
+				AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */,
 				4A9A3BA41517200E00607B1A /* FoxCamera.h */,
 				4A9A3BA51517200E00607B1A /* FoxCamera.m */,
 				4AD9531B15142B1800C2AF8E /* FoxOpenGLView.h */,
@@ -516,7 +516,7 @@
 				4A9A3BAD1517252E00607B1A /* GLString.m in Sources */,
 				AC9CCD701519A90E0081964D /* FoxShader.m in Sources */,
 				ACF27B00151AE27E009FCAB9 /* FoxTextureArray.m in Sources */,
-				AC5B2800151DC7BB0045B6E4 /* FoxNoise.m in Sources */,
+				AC5B2800151DC7BB0045B6E4 /* GSNoise.m in Sources */,
 				AC5B2804151E2C1D0045B6E4 /* FoxChunkStore.m in Sources */,
 				AC202CC1151E437C00D91067 /* FoxFrustum.m in Sources */,
 				AC202CC5151E453E00D91067 /* FoxPlane.c in Sources */,

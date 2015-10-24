@@ -1,5 +1,5 @@
 //
-//  FoxNoise.h
+//  GSNoise.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #include <simd/simd.h>
 
-@interface FoxNoise : NSObject
+@interface GSNoise : NSObject
 
 // XXX: We need a noise API that generates batch noise. For example, it could fill an array with 3D noise.
 
