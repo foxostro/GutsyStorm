@@ -9,21 +9,21 @@
 #import <Foundation/Foundation.h>
 
 
-@class FoxVertex;
+@class GSBoxedTerrainVertex;
 
 
 @interface FoxFace : NSObject
 
 @property (readonly) BOOL eligibleForOmission;
-@property (copy) NSArray<FoxVertex *> *vertexList;
+@property (copy) NSArray<GSBoxedTerrainVertex *> *vertexList;
 @property (readonly) face_t correspondingCubeFace;
 
-+ (FoxFace *)faceWithQuad:(NSArray<FoxVertex *> *)vertices correspondingCubeFace:(face_t)face;
-+ (FoxFace *)faceWithTri:(NSArray<FoxVertex *> *)vertices correspondingCubeFace:(face_t)face;
++ (FoxFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(face_t)face;
++ (FoxFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(face_t)face;
 
 - (instancetype)init NS_UNAVAILABLE;
 
-- (instancetype)initWithVertices:(NSArray<FoxVertex *> *)vertices
+- (instancetype)initWithVertices:(NSArray<GSBoxedTerrainVertex *> *)vertices
            correspondingCubeFace:(face_t)face
              eligibleForOmission:(BOOL)omittable NS_DESIGNATED_INITIALIZER;
 

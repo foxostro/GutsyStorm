@@ -9,7 +9,7 @@
 #import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
 #import "FoxVoxel.h"
 #import "FoxFace.h"
-#import "FoxVertex.h"
+#import "GSBoxedTerrainVertex.h"
 #import "FoxNeighborhood.h"
 #import "FoxChunkVoxelData.h"
 #import "FoxBlockMesh.h"
@@ -25,55 +25,55 @@
 
         [self setFaces:@[
             // Top (ramp surface)
-            [FoxFace faceWithQuad:@[[FoxVertex vertexWithPosition:vector_make(-L, -L, -L)
+            [FoxFace faceWithQuad:@[[GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, -L)
                                                              normal:GSMakeIntegerVector3(0, 0, -1)
                                                            texCoord:GSMakeIntegerVector3(1, 1, VOXEL_TEX_GRASS)],
-                                       [FoxVertex vertexWithPosition:vector_make(-L, +L, +L)
+                                       [GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, +L, +L)
                                                              normal:GSMakeIntegerVector3(0, +1, 0)
                                                            texCoord:GSMakeIntegerVector3(1, 0, VOXEL_TEX_GRASS)],
-                                       [FoxVertex vertexWithPosition:vector_make(+L, -L, +L)
+                                       [GSBoxedTerrainVertex vertexWithPosition:vector_make(+L, -L, +L)
                                                              normal:GSMakeIntegerVector3(0, 0, -1)
                                                            texCoord:GSMakeIntegerVector3(0, 0, VOXEL_TEX_GRASS)],
-                                       [FoxVertex vertexWithPosition:vector_make(+L, -L, +L)
+                                       [GSBoxedTerrainVertex vertexWithPosition:vector_make(+L, -L, +L)
                                                              normal:GSMakeIntegerVector3(0, 0, -1)
                                                            texCoord:GSMakeIntegerVector3(0, 0, VOXEL_TEX_GRASS)]]
                correspondingCubeFace:FACE_TOP],
 
             // Bottom
-            [FoxFace faceWithQuad:@[[FoxVertex vertexWithPosition:vector_make(+L, -L, +L)
+            [FoxFace faceWithQuad:@[[GSBoxedTerrainVertex vertexWithPosition:vector_make(+L, -L, +L)
                                                              normal:GSMakeIntegerVector3(0, -1, 0)
                                                            texCoord:GSMakeIntegerVector3(0, 0, VOXEL_TEX_DIRT)],
-                                       [FoxVertex vertexWithPosition:vector_make(+L, -L, +L)
+                                       [GSBoxedTerrainVertex vertexWithPosition:vector_make(+L, -L, +L)
                                                              normal:GSMakeIntegerVector3(0, -1, 0)
                                                            texCoord:GSMakeIntegerVector3(0, 0, VOXEL_TEX_DIRT)],
-                                       [FoxVertex vertexWithPosition:vector_make(-L, -L, +L)
+                                       [GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, +L)
                                                              normal:GSMakeIntegerVector3(0, -1, 0)
                                                            texCoord:GSMakeIntegerVector3(1, 0, VOXEL_TEX_DIRT)],
-                                       [FoxVertex vertexWithPosition:vector_make(-L, -L, -L)
+                                       [GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, -L)
                                                              normal:GSMakeIntegerVector3(0, -1, 0)
                                                            texCoord:GSMakeIntegerVector3(1, 1, VOXEL_TEX_DIRT)]]
                correspondingCubeFace:FACE_BOTTOM],
 
             // Side A (a triangle)
-            [FoxFace faceWithTri:@[[FoxVertex vertexWithPosition:vector_make(-L, -L, -L)
+            [FoxFace faceWithTri:@[[GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, -L)
                                                         normal:GSMakeIntegerVector3(1, 0, 0)
                                                       texCoord:GSMakeIntegerVector3(1, 1, VOXEL_TEX_SIDE)],
-                                  [FoxVertex vertexWithPosition:vector_make(-L, -L, +L)
+                                  [GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, +L)
                                                         normal:GSMakeIntegerVector3(1, 0, 0)
                                                       texCoord:GSMakeIntegerVector3(0, 1, VOXEL_TEX_SIDE)],
-                                  [FoxVertex vertexWithPosition:vector_make(-L, +L, +L)
+                                  [GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, +L, +L)
                                                         normal:GSMakeIntegerVector3(1, 0, 0)
                                                       texCoord:GSMakeIntegerVector3(0, 0, VOXEL_TEX_SIDE)]]
                correspondingCubeFace:FACE_RIGHT],
 
             // Side B (a triangle)
-            [FoxFace faceWithTri:@[[FoxVertex vertexWithPosition:vector_make(-L, +L, +L)
+            [FoxFace faceWithTri:@[[GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, +L, +L)
                                                         normal:GSMakeIntegerVector3(0, 0, -1)
                                                       texCoord:GSMakeIntegerVector3(0, 0, VOXEL_TEX_SIDE)],
-                                  [FoxVertex vertexWithPosition:vector_make(-L, -L, +L)
+                                  [GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, +L)
                                                         normal:GSMakeIntegerVector3(0, 0, -1)
                                                       texCoord:GSMakeIntegerVector3(0, 1, VOXEL_TEX_SIDE)],
-                                  [FoxVertex vertexWithPosition:vector_make(+L, -L, +L)
+                                  [GSBoxedTerrainVertex vertexWithPosition:vector_make(+L, -L, +L)
                                                         normal:GSMakeIntegerVector3(0, 0, -1)
                                                       texCoord:GSMakeIntegerVector3(1, 1, VOXEL_TEX_SIDE)]]
                correspondingCubeFace:FACE_FRONT]

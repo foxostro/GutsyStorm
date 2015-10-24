@@ -1,5 +1,5 @@
 //
-//  FoxVertex.m
+//  GSGeneralVertex.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/15/12.
@@ -8,23 +8,23 @@
 
 #import <Cocoa/Cocoa.h>
 
-#import "FoxVertex.h"
+#import "GSBoxedTerrainVertex.h"
 
-@implementation FoxVertex
+@implementation GSBoxedTerrainVertex
 
-+ (FoxVertex *)vertexWithPosition:(vector_float3)position
++ (GSBoxedTerrainVertex *)vertexWithPosition:(vector_float3)position
                           normal:(vector_long3)normal
                         texCoord:(vector_long3)texCoord
 {
-    return [[FoxVertex alloc] initWithPosition:position normal:normal texCoord:texCoord];
+    return [[GSBoxedTerrainVertex alloc] initWithPosition:position normal:normal texCoord:texCoord];
 }
 
-+ (FoxVertex *)vertexWithVertex:(struct fox_vertex *)pv
++ (GSBoxedTerrainVertex *)vertexWithVertex:(struct GSTerrainVertex *)pv
 {
-    return [[FoxVertex alloc] initWithVertex:pv];
+    return [[GSBoxedTerrainVertex alloc] initWithVertex:pv];
 }
 
-- (instancetype)initWithVertex:(struct fox_vertex *)pv
+- (instancetype)initWithVertex:(struct GSTerrainVertex *)pv
 {
     assert(pv);
     

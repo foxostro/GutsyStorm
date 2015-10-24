@@ -6,7 +6,7 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxVertex.h"
+#import "GSBoxedTerrainVertex.h"
 #import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
 #import "FoxVoxel.h"
 #import "FoxFace.h"
@@ -17,8 +17,8 @@
 
 @interface FoxBlockMesh ()
 
-- (void)rotateVertex:(struct fox_vertex *)v quaternion:(vector_float4)quat;
-- (NSArray<FoxVertex *> *)transformVerticesForFace:(FoxFace *)face
+- (void)rotateVertex:(struct GSTerrainVertex *)v quaternion:(vector_float4)quat;
+- (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(FoxFace *)face
                                         upsideDown:(BOOL)upsideDown
                                              quatY:(vector_float4)quatY;
 - (NSArray<FoxFace *> *)transformFaces:(NSArray<FoxFace *> *)faces
@@ -44,7 +44,7 @@
     return self;
 }
 
-- (void)rotateVertex:(struct fox_vertex *)v quaternion:(vector_float4)quat
+- (void)rotateVertex:(struct GSTerrainVertex *)v quaternion:(vector_float4)quat
 {
     vector_float3 vertexPos, normal;
 
@@ -61,21 +61,21 @@
     v->normal[2] = normal.z;
 }
 
-- (NSArray<FoxVertex *> *)transformVerticesForFace:(FoxFace *)face
+- (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(FoxFace *)face
                                         upsideDown:(BOOL)upsideDown
                                              quatY:(vector_float4)quatY
 {
     assert(face);
 
-    NSArray<FoxVertex *> *vertexList = face.vertexList;
+    NSArray<GSBoxedTerrainVertex *> *vertexList = face.vertexList;
     NSUInteger count = [vertexList count];
-    NSMutableArray<FoxVertex *> *transformedVertices = [[NSMutableArray<FoxVertex *> alloc] initWithCapacity:count];
+    NSMutableArray<GSBoxedTerrainVertex *> *transformedVertices = [[NSMutableArray<GSBoxedTerrainVertex *> alloc] initWithCapacity:count];
 
     NSEnumerator *enumerator = upsideDown ? [vertexList reverseObjectEnumerator] : [vertexList objectEnumerator];
 
-    for(FoxVertex *vertex in enumerator)
+    for(GSBoxedTerrainVertex *vertex in enumerator)
     {
-        struct fox_vertex v = vertex.v;
+        struct GSTerrainVertex v = vertex.v;
 
         if (upsideDown) {
             v.position[1] *= -1;
@@ -84,7 +84,7 @@
 
         [self rotateVertex:&v quaternion:quatY];
 
-        [transformedVertices addObject:[FoxVertex vertexWithVertex:&v]];
+        [transformedVertices addObject:[GSBoxedTerrainVertex vertexWithVertex:&v]];
     }
 
     return transformedVertices;
@@ -100,7 +100,7 @@
     
     for(FoxFace *face in faces)
     {
-        NSArray<FoxVertex *> *transformedVertices = [self transformVerticesForFace:face
+        NSArray<GSBoxedTerrainVertex *> *transformedVertices = [self transformVerticesForFace:face
                                                                         upsideDown:upsideDown
                                                                              quatY:quatY];
         face_t faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace upsideDown:upsideDown];
@@ -140,7 +140,7 @@
 }
 
 - (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
-                                      vertexList:(NSMutableArray<FoxVertex *> *)vertexList
+                                      vertexList:(NSMutableArray<GSBoxedTerrainVertex *> *)vertexList
                                        voxelData:(FoxNeighborhood *)voxelData
                                             minP:(vector_float3)minP
 {
@@ -160,9 +160,9 @@
             continue;
         }
 
-        for(FoxVertex *vertex in face.vertexList)
+        for(GSBoxedTerrainVertex *vertex in face.vertexList)
         {
-            struct fox_vertex v = vertex.v;
+            struct GSTerrainVertex v = vertex.v;
             
             v.position[0] += pos.x;
             v.position[1] += pos.y;
@@ -177,7 +177,7 @@
                 v.texCoord[2] = voxel.tex;
             }
 
-            [vertexList addObject:[FoxVertex vertexWithVertex:&v]];
+            [vertexList addObject:[GSBoxedTerrainVertex vertexWithVertex:&v]];
         }
     }
 }

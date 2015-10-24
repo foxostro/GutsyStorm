@@ -13,7 +13,7 @@
 - (void)setFaces:(nonnull NSArray<FoxFace *> *)faces;
 
 - (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
-                                      vertexList:(nonnull NSMutableArray<FoxVertex *> *)vertexList
+                                      vertexList:(nonnull NSMutableArray<GSBoxedTerrainVertex *> *)vertexList
                                        voxelData:(nonnull FoxNeighborhood *)voxelData
                                             minP:(vector_float3)minP;
 

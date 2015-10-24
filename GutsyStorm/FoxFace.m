@@ -9,15 +9,15 @@
 #import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by FoxVoxel.h
 #import "FoxVoxel.h" // for face_t, needed by FoxFace.h
 #import "FoxFace.h"
-#import "FoxVertex.h"
+#import "GSBoxedTerrainVertex.h"
 
 @implementation FoxFace
 
-+ (NSArray<FoxVertex *> *)decomposeQuad:(NSArray<FoxVertex *> *)verticesIn
++ (NSArray<GSBoxedTerrainVertex *> *)decomposeQuad:(NSArray<GSBoxedTerrainVertex *> *)verticesIn
 {
     NSParameterAssert(verticesIn);
     
-    NSArray<FoxVertex *> *verticesOut = nil;
+    NSArray<GSBoxedTerrainVertex *> *verticesOut = nil;
     NSUInteger count = verticesIn.count;
     
     assert(count == 4 || count == 3);
@@ -32,14 +32,14 @@
     return verticesOut;
 }
 
-+ (BOOL)determineEligibilityForOmission:(NSArray<FoxVertex *> *)vertices
++ (BOOL)determineEligibilityForOmission:(NSArray<GSBoxedTerrainVertex *> *)vertices
 {
     NSParameterAssert(vertices && vertices.count >= 3);
 
     // The face is eligible for omission if it fits exactly into a cube face. (i.e. unit area)
-    vector_float3 a = [((FoxVertex *)[vertices objectAtIndex:0]) position];
-    vector_float3 b = [((FoxVertex *)[vertices objectAtIndex:1]) position];
-    vector_float3 c = [((FoxVertex *)[vertices objectAtIndex:2]) position];
+    vector_float3 a = [((GSBoxedTerrainVertex *)[vertices objectAtIndex:0]) position];
+    vector_float3 b = [((GSBoxedTerrainVertex *)[vertices objectAtIndex:1]) position];
+    vector_float3 c = [((GSBoxedTerrainVertex *)[vertices objectAtIndex:2]) position];
 
     vector_float3 ba = b - a;
     vector_float3 bc = b - c;
@@ -55,17 +55,17 @@
     return result;
 }
 
-+ (FoxFace *)faceWithQuad:(NSArray<FoxVertex *> *)vertices correspondingCubeFace:(face_t)face
++ (FoxFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(face_t)face
 {
     NSParameterAssert(vertices && vertices.count == 4);
-    NSArray<FoxVertex *> *triangleVertices = [self decomposeQuad:vertices];
+    NSArray<GSBoxedTerrainVertex *> *triangleVertices = [self decomposeQuad:vertices];
     BOOL omittable = [self determineEligibilityForOmission:vertices];
     return [[FoxFace alloc] initWithVertices:triangleVertices
                       correspondingCubeFace:face
                         eligibleForOmission:omittable];
 }
 
-+ (FoxFace *)faceWithTri:(NSArray<FoxVertex *> *)vertices correspondingCubeFace:(face_t)face
++ (FoxFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(face_t)face
 {
     NSParameterAssert(vertices && vertices.count == 3);
     BOOL omittable = [self determineEligibilityForOmission:vertices];
@@ -80,7 +80,7 @@
     return nil;
 }
 
-- (instancetype)initWithVertices:(NSArray<FoxVertex *> *)vertices
+- (instancetype)initWithVertices:(NSArray<GSBoxedTerrainVertex *> *)vertices
            correspondingCubeFace:(face_t)face
              eligibleForOmission:(BOOL)omittable
 {

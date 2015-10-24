@@ -26,7 +26,7 @@
 		4ACB9C2A1527CF50005D50B8 /* FoxRay.c in Sources */ = {isa = PBXBuildFile; fileRef = 4ACB9C291527CF50005D50B8 /* FoxRay.c */; };
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
 		4AD9531D15142B1800C2AF8E /* FoxOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* FoxOpenGLView.m */; };
-		4AE4E552153B982100FC3047 /* FoxVertex.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE4E551153B982100FC3047 /* FoxVertex.m */; };
+		4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */; };
 		6F6158081BD69C8E00243A61 /* FoxOpenGLViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6158071BD69C8E00243A61 /* FoxOpenGLViewController.m */; settings = {ASSET_TAGS = (); }; };
 		6F9018491BD31EE300CD21FB /* crosshairs.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018471BD31EE300CD21FB /* crosshairs.frag.txt */; settings = {ASSET_TAGS = (); }; };
 		6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */; settings = {ASSET_TAGS = (); }; };
@@ -109,8 +109,8 @@
 		4AD9531815142AA000C2AF8E /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = ../../../../../System/Library/Frameworks/OpenGL.framework; sourceTree = "<group>"; };
 		4AD9531B15142B1800C2AF8E /* FoxOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxOpenGLView.h; sourceTree = "<group>"; };
 		4AD9531C15142B1800C2AF8E /* FoxOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxOpenGLView.m; sourceTree = "<group>"; };
-		4AE4E550153B982100FC3047 /* FoxVertex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxVertex.h; sourceTree = "<group>"; };
-		4AE4E551153B982100FC3047 /* FoxVertex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxVertex.m; sourceTree = "<group>"; };
+		4AE4E550153B982100FC3047 /* GSBoxedTerrainVertex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBoxedTerrainVertex.h; sourceTree = "<group>"; };
+		4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedTerrainVertex.m; sourceTree = "<group>"; };
 		6F6158061BD69C8E00243A61 /* FoxOpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxOpenGLViewController.h; sourceTree = "<group>"; };
 		6F6158071BD69C8E00243A61 /* FoxOpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxOpenGLViewController.m; sourceTree = "<group>"; };
 		6F9018471BD31EE300CD21FB /* crosshairs.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = crosshairs.frag.txt; sourceTree = "<group>"; };
@@ -121,6 +121,7 @@
 		6FE184FF1BD7E9E7009A076D /* FoxTextLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxTextLabel.m; sourceTree = "<group>"; };
 		6FE2F2AE1BD171F0009A83DC /* FoxQuaternion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FoxQuaternion.h; sourceTree = "<group>"; };
 		6FE2F2AF1BD180EF009A83DC /* FoxMatrixUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FoxMatrixUtils.h; sourceTree = "<group>"; };
+		6FEAEA7C1BDB75EA00C94A58 /* GSTerrainVertex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSTerrainVertex.h; sourceTree = "<group>"; };
 		6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cursor.frag.txt; sourceTree = "<group>"; };
 		6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cursor.vert.txt; sourceTree = "<group>"; };
 		6FFCBA641BC98DAD00A8D876 /* FoxGridEdit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxGridEdit.h; sourceTree = "<group>"; };
@@ -299,8 +300,9 @@
 			children = (
 				ACC82D2516A1E6C000F56FB8 /* FoxFace.h */,
 				ACC82D2616A1E6C000F56FB8 /* FoxFace.m */,
-				4AE4E550153B982100FC3047 /* FoxVertex.h */,
-				4AE4E551153B982100FC3047 /* FoxVertex.m */,
+				6FEAEA7C1BDB75EA00C94A58 /* GSTerrainVertex.h */,
+				4AE4E550153B982100FC3047 /* GSBoxedTerrainVertex.h */,
+				4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */,
 				AC154883152C04EF00434374 /* FoxBoxedVector.h */,
 				AC154884152C04EF00434374 /* FoxBoxedVector.m */,
 				4A9EC91815282ADA009C80FF /* FoxAABB.h */,
@@ -523,7 +525,7 @@
 				4A9EC91A15282ADA009C80FF /* FoxAABB.m in Sources */,
 				AC154885152C04EF00434374 /* FoxBoxedVector.m in Sources */,
 				6F6158081BD69C8E00243A61 /* FoxOpenGLViewController.m in Sources */,
-				4AE4E552153B982100FC3047 /* FoxVertex.m in Sources */,
+				4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */,
 				4A2310C0153E10F100A4EBE6 /* FoxChunkVoxelData.m in Sources */,
 				4A2310C4153E110400A4EBE6 /* FoxChunkGeometryData.m in Sources */,
 				4A95D39F154645920042C081 /* FoxReaderWriterLock.m in Sources */,

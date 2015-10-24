@@ -12,7 +12,7 @@
 #import "FoxVoxel.h"
 
 
-struct fox_vertex;
+struct GSTerrainVertex;
 @class FoxNeighborhood;
 @class FoxBlockMesh;
 @class FoxChunkSunlightData;
@@ -30,6 +30,6 @@ struct fox_vertex;
                              sunlight:(nonnull FoxChunkSunlightData *)sunlight;
 
 /* Copy the chunk vertex buffer to a new buffer and return that in `dst'. Return the number of vertices in the buffer. */
-- (GLsizei)copyVertsToBuffer:(struct fox_vertex * _Nonnull * _Nonnull)dst;
+- (GLsizei)copyVertsToBuffer:(struct GSTerrainVertex * _Nonnull * _Nonnull)dst;
 
 @end

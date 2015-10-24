@@ -12,7 +12,7 @@
 #import "FoxChunkVoxelData.h"
 #import "FoxRay.h"
 #import "FoxChunkStore.h"
-#import "FoxVertex.h"
+#import "GSBoxedTerrainVertex.h"
 #import "FoxVoxel.h"
 #import "FoxNeighborhood.h"
 #import "FoxBlockMesh.h"
@@ -32,7 +32,7 @@ struct fox_chunk_geometry_header
 
 
 static void applyLightToVertices(size_t numChunkVerts,
-                                 struct fox_vertex *vertsBuffer,
+                                 struct GSTerrainVertex *vertsBuffer,
                                  FoxTerrainBuffer *sunlight,
                                  vector_float3 minP);
 
@@ -102,20 +102,20 @@ static void applyLightToVertices(size_t numChunkVerts,
     return self; // all geometry objects are immutable, so return self instead of deep copying
 }
 
-- (GLsizei)copyVertsToBuffer:(struct fox_vertex **)dst
+- (GLsizei)copyVertsToBuffer:(struct GSTerrainVertex **)dst
 {
     assert(dst);
 
     const struct fox_chunk_geometry_header *restrict header = [_data bytes];
-    const struct fox_vertex * restrict vertsBuffer = ((void *)header) + sizeof(struct fox_chunk_geometry_header);
+    const struct GSTerrainVertex * restrict vertsBuffer = ((void *)header) + sizeof(struct fox_chunk_geometry_header);
 
     // consistency checks
     assert(header->w == CHUNK_SIZE_X);
     assert(header->h == CHUNK_SIZE_Y);
     assert(header->d == CHUNK_SIZE_Z);
-    assert(header->len == (header->numChunkVerts * sizeof(struct fox_vertex)));
+    assert(header->len == (header->numChunkVerts * sizeof(struct GSTerrainVertex)));
 
-    struct fox_vertex *vertsCopy = malloc(header->len);
+    struct GSTerrainVertex *vertsCopy = malloc(header->len);
     if(!vertsCopy) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating vertsCopy in -copyVertsToBuffer:."];
     }
@@ -130,7 +130,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 + (NSData *)dataWithSunlight:(FoxChunkSunlightData *)sunlight minP:(vector_float3)minCorner
 {
     vector_float3 pos;
-    NSMutableArray<FoxVertex *> *vertices;
+    NSMutableArray<GSBoxedTerrainVertex *> *vertices;
 
     assert(sunlight);
 
@@ -138,7 +138,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     const vector_float3 maxCorner = minCorner + vector_make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 
-    vertices = [NSMutableArray<FoxVertex *> new];
+    vertices = [NSMutableArray<GSBoxedTerrainVertex *> new];
 
     // Iterate over all voxels in the chunk and generate geometry.
     FOR_BOX(pos, minCorner, maxCorner)
@@ -162,12 +162,12 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     const GLsizei numChunkVerts = (GLsizei)[vertices count];
 
-    const uint32_t len = numChunkVerts * sizeof(struct fox_vertex);
+    const uint32_t len = numChunkVerts * sizeof(struct GSTerrainVertex);
     const size_t capacity = sizeof(struct fox_chunk_geometry_header) + len;
     NSMutableData *data = [[NSMutableData alloc] initWithBytesNoCopy:malloc(capacity) length:capacity freeWhenDone:YES];
 
     struct fox_chunk_geometry_header * header = [data mutableBytes];
-    struct fox_vertex * vertsBuffer = (void *)header + sizeof(struct fox_chunk_geometry_header);
+    struct GSTerrainVertex * vertsBuffer = (void *)header + sizeof(struct fox_chunk_geometry_header);
 
     header->w = CHUNK_SIZE_X;
     header->h = CHUNK_SIZE_Y;
@@ -178,7 +178,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     // Take the vertices array and generate raw buffers for OpenGL to consume.
     for(GLsizei i=0; i<numChunkVerts; ++i)
     {
-        FoxVertex *v = vertices[i];
+        GSBoxedTerrainVertex *v = vertices[i];
         vertsBuffer[i] = v.v;
     }
 
@@ -191,7 +191,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 @end
 
 static void applyLightToVertices(size_t numChunkVerts,
-                                 struct fox_vertex *vertsBuffer,
+                                 struct GSTerrainVertex *vertsBuffer,
                                  FoxTerrainBuffer *sunlight,
                                  vector_float3 minP)
 {
@@ -200,7 +200,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     for(GLsizei i=0; i<numChunkVerts; ++i)
     {
-        struct fox_vertex *v = &vertsBuffer[i];
+        struct GSTerrainVertex *v = &vertsBuffer[i];
         
         vector_float3 vertexPos = vector_make(v->position[0], v->position[1], v->position[2]);
         vector_long3 normal = (vector_long3){v->normal[0], v->normal[1], v->normal[2]};

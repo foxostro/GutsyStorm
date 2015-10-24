@@ -11,7 +11,7 @@
 #import "FoxChunkVBOs.h"
 #import "FoxIntegerVector3.h"
 #import "FoxChunkGeometryData.h"
-#import "FoxVertex.h"
+#import "GSBoxedTerrainVertex.h"
 #import "FoxVBOHolder.h"
 
 
@@ -74,7 +74,7 @@ typedef GLuint index_t;
     assert(context);
     
     if(self = [super init]) {
-        struct fox_vertex *vertsBuffer = NULL;
+        struct GSTerrainVertex *vertsBuffer = NULL;
         _numIndicesForDrawing = [geometry copyVertsToBuffer:&vertsBuffer];
         _glContext = context;
         minP = geometry.minP;
@@ -85,7 +85,7 @@ typedef GLuint index_t;
         GLuint vbo = 0;
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, _numIndicesForDrawing * sizeof(struct fox_vertex), vertsBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, _numIndicesForDrawing * sizeof(struct GSTerrainVertex), vertsBuffer, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         _vbo = [[FoxVBOHolder alloc] initWithHandle:vbo context:context];
@@ -119,19 +119,19 @@ typedef GLuint index_t;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         // Verify that vertex attribute formats are consistent with in-memory storage.
-        assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct fox_vertex, position));
-        assert(sizeof(GLbyte)  == SIZEOF_STRUCT_ARRAY_ELEMENT(struct fox_vertex, normal));
-        assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct fox_vertex, texCoord));
-        assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct fox_vertex, color));
+        assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct GSTerrainVertex, position));
+        assert(sizeof(GLbyte)  == SIZEOF_STRUCT_ARRAY_ELEMENT(struct GSTerrainVertex, normal));
+        assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct GSTerrainVertex, texCoord));
+        assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct GSTerrainVertex, color));
     });
 #endif
 
-    const GLvoid *offsetVertex   = (const GLvoid *)offsetof(struct fox_vertex, position);
-    const GLvoid *offsetNormal   = (const GLvoid *)offsetof(struct fox_vertex, normal);
-    const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(struct fox_vertex, texCoord);
-    const GLvoid *offsetColor    = (const GLvoid *)offsetof(struct fox_vertex, color);
+    const GLvoid *offsetVertex   = (const GLvoid *)offsetof(struct GSTerrainVertex, position);
+    const GLvoid *offsetNormal   = (const GLvoid *)offsetof(struct GSTerrainVertex, normal);
+    const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(struct GSTerrainVertex, texCoord);
+    const GLvoid *offsetColor    = (const GLvoid *)offsetof(struct GSTerrainVertex, color);
 
-    const GLsizei stride = sizeof(struct fox_vertex);
+    const GLsizei stride = sizeof(struct GSTerrainVertex);
     glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
     glNormalPointer(     GL_BYTE,          stride, offsetNormal);
     glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
