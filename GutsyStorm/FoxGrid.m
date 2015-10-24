@@ -356,15 +356,16 @@
     [lock lock];
 
     // Search for an existing item at the specified point. If it exists then just do a straight-up replacement.
-    for(NS_VALID_UNTIL_END_OF_SCOPE NSObject <FoxGridItem> *item in bucket)
+    for(NSUInteger i = 0, n = bucket.count; i < n; ++i)
     {
+        NSObject <FoxGridItem> *item = [bucket objectAtIndex:i];
+
         if(vector_equal(item.minP, minP)) {
-            NS_VALID_UNTIL_END_OF_SCOPE NSObject <FoxGridItem> *replacement = newReplacementItem(item);
+            NSObject <FoxGridItem> *replacement = newReplacementItem(item);
             if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
                 [item itemWillBeInvalidated];
             }
-            [bucket removeObject:item];
-            [bucket addObject:replacement];
+            [bucket replaceObjectAtIndex:i withObject:replacement];
             
             FoxGridEdit *change = [[FoxGridEdit alloc] initWithOriginalItem:item
                                                            modifiedItem:replacement
