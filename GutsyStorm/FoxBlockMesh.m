@@ -94,7 +94,7 @@
                              direction:(GSVoxelDirection)dir
                             upsideDown:(BOOL)upsideDown
 {
-    vector_float4 quatY = quaternionForDirection(dir);
+    vector_float4 quatY = GSQuaternionForVoxelDirection(dir);
     NSUInteger faceCount = [faces count];
     NSMutableArray<FoxFace *> *transformedFaces = [[NSMutableArray<FoxFace *> alloc] initWithCapacity:faceCount];
     
