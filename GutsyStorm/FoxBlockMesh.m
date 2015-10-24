@@ -24,7 +24,7 @@
 - (NSArray<FoxFace *> *)transformFaces:(NSArray<FoxFace *> *)faces
                              direction:(GSVoxelDirection)dir
                             upsideDown:(BOOL)upsideDown;
-- (face_t)transformCubeFaceEnum:(face_t)correspondingCubeFace upsideDown:(BOOL)upsideDown;
+- (GSVoxelFace)transformCubeFaceEnum:(GSVoxelFace)correspondingCubeFace upsideDown:(BOOL)upsideDown;
 
 @end
 
@@ -103,7 +103,7 @@
         NSArray<GSBoxedTerrainVertex *> *transformedVertices = [self transformVerticesForFace:face
                                                                         upsideDown:upsideDown
                                                                              quatY:quatY];
-        face_t faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace upsideDown:upsideDown];
+        GSVoxelFace faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace upsideDown:upsideDown];
         FoxFace *transformedFace = [[FoxFace alloc] initWithVertices:transformedVertices
                                              correspondingCubeFace:faceDir
                                                eligibleForOmission:face.eligibleForOmission];
@@ -113,7 +113,7 @@
     return transformedFaces;
 }
 
-- (face_t)transformCubeFaceEnum:(face_t)correspondingCubeFace upsideDown:(BOOL)upsideDown
+- (GSVoxelFace)transformCubeFaceEnum:(GSVoxelFace)correspondingCubeFace upsideDown:(BOOL)upsideDown
 {
     if(upsideDown) {
         if(correspondingCubeFace == FACE_TOP) {

@@ -120,7 +120,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
                   combinedVoxelData:(GSVoxel *)combinedVoxelData
                combinedSunlightData:(terrain_buffer_element_t *)combinedSunlightData
 {
-    for(face_t i=0; i<FACE_NUM_FACES; ++i)
+    for(GSVoxelFace i=0; i<FACE_NUM_FACES; ++i)
     {
         vector_long3 a = p + offsetForFace[i];
 

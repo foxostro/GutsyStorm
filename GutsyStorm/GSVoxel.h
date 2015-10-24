@@ -125,7 +125,7 @@ typedef enum
     FACE_RIGHT,
     FACE_LEFT,
     FACE_NUM_FACES
-} face_t;
+} GSVoxelFace;
 
 
 extern const vector_long3 GSChunkSizeIntVec3;

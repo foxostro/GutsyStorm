@@ -16,15 +16,15 @@
 
 @property (readonly) BOOL eligibleForOmission;
 @property (copy) NSArray<GSBoxedTerrainVertex *> *vertexList;
-@property (readonly) face_t correspondingCubeFace;
+@property (readonly) GSVoxelFace correspondingCubeFace;
 
-+ (FoxFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(face_t)face;
-+ (FoxFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(face_t)face;
++ (FoxFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face;
++ (FoxFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face;
 
 - (instancetype)init NS_UNAVAILABLE;
 
 - (instancetype)initWithVertices:(NSArray<GSBoxedTerrainVertex *> *)vertices
-           correspondingCubeFace:(face_t)face
+           correspondingCubeFace:(GSVoxelFace)face
              eligibleForOmission:(BOOL)omittable NS_DESIGNATED_INITIALIZER;
 
 @end
