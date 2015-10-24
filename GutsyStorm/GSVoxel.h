@@ -84,7 +84,7 @@ typedef enum
     VOXEL_TEX_SIDE,
     VOXEL_TEX_STONE,
     NUM_VOXEL_TEXTURES
-} voxel_tex_t;
+} GSVoxelTexture;
 
 
 typedef struct
