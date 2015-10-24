@@ -115,7 +115,7 @@
 
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
-    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, chunkSize)
     {
         // Get the y value of the highest non-empty voxel in the chunk.
         ssize_t heightOfHighestVoxel;
@@ -136,7 +136,7 @@
     }
 
     // Determine voxels in the chunk which are exposed to air on top.
-    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, chunkSize)
     {
         // Find a voxel which is empty and is directly above a cube voxel.
         p.y = CHUNK_SIZE_Y-1;
@@ -187,9 +187,9 @@
     // XXX: I suspect that a highly efficient bit-blit could be written which copies voxels much faster than this.
     FoxMutableBuffer *data = [[FoxMutableBuffer alloc] initWithDimensions:chunkSize];
     voxel_t *buf = (voxel_t *)[data mutableData];
-    FOR_BOX(p, ivecZero, chunkSize)
+    FOR_BOX(p, GSZeroIntVec3, chunkSize)
     {
-        buf[INDEX_BOX(p, ivecZero, chunkSize)] = voxels[INDEX_BOX(p, a, b)];
+        buf[INDEX_BOX(p, GSZeroIntVec3, chunkSize)] = voxels[INDEX_BOX(p, a, b)];
     }
 
     free(voxels);

@@ -89,7 +89,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     FOR_Y_COLUMN_IN_BOX(p, a, b)
     {
         size_t srcOffset = INDEX_BOX(p, combinedMinP, combinedMaxP);
-        size_t dstOffset = INDEX_BOX(p + offset, ivecZero, dimensions);
+        size_t dstOffset = INDEX_BOX(p + offset, GSZeroIntVec3, dimensions);
         memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(terrain_buffer_element_t));
     }
 
@@ -232,14 +232,14 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     ssize_t offsetZ = offsetsZ[neighbor];
 
     vector_long3 p;
-    FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, chunkSize)
     {
         assert(p.x >= 0 && p.x < chunkSize.x);
         assert(p.y >= 0 && p.y < chunkSize.y);
         assert(p.z >= 0 && p.z < chunkSize.z);
 
         size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
-        size_t srcIdx = INDEX_BOX(p, ivecZero, chunkSize);
+        size_t srcIdx = INDEX_BOX(p, GSZeroIntVec3, chunkSize);
 
         assert(dstIdx < count);
         assert(srcIdx < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));

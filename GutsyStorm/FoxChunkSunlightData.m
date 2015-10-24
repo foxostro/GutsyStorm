@@ -95,14 +95,14 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         ssize_t offsetZ = offsetsZ[i];
 
         vector_long3 p;
-        FOR_Y_COLUMN_IN_BOX(p, ivecZero, chunkSize)
+        FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, chunkSize)
         {
             assert(p.x >= 0 && p.x < chunkSize.x);
             assert(p.y >= 0 && p.y < chunkSize.y);
             assert(p.z >= 0 && p.z < chunkSize.z);
 
             size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
-            size_t srcIdx = INDEX_BOX(p, ivecZero, chunkSize);
+            size_t srcIdx = INDEX_BOX(p, GSZeroIntVec3, chunkSize);
 
             assert(dstIdx < size);
             assert(srcIdx < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));
