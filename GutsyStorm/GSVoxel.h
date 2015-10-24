@@ -141,13 +141,6 @@ static inline vector_float3 MinCornerForChunkAtPoint(vector_float3 p)
                        floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
 }
 
-static inline vector_float3 MinCornerForChunkAtPoint2(float x, float y, float z)
-{
-    return vector_make(floorf(x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
-                       floorf(y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
-                       floorf(z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
-}
-
 typedef enum
 {
     CHUNK_NEIGHBOR_POS_X_NEG_Z = 0,
