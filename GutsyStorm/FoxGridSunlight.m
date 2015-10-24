@@ -30,7 +30,7 @@
 
 - (void)willInvalidateItem:(NSObject <FoxGridItem> *)item atPoint:(vector_float3)p
 {
-    vector_float3 minP = MinCornerForChunkAtPoint(p);
+    vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSString *fileName = [FoxChunkSunlightData fileNameForSunlightDataFromMinP:minP];
     NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
     const char *path = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];

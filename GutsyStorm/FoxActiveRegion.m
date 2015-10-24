@@ -217,7 +217,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
         
         vector_float3 corners[8];
         
-        corners[0] = MinCornerForChunkAtPoint(centerP);
+        corners[0] = GSMinCornerForChunkAtPoint(centerP);
         corners[1] = corners[0] + (vector_float3){CHUNK_SIZE_X, 0,            0};
         corners[2] = corners[0] + (vector_float3){CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z};
         corners[3] = corners[0] + (vector_float3){0,            0,            CHUNK_SIZE_Z};

@@ -134,7 +134,7 @@ extern const vector_long3 GSCombinedMinP;
 extern const vector_long3 GSCombinedMaxP;
 
 
-static inline vector_float3 MinCornerForChunkAtPoint(vector_float3 p)
+static inline vector_float3 GSMinCornerForChunkAtPoint(vector_float3 p)
 {
     return vector_make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
                        floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,

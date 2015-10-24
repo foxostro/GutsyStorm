@@ -151,7 +151,7 @@
     BOOL createdAnItem = NO;
     float load = 0;
     NSObject <FoxGridItem> * anObject = nil;
-    vector_float3 minP = MinCornerForChunkAtPoint(p);
+    vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
@@ -216,7 +216,7 @@
 {
     [_lockTheTableItself lockForReading];
 
-    vector_float3 minP = MinCornerForChunkAtPoint(p);
+    vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
@@ -282,7 +282,7 @@
         [_lockTheTableItself lockForReading];
 
         vector_float3 pos = change.pos;
-        vector_float3 minP = MinCornerForChunkAtPoint(pos);
+        vector_float3 minP = GSMinCornerForChunkAtPoint(pos);
         NSUInteger hash = vector_hash(minP);
         NSUInteger idxBucket = hash % _numBuckets;
         NSUInteger idxLock = hash % _numLocks;
@@ -346,7 +346,7 @@
 {
     [_lockTheTableItself lockForReading];
 
-    vector_float3 minP = MinCornerForChunkAtPoint(p);
+    vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
