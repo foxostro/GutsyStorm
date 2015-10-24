@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "FoxIntegerVector3.h"
-#import "FoxReaderWriterLock.h"
+#import "GSReaderWriterLock.h"
 #import "FoxVoxel.h"
 
 

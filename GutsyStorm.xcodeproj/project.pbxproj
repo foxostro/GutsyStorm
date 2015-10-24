@@ -18,7 +18,7 @@
 		4A2CD0071513C3FC006C6551 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD0051513C3FC006C6551 /* Credits.rtf */; };
 		4A2CD00D1513C3FD006C6551 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CD00B1513C3FD006C6551 /* MainMenu.xib */; };
 		4A4E20771516B086008745E0 /* FoxVectorUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A4E20761516B086008745E0 /* FoxVectorUtils.m */; };
-		4A95D39F154645920042C081 /* FoxReaderWriterLock.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A95D39E154645920042C081 /* FoxReaderWriterLock.m */; };
+		4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A95D39E154645920042C081 /* GSReaderWriterLock.m */; };
 		4A9A3BA61517200E00607B1A /* GSCamera.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9A3BA51517200E00607B1A /* GSCamera.m */; };
 		4A9A3BAD1517252E00607B1A /* GLString.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9A3BAC1517252E00607B1A /* GLString.m */; };
 		4A9EC91A15282ADA009C80FF /* FoxAABB.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A9EC91915282ADA009C80FF /* FoxAABB.m */; };
@@ -94,8 +94,8 @@
 		4A2CD00C1513C3FD006C6551 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		4A4E20751516B07E008745E0 /* FoxVectorUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxVectorUtils.h; sourceTree = "<group>"; };
 		4A4E20761516B086008745E0 /* FoxVectorUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxVectorUtils.m; sourceTree = "<group>"; };
-		4A95D39D154645920042C081 /* FoxReaderWriterLock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxReaderWriterLock.h; sourceTree = "<group>"; };
-		4A95D39E154645920042C081 /* FoxReaderWriterLock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxReaderWriterLock.m; sourceTree = "<group>"; };
+		4A95D39D154645920042C081 /* GSReaderWriterLock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSReaderWriterLock.h; sourceTree = "<group>"; };
+		4A95D39E154645920042C081 /* GSReaderWriterLock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSReaderWriterLock.m; sourceTree = "<group>"; };
 		4A9A3BA41517200E00607B1A /* GSCamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSCamera.h; sourceTree = "<group>"; };
 		4A9A3BA51517200E00607B1A /* GSCamera.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSCamera.m; sourceTree = "<group>"; };
 		4A9A3BAB1517252E00607B1A /* GLString.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLString.h; sourceTree = "<group>"; };
@@ -267,8 +267,8 @@
 				4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */,
 				6F6158061BD69C8E00243A61 /* GSOpenGLViewController.h */,
 				6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */,
-				4A95D39D154645920042C081 /* FoxReaderWriterLock.h */,
-				4A95D39E154645920042C081 /* FoxReaderWriterLock.m */,
+				4A95D39D154645920042C081 /* GSReaderWriterLock.h */,
+				4A95D39E154645920042C081 /* GSReaderWriterLock.m */,
 				AC319A3D16A52E1700F65F11 /* SyscallWrappers.h */,
 				AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */,
 				4A2CD00B1513C3FD006C6551 /* MainMenu.xib */,
@@ -528,7 +528,7 @@
 				4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */,
 				4A2310C0153E10F100A4EBE6 /* FoxChunkVoxelData.m in Sources */,
 				4A2310C4153E110400A4EBE6 /* FoxChunkGeometryData.m in Sources */,
-				4A95D39F154645920042C081 /* FoxReaderWriterLock.m in Sources */,
+				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
 				4AC7C9F91559E00000806635 /* FoxCube.m in Sources */,
 				13C8BE191602854300403815 /* FoxNeighborhood.m in Sources */,
 				13C8BE1D16038DC000403815 /* FoxActiveRegion.m in Sources */,

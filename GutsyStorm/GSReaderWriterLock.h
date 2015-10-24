@@ -1,5 +1,5 @@
 //
-//  FoxReaderWriterLock.h
+//  GSReaderWriterLock.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/23/12.
@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <dispatch/dispatch.h>
 
-@interface FoxReaderWriterLock : NSObject
+@interface GSReaderWriterLock : NSObject
 
 @property (nonatomic, strong) NSString * _Nonnull name;
 

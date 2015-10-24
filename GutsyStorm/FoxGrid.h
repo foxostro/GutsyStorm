@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "FoxGridItem.h"
 #import "FoxGridEdit.h"
-#import "FoxReaderWriterLock.h"
+#import "GSReaderWriterLock.h"
 
 
 @class FoxBoxedVector;

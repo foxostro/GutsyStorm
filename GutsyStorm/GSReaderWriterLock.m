@@ -1,17 +1,17 @@
 //
-//  FoxReaderWriterLock.m
+//  GSReaderWriterLock.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/23/12.
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxReaderWriterLock.h"
+#import "GSReaderWriterLock.h"
 
 //#define DEBUG_LOG(...) NSLog(__VA_ARGS__)
 #define DEBUG_LOG(...)
 
-@implementation FoxReaderWriterLock
+@implementation GSReaderWriterLock
 {
     dispatch_semaphore_t _mutex;
     dispatch_semaphore_t _writing;

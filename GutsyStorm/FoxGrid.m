@@ -10,7 +10,7 @@
 #import "FoxIntegerVector3.h"
 #import "FoxVoxel.h"
 #import "FoxGrid.h"
-#import "FoxReaderWriterLock.h"
+#import "GSReaderWriterLock.h"
 #import "FoxBoxedVector.h"
 
 
@@ -24,7 +24,7 @@
 
 @implementation FoxGrid
 {
-    FoxReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
+    GSReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
 
     NSUInteger _numBuckets;
     NSMutableArray<NSObject <FoxGridItem> *> * __strong *_buckets;
@@ -73,7 +73,7 @@
             _locks[i].name = [NSString stringWithFormat:@"%u", (unsigned)i];
         }
 
-        _lockTheTableItself = [FoxReaderWriterLock new];
+        _lockTheTableItself = [GSReaderWriterLock new];
         _lockTheTableItself.name = [NSString stringWithFormat:@"%@", name];
     }
 
