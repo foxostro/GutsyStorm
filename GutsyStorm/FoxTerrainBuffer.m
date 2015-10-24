@@ -79,9 +79,9 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     assert(srcBuf);
     assert(combinedMaxP.y - combinedMinP.y == CHUNK_SIZE_Y);
 
-    vector_long3 offset = fox_ivec3_make(1, 0, 1);
-    vector_long3 a = fox_ivec3_make(-1, 0, -1);
-    vector_long3 b = fox_ivec3_make(CHUNK_SIZE_X+1, 0, CHUNK_SIZE_Z+1);
+    vector_long3 offset = GSMakeIntegerVector3(1, 0, 1);
+    vector_long3 a = GSMakeIntegerVector3(-1, 0, -1);
+    vector_long3 b = GSMakeIntegerVector3(CHUNK_SIZE_X+1, 0, CHUNK_SIZE_Z+1);
     vector_long3 p; // loop counter
 
     terrain_buffer_element_t *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
@@ -174,7 +174,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
 
     for(light = 0.0f, i = 0; i < count; ++i)
     {
-        vector_long3 clp = fox_ivec3_make(truncf(sample[i].x + vertexPosInWorldSpace.x - minP.x),
+        vector_long3 clp = GSMakeIntegerVector3(truncf(sample[i].x + vertexPosInWorldSpace.x - minP.x),
                                                      truncf(sample[i].y + vertexPosInWorldSpace.y - minP.y),
                                                      truncf(sample[i].z + vertexPosInWorldSpace.z - minP.z));
 
@@ -238,7 +238,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
         assert(p.y >= 0 && p.y < chunkSize.y);
         assert(p.z >= 0 && p.z < chunkSize.z);
 
-        size_t dstIdx = INDEX_BOX(fox_ivec3_make(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
+        size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), combinedMinP, combinedMaxP);
         size_t srcIdx = INDEX_BOX(p, ivecZero, chunkSize);
 
         assert(dstIdx < count);

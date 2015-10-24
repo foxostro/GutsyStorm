@@ -197,8 +197,8 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     
     vector_long3 p, minP, maxP;
     
-    minP = fox_ivec3_make(-activeRegionExtentX, 0, -activeRegionExtentZ);
-    maxP = fox_ivec3_make(activeRegionExtentX, activeRegionSizeY, activeRegionExtentZ);
+    minP = GSMakeIntegerVector3(-activeRegionExtentX, 0, -activeRegionExtentZ);
+    maxP = GSMakeIntegerVector3(activeRegionExtentX, activeRegionSizeY, activeRegionExtentZ);
     
     FOR_BOX(p, minP, maxP)
     {

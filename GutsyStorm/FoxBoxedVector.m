@@ -63,7 +63,7 @@
 
 - (vector_long3)integerVectorValue
 {
-    return fox_ivec3_make(_vector.x, _vector.y, _vector.z);
+    return GSMakeIntegerVector3(_vector.x, _vector.y, _vector.z);
 }
 
 - (BOOL)isEqual:(id)other

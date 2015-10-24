@@ -145,7 +145,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     {
         @autoreleasepool
         {
-            vector_long3 chunkLocalPos = fox_ivec3_make(pos.x-minCorner.x, pos.y-minCorner.y, pos.z-minCorner.z);
+            vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minCorner.x, pos.y-minCorner.y, pos.z-minCorner.z);
             voxel_t voxel = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
             voxel_type_t type = voxel.type;
             assert(type < NUM_VOXEL_TYPES);

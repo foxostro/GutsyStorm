@@ -133,7 +133,7 @@
     {
         FoxChunkVoxelData *voxelChunk = edit.originalObject;
         vector_float3 minP = voxelChunk.minP;
-        vector_long3 chunkLocalPos = fox_ivec3_make(p.x-minP.x, p.y-minP.y+1, p.z-minP.z);
+        vector_long3 chunkLocalPos = GSMakeIntegerVector3(p.x-minP.x, p.y-minP.y+1, p.z-minP.z);
         voxel = [voxelChunk voxelAtLocalPosition:chunkLocalPos];
     }
 
@@ -348,7 +348,7 @@
 
     assert(chunk);
 
-    *voxel = [chunk voxelAtLocalPosition:fox_ivec3_make(pos.x-chunk.minP.x,
+    *voxel = [chunk voxelAtLocalPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
                                                                pos.y-chunk.minP.y,
                                                                pos.z-chunk.minP.z)];
     
@@ -363,7 +363,7 @@
 
     assert(chunk);
 
-    return [chunk voxelAtLocalPosition:fox_ivec3_make(pos.x-chunk.minP.x,
+    return [chunk voxelAtLocalPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
                                                              pos.y-chunk.minP.y,
                                                              pos.z-chunk.minP.z)];
 }
@@ -391,7 +391,7 @@
     // * The Point3D structure is a simple structure having three integer fields (X, Y and Z).
     
     // The cell in which the ray starts.
-    vector_long3 start = fox_ivec3_make(floorf(ray.origin.x), floorf(ray.origin.y), floorf(ray.origin.z));
+    vector_long3 start = GSMakeIntegerVector3(floorf(ray.origin.x), floorf(ray.origin.y), floorf(ray.origin.z));
     int x = (int)start.x;
     int y = (int)start.y;
     int z = (int)start.z;
@@ -404,7 +404,7 @@
     // Calculate cell boundaries. When the step (i.e. direction sign) is positive,
     // the next boundary is AFTER our current position, meaning that we have to add 1.
     // Otherwise, it is BEFORE our current position, in which case we add nothing.
-    vector_long3 cellBoundary = fox_ivec3_make(x + (stepX > 0 ? 1 : 0),
+    vector_long3 cellBoundary = GSMakeIntegerVector3(x + (stepX > 0 ? 1 : 0),
                                                           y + (stepY > 0 ? 1 : 0),
                                                           z + (stepZ > 0 ? 1 : 0));
     

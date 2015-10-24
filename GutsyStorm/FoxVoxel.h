@@ -79,7 +79,7 @@ static inline vector_float4 quaternionForDirection(voxel_dir_t dir)
 static inline vector_long3 integerVectorForDirection(voxel_dir_t dir)
 {
     vector_float3 vector = quaternion_rotate_vector(quaternionForDirection(dir), vector_make(0, 0, 1));
-    vector_long3 iVector = fox_ivec3_make(vector.x, vector.y, vector.z);
+    vector_long3 iVector = GSMakeIntegerVector3(vector.x, vector.y, vector.z);
     return iVector;
 }
 

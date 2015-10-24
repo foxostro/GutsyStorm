@@ -121,7 +121,7 @@
         ssize_t heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
-            voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:fox_ivec3_make(p.x, heightOfHighestVoxel, p.z)];
+            voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z)];
             
             if(voxel->opaque) {
                 break;
@@ -165,8 +165,8 @@
 {
     vector_float3 thisMinP = self.minP;
     vector_long3 p, a, b;
-    a = fox_ivec3_make(-2, 0, -2);
-    b = fox_ivec3_make(chunkSize.x+2, chunkSize.y, chunkSize.z+2);
+    a = GSMakeIntegerVector3(-2, 0, -2);
+    b = GSMakeIntegerVector3(chunkSize.x+2, chunkSize.y, chunkSize.z+2);
 
     const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
     voxel_t *voxels = calloc(count, sizeof(voxel_t));
@@ -241,7 +241,7 @@
 
 - (FoxChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(voxel_t)newBlock
 {
-    vector_long3 chunkLocalPos = fox_ivec3_make(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
+    vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     terrain_buffer_element_t newValue = *((terrain_buffer_element_t *)&newBlock);
     FoxTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue];
     FoxChunkVoxelData *modifiedVoxelData = [[FoxChunkVoxelData alloc] initWithMinP:minP

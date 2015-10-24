@@ -618,7 +618,7 @@ static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vecto
                 continue;
             }
 
-            vector_long3 p = fox_ivec3_make(x+clp.x, clp.y, z+clp.z);
+            vector_long3 p = GSMakeIntegerVector3(x+clp.x, clp.y, z+clp.z);
             voxel_type_t type = voxels[INDEX_BOX(p, minP, maxP)].type;
             ssize_t idx = 3*(-z+1) + (x+1);
             assert(idx >= 0 && idx < 9);

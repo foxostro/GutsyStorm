@@ -11,7 +11,7 @@
 
 #import <simd/vector.h>
 
-static inline vector_long3 fox_ivec3_make(ssize_t x, ssize_t y, ssize_t z)
+static inline vector_long3 GSMakeIntegerVector3(ssize_t x, ssize_t y, ssize_t z)
 {
     return (vector_long3){x, y, z};
 }
