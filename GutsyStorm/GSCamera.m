@@ -1,5 +1,5 @@
 //
-//  FoxCamera.m
+//  GSCamera.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/19/12.
@@ -7,13 +7,13 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import "FoxCamera.h"
+#import "GSCamera.h"
 #import "FoxIntegerVector3.h"
 #import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
 #import "FoxVoxel.h"
 #import "FoxQuaternion.h"
 
-@implementation FoxCamera
+@implementation GSCamera
 {
     float _ceilingHeight;
     float _cameraSpeed;

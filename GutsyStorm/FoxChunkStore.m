@@ -8,7 +8,7 @@
 
 #import "FoxIntegerVector3.h"
 #import "FoxRay.h"
-#import "FoxCamera.h"
+#import "GSCamera.h"
 #import "FoxActiveRegion.h"
 #import "FoxShader.h"
 #import "FoxChunkStore.h"
@@ -32,7 +32,7 @@
 
 - (void)createGrids;
 - (void)setupGridDependencies;
-- (void)setupActiveRegionWithCamera:(FoxCamera *)cam;
+- (void)setupActiveRegionWithCamera:(GSCamera *)cam;
 
 + (NSURL *)newTerrainCacheFolderURL;
 - (FoxNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
@@ -60,7 +60,7 @@
     dispatch_queue_t _queueForSaving;
 
     BOOL _chunkStoreHasBeenShutdown;
-    FoxCamera *_camera;
+    GSCamera *_camera;
     NSURL *_folder;
     FoxShader *_terrainShader;
     NSOpenGLContext *_glContext;
@@ -197,7 +197,7 @@
     [_gridGeometryData registerDependentGrid:_gridVBOs mapping:oneToOne];
 }
 
-- (void)setupActiveRegionWithCamera:(FoxCamera *)cam
+- (void)setupActiveRegionWithCamera:(GSCamera *)cam
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(cam);
@@ -218,7 +218,7 @@
 }
 
 - (instancetype)initWithSeed:(NSUInteger)seed
-                      camera:(FoxCamera *)cam
+                      camera:(GSCamera *)cam
                terrainShader:(FoxShader *)shader
                    glContext:(NSOpenGLContext *)context
                    generator:(terrain_generator_t)generatorCallback

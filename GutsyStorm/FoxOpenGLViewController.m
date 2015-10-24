@@ -9,7 +9,7 @@
 #import "FoxOpenGLViewController.h"
 #import "FoxTextLabel.h"
 #import "FoxTerrain.h"
-#import "FoxCamera.h"
+#import "GSCamera.h"
 #import "FoxOpenGLView.h"
 #import "FoxMatrixUtils.h"
 
@@ -32,7 +32,7 @@
 {
     FoxTextLabel *_frameRateLabel;
     FoxTerrain *_terrain;
-    FoxCamera *_camera;
+    GSCamera *_camera;
     FoxOpenGLView *_openGlView;
 
     float _mouseSensitivity;
@@ -81,7 +81,7 @@
     _uKeyDebounce = NO;
     _keysDown = [NSMutableDictionary<NSNumber *, NSNumber *> new];
     
-    _camera = [FoxCamera new];
+    _camera = [GSCamera new];
     [_camera moveToPosition:(vector_float3){85.1, 16.1, 140.1}];
     [_camera updateCameraLookVectors];
 

@@ -11,7 +11,7 @@
 #import "FoxCube.h"
 
 @class FoxShader;
-@class FoxCamera;
+@class GSCamera;
 
 @interface FoxTerrainCursor : NSObject
 
@@ -22,6 +22,6 @@
 - (nullable instancetype)init NS_UNAVAILABLE;
 - (nullable instancetype)initWithContext:(nonnull NSOpenGLContext *)context
                                   shader:(nonnull FoxShader *)shader NS_DESIGNATED_INITIALIZER;
-- (void)drawWithCamera:(nonnull FoxCamera *)camera;
+- (void)drawWithCamera:(nonnull GSCamera *)camera;
 
 @end

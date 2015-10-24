@@ -10,7 +10,7 @@
 #import "FoxFrustum.h"
 #import "FoxVoxel.h"
 #import "FoxBoxedVector.h"
-#import "FoxCamera.h"
+#import "GSCamera.h"
 #import "FoxGridItem.h"
 #import "FoxGridVBOs.h"
 #import "FoxChunkVBOs.h"
@@ -47,7 +47,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
 @implementation FoxActiveRegion
 {
     /* The camera at the center of the active region. */
-    FoxCamera *_camera;
+    GSCamera *_camera;
 
     /* Vector specifies the AABB of the active region.
      * The camera position plus/minus this vector equals the max/min corners of the AABB.
@@ -70,7 +70,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
 }
 
 - (instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
-                                    camera:(FoxCamera *)camera
+                                    camera:(GSCamera *)camera
                                    vboGrid:(FoxGridVBOs *)gridVBOs
 {
     self = [super init];

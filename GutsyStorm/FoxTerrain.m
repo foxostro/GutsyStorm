@@ -13,7 +13,7 @@
 #import "FoxChunkStore.h"
 #import "FoxTextureArray.h"
 #import "FoxShader.h"
-#import "FoxCamera.h"
+#import "GSCamera.h"
 #import "FoxTerrain.h"
 #import "FoxRay.h"
 #import "FoxMatrixUtils.h"
@@ -359,7 +359,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 @implementation FoxTerrain
 {
-    FoxCamera *_camera;
+    GSCamera *_camera;
     FoxTextureArray *_textureArray;
     FoxChunkStore *_chunkStore;
     FoxTerrainCursor *_cursor;
@@ -420,7 +420,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 }
 
 - (instancetype)initWithSeed:(NSUInteger)seed
-                      camera:(FoxCamera *)cam
+                      camera:(GSCamera *)cam
                    glContext:(NSOpenGLContext *)context
 {
     self = [super init];

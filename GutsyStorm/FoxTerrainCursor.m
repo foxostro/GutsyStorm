@@ -7,7 +7,7 @@
 //
 
 #import "FoxRay.h"
-#import "FoxCamera.h"
+#import "GSCamera.h"
 #import "FoxMatrixUtils.h"
 #import "FoxTerrainCursor.h"
 
@@ -36,7 +36,7 @@
     return self;
 }
 
-- (void)drawWithCamera:(FoxCamera *)camera
+- (void)drawWithCamera:(GSCamera *)camera
 {
     if (!_cursorIsActive) {
         return;

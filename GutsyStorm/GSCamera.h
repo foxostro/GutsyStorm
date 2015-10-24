@@ -1,5 +1,5 @@
 //
-//  FoxCamera.h
+//  GSCamera.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/19/12.
@@ -12,7 +12,7 @@
 #define CAMERA_MOVED  (1)
 #define CAMERA_TURNED (2)
 
-@interface FoxCamera : NSObject
+@interface GSCamera : NSObject
 
 @property (readonly, nonatomic) vector_float3 cameraEye;
 @property (readonly, nonatomic) vector_float3 cameraCenter;

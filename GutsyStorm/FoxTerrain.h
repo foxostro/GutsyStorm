@@ -6,7 +6,7 @@
 //  Copyright (c) 2012-2015 Andrew Fox. All rights reserved.
 //
 
-@class FoxCamera;
+@class GSCamera;
 @class FoxChunkStore;
 @class FoxTerrainCursor;
 @class FoxTextureArray;
@@ -14,7 +14,7 @@
 @interface FoxTerrain : NSObject
 
 - (nullable instancetype)initWithSeed:(NSUInteger)seed
-                               camera:(nonnull FoxCamera *)camera
+                               camera:(nonnull GSCamera *)camera
                             glContext:(nonnull NSOpenGLContext *)glContext;
 
 /* Assumes the caller has already locked the GL context or

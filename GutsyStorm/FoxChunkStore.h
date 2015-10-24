@@ -9,13 +9,13 @@
 #import "FoxChunkVoxelData.h"
 #import "FoxRay.h"
 
-@class FoxCamera;
+@class GSCamera;
 @class FoxShader;
 
 @interface FoxChunkStore : NSObject
 
 - (nullable instancetype)initWithSeed:(NSUInteger)seed
-                               camera:(nonnull FoxCamera *)camera
+                               camera:(nonnull GSCamera *)camera
                         terrainShader:(nonnull FoxShader *)terrainShader
                             glContext:(nonnull NSOpenGLContext *)glContext
                             generator:(nonnull terrain_generator_t)generator

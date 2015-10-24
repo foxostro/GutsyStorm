@@ -8,7 +8,7 @@
 
 #import <simd/vector.h>
 
-@class FoxCamera;
+@class GSCamera;
 @class FoxChunkVBOs;
 @class FoxGridVBOs;
 @class FoxBoxedVector;
@@ -25,7 +25,7 @@
  * vboGrid -- Used to generate and retrieve VBOs.
  */
 - (nullable instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
-                                             camera:(nonnull FoxCamera *)camera
+                                             camera:(nonnull GSCamera *)camera
                                             vboGrid:(nonnull FoxGridVBOs *)gridVBOs;
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
