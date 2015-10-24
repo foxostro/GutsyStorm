@@ -8,7 +8,7 @@
 
 #import "FoxActiveRegion.h"
 #import "FoxFrustum.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 #import "FoxBoxedVector.h"
 #import "GSCamera.h"
 #import "FoxGridItem.h"
@@ -191,9 +191,9 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
 
     FoxFrustum *frustum = _camera.frustum;
     const vector_float3 center = _camera.cameraEye;
-    const ssize_t activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
-    const ssize_t activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
-    const ssize_t activeRegionSizeY = _activeRegionExtent.y/CHUNK_SIZE_Y;
+    const long activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
+    const long activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
+    const long activeRegionSizeY = _activeRegionExtent.y/CHUNK_SIZE_Y;
     
     vector_long3 p, minP, maxP;
     

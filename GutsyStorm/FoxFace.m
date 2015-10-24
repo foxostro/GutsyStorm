@@ -6,8 +6,8 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by FoxVoxel.h
-#import "FoxVoxel.h" // for face_t, needed by FoxFace.h
+#import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by GSVoxel.h
+#import "GSVoxel.h" // for face_t, needed by FoxFace.h
 #import "FoxFace.h"
 #import "GSBoxedTerrainVertex.h"
 

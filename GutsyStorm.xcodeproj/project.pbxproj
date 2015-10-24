@@ -73,7 +73,7 @@
 		1338A2D915B792C800663E28 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = ../../../../System/Library/Frameworks/CoreVideo.framework; sourceTree = "<group>"; };
 		13C8BE161602854300403815 /* FoxNeighborhood.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxNeighborhood.h; sourceTree = "<group>"; };
 		13C8BE171602854300403815 /* FoxNeighborhood.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxNeighborhood.m; sourceTree = "<group>"; };
-		13C8BE181602854300403815 /* FoxVoxel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxVoxel.h; sourceTree = "<group>"; };
+		13C8BE181602854300403815 /* GSVoxel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVoxel.h; sourceTree = "<group>"; };
 		13C8BE1B16038DC000403815 /* FoxActiveRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxActiveRegion.h; sourceTree = "<group>"; };
 		13C8BE1C16038DC000403815 /* FoxActiveRegion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxActiveRegion.m; sourceTree = "<group>"; };
 		4A1F6E51153F6F6100D194AE /* FoxIntegerVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxIntegerVector3.h; sourceTree = "<group>"; };
@@ -205,7 +205,7 @@
 		4A2310C8153E1BE000A4EBE6 /* Terrain */ = {
 			isa = PBXGroup;
 			children = (
-				13C8BE181602854300403815 /* FoxVoxel.h */,
+				13C8BE181602854300403815 /* GSVoxel.h */,
 				AC3767A4163DFD4100BAE03F /* FoxTerrain.h */,
 				AC3767A5163DFD4200BAE03F /* FoxTerrain.m */,
 				AC3767A7163E04E100BAE03F /* Terrain Internals */,

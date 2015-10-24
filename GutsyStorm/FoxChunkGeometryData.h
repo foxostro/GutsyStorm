@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
 #import "FoxGridItem.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 
 
 struct GSTerrainVertex;

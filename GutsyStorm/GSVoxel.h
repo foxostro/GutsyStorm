@@ -1,5 +1,5 @@
 //
-//  FoxVoxel.h
+//  GSVoxel.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/11/12.
@@ -30,10 +30,10 @@ _Static_assert((CHUNK_LIGHTING_MAX <= (CHUNK_SIZE_X - 1)) && (CHUNK_LIGHTING_MAX
                                              for((p).z = (minP).z; (p).z < (maxP).z; ++(p).z)
 
 
-static inline size_t INDEX_BOX(vector_long3 p, vector_long3 minP, vector_long3 maxP)
+static inline long INDEX_BOX(vector_long3 p, vector_long3 minP, vector_long3 maxP)
 {
-    const size_t sizeY = maxP.y - minP.y;
-    const size_t sizeZ = maxP.z - minP.z;
+    const long sizeY = maxP.y - minP.y;
+    const long sizeZ = maxP.z - minP.z;
     
     // Columns in the y-axis are contiguous in memory.
     return ((p.x-minP.x)*sizeY*sizeZ) + ((p.z-minP.z)*sizeY) + (p.y-minP.y);

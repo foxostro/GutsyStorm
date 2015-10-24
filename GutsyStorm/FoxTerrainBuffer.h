@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "FoxIntegerVector3.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 
 
 typedef uint16_t terrain_buffer_element_t;

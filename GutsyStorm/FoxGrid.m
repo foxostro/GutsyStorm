@@ -8,7 +8,7 @@
 
 #import "FoxVectorUtils.h" // for vector_hash
 #import "FoxIntegerVector3.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 #import "FoxGrid.h"
 #import "GSReaderWriterLock.h"
 #import "FoxBoxedVector.h"

@@ -13,7 +13,7 @@
 #import "FoxRay.h"
 #import "FoxChunkStore.h"
 #import "GSBoxedTerrainVertex.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 #import "FoxNeighborhood.h"
 #import "FoxBlockMesh.h"
 #import "FoxBlockMeshCube.h"

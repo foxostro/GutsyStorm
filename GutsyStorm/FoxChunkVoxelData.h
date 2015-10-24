@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "FoxGridItem.h"
 #import "FoxIntegerVector3.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 #import "FoxTerrainBuffer.h"
 
 

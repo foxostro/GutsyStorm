@@ -1,5 +1,5 @@
 //
-//  FoxVoxel.m
+//  GSVoxel.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/19/13.
@@ -8,7 +8,7 @@
 
 #import "FoxIntegerVector3.h"
 #import "FoxTerrainBuffer.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 
 _Static_assert(sizeof(voxel_t) == sizeof(terrain_buffer_element_t),
                "voxel_t and terrain_buffer_element_t must be the same size");

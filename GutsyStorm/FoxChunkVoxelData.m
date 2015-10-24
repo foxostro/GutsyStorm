@@ -118,7 +118,7 @@
     FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
     {
         // Get the y value of the highest non-empty voxel in the chunk.
-        ssize_t heightOfHighestVoxel;
+        long heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
             voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z)];

@@ -7,7 +7,7 @@
 //
 
 #import "FoxIntegerVector3.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 #import "GSNoise.h"
 #import "FoxTerrainCursor.h"
 #import "FoxChunkStore.h"
@@ -610,9 +610,9 @@ static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vecto
     assert(clp.y >= minP.y && clp.y < maxP.y);
     assert(clp.z >= minP.z && clp.z < maxP.z);
 
-    for(ssize_t z=-1; z<=1; ++z)
+    for(long z=-1; z<=1; ++z)
     {
-        for(ssize_t x=-1; x<=1; ++x)
+        for(long x=-1; x<=1; ++x)
         {
             if(x==0 && z==0) { // (0,0) refers to the target block, so the value in the diagram doesn't matter.
                 continue;
@@ -620,7 +620,7 @@ static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vecto
 
             vector_long3 p = GSMakeIntegerVector3(x+clp.x, clp.y, z+clp.z);
             voxel_type_t type = voxels[INDEX_BOX(p, minP, maxP)].type;
-            ssize_t idx = 3*(-z+1) + (x+1);
+            long idx = 3*(-z+1) + (x+1);
             assert(idx >= 0 && idx < 9);
             char c = rule->diagram[idx];
 

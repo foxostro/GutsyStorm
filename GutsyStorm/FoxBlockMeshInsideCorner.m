@@ -7,7 +7,7 @@
 //
 
 #import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 #import "FoxFace.h"
 #import "GSBoxedTerrainVertex.h"
 #import "FoxNeighborhood.h"

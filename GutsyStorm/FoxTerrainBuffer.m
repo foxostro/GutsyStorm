@@ -7,11 +7,11 @@
 //
 
 #import "FoxTerrainBuffer.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 #import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
 #import "FoxNeighborhood.h"
-#import "FoxVoxel.h" // for INDEX_BOX
+#import "GSVoxel.h" // for INDEX_BOX
 
 
 static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 normal);
@@ -215,8 +215,8 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
                                    count:(NSUInteger)count
                                 neighbor:(neighbor_index_t)neighbor
 {
-    static ssize_t offsetsX[CHUNK_NUM_NEIGHBORS];
-    static ssize_t offsetsZ[CHUNK_NUM_NEIGHBORS];
+    static long offsetsX[CHUNK_NUM_NEIGHBORS];
+    static long offsetsZ[CHUNK_NUM_NEIGHBORS];
     static dispatch_once_t onceToken;
 
     dispatch_once(&onceToken, ^{
@@ -228,8 +228,8 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
         }
     });
     
-    ssize_t offsetX = offsetsX[neighbor];
-    ssize_t offsetZ = offsetsZ[neighbor];
+    long offsetX = offsetsX[neighbor];
+    long offsetZ = offsetsZ[neighbor];
 
     vector_long3 p;
     FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)

@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "FoxIntegerVector3.h"
 #import "GSReaderWriterLock.h"
-#import "FoxVoxel.h"
+#import "GSVoxel.h"
 
 
 @class FoxChunkVoxelData;

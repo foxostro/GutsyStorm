@@ -76,8 +76,8 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
 
-    static ssize_t offsetsX[CHUNK_NUM_NEIGHBORS];
-    static ssize_t offsetsZ[CHUNK_NUM_NEIGHBORS];
+    static long offsetsX[CHUNK_NUM_NEIGHBORS];
+    static long offsetsZ[CHUNK_NUM_NEIGHBORS];
     static dispatch_once_t onceToken;
 
     dispatch_once(&onceToken, ^{
@@ -91,8 +91,8 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
     [neighborhood enumerateNeighborsWithBlock2:^(neighbor_index_t i, FoxChunkVoxelData *voxels) {
         const voxel_t *data = (const voxel_t *)[voxels.voxels data];
-        ssize_t offsetX = offsetsX[i];
-        ssize_t offsetZ = offsetsZ[i];
+        long offsetX = offsetsX[i];
+        long offsetZ = offsetsZ[i];
 
         vector_long3 p;
         FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
