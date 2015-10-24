@@ -50,7 +50,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
 @synthesize minP;
 
-+ (FoxBlockMesh *)sharedMeshFactoryWithBlockType:(voxel_type_t)type
++ (FoxBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type
 {
     static FoxBlockMesh *factories[NUM_VOXEL_TYPES] = {nil};
     static dispatch_once_t onceToken;
@@ -147,7 +147,7 @@ static void applyLightToVertices(size_t numChunkVerts,
         {
             vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minCorner.x, pos.y-minCorner.y, pos.z-minCorner.z);
             voxel_t voxel = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
-            voxel_type_t type = voxel.type;
+            GSVoxelType type = voxel.type;
             assert(type < NUM_VOXEL_TYPES);
 
             if(type != VOXEL_TYPE_EMPTY) {

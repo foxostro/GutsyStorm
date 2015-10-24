@@ -48,7 +48,7 @@ struct fox_post_processing_rule_set
     struct fox_post_processing_rule *rules;
 
     /* The rules only apply to empty blocks placed on top of blocks of the type specified by `appliesAboveBlockType'. */
-    voxel_type_t appliesAboveBlockType;
+    GSVoxelType appliesAboveBlockType;
 
     /* If YES then search from the bottom of the chunk to the top, on the undersides of ledges and stuff. */
     BOOL upsideDown;
@@ -340,7 +340,7 @@ static struct fox_post_processing_rule_set replacementRuleSets[] =
 };
 
 
-static BOOL typeMatchesCharacter(voxel_type_t type, char c);
+static BOOL typeMatchesCharacter(GSVoxelType type, char c);
 static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vector_long3 clp,
                                     voxel_t *voxels, vector_long3 minP, vector_long3 maxP);
 static struct fox_post_processing_rule * findRuleForCellPosition(size_t numRules, struct fox_post_processing_rule *rules,
@@ -348,7 +348,7 @@ static struct fox_post_processing_rule * findRuleForCellPosition(size_t numRules
                                                            voxel_t *voxels, vector_long3 minP, vector_long3 maxP);
 static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
                                     voxel_t *voxelsIn, voxel_t *voxelsOut,
-                                    struct fox_post_processing_rule_set *ruleSet, voxel_type_t *prevType_p);
+                                    struct fox_post_processing_rule_set *ruleSet, GSVoxelType *prevType_p);
 static void postProcessVoxels(struct fox_post_processing_rule_set *ruleSet,
                               voxel_t *voxelsIn, voxel_t *voxelsOut,
                               vector_long3 minP, vector_long3 maxP);
@@ -580,7 +580,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 @end
 
-static BOOL typeMatchesCharacter(voxel_type_t type, char c)
+static BOOL typeMatchesCharacter(GSVoxelType type, char c)
 {
     // All voxel types match the space character.
     if(c == ' ') {
@@ -619,7 +619,7 @@ static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vecto
             }
 
             vector_long3 p = GSMakeIntegerVector3(x+clp.x, clp.y, z+clp.z);
-            voxel_type_t type = voxels[INDEX_BOX(p, minP, maxP)].type;
+            GSVoxelType type = voxels[INDEX_BOX(p, minP, maxP)].type;
             long idx = 3*(-z+1) + (x+1);
             assert(idx >= 0 && idx < 9);
             char c = rule->diagram[idx];
@@ -651,7 +651,7 @@ static struct fox_post_processing_rule * findRuleForCellPosition(size_t numRules
 
 static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
                                     voxel_t *voxelsIn, voxel_t *voxelsOut,
-                                    struct fox_post_processing_rule_set *ruleSet, voxel_type_t *prevType_p)
+                                    struct fox_post_processing_rule_set *ruleSet, GSVoxelType *prevType_p)
 {
     assert(voxelsIn);
     assert(voxelsOut);
@@ -660,7 +660,7 @@ static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector
 
     const size_t idx = INDEX_BOX(p, minP, maxP);
     voxel_t *voxel = &voxelsIn[idx];
-    voxel_type_t prevType = *prevType_p;
+    GSVoxelType prevType = *prevType_p;
 
     if(voxel->type == VOXEL_TYPE_EMPTY && (prevType == ruleSet->appliesAboveBlockType)) {
         // Find and apply the first post-processing rule which matches this position.
@@ -700,7 +700,7 @@ static void postProcessVoxels(struct fox_post_processing_rule_set *ruleSet,
         if(ruleSet->upsideDown) {
             // Find a voxel which is empty and is directly below a cube voxel.
             p.y = CHUNK_SIZE_Y-1;
-            voxel_type_t prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
+            GSVoxelType prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
             for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
             {
                 postProcessingInnerLoop(maxP, minP, p, voxelsIn, voxelsOut, ruleSet, &prevType);
@@ -708,7 +708,7 @@ static void postProcessVoxels(struct fox_post_processing_rule_set *ruleSet,
         } else {
             // Find a voxel which is empty and is directly above a cube voxel.
             p.y = 0;
-            voxel_type_t prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
+            GSVoxelType prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
             for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
             {
                 postProcessingInnerLoop(maxP, minP, p, voxelsIn, voxelsOut, ruleSet, &prevType);

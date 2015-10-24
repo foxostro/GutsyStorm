@@ -140,7 +140,7 @@
     {
         // Find a voxel which is empty and is directly above a cube voxel.
         p.y = CHUNK_SIZE_Y-1;
-        voxel_type_t prevType = ((voxel_t *)[data pointerToValueAtPosition:p])->type;
+        GSVoxelType prevType = ((voxel_t *)[data pointerToValueAtPosition:p])->type;
         for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
         {
             voxel_t *voxel = (voxel_t *)[data pointerToValueAtPosition:p];

@@ -51,7 +51,7 @@ typedef enum
     VOXEL_TYPE_CORNER_INSIDE,
     VOXEL_TYPE_CORNER_OUTSIDE,
     NUM_VOXEL_TYPES
-} voxel_type_t;
+} GSVoxelType;
 
 
 /* The direction of the voxel. Affects the orientation of the mesh and traversibility. */
