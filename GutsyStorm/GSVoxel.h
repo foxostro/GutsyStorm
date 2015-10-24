@@ -62,21 +62,21 @@ typedef enum
     VOXEL_DIR_SOUTH,   // ( 0, 0, -1)
     VOXEL_DIR_WEST,    // (-1, 0,  0)
     NUM_VOXEL_DIRECTIONS
-} voxel_dir_t;
+} GSVoxelDirection;
 
-_Static_assert(0 == (int)VOXEL_DIR_NORTH, "The ordering of voxel_dir_t matters.");
-_Static_assert(1 == (int)VOXEL_DIR_EAST,  "The ordering of voxel_dir_t matters.");
-_Static_assert(2 == (int)VOXEL_DIR_SOUTH, "The ordering of voxel_dir_t matters.");
-_Static_assert(3 == (int)VOXEL_DIR_WEST,  "The ordering of voxel_dir_t matters.");
+_Static_assert(0 == (int)VOXEL_DIR_NORTH, "The ordering of GSVoxelDirection matters.");
+_Static_assert(1 == (int)VOXEL_DIR_EAST,  "The ordering of GSVoxelDirection matters.");
+_Static_assert(2 == (int)VOXEL_DIR_SOUTH, "The ordering of GSVoxelDirection matters.");
+_Static_assert(3 == (int)VOXEL_DIR_WEST,  "The ordering of GSVoxelDirection matters.");
 
 
-static inline vector_float4 quaternionForDirection(voxel_dir_t dir)
+static inline vector_float4 quaternionForDirection(GSVoxelDirection dir)
 {
     return quaternion_make_with_angle_and_axis((int)dir * M_PI_2, 0, 1, 0);
 }
 
 
-static inline vector_long3 integerVectorForDirection(voxel_dir_t dir)
+static inline vector_long3 integerVectorForDirection(GSVoxelDirection dir)
 {
     vector_float3 vector = quaternion_rotate_vector(quaternionForDirection(dir), vector_make(0, 0, 1));
     vector_long3 iVector = GSMakeIntegerVector3(vector.x, vector.y, vector.z);

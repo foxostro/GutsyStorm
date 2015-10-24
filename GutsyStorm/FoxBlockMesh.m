@@ -22,7 +22,7 @@
                                         upsideDown:(BOOL)upsideDown
                                              quatY:(vector_float4)quatY;
 - (NSArray<FoxFace *> *)transformFaces:(NSArray<FoxFace *> *)faces
-                             direction:(voxel_dir_t)dir
+                             direction:(GSVoxelDirection)dir
                             upsideDown:(BOOL)upsideDown;
 - (face_t)transformCubeFaceEnum:(face_t)correspondingCubeFace upsideDown:(BOOL)upsideDown;
 
@@ -91,7 +91,7 @@
 }
 
 - (NSArray<FoxFace *> *)transformFaces:(NSArray<FoxFace *> *)faces
-                             direction:(voxel_dir_t)dir
+                             direction:(GSVoxelDirection)dir
                             upsideDown:(BOOL)upsideDown
 {
     vector_float4 quatY = quaternionForDirection(dir);
@@ -132,7 +132,7 @@
 {
     for(int upsideDown = 0; upsideDown < 2; ++upsideDown)
     {
-        for(voxel_dir_t dir = 0; dir < NUM_VOXEL_DIRECTIONS; ++dir)
+        for(GSVoxelDirection dir = 0; dir < NUM_VOXEL_DIRECTIONS; ++dir)
         {
             _faces[upsideDown][dir] = [self transformFaces:faces direction:dir upsideDown:upsideDown];
         }
