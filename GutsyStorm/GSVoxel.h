@@ -6,7 +6,7 @@
 //  Copyright (c) 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxVectorUtils.h"
+#import "GSVectorUtils.h"
 #import "FoxIntegerVector3.h"
 #import "GSQuaternion.h"
 

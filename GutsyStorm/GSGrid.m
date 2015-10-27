@@ -6,7 +6,7 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxVectorUtils.h" // for vector_hash
+#import "GSVectorUtils.h" // for vector_hash
 #import "FoxIntegerVector3.h"
 #import "GSVoxel.h"
 #import "GSGrid.h"

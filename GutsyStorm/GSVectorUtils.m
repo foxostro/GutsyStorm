@@ -1,5 +1,5 @@
 //
-//  FoxVectorUtils.m
+//  GSVectorUtils.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/18/12.
@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxVectorUtils.h"
+#import "GSVectorUtils.h"
 
 
 NSUInteger vector_hash(vector_float3 inputVector)

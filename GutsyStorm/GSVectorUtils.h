@@ -1,5 +1,5 @@
 //
-//  FoxVectorUtils.h
+//  GSVectorUtils.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/18/12.

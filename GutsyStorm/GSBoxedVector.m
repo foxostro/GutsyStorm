@@ -6,7 +6,7 @@
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxVectorUtils.h"
+#import "GSVectorUtils.h"
 #import "GSBoxedVector.h"
 
 
