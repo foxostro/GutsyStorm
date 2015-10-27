@@ -42,7 +42,7 @@
         return;
     }
 
-    matrix_float4x4 translation = matrix_from_translation(_cursorPos + vector_make(0.5f, 0.5f, 0.5f));
+    matrix_float4x4 translation = GSMatrixFromTranslation(_cursorPos + vector_make(0.5f, 0.5f, 0.5f));
     matrix_float4x4 modelView = matrix_multiply(translation, camera.modelViewMatrix);
     matrix_float4x4 projection = camera.projectionMatrix;
 

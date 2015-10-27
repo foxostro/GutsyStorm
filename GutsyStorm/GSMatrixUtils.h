@@ -9,7 +9,7 @@
 #import <simd/matrix.h>
 #import <simd/vector.h>
 
-static inline matrix_float4x4 matrix_from_translation(vector_float3 v)
+static inline matrix_float4x4 GSMatrixFromTranslation(vector_float3 v)
 {
     return (matrix_float4x4){
         (vector_float4){ 1, 0, 0, v.x },

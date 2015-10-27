@@ -232,7 +232,7 @@
     GLfloat height = size.height;
     GLfloat width = size.width;
     matrix_float4x4 scale = matrix_from_scale((vector_float4){2.0f / width, -2.0f /  size.height, 1.0f, 1.0f});
-    matrix_float4x4 translation = matrix_from_translation((vector_float3){-width / 2.0f, -height / 2.0f, 0.0f});
+    matrix_float4x4 translation = GSMatrixFromTranslation((vector_float3){-width / 2.0f, -height / 2.0f, 0.0f});
     matrix_float4x4 projection = matrix_multiply(translation, scale);
     _frameRateLabel.projectionMatrix = projection;
 }

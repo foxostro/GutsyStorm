@@ -290,7 +290,7 @@
     assert(_terrainShader);
     assert(_activeRegion);
 
-    matrix_float4x4 translation = matrix_from_translation(vector_make(0.5f, 0.5f, 0.5f));
+    matrix_float4x4 translation = GSMatrixFromTranslation(vector_make(0.5f, 0.5f, 0.5f));
     matrix_float4x4 modelView = matrix_multiply(translation, _camera.modelViewMatrix);
     matrix_float4x4 mvp = matrix_multiply(modelView, _camera.projectionMatrix);
 
