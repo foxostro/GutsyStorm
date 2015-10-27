@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "GSGridItem.h"
-#import "FoxIntegerVector3.h"
+#import "GSIntegerVector3.h"
 #import "GSVoxel.h"
 #import "GSTerrainBuffer.h"
 

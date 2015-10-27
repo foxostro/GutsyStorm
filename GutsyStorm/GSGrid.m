@@ -7,7 +7,7 @@
 //
 
 #import "GSVectorUtils.h" // for vector_hash
-#import "FoxIntegerVector3.h"
+#import "GSIntegerVector3.h"
 #import "GSVoxel.h"
 #import "GSGrid.h"
 #import "GSReaderWriterLock.h"

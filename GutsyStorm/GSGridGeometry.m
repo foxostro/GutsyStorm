@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxIntegerVector3.h"
+#import "GSIntegerVector3.h"
 #import "GSGrid.h"
 #import "GSChunkGeometryData.h"
 #import "GSGridGeometry.h"

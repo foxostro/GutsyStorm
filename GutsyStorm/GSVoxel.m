@@ -6,7 +6,7 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxIntegerVector3.h"
+#import "GSIntegerVector3.h"
 #import "GSTerrainBuffer.h"
 #import "GSVoxel.h"
 

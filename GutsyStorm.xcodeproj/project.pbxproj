@@ -76,7 +76,7 @@
 		13C8BE181602854300403815 /* GSVoxel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVoxel.h; sourceTree = "<group>"; };
 		13C8BE1B16038DC000403815 /* GSActiveRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSActiveRegion.h; sourceTree = "<group>"; };
 		13C8BE1C16038DC000403815 /* GSActiveRegion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSActiveRegion.m; sourceTree = "<group>"; };
-		4A1F6E51153F6F6100D194AE /* FoxIntegerVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxIntegerVector3.h; sourceTree = "<group>"; };
+		4A1F6E51153F6F6100D194AE /* GSIntegerVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSIntegerVector3.h; sourceTree = "<group>"; };
 		4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkVoxelData.h; sourceTree = "<group>"; };
 		4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkVoxelData.m; sourceTree = "<group>"; };
 		4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkGeometryData.h; sourceTree = "<group>"; };
@@ -317,7 +317,7 @@
 				4A4E20751516B07E008745E0 /* GSVectorUtils.h */,
 				4A4E20761516B086008745E0 /* GSVectorUtils.m */,
 				6FE2F2AF1BD180EF009A83DC /* GSMatrixUtils.h */,
-				4A1F6E51153F6F6100D194AE /* FoxIntegerVector3.h */,
+				4A1F6E51153F6F6100D194AE /* GSIntegerVector3.h */,
 			);
 			name = "3D Geometry";
 			sourceTree = "<group>";

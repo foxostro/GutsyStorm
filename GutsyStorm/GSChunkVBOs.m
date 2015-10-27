@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSGridItem.h"
 #import "GSChunkVBOs.h"
-#import "FoxIntegerVector3.h"
+#import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSBoxedTerrainVertex.h"
 #import "GSVBOHolder.h"

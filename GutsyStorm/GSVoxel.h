@@ -7,7 +7,7 @@
 //
 
 #import "GSVectorUtils.h"
-#import "FoxIntegerVector3.h"
+#import "GSIntegerVector3.h"
 #import "GSQuaternion.h"
 
 #define CHUNK_LIGHTING_MAX (8)

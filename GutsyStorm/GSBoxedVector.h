@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import <simd/vector.h>
-#import "FoxIntegerVector3.h"
+#import "GSIntegerVector3.h"
 
 @interface GSBoxedVector : NSObject <NSCopying>
 

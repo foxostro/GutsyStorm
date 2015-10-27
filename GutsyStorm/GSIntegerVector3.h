@@ -1,5 +1,5 @@
 //
-//  FoxIntegerVector3.h
+//  GSIntegerVector3.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/18/12.

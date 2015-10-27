@@ -6,7 +6,7 @@
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxIntegerVector3.h"
+#import "GSIntegerVector3.h"
 #import "GSChunkVoxelData.h"
 #import "GSRay.h"
 #import "GSBoxedVector.h"
