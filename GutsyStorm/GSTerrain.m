@@ -16,7 +16,7 @@
 #import "GSCamera.h"
 #import "GSTerrain.h"
 #import "GSRay.h"
-#import "FoxMatrixUtils.h"
+#import "GSMatrixUtils.h"
 
 #import <OpenGL/gl.h>
 

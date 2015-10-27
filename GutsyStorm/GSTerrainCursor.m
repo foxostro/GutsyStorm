@@ -8,7 +8,7 @@
 
 #import "GSRay.h"
 #import "GSCamera.h"
-#import "FoxMatrixUtils.h"
+#import "GSMatrixUtils.h"
 #import "GSTerrainCursor.h"
 
 #import <OpenGL/gl.h>

@@ -25,7 +25,7 @@
 #import "GSGridGeometry.h"
 #import "GSGridSunlight.h"
 
-#import "FoxMatrixUtils.h"
+#import "GSMatrixUtils.h"
 
 
 @interface GSChunkStore ()

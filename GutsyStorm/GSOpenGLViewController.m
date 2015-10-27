@@ -11,7 +11,7 @@
 #import "GSTerrain.h"
 #import "GSCamera.h"
 #import "GSOpenGLView.h"
-#import "FoxMatrixUtils.h"
+#import "GSMatrixUtils.h"
 
 
 @interface GSOpenGLViewController ()

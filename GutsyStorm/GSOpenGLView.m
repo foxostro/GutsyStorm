@@ -12,7 +12,7 @@
 #import "GSOpenGLView.h"
 #import "GSVBOHolder.h"
 #import "GSShader.h"
-#import "FoxMatrixUtils.h"
+#import "GSMatrixUtils.h"
 #import "GSOpenGLViewController.h"
 #import "GSTextLabel.h"
 

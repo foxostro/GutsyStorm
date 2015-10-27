@@ -1,5 +1,5 @@
 //
-//  FoxMatrixExtra.h
+//  GSMatrixExtra.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/16/15.
