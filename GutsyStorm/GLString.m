@@ -52,7 +52,7 @@
 
 #import "GLString.h"
 #import "GSShader.h"
-#import "FoxVBOHolder.h"
+#import "GSVBOHolder.h"
 #import <simd/matrix.h>
 
 // The following is a NSBezierPath category to allow
@@ -117,7 +117,7 @@
     float    _cRadius; // Corner radius, if 0 just a rectangle. Defaults to 4.0f
     
     GSShader *_shader;
-    FoxVBOHolder *_vbo;
+    GSVBOHolder *_vbo;
 
     BOOL _requiresUpdate;
 }
@@ -433,7 +433,7 @@
     if (!_vbo) {
         GLuint handle = 0;
         glGenBuffers(1, &handle);
-        _vbo = [[FoxVBOHolder alloc] initWithHandle:handle context:[NSOpenGLContext currentContext]];
+        _vbo = [[GSVBOHolder alloc] initWithHandle:handle context:[NSOpenGLContext currentContext]];
     }
 
     if (!_shader) {

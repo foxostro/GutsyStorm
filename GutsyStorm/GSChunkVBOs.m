@@ -12,7 +12,7 @@
 #import "FoxIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSBoxedTerrainVertex.h"
-#import "FoxVBOHolder.h"
+#import "GSVBOHolder.h"
 
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
@@ -30,16 +30,16 @@ typedef GLuint index_t;
 @implementation GSChunkVBOs
 {
     GLsizei _numIndicesForDrawing;
-    FoxVBOHolder *_vbo, *_ibo;
+    GSVBOHolder *_vbo, *_ibo;
     NSOpenGLContext *_glContext;
 }
 
 @synthesize minP;
 
-+ (FoxVBOHolder *)sharedIndexBufferObject
++ (GSVBOHolder *)sharedIndexBufferObject
 {
     static dispatch_once_t onceToken;
-    static FoxVBOHolder *iboHolder;
+    static GSVBOHolder *iboHolder;
 
     dispatch_once(&onceToken, ^{
         // Take the indices array and generate a raw index buffer that OpenGL can consume.
@@ -61,7 +61,7 @@ typedef GLuint index_t;
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         assert(checkGLErrors() == 0);
         
-        iboHolder = [[FoxVBOHolder alloc] initWithHandle:ibo context:[NSOpenGLContext currentContext]];
+        iboHolder = [[GSVBOHolder alloc] initWithHandle:ibo context:[NSOpenGLContext currentContext]];
     });
 
     return iboHolder;
@@ -88,7 +88,7 @@ typedef GLuint index_t;
         glBufferData(GL_ARRAY_BUFFER, _numIndicesForDrawing * sizeof(struct GSTerrainVertex), vertsBuffer, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        _vbo = [[FoxVBOHolder alloc] initWithHandle:vbo context:context];
+        _vbo = [[GSVBOHolder alloc] initWithHandle:vbo context:context];
         free(vertsBuffer);
 
         _ibo = [[self class] sharedIndexBufferObject];

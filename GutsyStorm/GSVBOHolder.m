@@ -1,15 +1,15 @@
 //
-//  FoxVBOHolder.m
+//  GSVBOHolder.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/13.
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxVBOHolder.h"
+#import "GSVBOHolder.h"
 #import <OpenGL/gl.h>
 
-@implementation FoxVBOHolder
+@implementation GSVBOHolder
 {
     NSOpenGLContext *_glContext;
 }

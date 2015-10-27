@@ -1,5 +1,5 @@
 //
-//  FoxVBOHolder.h
+//  GSVBOHolder.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/13.
@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 
 // Holds an OpenGL vertex buffer object, allowing it to be reference counted.
-@interface FoxVBOHolder : NSObject
+@interface GSVBOHolder : NSObject
 
 @property (readonly) GLuint handle;
 

@@ -8,7 +8,7 @@
 
 #import "GSCube.h"
 #import "GSShader.h"
-#import "FoxVBOHolder.h"
+#import "GSVBOHolder.h"
 
 #import <OpenGL/gl.h>
 
@@ -34,7 +34,7 @@ static const GLfloat vertices[] = {
 
 @implementation GSCube
 {
-    FoxVBOHolder *_vertexBuffer, *_indexBuffer;
+    GSVBOHolder *_vertexBuffer, *_indexBuffer;
     GSShader *_shader;
 }
 
@@ -65,8 +65,8 @@ static const GLfloat vertices[] = {
 
         assert(checkGLErrors() == 0);
 
-        _vertexBuffer = [[FoxVBOHolder alloc] initWithHandle:vboVertexBuffer context:context];
-        _indexBuffer = [[FoxVBOHolder alloc] initWithHandle:vboIndexBuffer context:context];
+        _vertexBuffer = [[GSVBOHolder alloc] initWithHandle:vboVertexBuffer context:context];
+        _indexBuffer = [[GSVBOHolder alloc] initWithHandle:vboIndexBuffer context:context];
         _shader = shader;
     }
 

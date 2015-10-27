@@ -10,7 +10,7 @@
 #import <CoreVideo/CVDisplayLink.h>
 #import <OpenGL/gl.h>
 #import "GSOpenGLView.h"
-#import "FoxVBOHolder.h"
+#import "GSVBOHolder.h"
 #import "GSShader.h"
 #import "FoxMatrixUtils.h"
 #import "GSOpenGLViewController.h"
@@ -39,7 +39,7 @@ int checkGLErrors(void);
 @implementation GSOpenGLView
 {
     CVDisplayLinkRef _displayLink;
-    FoxVBOHolder *_vboCrosshairs;
+    GSVBOHolder *_vboCrosshairs;
     GSShader *_shaderCrosshairs;
 
     BOOL _displayLinkShouldShutdown;
@@ -61,7 +61,7 @@ int checkGLErrors(void);
     return shader;
 }
 
-+ (FoxVBOHolder *)newCrosshairsVboWithContext:(NSOpenGLContext *)context
++ (GSVBOHolder *)newCrosshairsVboWithContext:(NSOpenGLContext *)context
 {
     vector_float4 crosshair_vertex = {400, 300, 0, 1};
     GLuint handle = 0;
@@ -69,7 +69,7 @@ int checkGLErrors(void);
     glBindBuffer(GL_ARRAY_BUFFER, handle);
     glBufferData(GL_ARRAY_BUFFER, sizeof(crosshair_vertex), &crosshair_vertex, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    return [[FoxVBOHolder alloc] initWithHandle:handle context:context];
+    return [[GSVBOHolder alloc] initWithHandle:handle context:context];
 }
 
 // Enables vertical sync for drawing to limit FPS to the screen's refresh rate.

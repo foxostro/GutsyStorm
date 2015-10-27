@@ -45,7 +45,7 @@
 		AC3767A2163DFB4000BAE03F /* GSErrorCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A1163DFB4000BAE03F /* GSErrorCodes.m */; };
 		AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A5163DFD4200BAE03F /* GSTerrain.m */; };
 		AC3767AA163E053400BAE03F /* GSTerrainCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A9163E053400BAE03F /* GSTerrainCursor.m */; };
-		AC3BDE8B16FFA5EE0005E6C2 /* FoxVBOHolder.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3BDE8A16FFA5EE0005E6C2 /* FoxVBOHolder.m */; };
+		AC3BDE8B16FFA5EE0005E6C2 /* GSVBOHolder.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3BDE8A16FFA5EE0005E6C2 /* GSVBOHolder.m */; };
 		AC3BDE95170016CF0005E6C2 /* GSChunkSunlightData.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3BDE94170016CF0005E6C2 /* GSChunkSunlightData.m */; };
 		AC3BDE9817002EE30005E6C2 /* GSGridSunlight.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3BDE9717002EE20005E6C2 /* GSGridSunlight.m */; };
 		AC48C44616F563E40017BA94 /* GSGrid.m in Sources */ = {isa = PBXBuildFile; fileRef = AC48C44516F563E40017BA94 /* GSGrid.m */; };
@@ -144,8 +144,8 @@
 		AC3767A5163DFD4200BAE03F /* GSTerrain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrain.m; sourceTree = "<group>"; };
 		AC3767A8163E053400BAE03F /* GSTerrainCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainCursor.h; sourceTree = "<group>"; };
 		AC3767A9163E053400BAE03F /* GSTerrainCursor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainCursor.m; sourceTree = "<group>"; };
-		AC3BDE8916FFA5EE0005E6C2 /* FoxVBOHolder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxVBOHolder.h; sourceTree = "<group>"; };
-		AC3BDE8A16FFA5EE0005E6C2 /* FoxVBOHolder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxVBOHolder.m; sourceTree = "<group>"; };
+		AC3BDE8916FFA5EE0005E6C2 /* GSVBOHolder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVBOHolder.h; sourceTree = "<group>"; };
+		AC3BDE8A16FFA5EE0005E6C2 /* GSVBOHolder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSVBOHolder.m; sourceTree = "<group>"; };
 		AC3BDE93170016CE0005E6C2 /* GSChunkSunlightData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkSunlightData.h; sourceTree = "<group>"; };
 		AC3BDE94170016CF0005E6C2 /* GSChunkSunlightData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkSunlightData.m; sourceTree = "<group>"; };
 		AC3BDE9617002EE10005E6C2 /* GSGridSunlight.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridSunlight.h; sourceTree = "<group>"; };
@@ -335,8 +335,8 @@
 				ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */,
 				AC9CCD6E1519A90E0081964D /* GSShader.h */,
 				AC9CCD6F1519A90E0081964D /* GSShader.m */,
-				AC3BDE8916FFA5EE0005E6C2 /* FoxVBOHolder.h */,
-				AC3BDE8A16FFA5EE0005E6C2 /* FoxVBOHolder.m */,
+				AC3BDE8916FFA5EE0005E6C2 /* GSVBOHolder.h */,
+				AC3BDE8A16FFA5EE0005E6C2 /* GSVBOHolder.m */,
 			);
 			name = OpenGL;
 			sourceTree = "<group>";
@@ -548,7 +548,7 @@
 				ACE6ABE716F984D300DE88E3 /* GSGridGeometry.m in Sources */,
 				ACE6ABEB16F993D400DE88E3 /* GSVoxel.m in Sources */,
 				ACE8F00C16FE6A7D00ABA2AD /* GSMutableBuffer.m in Sources */,
-				AC3BDE8B16FFA5EE0005E6C2 /* FoxVBOHolder.m in Sources */,
+				AC3BDE8B16FFA5EE0005E6C2 /* GSVBOHolder.m in Sources */,
 				AC3BDE95170016CF0005E6C2 /* GSChunkSunlightData.m in Sources */,
 				AC3BDE9817002EE30005E6C2 /* GSGridSunlight.m in Sources */,
 				AC941759170149AD00EDAB98 /* GSGridVBOs.m in Sources */,
