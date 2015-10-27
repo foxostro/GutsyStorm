@@ -7,11 +7,11 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxGrid.h"
+#import "GSGrid.h"
 
 typedef void (^vbo_invalidation_notification_t)(void);
 
-@interface FoxGridVBOs : FoxGrid<FoxChunkVBOs *>
+@interface FoxGridVBOs : GSGrid<FoxChunkVBOs *>
 
 @property (copy) vbo_invalidation_notification_t invalidationNotification;
 

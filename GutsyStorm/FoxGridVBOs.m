@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxGrid.h"
+#import "GSGrid.h"
 #import "FoxChunkVBOs.h"
 #import "FoxGridVBOs.h"
 

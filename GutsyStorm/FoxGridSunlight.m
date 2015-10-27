@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "FoxIntegerVector3.h"
 #import "GSVoxel.h"
-#import "FoxGrid.h"
+#import "GSGrid.h"
 #import "FoxChunkSunlightData.h"
 #import "FoxGridSunlight.h"
 

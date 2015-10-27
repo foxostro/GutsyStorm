@@ -1,5 +1,5 @@
 //
-//  FoxGrid.m
+//  GSGrid.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/13.
@@ -9,12 +9,12 @@
 #import "FoxVectorUtils.h" // for vector_hash
 #import "FoxIntegerVector3.h"
 #import "GSVoxel.h"
-#import "FoxGrid.h"
+#import "GSGrid.h"
 #import "GSReaderWriterLock.h"
 #import "FoxBoxedVector.h"
 
 
-@interface FoxGrid ()
+@interface GSGrid ()
 
 - (NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP
                                              bucket:(NSMutableArray<NSObject <GSGridItem> *> *)bucket;
@@ -22,7 +22,7 @@
 @end
 
 
-@implementation FoxGrid
+@implementation GSGrid
 {
     GSReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
 
@@ -37,7 +37,7 @@
     
     fox_grid_item_factory_t _factory;
 
-    NSMutableArray<FoxGrid *> *_dependentGrids;
+    NSMutableArray<GSGrid *> *_dependentGrids;
     NSMutableDictionary *_mappingToDependentGrids;
 }
 
@@ -56,7 +56,7 @@
         _numBuckets = 1024;
         _n = 0;
         _loadLevelToTriggerResize = 0.80;
-        _dependentGrids = [NSMutableArray<FoxGrid *> new];
+        _dependentGrids = [NSMutableArray<GSGrid *> new];
         _mappingToDependentGrids = [NSMutableDictionary new];
 
         _buckets = (NSMutableArray<NSObject <GSGridItem> *> * __strong *)
@@ -321,7 +321,7 @@
 {
     assert(change);
 
-    for(FoxGrid *grid in _dependentGrids)
+    for(GSGrid *grid in _dependentGrids)
     {
         NSSet * (^mapping)(FoxGridEdit *) = [_mappingToDependentGrids objectForKey:[grid description]];
         NSSet *correspondingPoints = mapping(change);
@@ -335,7 +335,7 @@
     }
 }
 
-- (void)registerDependentGrid:(FoxGrid *)grid mapping:(NSSet<FoxBoxedVector *> * (^)(FoxGridEdit *))mapping
+- (void)registerDependentGrid:(GSGrid *)grid mapping:(NSSet<FoxBoxedVector *> * (^)(FoxGridEdit *))mapping
 {
     [_dependentGrids addObject:grid];
     [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];

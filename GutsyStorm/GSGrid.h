@@ -1,5 +1,5 @@
 //
-//  FoxGrid.h
+//  GSGrid.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/13.
@@ -15,7 +15,7 @@
 @class FoxBoxedVector;
 
 
-@interface FoxGrid<__covariant TYPE> : NSObject
+@interface GSGrid<__covariant TYPE> : NSObject
 
 - (nullable instancetype)init NS_UNAVAILABLE;
 
@@ -66,7 +66,7 @@
 /* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns
  * the points in 'dependentGrid' which actually depend on that point.
  */
-- (void)registerDependentGrid:(nonnull FoxGrid *)dependentGrid
+- (void)registerDependentGrid:(nonnull GSGrid *)dependentGrid
                       mapping:(NSSet<FoxBoxedVector *> * _Nonnull (^ _Nonnull)(FoxGridEdit * _Nonnull))mapping;
 
 /* Applies the given transformation function to the item at the specified point.
