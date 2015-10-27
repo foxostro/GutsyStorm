@@ -10,9 +10,9 @@
 #import <OpenGL/gl.h>
 #import "GSGridItem.h"
 #import "GSVoxel.h"
+#import "GSTerrainVertex.h"
 
 
-struct GSTerrainVertex;
 @class GSNeighborhood;
 @class GSBlockMesh;
 @class GSChunkSunlightData;
@@ -30,6 +30,6 @@ struct GSTerrainVertex;
                              sunlight:(nonnull GSChunkSunlightData *)sunlight;
 
 /* Copy the chunk vertex buffer to a new buffer and return that in `dst'. Return the number of vertices in the buffer. */
-- (GLsizei)copyVertsToBuffer:(struct GSTerrainVertex * _Nonnull * _Nonnull)dst;
+- (GLsizei)copyVertsToBuffer:(GSTerrainVertex * _Nonnull * _Nonnull)dst;
 
 @end

@@ -12,15 +12,15 @@
 
 @interface GSBoxedTerrainVertex : NSObject
 
-@property (assign, nonatomic) struct GSTerrainVertex v;
+@property (assign, nonatomic) GSTerrainVertex v;
 
 + (GSBoxedTerrainVertex *)vertexWithPosition:(vector_float3)position
                                       normal:(vector_long3)normal
                                     texCoord:(vector_long3)texCoord;
 
-+ (GSBoxedTerrainVertex *)vertexWithVertex:(struct GSTerrainVertex *)pv;
++ (GSBoxedTerrainVertex *)vertexWithVertex:(GSTerrainVertex *)pv;
 
-- (instancetype)initWithVertex:(struct GSTerrainVertex *)pv;
+- (instancetype)initWithVertex:(GSTerrainVertex *)pv;
 
 - (instancetype)initWithPosition:(vector_float3)position
                           normal:(vector_long3)normal

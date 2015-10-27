@@ -19,12 +19,12 @@
     return [[GSBoxedTerrainVertex alloc] initWithPosition:position normal:normal texCoord:texCoord];
 }
 
-+ (GSBoxedTerrainVertex *)vertexWithVertex:(struct GSTerrainVertex *)pv
++ (GSBoxedTerrainVertex *)vertexWithVertex:(GSTerrainVertex *)pv
 {
     return [[GSBoxedTerrainVertex alloc] initWithVertex:pv];
 }
 
-- (instancetype)initWithVertex:(struct GSTerrainVertex *)pv
+- (instancetype)initWithVertex:(GSTerrainVertex *)pv
 {
     assert(pv);
     

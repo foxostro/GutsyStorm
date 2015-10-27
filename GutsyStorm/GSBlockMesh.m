@@ -17,7 +17,7 @@
 
 @interface GSBlockMesh ()
 
-- (void)rotateVertex:(struct GSTerrainVertex *)v quaternion:(vector_float4)quat;
+- (void)rotateVertex:(GSTerrainVertex *)v quaternion:(vector_float4)quat;
 - (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(GSFace *)face
                                         upsideDown:(BOOL)upsideDown
                                              quatY:(vector_float4)quatY;
@@ -44,7 +44,7 @@
     return self;
 }
 
-- (void)rotateVertex:(struct GSTerrainVertex *)v quaternion:(vector_float4)quat
+- (void)rotateVertex:(GSTerrainVertex *)v quaternion:(vector_float4)quat
 {
     vector_float3 vertexPos, normal;
 
@@ -75,7 +75,7 @@
 
     for(GSBoxedTerrainVertex *vertex in enumerator)
     {
-        struct GSTerrainVertex v = vertex.v;
+        GSTerrainVertex v = vertex.v;
 
         if (upsideDown) {
             v.position[1] *= -1;
@@ -162,7 +162,7 @@
 
         for(GSBoxedTerrainVertex *vertex in face.vertexList)
         {
-            struct GSTerrainVertex v = vertex.v;
+            GSTerrainVertex v = vertex.v;
             
             v.position[0] += pos.x;
             v.position[1] += pos.y;

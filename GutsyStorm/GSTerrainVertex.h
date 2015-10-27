@@ -8,10 +8,10 @@
 
 #import <Foundation/Foundation.h>
 
-struct GSTerrainVertex
+typedef struct
 {
     GLfloat position[3];
     GLubyte color[4];
     GLbyte normal[3];
     GLshort texCoord[3];
-};
+} GSTerrainVertex;

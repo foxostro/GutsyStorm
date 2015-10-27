@@ -32,7 +32,7 @@ struct fox_chunk_geometry_header
 
 
 static void applyLightToVertices(size_t numChunkVerts,
-                                 struct GSTerrainVertex *vertsBuffer,
+                                 GSTerrainVertex *vertsBuffer,
                                  GSTerrainBuffer *sunlight,
                                  vector_float3 minP);
 
@@ -102,20 +102,20 @@ static void applyLightToVertices(size_t numChunkVerts,
     return self; // all geometry objects are immutable, so return self instead of deep copying
 }
 
-- (GLsizei)copyVertsToBuffer:(struct GSTerrainVertex **)dst
+- (GLsizei)copyVertsToBuffer:(GSTerrainVertex **)dst
 {
     assert(dst);
 
     const struct fox_chunk_geometry_header *restrict header = [_data bytes];
-    const struct GSTerrainVertex * restrict vertsBuffer = ((void *)header) + sizeof(struct fox_chunk_geometry_header);
+    const GSTerrainVertex * restrict vertsBuffer = ((void *)header) + sizeof(struct fox_chunk_geometry_header);
 
     // consistency checks
     assert(header->w == CHUNK_SIZE_X);
     assert(header->h == CHUNK_SIZE_Y);
     assert(header->d == CHUNK_SIZE_Z);
-    assert(header->len == (header->numChunkVerts * sizeof(struct GSTerrainVertex)));
+    assert(header->len == (header->numChunkVerts * sizeof(GSTerrainVertex)));
 
-    struct GSTerrainVertex *vertsCopy = malloc(header->len);
+    GSTerrainVertex *vertsCopy = malloc(header->len);
     if(!vertsCopy) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating vertsCopy in -copyVertsToBuffer:."];
     }
@@ -162,12 +162,12 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     const GLsizei numChunkVerts = (GLsizei)[vertices count];
 
-    const uint32_t len = numChunkVerts * sizeof(struct GSTerrainVertex);
+    const uint32_t len = numChunkVerts * sizeof(GSTerrainVertex);
     const size_t capacity = sizeof(struct fox_chunk_geometry_header) + len;
     NSMutableData *data = [[NSMutableData alloc] initWithBytesNoCopy:malloc(capacity) length:capacity freeWhenDone:YES];
 
     struct fox_chunk_geometry_header * header = [data mutableBytes];
-    struct GSTerrainVertex * vertsBuffer = (void *)header + sizeof(struct fox_chunk_geometry_header);
+    GSTerrainVertex * vertsBuffer = (void *)header + sizeof(struct fox_chunk_geometry_header);
 
     header->w = CHUNK_SIZE_X;
     header->h = CHUNK_SIZE_Y;
@@ -191,7 +191,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 @end
 
 static void applyLightToVertices(size_t numChunkVerts,
-                                 struct GSTerrainVertex *vertsBuffer,
+                                 GSTerrainVertex *vertsBuffer,
                                  GSTerrainBuffer *sunlight,
                                  vector_float3 minP)
 {
@@ -200,7 +200,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     for(GLsizei i=0; i<numChunkVerts; ++i)
     {
-        struct GSTerrainVertex *v = &vertsBuffer[i];
+        GSTerrainVertex *v = &vertsBuffer[i];
         
         vector_float3 vertexPos = vector_make(v->position[0], v->position[1], v->position[2]);
         vector_long3 normal = (vector_long3){v->normal[0], v->normal[1], v->normal[2]};

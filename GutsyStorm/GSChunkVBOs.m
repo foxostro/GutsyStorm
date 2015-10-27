@@ -74,7 +74,7 @@ typedef GLuint index_t;
     assert(context);
     
     if(self = [super init]) {
-        struct GSTerrainVertex *vertsBuffer = NULL;
+        GSTerrainVertex *vertsBuffer = NULL;
         _numIndicesForDrawing = [geometry copyVertsToBuffer:&vertsBuffer];
         _glContext = context;
         minP = geometry.minP;
@@ -85,7 +85,7 @@ typedef GLuint index_t;
         GLuint vbo = 0;
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, _numIndicesForDrawing * sizeof(struct GSTerrainVertex), vertsBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, _numIndicesForDrawing * sizeof(GSTerrainVertex), vertsBuffer, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         _vbo = [[GSVBOHolder alloc] initWithHandle:vbo context:context];
@@ -119,19 +119,19 @@ typedef GLuint index_t;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         // Verify that vertex attribute formats are consistent with in-memory storage.
-        assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct GSTerrainVertex, position));
-        assert(sizeof(GLbyte)  == SIZEOF_STRUCT_ARRAY_ELEMENT(struct GSTerrainVertex, normal));
-        assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct GSTerrainVertex, texCoord));
-        assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(struct GSTerrainVertex, color));
+        assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, position));
+        assert(sizeof(GLbyte)  == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, normal));
+        assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, texCoord));
+        assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, color));
     });
 #endif
 
-    const GLvoid *offsetVertex   = (const GLvoid *)offsetof(struct GSTerrainVertex, position);
-    const GLvoid *offsetNormal   = (const GLvoid *)offsetof(struct GSTerrainVertex, normal);
-    const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(struct GSTerrainVertex, texCoord);
-    const GLvoid *offsetColor    = (const GLvoid *)offsetof(struct GSTerrainVertex, color);
+    const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertex, position);
+    const GLvoid *offsetNormal   = (const GLvoid *)offsetof(GSTerrainVertex, normal);
+    const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertex, texCoord);
+    const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertex, color);
 
-    const GLsizei stride = sizeof(struct GSTerrainVertex);
+    const GLsizei stride = sizeof(GSTerrainVertex);
     glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
     glNormalPointer(     GL_BYTE,          stride, offsetNormal);
     glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
