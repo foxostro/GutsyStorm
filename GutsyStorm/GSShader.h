@@ -1,5 +1,5 @@
 //
-//  FoxShader.h
+//  GSShader.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/20/12.
@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import <simd/matrix.h>
 
-@interface FoxShader : NSObject
+@interface GSShader : NSObject
 
 - (nullable instancetype)initWithVertexShaderSource:(nonnull NSString *)vert
                                fragmentShaderSource:(nonnull NSString *)frag;

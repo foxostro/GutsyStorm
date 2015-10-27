@@ -10,13 +10,13 @@
 #import <simd/matrix.h>
 
 @class NSOpenGLContext;
-@class FoxShader;
+@class GSShader;
 
 @interface GSCube : NSObject
 
 - (nullable instancetype)init NS_UNAVAILABLE;
 - (nullable instancetype)initWithContext:(nonnull NSOpenGLContext *)context
-                                  shader:(nonnull FoxShader *)shader NS_DESIGNATED_INITIALIZER;
+                                  shader:(nonnull GSShader *)shader NS_DESIGNATED_INITIALIZER;
 - (void)drawWithModelViewProjectionMatrix:(matrix_float4x4)mvp;
 
 @end

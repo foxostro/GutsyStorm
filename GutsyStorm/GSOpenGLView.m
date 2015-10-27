@@ -11,7 +11,7 @@
 #import <OpenGL/gl.h>
 #import "GSOpenGLView.h"
 #import "FoxVBOHolder.h"
-#import "FoxShader.h"
+#import "GSShader.h"
 #import "FoxMatrixUtils.h"
 #import "GSOpenGLViewController.h"
 #import "GSTextLabel.h"
@@ -40,13 +40,13 @@ int checkGLErrors(void);
 {
     CVDisplayLinkRef _displayLink;
     FoxVBOHolder *_vboCrosshairs;
-    FoxShader *_shaderCrosshairs;
+    GSShader *_shaderCrosshairs;
 
     BOOL _displayLinkShouldShutdown;
     dispatch_semaphore_t _semaDisplayLinkShutdown;
 }
 
-+ (FoxShader *)newCrosshairShader
++ (GSShader *)newCrosshairShader
 {
     NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"];
     NSString *vertFn = [bundle pathForResource:@"crosshairs.vert" ofType:@"txt"];
@@ -57,7 +57,7 @@ int checkGLErrors(void);
     NSString *fragSrc = [[NSString alloc] initWithContentsOfFile:fragFn
                                                         encoding:NSMacOSRomanStringEncoding
                                                            error:nil];
-    FoxShader *shader = [[FoxShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+    GSShader *shader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
     return shader;
 }
 

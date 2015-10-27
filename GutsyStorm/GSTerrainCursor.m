@@ -25,7 +25,7 @@
     return nil;
 }
 
-- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(FoxShader *)shader
+- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(GSShader *)shader
 {
     self = [super init];
     if (self) {

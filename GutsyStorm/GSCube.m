@@ -7,7 +7,7 @@
 //
 
 #import "GSCube.h"
-#import "FoxShader.h"
+#import "GSShader.h"
 #import "FoxVBOHolder.h"
 
 #import <OpenGL/gl.h>
@@ -35,7 +35,7 @@ static const GLfloat vertices[] = {
 @implementation GSCube
 {
     FoxVBOHolder *_vertexBuffer, *_indexBuffer;
-    FoxShader *_shader;
+    GSShader *_shader;
 }
 
 - (instancetype)init
@@ -44,7 +44,7 @@ static const GLfloat vertices[] = {
     return nil;
 }
 
-- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(FoxShader *)shader
+- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(GSShader *)shader
 {
     NSParameterAssert(context);
     assert(checkGLErrors() == 0);

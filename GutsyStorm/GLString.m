@@ -51,7 +51,7 @@
 //
 
 #import "GLString.h"
-#import "FoxShader.h"
+#import "GSShader.h"
 #import "FoxVBOHolder.h"
 #import <simd/matrix.h>
 
@@ -116,7 +116,7 @@
     NSSize _frameSize; // offset or frame size, default is 4 width 2 height
     float    _cRadius; // Corner radius, if 0 just a rectangle. Defaults to 4.0f
     
-    FoxShader *_shader;
+    GSShader *_shader;
     FoxVBOHolder *_vbo;
 
     BOOL _requiresUpdate;
@@ -442,7 +442,7 @@
         NSString *fragFn = [bundle pathForResource:@"text.frag" ofType:@"txt"];
         NSString *vertSrc = [[NSString alloc] initWithContentsOfFile:vertFn encoding:NSMacOSRomanStringEncoding error:nil];
         NSString *fragSrc = [[NSString alloc] initWithContentsOfFile:fragFn encoding:NSMacOSRomanStringEncoding error:nil];
-        _shader = [[FoxShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
+        _shader = [[GSShader alloc] initWithVertexShaderSource:vertSrc fragmentShaderSource:fragSrc];
     }
 
     if (_requiresUpdate) {

@@ -1,5 +1,5 @@
 //
-//  FoxShader.m
+//  GSShader.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/20/12.
@@ -8,13 +8,13 @@
 
 #import <assert.h>
 #import <OpenGL/gl.h>
-#import "FoxShader.h"
+#import "GSShader.h"
 
 
 extern int checkGLErrors(void);
 
 
-@interface FoxShader ()
+@interface GSShader ()
 
 - (const GLchar **)buildSourceStringsArray:(NSString *)source
                                     length:(GLsizei *)length;
@@ -30,7 +30,7 @@ extern int checkGLErrors(void);
 @end
 
 
-@implementation FoxShader
+@implementation GSShader
 {
     GLuint _handle;
     BOOL _linked;

@@ -10,13 +10,13 @@
 #import "FoxRay.h"
 
 @class GSCamera;
-@class FoxShader;
+@class GSShader;
 
 @interface GSChunkStore : NSObject
 
 - (nullable instancetype)initWithSeed:(NSUInteger)seed
                                camera:(nonnull GSCamera *)camera
-                        terrainShader:(nonnull FoxShader *)terrainShader
+                        terrainShader:(nonnull GSShader *)terrainShader
                             glContext:(nonnull NSOpenGLContext *)glContext
                             generator:(nonnull terrain_generator_t)generator
                         postProcessor:(nonnull terrain_post_processor_t)postProcessor;

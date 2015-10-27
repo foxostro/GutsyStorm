@@ -10,7 +10,7 @@
 #import "FoxRay.h"
 #import "GSCamera.h"
 #import "GSActiveRegion.h"
-#import "FoxShader.h"
+#import "GSShader.h"
 #import "GSChunkStore.h"
 #import "FoxBoxedVector.h"
 #import "GSNeighborhood.h"
@@ -62,7 +62,7 @@
     BOOL _chunkStoreHasBeenShutdown;
     GSCamera *_camera;
     NSURL *_folder;
-    FoxShader *_terrainShader;
+    GSShader *_terrainShader;
     NSOpenGLContext *_glContext;
 
     terrain_generator_t _generator;
@@ -219,7 +219,7 @@
 
 - (instancetype)initWithSeed:(NSUInteger)seed
                       camera:(GSCamera *)cam
-               terrainShader:(FoxShader *)shader
+               terrainShader:(GSShader *)shader
                    glContext:(NSOpenGLContext *)context
                    generator:(terrain_generator_t)generatorCallback
                postProcessor:(terrain_post_processor_t)postProcessorCallback

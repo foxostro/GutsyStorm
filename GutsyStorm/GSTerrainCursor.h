@@ -10,7 +10,7 @@
 #import "GSChunkStore.h"
 #import "GSCube.h"
 
-@class FoxShader;
+@class GSShader;
 @class GSCamera;
 
 @interface GSTerrainCursor : NSObject
@@ -21,7 +21,7 @@
 
 - (nullable instancetype)init NS_UNAVAILABLE;
 - (nullable instancetype)initWithContext:(nonnull NSOpenGLContext *)context
-                                  shader:(nonnull FoxShader *)shader NS_DESIGNATED_INITIALIZER;
+                                  shader:(nonnull GSShader *)shader NS_DESIGNATED_INITIALIZER;
 - (void)drawWithCamera:(nonnull GSCamera *)camera;
 
 @end
