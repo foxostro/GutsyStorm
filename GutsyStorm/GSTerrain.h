@@ -1,5 +1,5 @@
 //
-//  FoxTerrain.h
+//  GSTerrain.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/28/12.
@@ -11,7 +11,7 @@
 @class FoxTerrainCursor;
 @class FoxTextureArray;
 
-@interface FoxTerrain : NSObject
+@interface GSTerrain : NSObject
 
 - (nullable instancetype)initWithSeed:(NSUInteger)seed
                                camera:(nonnull GSCamera *)camera

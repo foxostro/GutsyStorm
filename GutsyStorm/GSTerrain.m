@@ -1,5 +1,5 @@
 //
-//  FoxTerrain.m
+//  GSTerrain.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/28/12.
@@ -14,7 +14,7 @@
 #import "FoxTextureArray.h"
 #import "FoxShader.h"
 #import "GSCamera.h"
-#import "FoxTerrain.h"
+#import "GSTerrain.h"
 #import "FoxRay.h"
 #import "FoxMatrixUtils.h"
 
@@ -357,7 +357,7 @@ static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_fl
 int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 
-@implementation FoxTerrain
+@implementation GSTerrain
 {
     GSCamera *_camera;
     FoxTextureArray *_textureArray;

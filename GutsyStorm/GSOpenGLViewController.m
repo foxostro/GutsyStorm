@@ -8,7 +8,7 @@
 
 #import "GSOpenGLViewController.h"
 #import "FoxTextLabel.h"
-#import "FoxTerrain.h"
+#import "GSTerrain.h"
 #import "GSCamera.h"
 #import "GSOpenGLView.h"
 #import "FoxMatrixUtils.h"
@@ -31,7 +31,7 @@
 @implementation GSOpenGLViewController
 {
     FoxTextLabel *_frameRateLabel;
-    FoxTerrain *_terrain;
+    GSTerrain *_terrain;
     GSCamera *_camera;
     GSOpenGLView *_openGlView;
 
@@ -89,7 +89,7 @@
     
     _frameRateLabel = [FoxTextLabel new];
     
-    _terrain = [[FoxTerrain alloc] initWithSeed:0 camera:_camera glContext:_openGlView.openGLContext];
+    _terrain = [[GSTerrain alloc] initWithSeed:0 camera:_camera glContext:_openGlView.openGLContext];
 
     _prevFrameTime = _lastRenderTime = _lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
     _fpsLabelUpdateInterval = 0.3;
