@@ -10,7 +10,7 @@
 
 @class GSCamera;
 @class FoxChunkVBOs;
-@class FoxGridVBOs;
+@class GSGridVBOs;
 @class FoxBoxedVector;
 
 
@@ -26,7 +26,7 @@
  */
 - (nullable instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                              camera:(nonnull GSCamera *)camera
-                                            vboGrid:(nonnull FoxGridVBOs *)gridVBOs;
+                                            vboGrid:(nonnull GSGridVBOs *)gridVBOs;
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
 

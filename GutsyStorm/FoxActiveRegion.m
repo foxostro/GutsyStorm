@@ -12,7 +12,7 @@
 #import "FoxBoxedVector.h"
 #import "GSCamera.h"
 #import "GSGridItem.h"
-#import "FoxGridVBOs.h"
+#import "GSGridVBOs.h"
 #import "FoxChunkVBOs.h"
 
 #define LOG_PERF 0
@@ -59,7 +59,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     NSLock *_lockVbosInCameraFrustum;
 
     /* Used to generate and retrieve VBOs. */
-    FoxGridVBOs *_gridVBOs;
+    GSGridVBOs *_gridVBOs;
 
     /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
     dispatch_queue_t _updateQueue;
@@ -71,7 +71,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
 
 - (instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                     camera:(GSCamera *)camera
-                                   vboGrid:(FoxGridVBOs *)gridVBOs
+                                   vboGrid:(GSGridVBOs *)gridVBOs
 {
     self = [super init];
     if (self) {

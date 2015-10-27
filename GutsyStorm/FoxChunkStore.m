@@ -21,7 +21,7 @@
 #import "FoxChunkVoxelData.h"
 
 #import "GSGrid.h"
-#import "FoxGridVBOs.h"
+#import "GSGridVBOs.h"
 #import "GSGridGeometry.h"
 #import "GSGridSunlight.h"
 
@@ -50,7 +50,7 @@
 
 @implementation FoxChunkStore
 {
-    FoxGridVBOs *_gridVBOs;
+    GSGridVBOs *_gridVBOs;
     GSGridGeometry *_gridGeometryData;
     GSGridSunlight *_gridSunlightData;
     GSGrid<FoxChunkVoxelData *> *_gridVoxelData;
@@ -113,7 +113,7 @@
                                                                      sunlight:sunlight];
                               }];
     
-    _gridVBOs = [[FoxGridVBOs alloc] initWithName:@"gridVBOs"
+    _gridVBOs = [[GSGridVBOs alloc] initWithName:@"gridVBOs"
                                          factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                              FoxChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
                                              NSObject <GSGridItem> *vbo;

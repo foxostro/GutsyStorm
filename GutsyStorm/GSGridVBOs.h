@@ -1,5 +1,5 @@
 //
-//  FoxGridVBOs.h
+//  GSGridVBOs.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/25/13.
@@ -11,7 +11,7 @@
 
 typedef void (^vbo_invalidation_notification_t)(void);
 
-@interface FoxGridVBOs : GSGrid<FoxChunkVBOs *>
+@interface GSGridVBOs : GSGrid<FoxChunkVBOs *>
 
 @property (copy) vbo_invalidation_notification_t invalidationNotification;
 

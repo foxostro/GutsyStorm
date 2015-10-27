@@ -51,7 +51,7 @@
 		AC48C44616F563E40017BA94 /* GSGrid.m in Sources */ = {isa = PBXBuildFile; fileRef = AC48C44516F563E40017BA94 /* GSGrid.m */; };
 		AC5B2800151DC7BB0045B6E4 /* GSNoise.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */; };
 		AC5B2804151E2C1D0045B6E4 /* FoxChunkStore.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B2803151E2C1D0045B6E4 /* FoxChunkStore.m */; };
-		AC941759170149AD00EDAB98 /* FoxGridVBOs.m in Sources */ = {isa = PBXBuildFile; fileRef = AC941758170149AD00EDAB98 /* FoxGridVBOs.m */; };
+		AC941759170149AD00EDAB98 /* GSGridVBOs.m in Sources */ = {isa = PBXBuildFile; fileRef = AC941758170149AD00EDAB98 /* GSGridVBOs.m */; };
 		AC96B179168CF2A500FF7FFC /* FoxBlockMeshCube.m in Sources */ = {isa = PBXBuildFile; fileRef = AC96B178168CF2A500FF7FFC /* FoxBlockMeshCube.m */; };
 		AC96B180168D154D00FF7FFC /* FoxBlockMeshRamp.m in Sources */ = {isa = PBXBuildFile; fileRef = AC96B17F168D154D00FF7FFC /* FoxBlockMeshRamp.m */; };
 		AC9CCD701519A90E0081964D /* FoxShader.m in Sources */ = {isa = PBXBuildFile; fileRef = AC9CCD6F1519A90E0081964D /* FoxShader.m */; };
@@ -158,8 +158,8 @@
 		AC5B2802151E2C1D0045B6E4 /* FoxChunkStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxChunkStore.h; sourceTree = "<group>"; };
 		AC5B2803151E2C1D0045B6E4 /* FoxChunkStore.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxChunkStore.m; sourceTree = "<group>"; };
 		AC68358B1613F20F0063AAFC /* GutsyStorm.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = GutsyStorm.entitlements; sourceTree = "<group>"; };
-		AC941757170149AD00EDAB98 /* FoxGridVBOs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxGridVBOs.h; sourceTree = "<group>"; };
-		AC941758170149AD00EDAB98 /* FoxGridVBOs.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxGridVBOs.m; sourceTree = "<group>"; };
+		AC941757170149AD00EDAB98 /* GSGridVBOs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridVBOs.h; sourceTree = "<group>"; };
+		AC941758170149AD00EDAB98 /* GSGridVBOs.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridVBOs.m; sourceTree = "<group>"; };
 		AC96B177168CF2A500FF7FFC /* FoxBlockMeshCube.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBlockMeshCube.h; sourceTree = "<group>"; };
 		AC96B178168CF2A500FF7FFC /* FoxBlockMeshCube.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxBlockMeshCube.m; sourceTree = "<group>"; };
 		AC96B17E168D154C00FF7FFC /* FoxBlockMeshRamp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBlockMeshRamp.h; sourceTree = "<group>"; };
@@ -415,8 +415,8 @@
 				AC3BDE9717002EE20005E6C2 /* GSGridSunlight.m */,
 				ACE6ABE516F984D300DE88E3 /* GSGridGeometry.h */,
 				ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */,
-				AC941757170149AD00EDAB98 /* FoxGridVBOs.h */,
-				AC941758170149AD00EDAB98 /* FoxGridVBOs.m */,
+				AC941757170149AD00EDAB98 /* GSGridVBOs.h */,
+				AC941758170149AD00EDAB98 /* GSGridVBOs.m */,
 				4A2310BE153E10F100A4EBE6 /* FoxChunkVoxelData.h */,
 				4A2310BF153E10F100A4EBE6 /* FoxChunkVoxelData.m */,
 				AC3BDE93170016CE0005E6C2 /* FoxChunkSunlightData.h */,
@@ -551,7 +551,7 @@
 				AC3BDE8B16FFA5EE0005E6C2 /* FoxVBOHolder.m in Sources */,
 				AC3BDE95170016CF0005E6C2 /* FoxChunkSunlightData.m in Sources */,
 				AC3BDE9817002EE30005E6C2 /* GSGridSunlight.m in Sources */,
-				AC941759170149AD00EDAB98 /* FoxGridVBOs.m in Sources */,
+				AC941759170149AD00EDAB98 /* GSGridVBOs.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

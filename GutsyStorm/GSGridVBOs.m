@@ -1,5 +1,5 @@
 //
-//  FoxGridVBOs.m
+//  GSGridVBOs.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/25/13.
@@ -9,9 +9,9 @@
 #import <Foundation/Foundation.h>
 #import "GSGrid.h"
 #import "FoxChunkVBOs.h"
-#import "FoxGridVBOs.h"
+#import "GSGridVBOs.h"
 
-@implementation FoxGridVBOs
+@implementation GSGridVBOs
 
 - (instancetype)initWithName:(NSString *)name factory:(fox_grid_item_factory_t)factory
 {
