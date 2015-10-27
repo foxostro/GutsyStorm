@@ -1,5 +1,5 @@
 //
-//  FoxTerrainCursor.m
+//  GSTerrainCursor.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/28/12.
@@ -9,12 +9,12 @@
 #import "FoxRay.h"
 #import "GSCamera.h"
 #import "FoxMatrixUtils.h"
-#import "FoxTerrainCursor.h"
+#import "GSTerrainCursor.h"
 
 #import <OpenGL/gl.h>
 #import <simd/matrix.h>
 
-@implementation FoxTerrainCursor
+@implementation GSTerrainCursor
 {
     FoxCube *_cursor;
 }

@@ -9,7 +9,7 @@
 #import "FoxIntegerVector3.h"
 #import "GSVoxel.h"
 #import "GSNoise.h"
-#import "FoxTerrainCursor.h"
+#import "GSTerrainCursor.h"
 #import "FoxChunkStore.h"
 #import "FoxTextureArray.h"
 #import "FoxShader.h"
@@ -362,7 +362,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     GSCamera *_camera;
     FoxTextureArray *_textureArray;
     FoxChunkStore *_chunkStore;
-    FoxTerrainCursor *_cursor;
+    GSTerrainCursor *_cursor;
     float _maxPlaceDistance;
 }
 
@@ -476,7 +476,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                 generator:generator
                                             postProcessor:postProcessor];
         
-        _cursor = [[FoxTerrainCursor alloc] initWithContext:context shader:cursorShader];
+        _cursor = [[GSTerrainCursor alloc] initWithContext:context shader:cursorShader];
         
         _maxPlaceDistance = 6.0; // XXX: make this configurable
     }

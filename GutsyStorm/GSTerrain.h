@@ -8,7 +8,7 @@
 
 @class GSCamera;
 @class FoxChunkStore;
-@class FoxTerrainCursor;
+@class GSTerrainCursor;
 @class FoxTextureArray;
 
 @interface GSTerrain : NSObject

@@ -44,7 +44,7 @@
 		AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */ = {isa = PBXBuildFile; fileRef = AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */; };
 		AC3767A2163DFB4000BAE03F /* GSErrorCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A1163DFB4000BAE03F /* GSErrorCodes.m */; };
 		AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A5163DFD4200BAE03F /* GSTerrain.m */; };
-		AC3767AA163E053400BAE03F /* FoxTerrainCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A9163E053400BAE03F /* FoxTerrainCursor.m */; };
+		AC3767AA163E053400BAE03F /* GSTerrainCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A9163E053400BAE03F /* GSTerrainCursor.m */; };
 		AC3BDE8B16FFA5EE0005E6C2 /* FoxVBOHolder.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3BDE8A16FFA5EE0005E6C2 /* FoxVBOHolder.m */; };
 		AC3BDE95170016CF0005E6C2 /* GSChunkSunlightData.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3BDE94170016CF0005E6C2 /* GSChunkSunlightData.m */; };
 		AC3BDE9817002EE30005E6C2 /* GSGridSunlight.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3BDE9717002EE20005E6C2 /* GSGridSunlight.m */; };
@@ -142,8 +142,8 @@
 		AC3767A1163DFB4000BAE03F /* GSErrorCodes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSErrorCodes.m; sourceTree = "<group>"; };
 		AC3767A4163DFD4100BAE03F /* GSTerrain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrain.h; sourceTree = "<group>"; };
 		AC3767A5163DFD4200BAE03F /* GSTerrain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrain.m; sourceTree = "<group>"; };
-		AC3767A8163E053400BAE03F /* FoxTerrainCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxTerrainCursor.h; sourceTree = "<group>"; };
-		AC3767A9163E053400BAE03F /* FoxTerrainCursor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxTerrainCursor.m; sourceTree = "<group>"; };
+		AC3767A8163E053400BAE03F /* GSTerrainCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainCursor.h; sourceTree = "<group>"; };
+		AC3767A9163E053400BAE03F /* GSTerrainCursor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainCursor.m; sourceTree = "<group>"; };
 		AC3BDE8916FFA5EE0005E6C2 /* FoxVBOHolder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxVBOHolder.h; sourceTree = "<group>"; };
 		AC3BDE8A16FFA5EE0005E6C2 /* FoxVBOHolder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxVBOHolder.m; sourceTree = "<group>"; };
 		AC3BDE93170016CE0005E6C2 /* GSChunkSunlightData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkSunlightData.h; sourceTree = "<group>"; };
@@ -376,8 +376,8 @@
 				ACDD767216F6629D008169D1 /* GSTerrainBuffer.m */,
 				ACE8F00A16FE6A7D00ABA2AD /* GSMutableBuffer.h */,
 				ACE8F00B16FE6A7D00ABA2AD /* GSMutableBuffer.m */,
-				AC3767A8163E053400BAE03F /* FoxTerrainCursor.h */,
-				AC3767A9163E053400BAE03F /* FoxTerrainCursor.m */,
+				AC3767A8163E053400BAE03F /* GSTerrainCursor.h */,
+				AC3767A9163E053400BAE03F /* GSTerrainCursor.m */,
 				13C8BE1B16038DC000403815 /* FoxActiveRegion.h */,
 				13C8BE1C16038DC000403815 /* FoxActiveRegion.m */,
 				13C8BE161602854300403815 /* FoxNeighborhood.h */,
@@ -534,7 +534,7 @@
 				13C8BE1D16038DC000403815 /* FoxActiveRegion.m in Sources */,
 				AC3767A2163DFB4000BAE03F /* GSErrorCodes.m in Sources */,
 				AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */,
-				AC3767AA163E053400BAE03F /* FoxTerrainCursor.m in Sources */,
+				AC3767AA163E053400BAE03F /* GSTerrainCursor.m in Sources */,
 				AC96B179168CF2A500FF7FFC /* GSBlockMeshCube.m in Sources */,
 				AC96B180168D154D00FF7FFC /* GSBlockMeshRamp.m in Sources */,
 				AC2B281816927F6B00BFBF7F /* GSBlockMeshInsideCorner.m in Sources */,

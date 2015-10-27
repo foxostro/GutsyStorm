@@ -1,5 +1,5 @@
 //
-//  FoxTerrainCursor.h
+//  GSTerrainCursor.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/28/12.
@@ -13,7 +13,7 @@
 @class FoxShader;
 @class GSCamera;
 
-@interface FoxTerrainCursor : NSObject
+@interface GSTerrainCursor : NSObject
 
 @property (assign) BOOL cursorIsActive;
 @property (assign) vector_float3 cursorPos;
