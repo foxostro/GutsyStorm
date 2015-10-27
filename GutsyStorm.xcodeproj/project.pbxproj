@@ -65,7 +65,7 @@
 		ACE6ABEB16F993D400DE88E3 /* GSVoxel.m in Sources */ = {isa = PBXBuildFile; fileRef = ACE6ABEA16F993D400DE88E3 /* GSVoxel.m */; };
 		ACE8F00C16FE6A7D00ABA2AD /* GSMutableBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = ACE8F00B16FE6A7D00ABA2AD /* GSMutableBuffer.m */; };
 		ACE99D70151FE922006055F6 /* snoise3.c in Sources */ = {isa = PBXBuildFile; fileRef = ACE99D6F151FE922006055F6 /* snoise3.c */; };
-		ACF27B00151AE27E009FCAB9 /* FoxTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27AFF151AE27E009FCAB9 /* FoxTextureArray.m */; };
+		ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */; };
 		ACF27B03151AE486009FCAB9 /* terrain.png in Resources */ = {isa = PBXBuildFile; fileRef = ACF27B02151AE486009FCAB9 /* terrain.png */; };
 /* End PBXBuildFile section */
 
@@ -183,8 +183,8 @@
 		ACE8F00B16FE6A7D00ABA2AD /* GSMutableBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSMutableBuffer.m; sourceTree = "<group>"; };
 		ACE99D6F151FE922006055F6 /* snoise3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = snoise3.c; sourceTree = "<group>"; };
 		ACE99D72151FED59006055F6 /* snoise3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = snoise3.h; sourceTree = "<group>"; };
-		ACF27AFE151AE27E009FCAB9 /* FoxTextureArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxTextureArray.h; sourceTree = "<group>"; };
-		ACF27AFF151AE27E009FCAB9 /* FoxTextureArray.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxTextureArray.m; sourceTree = "<group>"; };
+		ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextureArray.h; sourceTree = "<group>"; };
+		ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTextureArray.m; sourceTree = "<group>"; };
 		ACF27B02151AE486009FCAB9 /* terrain.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = terrain.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -331,8 +331,8 @@
 				4A9A3BAC1517252E00607B1A /* GLString.m */,
 				4AC7C9F71559E00000806635 /* GSCube.h */,
 				4AC7C9F81559E00000806635 /* GSCube.m */,
-				ACF27AFE151AE27E009FCAB9 /* FoxTextureArray.h */,
-				ACF27AFF151AE27E009FCAB9 /* FoxTextureArray.m */,
+				ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */,
+				ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */,
 				AC9CCD6E1519A90E0081964D /* FoxShader.h */,
 				AC9CCD6F1519A90E0081964D /* FoxShader.m */,
 				AC3BDE8916FFA5EE0005E6C2 /* FoxVBOHolder.h */,
@@ -515,7 +515,7 @@
 				4A9A3BA61517200E00607B1A /* GSCamera.m in Sources */,
 				4A9A3BAD1517252E00607B1A /* GLString.m in Sources */,
 				AC9CCD701519A90E0081964D /* FoxShader.m in Sources */,
-				ACF27B00151AE27E009FCAB9 /* FoxTextureArray.m in Sources */,
+				ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */,
 				AC5B2800151DC7BB0045B6E4 /* GSNoise.m in Sources */,
 				AC5B2804151E2C1D0045B6E4 /* GSChunkStore.m in Sources */,
 				AC202CC1151E437C00D91067 /* FoxFrustum.m in Sources */,

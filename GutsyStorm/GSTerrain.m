@@ -11,7 +11,7 @@
 #import "GSNoise.h"
 #import "GSTerrainCursor.h"
 #import "GSChunkStore.h"
-#import "FoxTextureArray.h"
+#import "GSTextureArray.h"
 #import "FoxShader.h"
 #import "GSCamera.h"
 #import "GSTerrain.h"
@@ -360,7 +360,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 @implementation GSTerrain
 {
     GSCamera *_camera;
-    FoxTextureArray *_textureArray;
+    GSTextureArray *_textureArray;
     GSChunkStore *_chunkStore;
     GSTerrainCursor *_cursor;
     float _maxPlaceDistance;
@@ -432,7 +432,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         FoxShader *cursorShader = [self newCursorShader];
         FoxShader *terrainShader = [self newTerrainShader];
         
-        _textureArray = [[FoxTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
+        _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
                                                                   pathForResource:@"terrain"
                                                                   ofType:@"png"]
                                                      numTextures:4];

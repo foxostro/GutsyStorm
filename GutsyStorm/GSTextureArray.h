@@ -1,5 +1,5 @@
 //
-//  FoxTextureArray.h
+//  GSTextureArray.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/21/12.
@@ -8,7 +8,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface FoxTextureArray : NSObject
+@interface GSTextureArray : NSObject
 
 - (nullable instancetype)initWithImagePath:(nonnull NSString *)path numTextures:(NSUInteger)numTextures;
 - (void)bind;

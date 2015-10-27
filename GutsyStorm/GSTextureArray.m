@@ -1,17 +1,17 @@
 //
-//  FoxTextureArray.m
+//  GSTextureArray.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/21/12.
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxTextureArray.h"
+#import "GSTextureArray.h"
 #import <OpenGL/gl.h>
 
 extern int checkGLErrors(void);
 
-@implementation FoxTextureArray
+@implementation GSTextureArray
 {
     GLuint _handle;
     NSRect _bounds;

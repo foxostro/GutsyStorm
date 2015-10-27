@@ -9,7 +9,7 @@
 @class GSCamera;
 @class GSChunkStore;
 @class GSTerrainCursor;
-@class FoxTextureArray;
+@class GSTextureArray;
 
 @interface GSTerrain : NSObject
 
