@@ -1,5 +1,5 @@
 //
-//  GSGeneralVertex.h
+//  GSBoxedTerrainVertex.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/15/12.

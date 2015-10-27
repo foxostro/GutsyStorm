@@ -1,5 +1,5 @@
 //
-//  GSGeneralVertex.m
+//  GSBoxedTerrainVertex.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/15/12.
