@@ -19,7 +19,7 @@ static inline matrix_float4x4 GSMatrixFromTranslation(vector_float3 v)
     };
 }
 
-static inline matrix_float4x4 matrix_from_scale(vector_float4 v)
+static inline matrix_float4x4 GSMatrixFromScale(vector_float4 v)
 {
     return matrix_from_diagonal(v);
 }

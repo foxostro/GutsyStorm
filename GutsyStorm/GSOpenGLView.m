@@ -166,7 +166,7 @@ int checkGLErrors(void);
     NSRect bounds = self.bounds;
     GLfloat height = bounds.size.height;
     GLfloat width = bounds.size.width;
-    matrix_float4x4 scale = matrix_from_scale((vector_float4){2.0f / width, -2.0f /  height, 1.0f, 1.0f});
+    matrix_float4x4 scale = GSMatrixFromScale((vector_float4){2.0f / width, -2.0f /  height, 1.0f, 1.0f});
     matrix_float4x4 translation = GSMatrixFromTranslation((vector_float3){-width / 2.0f, -height / 2.0f, 0.0f});
     matrix_float4x4 mvp = matrix_multiply(translation, scale);
 
