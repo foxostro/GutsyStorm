@@ -1,5 +1,5 @@
 //
-//  FoxFrustum.m
+//  GSFrustum.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
@@ -8,7 +8,7 @@
 
 #import <Cocoa/Cocoa.h>
 #import <math.h>
-#import "FoxFrustum.h"
+#import "GSFrustum.h"
 
 #define TOP (0)
 #define BOTTOM (1)
@@ -18,7 +18,7 @@
 #define FARP (5)
 
 
-@implementation FoxFrustum
+@implementation GSFrustum
 
 - (instancetype)init
 {

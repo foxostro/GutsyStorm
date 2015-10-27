@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxFrustum.h"
+#import "GSFrustum.h"
 
 #define CAMERA_MOVED  (1)
 #define CAMERA_TURNED (2)
@@ -20,7 +20,7 @@
 @property (readonly, nonatomic) vector_float4 cameraRot;
 @property (readonly, nonatomic) matrix_float4x4 modelViewMatrix;
 @property (readonly, nonatomic) matrix_float4x4 projectionMatrix;
-@property (strong, nonatomic) FoxFrustum * _Nullable frustum;
+@property (strong, nonatomic) GSFrustum * _Nullable frustum;
 
 - (void)updateCameraLookVectors;
 - (void)resetCamera;

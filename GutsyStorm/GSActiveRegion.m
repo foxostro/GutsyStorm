@@ -7,7 +7,7 @@
 //
 
 #import "GSActiveRegion.h"
-#import "FoxFrustum.h"
+#import "GSFrustum.h"
 #import "GSVoxel.h"
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
@@ -189,7 +189,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
 {
     NSMutableArray<GSBoxedVector *> *points = [NSMutableArray<GSBoxedVector *> new];
 
-    FoxFrustum *frustum = _camera.frustum;
+    GSFrustum *frustum = _camera.frustum;
     const vector_float3 center = _camera.cameraEye;
     const long activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
     const long activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;

@@ -27,7 +27,7 @@
         // Initialization code here.
         [self resetCamera];
         
-        _frustum = [[FoxFrustum alloc] init];
+        _frustum = [[GSFrustum alloc] init];
         [_frustum setCamInternalsWithAngle:(60.0*M_PI/180.0) ratio:640.0/480.0 nearD:0.1 farD:1000.0]; // TODO: Set for real later on.
         [_frustum setCamDefWithCameraEye:_cameraEye cameraCenter:_cameraCenter cameraUp:_cameraUp];
     }

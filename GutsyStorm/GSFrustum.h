@@ -1,5 +1,5 @@
 //
-//  FoxFrustum.h
+//  GSFrustum.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
@@ -21,7 +21,7 @@ enum
 };
 
 
-@interface FoxFrustum : NSObject
+@interface GSFrustum : NSObject
 {
     struct fox_plane pl[6];
     vector_float3 ntl;
