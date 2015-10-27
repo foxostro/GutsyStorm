@@ -16,7 +16,7 @@
 #import "FoxNeighborhood.h"
 
 #import "FoxChunkVBOs.h"
-#import "FoxChunkGeometryData.h"
+#import "GSChunkGeometryData.h"
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 
@@ -38,7 +38,7 @@
 - (FoxNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
 - (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p neighborhood:(FoxNeighborhood **)neighborhood;
 
-- (FoxChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
 - (GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
@@ -108,14 +108,14 @@
                           cacheFolder:_folder
                               factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                   GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
-                                  return [[FoxChunkGeometryData alloc] initWithMinP:minCorner
+                                  return [[GSChunkGeometryData alloc] initWithMinP:minCorner
                                                                        folder:_folder
                                                                      sunlight:sunlight];
                               }];
     
     _gridVBOs = [[GSGridVBOs alloc] initWithName:@"gridVBOs"
                                          factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
-                                             FoxChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
+                                             GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
                                              NSObject <GSGridItem> *vbo;
                                              vbo = [[FoxChunkVBOs alloc] initWithChunkGeometry:geometry
                                                                                     glContext:_glContext];
@@ -510,7 +510,7 @@
     return YES;
 }
 
-- (FoxChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
+- (GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
 {
     if (_chunkStoreHasBeenShutdown) {
         @throw nil;

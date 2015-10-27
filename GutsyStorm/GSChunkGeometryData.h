@@ -1,5 +1,5 @@
 //
-//  FoxChunkGeometryData.h
+//  GSChunkGeometryData.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/17/12.
@@ -18,7 +18,7 @@ struct GSTerrainVertex;
 @class GSChunkSunlightData;
 
 
-@interface FoxChunkGeometryData : NSObject <GSGridItem>
+@interface GSChunkGeometryData : NSObject <GSGridItem>
 
 + (nonnull NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP;
 

@@ -6,7 +6,7 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-@interface GSGridGeometry : GSGrid<FoxChunkGeometryData *>
+@interface GSGridGeometry : GSGrid<GSChunkGeometryData *>
 
 - (nullable instancetype)initWithName:(nonnull NSString *)name
                           cacheFolder:(nonnull NSURL *)folder

@@ -1,5 +1,5 @@
 //
-//  FoxChunkGeometryData.m
+//  GSChunkGeometryData.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/17/12.
@@ -7,7 +7,7 @@
 //
 
 #import "FoxIntegerVector3.h"
-#import "FoxChunkGeometryData.h"
+#import "GSChunkGeometryData.h"
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 #import "FoxRay.h"
@@ -36,14 +36,14 @@ static void applyLightToVertices(size_t numChunkVerts,
                                  FoxTerrainBuffer *sunlight,
                                  vector_float3 minP);
 
-@interface FoxChunkGeometryData ()
+@interface GSChunkGeometryData ()
 
 + (NSData *)dataWithSunlight:(GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner;
 
 @end
 
 
-@implementation FoxChunkGeometryData
+@implementation GSChunkGeometryData
 {
     NSData *_data;
 }
@@ -78,7 +78,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     if (self) {
         minP = minCorner;
         
-        NSURL *url = [NSURL URLWithString:[FoxChunkGeometryData fileNameForGeometryDataFromMinP:self.minP]
+        NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP]
                             relativeToURL:folder];
         NSError *error = nil;
         _data = [NSData dataWithContentsOfFile:[url path]
@@ -87,7 +87,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
         if(!_data) {
             //NSLog(@"failed to map the geometry data file at \"%@\": %@", url, error);
-            _data = [FoxChunkGeometryData dataWithSunlight:sunlight minP:minP];
+            _data = [GSChunkGeometryData dataWithSunlight:sunlight minP:minP];
             [_data writeToURL:url atomically:YES];
         }
 
@@ -151,7 +151,7 @@ static void applyLightToVertices(size_t numChunkVerts,
             assert(type < NUM_VOXEL_TYPES);
 
             if(type != VOXEL_TYPE_EMPTY) {
-                FoxBlockMesh *factory = [FoxChunkGeometryData sharedMeshFactoryWithBlockType:type];
+                FoxBlockMesh *factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
                 [factory generateGeometryForSingleBlockAtPosition:pos
                                                        vertexList:vertices
                                                         voxelData:neighborhood

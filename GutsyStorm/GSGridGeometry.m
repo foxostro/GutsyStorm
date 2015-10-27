@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "FoxIntegerVector3.h"
 #import "GSGrid.h"
-#import "FoxChunkGeometryData.h"
+#import "GSChunkGeometryData.h"
 #import "GSGridGeometry.h"
 
 @implementation GSGridGeometry
@@ -30,7 +30,7 @@
 - (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
 {
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
-    NSString *fileName = [FoxChunkGeometryData fileNameForGeometryDataFromMinP:minP];
+    NSString *fileName = [GSChunkGeometryData fileNameForGeometryDataFromMinP:minP];
     NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
     const char *path = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];
     unlink(path);

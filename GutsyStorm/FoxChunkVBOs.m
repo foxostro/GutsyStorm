@@ -10,7 +10,7 @@
 #import "GSGridItem.h"
 #import "FoxChunkVBOs.h"
 #import "FoxIntegerVector3.h"
-#import "FoxChunkGeometryData.h"
+#import "GSChunkGeometryData.h"
 #import "GSBoxedTerrainVertex.h"
 #import "FoxVBOHolder.h"
 
@@ -67,7 +67,7 @@ typedef GLuint index_t;
     return iboHolder;
 }
 
-- (instancetype)initWithChunkGeometry:(FoxChunkGeometryData *)geometry
+- (instancetype)initWithChunkGeometry:(GSChunkGeometryData *)geometry
                             glContext:(NSOpenGLContext *)context
 {
     assert(geometry);
