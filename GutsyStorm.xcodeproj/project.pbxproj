@@ -61,7 +61,7 @@
 		ACDD767316F6629D008169D1 /* FoxTerrainBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = ACDD767216F6629D008169D1 /* FoxTerrainBuffer.m */; };
 		ACDD767616F6E559008169D1 /* FoxChunkVBOs.m in Sources */ = {isa = PBXBuildFile; fileRef = ACDD767516F6E557008169D1 /* FoxChunkVBOs.m */; };
 		ACE41C4D1693AE1A003C572B /* FoxBlockMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = ACE41C4C1693AE1A003C572B /* FoxBlockMesh.m */; };
-		ACE6ABE716F984D300DE88E3 /* FoxGridGeometry.m in Sources */ = {isa = PBXBuildFile; fileRef = ACE6ABE616F984D300DE88E3 /* FoxGridGeometry.m */; };
+		ACE6ABE716F984D300DE88E3 /* GSGridGeometry.m in Sources */ = {isa = PBXBuildFile; fileRef = ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */; };
 		ACE6ABEB16F993D400DE88E3 /* FoxVoxel.m in Sources */ = {isa = PBXBuildFile; fileRef = ACE6ABEA16F993D400DE88E3 /* FoxVoxel.m */; };
 		ACE8F00C16FE6A7D00ABA2AD /* FoxMutableBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = ACE8F00B16FE6A7D00ABA2AD /* FoxMutableBuffer.m */; };
 		ACE99D70151FE922006055F6 /* snoise3.c in Sources */ = {isa = PBXBuildFile; fileRef = ACE99D6F151FE922006055F6 /* snoise3.c */; };
@@ -176,8 +176,8 @@
 		ACDD767516F6E557008169D1 /* FoxChunkVBOs.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxChunkVBOs.m; sourceTree = "<group>"; };
 		ACE41C4B1693AE1A003C572B /* FoxBlockMesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBlockMesh.h; sourceTree = "<group>"; };
 		ACE41C4C1693AE1A003C572B /* FoxBlockMesh.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxBlockMesh.m; sourceTree = "<group>"; };
-		ACE6ABE516F984D300DE88E3 /* FoxGridGeometry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxGridGeometry.h; sourceTree = "<group>"; };
-		ACE6ABE616F984D300DE88E3 /* FoxGridGeometry.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxGridGeometry.m; sourceTree = "<group>"; };
+		ACE6ABE516F984D300DE88E3 /* GSGridGeometry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridGeometry.h; sourceTree = "<group>"; };
+		ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridGeometry.m; sourceTree = "<group>"; };
 		ACE6ABEA16F993D400DE88E3 /* FoxVoxel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxVoxel.m; sourceTree = "<group>"; };
 		ACE8F00A16FE6A7D00ABA2AD /* FoxMutableBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxMutableBuffer.h; sourceTree = "<group>"; };
 		ACE8F00B16FE6A7D00ABA2AD /* FoxMutableBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxMutableBuffer.m; sourceTree = "<group>"; };
@@ -413,8 +413,8 @@
 				6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */,
 				AC3BDE9617002EE10005E6C2 /* GSGridSunlight.h */,
 				AC3BDE9717002EE20005E6C2 /* GSGridSunlight.m */,
-				ACE6ABE516F984D300DE88E3 /* FoxGridGeometry.h */,
-				ACE6ABE616F984D300DE88E3 /* FoxGridGeometry.m */,
+				ACE6ABE516F984D300DE88E3 /* GSGridGeometry.h */,
+				ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */,
 				AC941757170149AD00EDAB98 /* FoxGridVBOs.h */,
 				AC941758170149AD00EDAB98 /* FoxGridVBOs.m */,
 				4A2310BE153E10F100A4EBE6 /* FoxChunkVoxelData.h */,
@@ -545,7 +545,7 @@
 				AC48C44616F563E40017BA94 /* GSGrid.m in Sources */,
 				ACDD767316F6629D008169D1 /* FoxTerrainBuffer.m in Sources */,
 				ACDD767616F6E559008169D1 /* FoxChunkVBOs.m in Sources */,
-				ACE6ABE716F984D300DE88E3 /* FoxGridGeometry.m in Sources */,
+				ACE6ABE716F984D300DE88E3 /* GSGridGeometry.m in Sources */,
 				ACE6ABEB16F993D400DE88E3 /* FoxVoxel.m in Sources */,
 				ACE8F00C16FE6A7D00ABA2AD /* FoxMutableBuffer.m in Sources */,
 				AC3BDE8B16FFA5EE0005E6C2 /* FoxVBOHolder.m in Sources */,

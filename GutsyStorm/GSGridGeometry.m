@@ -1,5 +1,5 @@
 //
-//  FoxGridGeometry.m
+//  GSGridGeometry.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/19/13.
@@ -10,9 +10,9 @@
 #import "FoxIntegerVector3.h"
 #import "GSGrid.h"
 #import "FoxChunkGeometryData.h"
-#import "FoxGridGeometry.h"
+#import "GSGridGeometry.h"
 
-@implementation FoxGridGeometry
+@implementation GSGridGeometry
 {
     NSURL *_folder;
 }

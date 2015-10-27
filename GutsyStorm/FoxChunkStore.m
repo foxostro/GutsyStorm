@@ -22,7 +22,7 @@
 
 #import "GSGrid.h"
 #import "FoxGridVBOs.h"
-#import "FoxGridGeometry.h"
+#import "GSGridGeometry.h"
 #import "GSGridSunlight.h"
 
 #import "FoxMatrixUtils.h"
@@ -51,7 +51,7 @@
 @implementation FoxChunkStore
 {
     FoxGridVBOs *_gridVBOs;
-    FoxGridGeometry *_gridGeometryData;
+    GSGridGeometry *_gridGeometryData;
     GSGridSunlight *_gridSunlightData;
     GSGrid<FoxChunkVoxelData *> *_gridVoxelData;
 
@@ -103,7 +103,7 @@
                                                                  neighborhood:neighborhood];
                          }];
 
-    _gridGeometryData = [[FoxGridGeometry alloc]
+    _gridGeometryData = [[GSGridGeometry alloc]
                          initWithName:@"gridGeometryData"
                           cacheFolder:_folder
                               factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
