@@ -1,5 +1,5 @@
 //
-//  FoxChunkSunlightData.h
+//  GSChunkSunlightData.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/13.
@@ -14,7 +14,7 @@
 @class FoxTerrainBuffer;
 
 
-@interface FoxChunkSunlightData : NSObject <GSGridItem>
+@interface GSChunkSunlightData : NSObject <GSGridItem>
 
 @property (readonly, nonatomic) FoxTerrainBuffer * _Nonnull sunlight;
 @property (readonly, nonatomic) FoxNeighborhood * _Nonnull neighborhood;

@@ -8,7 +8,7 @@
 
 #import "FoxIntegerVector3.h"
 #import "FoxChunkGeometryData.h"
-#import "FoxChunkSunlightData.h"
+#import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 #import "FoxRay.h"
 #import "FoxChunkStore.h"
@@ -38,7 +38,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
 @interface FoxChunkGeometryData ()
 
-+ (NSData *)dataWithSunlight:(FoxChunkSunlightData *)sunlight minP:(vector_float3)minCorner;
++ (NSData *)dataWithSunlight:(GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner;
 
 @end
 
@@ -72,7 +72,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
 - (instancetype)initWithMinP:(vector_float3)minCorner
                       folder:(NSURL *)folder
-                    sunlight:(FoxChunkSunlightData *)sunlight
+                    sunlight:(GSChunkSunlightData *)sunlight
 {
     self = [super init];
     if (self) {
@@ -127,7 +127,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 // Completely regenerate geometry for the chunk.
-+ (NSData *)dataWithSunlight:(FoxChunkSunlightData *)sunlight minP:(vector_float3)minCorner
++ (NSData *)dataWithSunlight:(GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner
 {
     vector_float3 pos;
     NSMutableArray<GSBoxedTerrainVertex *> *vertices;

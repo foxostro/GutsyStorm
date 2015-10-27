@@ -1,12 +1,12 @@
 //
-//  FoxChunkSunlightData.m
+//  GSChunkSunlightData.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/13.
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxChunkSunlightData.h"
+#import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 #import "FoxNeighborhood.h"
 #import "FoxMutableBuffer.h"
@@ -15,7 +15,7 @@
 static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
 
 
-@implementation FoxChunkSunlightData
+@implementation GSChunkSunlightData
 {
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _queueForSaving;
@@ -59,7 +59,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
 - (instancetype)copyWithZone:(NSZone *)zone
 {
-    return self; // FoxChunkSunlightData is immutable, so return self instead of deep copying
+    return self; // GSChunkSunlightData is immutable, so return self instead of deep copying
 }
 
 /* Copy the voxel data for the neighborhood into a new buffer and return the buffer. If the method would block when taking the
@@ -205,7 +205,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
     @autoreleasepool {
         BOOL failedToLoadFromFile = YES;
-        NSString *fileName = [FoxChunkSunlightData fileNameForSunlightDataFromMinP:self.minP];
+        NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:self.minP];
         NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
         NSError *error = nil;
         NSData *data = [NSData dataWithContentsOfFile:[url path]

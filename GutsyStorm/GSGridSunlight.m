@@ -10,7 +10,7 @@
 #import "FoxIntegerVector3.h"
 #import "GSVoxel.h"
 #import "GSGrid.h"
-#import "FoxChunkSunlightData.h"
+#import "GSChunkSunlightData.h"
 #import "GSGridSunlight.h"
 
 @implementation GSGridSunlight
@@ -31,7 +31,7 @@
 - (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
 {
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
-    NSString *fileName = [FoxChunkSunlightData fileNameForSunlightDataFromMinP:minP];
+    NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:minP];
     NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
     const char *path = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];
     unlink(path);

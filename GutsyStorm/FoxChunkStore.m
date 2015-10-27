@@ -17,7 +17,7 @@
 
 #import "FoxChunkVBOs.h"
 #import "FoxChunkGeometryData.h"
-#import "FoxChunkSunlightData.h"
+#import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 
 #import "GSGrid.h"
@@ -39,7 +39,7 @@
 - (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p neighborhood:(FoxNeighborhood **)neighborhood;
 
 - (FoxChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
-- (FoxChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
+- (GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
 - (GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData **)chunk;
@@ -95,7 +95,7 @@
                           cacheFolder:_folder
                               factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                              FoxNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
-                             return [[FoxChunkSunlightData alloc] initWithMinP:minCorner
+                             return [[GSChunkSunlightData alloc] initWithMinP:minCorner
                                                                        folder:_folder
                                                                groupForSaving:_groupForSaving
                                                                queueForSaving:_queueForSaving
@@ -107,7 +107,7 @@
                          initWithName:@"gridGeometryData"
                           cacheFolder:_folder
                               factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
-                                  FoxChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
+                                  GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
                                   return [[FoxChunkGeometryData alloc] initWithMinP:minCorner
                                                                        folder:_folder
                                                                      sunlight:sunlight];
@@ -520,7 +520,7 @@
     return [_gridGeometryData objectAtPoint:p];
 }
 
-- (FoxChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p
+- (GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);

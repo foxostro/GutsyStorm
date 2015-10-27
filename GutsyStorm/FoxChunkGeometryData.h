@@ -15,7 +15,7 @@
 struct GSTerrainVertex;
 @class FoxNeighborhood;
 @class FoxBlockMesh;
-@class FoxChunkSunlightData;
+@class GSChunkSunlightData;
 
 
 @interface FoxChunkGeometryData : NSObject <GSGridItem>
@@ -27,7 +27,7 @@ struct GSTerrainVertex;
 
 - (nullable instancetype)initWithMinP:(vector_float3)minCorner
                                folder:(nonnull NSURL *)folder
-                             sunlight:(nonnull FoxChunkSunlightData *)sunlight;
+                             sunlight:(nonnull GSChunkSunlightData *)sunlight;
 
 /* Copy the chunk vertex buffer to a new buffer and return that in `dst'. Return the number of vertices in the buffer. */
 - (GLsizei)copyVertsToBuffer:(struct GSTerrainVertex * _Nonnull * _Nonnull)dst;
