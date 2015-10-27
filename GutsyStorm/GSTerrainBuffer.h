@@ -30,7 +30,7 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(vector_long3 dimensions, vector_
 @class GSTerrainBuffer;
 
 
-typedef void (^buffer_completion_handler_t)(GSTerrainBuffer * _Nonnull aBuffer, NSError * _Nullable error);
+typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NSError * _Nullable error);
 
 
 /* Represents a three-dimensional grid of bytes.
@@ -53,7 +53,7 @@ typedef void (^buffer_completion_handler_t)(GSTerrainBuffer * _Nonnull aBuffer, 
 + (void)newBufferFromFile:(nonnull NSURL *)url
                dimensions:(vector_long3)dimensions
                     queue:(nonnull dispatch_queue_t)queue
-        completionHandler:(nonnull buffer_completion_handler_t)completionHandler;
+        completionHandler:(nonnull GSBufferCompletionHandler)completionHandler;
 
 /* Creates a new buffer of dimensions (CHUNK_SIZE_X+2) x (CHUNK_SIZE_Y) x (CHUNK_SIZE_Z+2).
  * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are discarded.
