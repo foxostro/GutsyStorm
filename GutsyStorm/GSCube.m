@@ -1,12 +1,12 @@
 //
-//  FoxCube.m
+//  GSCube.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/21/12.
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxCube.h"
+#import "GSCube.h"
 #import "FoxShader.h"
 #import "FoxVBOHolder.h"
 
@@ -32,7 +32,7 @@ static const GLfloat vertices[] = {
 };
 
 
-@implementation FoxCube
+@implementation GSCube
 {
     FoxVBOHolder *_vertexBuffer, *_indexBuffer;
     FoxShader *_shader;

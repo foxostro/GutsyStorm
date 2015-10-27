@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "GSChunkStore.h"
-#import "FoxCube.h"
+#import "GSCube.h"
 
 @class FoxShader;
 @class GSCamera;

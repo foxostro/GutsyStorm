@@ -1,5 +1,5 @@
 //
-//  FoxCube.h
+//  GSCube.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/21/12.
@@ -12,7 +12,7 @@
 @class NSOpenGLContext;
 @class FoxShader;
 
-@interface FoxCube : NSObject
+@interface GSCube : NSObject
 
 - (nullable instancetype)init NS_UNAVAILABLE;
 - (nullable instancetype)initWithContext:(nonnull NSOpenGLContext *)context

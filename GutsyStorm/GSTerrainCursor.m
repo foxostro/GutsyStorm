@@ -16,7 +16,7 @@
 
 @implementation GSTerrainCursor
 {
-    FoxCube *_cursor;
+    GSCube *_cursor;
 }
 
 - (instancetype)init
@@ -31,7 +31,7 @@
     if (self) {
         _cursorIsActive = NO;
         _cursorPos = _cursorPlacePos = vector_make(0, 0, 0);
-        _cursor = [[FoxCube alloc] initWithContext:context shader:shader];
+        _cursor = [[GSCube alloc] initWithContext:context shader:shader];
     }
     return self;
 }
