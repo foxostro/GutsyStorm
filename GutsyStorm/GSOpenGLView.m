@@ -14,7 +14,7 @@
 #import "FoxShader.h"
 #import "FoxMatrixUtils.h"
 #import "GSOpenGLViewController.h"
-#import "FoxTextLabel.h"
+#import "GSTextLabel.h"
 
 
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,

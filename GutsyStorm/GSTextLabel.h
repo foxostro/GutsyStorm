@@ -1,5 +1,5 @@
 //
-//  FoxTextLabel.h
+//  GSTextLabel.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/21/15.
@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <simd/matrix.h>
 
-@interface FoxTextLabel : NSObject
+@interface GSTextLabel : NSObject
 
 @property (nonatomic, copy, setter=setText:) NSString * _Nonnull text;
 @property (nonatomic, readwrite) matrix_float4x4 projectionMatrix;

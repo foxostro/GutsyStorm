@@ -1,15 +1,15 @@
 //
-//  FoxTextLabel.m
+//  GSTextLabel.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/21/15.
 //  Copyright © 2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxTextLabel.h"
+#import "GSTextLabel.h"
 #import "GLString.h"
 
-@implementation FoxTextLabel
+@implementation GSTextLabel
 {
     GLString *_fpsStringTex;
     NSMutableDictionary<NSString *, id> *_stringAttribs; // attributes for string textures

@@ -7,7 +7,7 @@
 //
 
 #import "GSOpenGLViewController.h"
-#import "FoxTextLabel.h"
+#import "GSTextLabel.h"
 #import "GSTerrain.h"
 #import "GSCamera.h"
 #import "GSOpenGLView.h"
@@ -30,7 +30,7 @@
 
 @implementation GSOpenGLViewController
 {
-    FoxTextLabel *_frameRateLabel;
+    GSTextLabel *_frameRateLabel;
     GSTerrain *_terrain;
     GSCamera *_camera;
     GSOpenGLView *_openGlView;
@@ -87,7 +87,7 @@
 
     [self resetMouseInputSettings];
     
-    _frameRateLabel = [FoxTextLabel new];
+    _frameRateLabel = [GSTextLabel new];
     
     _terrain = [[GSTerrain alloc] initWithSeed:0 camera:_camera glContext:_openGlView.openGLContext];
 

@@ -32,7 +32,7 @@
 		6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */; settings = {ASSET_TAGS = (); }; };
 		6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184B1BD33F8400CD21FB /* text.frag.txt */; settings = {ASSET_TAGS = (); }; };
 		6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184C1BD33F8400CD21FB /* text.vert.txt */; settings = {ASSET_TAGS = (); }; };
-		6FE185001BD7E9E7009A076D /* FoxTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* FoxTextLabel.m */; settings = {ASSET_TAGS = (); }; };
+		6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */; settings = {ASSET_TAGS = (); }; };
 		6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */; settings = {ASSET_TAGS = (); }; };
 		6FEE3F4E1BCF92800076E5B9 /* cursor.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */; settings = {ASSET_TAGS = (); }; };
 		6FFCBA661BC98DAD00A8D876 /* GSGridEdit.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */; settings = {ASSET_TAGS = (); }; };
@@ -117,8 +117,8 @@
 		6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = crosshairs.vert.txt; sourceTree = "<group>"; };
 		6F90184B1BD33F8400CD21FB /* text.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.frag.txt; sourceTree = "<group>"; };
 		6F90184C1BD33F8400CD21FB /* text.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.vert.txt; sourceTree = "<group>"; };
-		6FE184FE1BD7E9E7009A076D /* FoxTextLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxTextLabel.h; sourceTree = "<group>"; };
-		6FE184FF1BD7E9E7009A076D /* FoxTextLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxTextLabel.m; sourceTree = "<group>"; };
+		6FE184FE1BD7E9E7009A076D /* GSTextLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextLabel.h; sourceTree = "<group>"; };
+		6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTextLabel.m; sourceTree = "<group>"; };
 		6FE2F2AE1BD171F0009A83DC /* FoxQuaternion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FoxQuaternion.h; sourceTree = "<group>"; };
 		6FE2F2AF1BD180EF009A83DC /* FoxMatrixUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FoxMatrixUtils.h; sourceTree = "<group>"; };
 		6FEAEA7C1BDB75EA00C94A58 /* GSTerrainVertex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSTerrainVertex.h; sourceTree = "<group>"; };
@@ -325,8 +325,8 @@
 		AC202CC7151E57BD00D91067 /* OpenGL */ = {
 			isa = PBXGroup;
 			children = (
-				6FE184FE1BD7E9E7009A076D /* FoxTextLabel.h */,
-				6FE184FF1BD7E9E7009A076D /* FoxTextLabel.m */,
+				6FE184FE1BD7E9E7009A076D /* GSTextLabel.h */,
+				6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */,
 				4A9A3BAB1517252E00607B1A /* GLString.h */,
 				4A9A3BAC1517252E00607B1A /* GLString.m */,
 				4AC7C9F71559E00000806635 /* FoxCube.h */,
@@ -509,7 +509,7 @@
 			files = (
 				6FFCBA661BC98DAD00A8D876 /* GSGridEdit.m in Sources */,
 				4A2CD0031513C3FC006C6551 /* main.m in Sources */,
-				6FE185001BD7E9E7009A076D /* FoxTextLabel.m in Sources */,
+				6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */,
 				4A4E20771516B086008745E0 /* FoxVectorUtils.m in Sources */,
 				4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */,
 				4A9A3BA61517200E00607B1A /* GSCamera.m in Sources */,
