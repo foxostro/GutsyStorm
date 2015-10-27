@@ -1,19 +1,19 @@
 //
-//  FoxMutableBuffer.m
+//  GSMutableBuffer.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/23/13.
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxMutableBuffer.h"
+#import "GSMutableBuffer.h"
 
-@implementation FoxMutableBuffer
+@implementation GSMutableBuffer
 
 + (instancetype)newMutableBufferWithBuffer:(GSTerrainBuffer *)buffer
 {
     assert(buffer);
-    return [[FoxMutableBuffer alloc] initWithDimensions:buffer.dimensions data:buffer->_data];
+    return [[GSMutableBuffer alloc] initWithDimensions:buffer.dimensions data:buffer->_data];
 }
 
 - (instancetype)initWithDimensions:(vector_long3)dim
@@ -37,7 +37,7 @@
 - (instancetype)copyWithZone:(NSZone *)zone
 {
     // Copies the underlying buffer to a new buffer.
-    return [[FoxMutableBuffer allocWithZone:zone] initWithDimensions:self.dimensions data:_data];
+    return [[GSMutableBuffer allocWithZone:zone] initWithDimensions:self.dimensions data:_data];
 }
 
 - (terrain_buffer_element_t *)mutableData

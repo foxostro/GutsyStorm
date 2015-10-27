@@ -1,5 +1,5 @@
 //
-//  FoxMutableBuffer.h
+//  GSMutableBuffer.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/23/13.
@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSTerrainBuffer.h"
 
-@interface FoxMutableBuffer : GSTerrainBuffer
+@interface GSMutableBuffer : GSTerrainBuffer
 
 + (nullable instancetype)newMutableBufferWithBuffer:(nonnull GSTerrainBuffer *)buffer;
 

@@ -9,7 +9,7 @@
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 #import "FoxNeighborhood.h"
-#import "FoxMutableBuffer.h"
+#import "GSMutableBuffer.h"
 
 
 static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};

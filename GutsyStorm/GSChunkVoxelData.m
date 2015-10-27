@@ -14,12 +14,12 @@
 #import "FoxNeighborhood.h"
 #import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
-#import "FoxMutableBuffer.h"
+#import "GSMutableBuffer.h"
 
 
 @interface GSChunkVoxelData ()
 
-- (void)markOutsideVoxels:(FoxMutableBuffer *)data;
+- (void)markOutsideVoxels:(GSMutableBuffer *)data;
 - (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
                                 postProcessor:(terrain_post_processor_t)postProcessor;
 - (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
@@ -79,7 +79,7 @@
         _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
-        FoxMutableBuffer *dataWithUpdatedOutside = [FoxMutableBuffer newMutableBufferWithBuffer:data];
+        GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
         [self markOutsideVoxels:dataWithUpdatedOutside];
         _voxels = dataWithUpdatedOutside;
     }
@@ -109,7 +109,7 @@
     return voxel;
 }
 
-- (void)markOutsideVoxels:(FoxMutableBuffer *)data
+- (void)markOutsideVoxels:(GSMutableBuffer *)data
 {
     vector_long3 p;
 
@@ -185,7 +185,7 @@
     // Copy the voxels for the chunk to their final destination.
     // TODO: Copy each column wholesale using memcpy
     // XXX: I suspect that a highly efficient bit-blit could be written which copies voxels much faster than this.
-    FoxMutableBuffer *data = [[FoxMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
+    GSMutableBuffer *data = [[GSMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
     GSVoxel *buf = (GSVoxel *)[data mutableData];
     FOR_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
     {
