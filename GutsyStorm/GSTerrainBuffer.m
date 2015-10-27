@@ -10,7 +10,7 @@
 #import "GSVoxel.h"
 #import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
-#import "FoxNeighborhood.h"
+#import "GSNeighborhood.h"
 #import "GSVoxel.h" // for INDEX_BOX
 
 
@@ -222,7 +222,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     dispatch_once(&onceToken, ^{
         for(GSVoxelNeighborIndex i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
-            vector_float3 offset = [FoxNeighborhood offsetForNeighborIndex:i];
+            vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
             offsetsX[i] = offset.x;
             offsetsZ[i] = offset.z;
         }

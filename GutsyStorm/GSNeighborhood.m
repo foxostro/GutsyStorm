@@ -1,5 +1,5 @@
 //
-//  FoxNeighborhood.m
+//  GSNeighborhood.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/11/12.
@@ -10,12 +10,12 @@
 #import "GSTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
 #import "GSVoxel.h"
 #import "FoxRay.h"
-#import "FoxNeighborhood.h"
+#import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "FoxChunkStore.h"
 
 
-@implementation FoxNeighborhood
+@implementation GSNeighborhood
 {
     GSChunkVoxelData *_neighbors[CHUNK_NUM_NEIGHBORS];
 }

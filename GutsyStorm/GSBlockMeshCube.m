@@ -10,7 +10,7 @@
 #import "GSTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
 #import "GSVoxel.h"
 #import "FoxFace.h"
-#import "FoxNeighborhood.h"
+#import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"
 #import "GSBlockMeshCube.h"

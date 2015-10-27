@@ -14,7 +14,7 @@
 
 - (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
                                       vertexList:(nonnull NSMutableArray<GSBoxedTerrainVertex *> *)vertexList
-                                       voxelData:(nonnull FoxNeighborhood *)voxelData
+                                       voxelData:(nonnull GSNeighborhood *)voxelData
                                             minP:(vector_float3)minP;
 
 @end

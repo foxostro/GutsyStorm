@@ -10,7 +10,7 @@
 #import "GSVoxel.h"
 #import "FoxFace.h"
 #import "GSBoxedTerrainVertex.h"
-#import "FoxNeighborhood.h"
+#import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"
 #import "GSBlockMeshOutsideCorner.h"

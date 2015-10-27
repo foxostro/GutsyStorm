@@ -10,14 +10,14 @@
 #import "GSGridItem.h"
 
 
-@class FoxNeighborhood;
+@class GSNeighborhood;
 @class GSTerrainBuffer;
 
 
 @interface GSChunkSunlightData : NSObject <GSGridItem>
 
 @property (readonly, nonatomic) GSTerrainBuffer * _Nonnull sunlight;
-@property (readonly, nonatomic) FoxNeighborhood * _Nonnull neighborhood;
+@property (readonly, nonatomic) GSNeighborhood * _Nonnull neighborhood;
 
 + (nonnull NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP;
 
@@ -26,6 +26,6 @@
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                        chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
-                         neighborhood:(nonnull FoxNeighborhood *)neighborhood;
+                         neighborhood:(nonnull GSNeighborhood *)neighborhood;
 
 @end

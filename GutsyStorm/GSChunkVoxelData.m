@@ -11,7 +11,7 @@
 #import "FoxRay.h"
 #import "FoxBoxedVector.h"
 #import "FoxChunkStore.h"
-#import "FoxNeighborhood.h"
+#import "GSNeighborhood.h"
 #import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
 #import "GSMutableBuffer.h"

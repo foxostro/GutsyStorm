@@ -14,7 +14,7 @@
 #import "FoxChunkStore.h"
 #import "GSBoxedTerrainVertex.h"
 #import "GSVoxel.h"
-#import "FoxNeighborhood.h"
+#import "GSNeighborhood.h"
 #import "GSBlockMesh.h"
 #import "GSBlockMeshCube.h"
 #import "GSBlockMeshRamp.h"
@@ -134,7 +134,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     assert(sunlight);
 
-    FoxNeighborhood *neighborhood = sunlight.neighborhood;
+    GSNeighborhood *neighborhood = sunlight.neighborhood;
 
     const vector_float3 maxCorner = minCorner + vector_make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 

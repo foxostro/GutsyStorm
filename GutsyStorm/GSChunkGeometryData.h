@@ -13,7 +13,7 @@
 
 
 struct GSTerrainVertex;
-@class FoxNeighborhood;
+@class GSNeighborhood;
 @class GSBlockMesh;
 @class GSChunkSunlightData;
 

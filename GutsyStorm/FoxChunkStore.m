@@ -13,7 +13,7 @@
 #import "FoxShader.h"
 #import "FoxChunkStore.h"
 #import "FoxBoxedVector.h"
-#import "FoxNeighborhood.h"
+#import "GSNeighborhood.h"
 
 #import "GSChunkVBOs.h"
 #import "GSChunkGeometryData.h"
@@ -35,8 +35,8 @@
 - (void)setupActiveRegionWithCamera:(GSCamera *)cam;
 
 + (NSURL *)newTerrainCacheFolderURL;
-- (FoxNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
-- (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p neighborhood:(FoxNeighborhood **)neighborhood;
+- (GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
+- (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p neighborhood:(GSNeighborhood **)neighborhood;
 
 - (GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
 - (GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
@@ -94,7 +94,7 @@
                          initWithName:@"gridSunlightData"
                           cacheFolder:_folder
                               factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
-                             FoxNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
+                             GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
                              return [[GSChunkSunlightData alloc] initWithMinP:minCorner
                                                                        folder:_folder
                                                                groupForSaving:_groupForSaving
@@ -146,7 +146,7 @@
             [[NSMutableArray<FoxBoxedVector *> alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
         for(GSVoxelNeighborIndex i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
-            vector_float3 offset = [FoxNeighborhood offsetForNeighborIndex:i];
+            vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
             FoxBoxedVector *boxedPoint = [FoxBoxedVector boxedVectorWithVector:(p + offset)];
             [correspondingPoints addObject:boxedPoint];
         }
@@ -467,15 +467,15 @@
     return YES;
 }
 
-- (FoxNeighborhood *)neighborhoodAtPoint:(vector_float3)p
+- (GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
 
-    FoxNeighborhood *neighborhood = [[FoxNeighborhood alloc] init];
+    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
 
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        vector_float3 a = p + [FoxNeighborhood offsetForNeighborIndex:i];
+        vector_float3 a = p + [GSNeighborhood offsetForNeighborIndex:i];
         GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a]; // NOTE: may block
         assert(voxels);
         [neighborhood setNeighborAtIndex:i neighbor:voxels];
@@ -485,16 +485,16 @@
 }
 
 - (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p
-                       neighborhood:(FoxNeighborhood **)outNeighborhood
+                       neighborhood:(GSNeighborhood **)outNeighborhood
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(outNeighborhood);
 
-    FoxNeighborhood *neighborhood = [[FoxNeighborhood alloc] init];
+    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
 
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        vector_float3 a = p + [FoxNeighborhood offsetForNeighborIndex:i];
+        vector_float3 a = p + [GSNeighborhood offsetForNeighborIndex:i];
         GSChunkVoxelData *voxels = nil;
 
         if(![self tryToGetChunkVoxelsAtPoint:a chunk:&voxels]) {

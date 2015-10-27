@@ -1,5 +1,5 @@
 //
-//  FoxNeighborhood.h
+//  GSNeighborhood.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/11/12.
@@ -16,7 +16,7 @@
 @class GSTerrainBuffer;
 
 
-@interface FoxNeighborhood : NSObject
+@interface GSNeighborhood : NSObject
 
 + (vector_float3)offsetForNeighborIndex:(GSVoxelNeighborIndex)idx;
 

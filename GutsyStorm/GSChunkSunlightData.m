@@ -8,7 +8,7 @@
 
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
-#import "FoxNeighborhood.h"
+#import "GSNeighborhood.h"
 #import "GSMutableBuffer.h"
 
 
@@ -34,7 +34,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
               groupForSaving:(dispatch_group_t)groupForSaving
               queueForSaving:(dispatch_queue_t)queueForSaving
               chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-                neighborhood:(FoxNeighborhood *)neighborhood
+                neighborhood:(GSNeighborhood *)neighborhood
 {
     if(self = [super init]) {
         assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
@@ -66,7 +66,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
  * locks on the neighborhood then instead return NULL. The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y
  * elements in size and may be indexed using the INDEX2 macro.
  */
-- (GSVoxel *)newVoxelBufferWithNeighborhood:(FoxNeighborhood *)neighborhood
+- (GSVoxel *)newVoxelBufferWithNeighborhood:(GSNeighborhood *)neighborhood
 {
     static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
 
@@ -83,7 +83,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     dispatch_once(&onceToken, ^{
         for(GSVoxelNeighborIndex i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
-            vector_float3 offset = [FoxNeighborhood offsetForNeighborIndex:i];
+            vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
             offsetsX[i] = offset.x;
             offsetsZ[i] = offset.z;
         }
@@ -199,7 +199,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     return sunlight;
 }
 
-- (GSTerrainBuffer *)newSunlightBufferWithNeighborhood:(FoxNeighborhood *)neighborhood folder:(NSURL *)folder
+- (GSTerrainBuffer *)newSunlightBufferWithNeighborhood:(GSNeighborhood *)neighborhood folder:(NSURL *)folder
 {
     GSTerrainBuffer *buffer = nil;
 
