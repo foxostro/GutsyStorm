@@ -11,7 +11,7 @@
 
 typedef void (^vbo_invalidation_notification_t)(void);
 
-@interface GSGridVBOs : GSGrid<FoxChunkVBOs *>
+@interface GSGridVBOs : GSGrid<GSChunkVBOs *>
 
 @property (copy) vbo_invalidation_notification_t invalidationNotification;
 

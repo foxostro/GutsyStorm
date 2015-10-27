@@ -1,5 +1,5 @@
 //
-//  FoxChunkVBOs.m
+//  GSChunkVBOs.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/17/13.
@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "GSGridItem.h"
-#import "FoxChunkVBOs.h"
+#import "GSChunkVBOs.h"
 #import "FoxIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSBoxedTerrainVertex.h"
@@ -27,7 +27,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHU
 typedef GLuint index_t;
 
 
-@implementation FoxChunkVBOs
+@implementation GSChunkVBOs
 {
     GLsizei _numIndicesForDrawing;
     FoxVBOHolder *_vbo, *_ibo;

@@ -15,7 +15,7 @@
 #import "FoxBoxedVector.h"
 #import "FoxNeighborhood.h"
 
-#import "FoxChunkVBOs.h"
+#import "GSChunkVBOs.h"
 #import "GSChunkGeometryData.h"
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
@@ -117,7 +117,7 @@
                                          factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                              GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
                                              NSObject <GSGridItem> *vbo;
-                                             vbo = [[FoxChunkVBOs alloc] initWithChunkGeometry:geometry
+                                             vbo = [[GSChunkVBOs alloc] initWithChunkGeometry:geometry
                                                                                     glContext:_glContext];
                                              return vbo;
                                          }];

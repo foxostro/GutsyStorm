@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "GSGrid.h"
-#import "FoxChunkVBOs.h"
+#import "GSChunkVBOs.h"
 #import "GSGridVBOs.h"
 
 @implementation GSGridVBOs

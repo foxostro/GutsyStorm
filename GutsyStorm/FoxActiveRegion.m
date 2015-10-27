@@ -13,7 +13,7 @@
 #import "GSCamera.h"
 #import "GSGridItem.h"
 #import "GSGridVBOs.h"
-#import "FoxChunkVBOs.h"
+#import "GSChunkVBOs.h"
 
 #define LOG_PERF 0
 
@@ -54,8 +54,8 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
      */
     vector_float3 _activeRegionExtent;
 
-    /* List of FoxChunkVBOs which are within the camera frustum. */
-    NSArray<FoxChunkVBOs *> *_vbosInCameraFrustum;
+    /* List of GSChunkVBOs which are within the camera frustum. */
+    NSArray<GSChunkVBOs *> *_vbosInCameraFrustum;
     NSLock *_lockVbosInCameraFrustum;
 
     /* Used to generate and retrieve VBOs. */
@@ -101,7 +101,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     uint64_t startAbs = stopwatchStart();
 #endif
 
-    NSArray<FoxChunkVBOs *> *vbos;
+    NSArray<GSChunkVBOs *> *vbos;
 
     if (!_shouldShutdown) {
 
@@ -109,7 +109,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
         vbos = _vbosInCameraFrustum;
         [_lockVbosInCameraFrustum unlock];
 
-        for(FoxChunkVBOs *vbo in vbos)
+        for(GSChunkVBOs *vbo in vbos)
         {
             [vbo draw];
         }
@@ -129,7 +129,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
 #endif
     
     BOOL didSkipSomeCreationTasks = NO;
-    NSMutableArray<FoxChunkVBOs *> *vbosInCameraFrustum = [NSMutableArray<FoxChunkVBOs *> new];
+    NSMutableArray<GSChunkVBOs *> *vbosInCameraFrustum = [NSMutableArray<GSChunkVBOs *> new];
     NSArray<FoxBoxedVector *> *points = [self pointsInCameraFrustum];
     
     NSUInteger vboGenLimit = 2;
@@ -142,7 +142,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
         } else {
             BOOL createIfMissing = vboGenCount < vboGenLimit;
             BOOL vboGenDidHappen = NO;
-            FoxChunkVBOs *vbo = nil;
+            GSChunkVBOs *vbo = nil;
             [_gridVBOs objectAtPoint:[boxedPosition vectorValue]
                             blocking:YES
                               object:&vbo
