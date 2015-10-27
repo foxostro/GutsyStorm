@@ -10,7 +10,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxPlane.h"
+#import "GSPlane.h"
 
 
 enum

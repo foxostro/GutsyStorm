@@ -20,7 +20,7 @@
 
 @implementation GSFrustum
 {
-    struct fox_plane pl[6];
+    GSPlane pl[6];
     vector_float3 ntl;
     vector_float3 ntr;
     vector_float3 nbl;
@@ -47,7 +47,7 @@
     if (self) {
         // Initialization code here.
         const vector_float3 zero = {0};
-        bzero(pl, 6*sizeof(struct fox_plane));
+        bzero(pl, 6*sizeof(GSPlane));
         ntl = zero;
         ntr = zero;
         nbl = zero;
@@ -133,12 +133,12 @@
     // compute the six planes
     // the function set3Points assumes that the points
     // are given in counter clockwise order
-    pl[TOP]    = fox_plane_make(ntr, ntl, ftl);
-    pl[BOTTOM] = fox_plane_make(nbl, nbr, fbr);
-    pl[LEFT]   = fox_plane_make(ntl, nbl, fbl);
-    pl[RIGHT]  = fox_plane_make(nbr, ntr, fbr);
-    pl[NEARP]  = fox_plane_make(ntl, ntr, nbr);
-    pl[FARP]   = fox_plane_make(ftr, ftl, fbl);
+    pl[TOP]    = GSPlaneMake(ntr, ntl, ftl);
+    pl[BOTTOM] = GSPlaneMake(nbl, nbr, fbr);
+    pl[LEFT]   = GSPlaneMake(ntl, nbl, fbl);
+    pl[RIGHT]  = GSPlaneMake(nbr, ntr, fbr);
+    pl[NEARP]  = GSPlaneMake(ntl, ntr, nbr);
+    pl[FARP]   = GSPlaneMake(ftr, ftl, fbl);
 }
 
 
@@ -157,7 +157,7 @@
         for (int k = 0; k < 8 && (in==0 || out==0); k++) {
             
             // is the corner outside or inside
-            if (fox_plane_distance(pl[i], vertices[k]) < 0)
+            if (GSPlaneDistance(pl[i], vertices[k]) < 0)
                 out++;
             else
                 in++;

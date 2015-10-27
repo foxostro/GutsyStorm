@@ -38,7 +38,7 @@
 		6FFCBA661BC98DAD00A8D876 /* GSGridEdit.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */; settings = {ASSET_TAGS = (); }; };
 		AC154885152C04EF00434374 /* GSBoxedVector.m in Sources */ = {isa = PBXBuildFile; fileRef = AC154884152C04EF00434374 /* GSBoxedVector.m */; };
 		AC202CC1151E437C00D91067 /* GSFrustum.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC0151E437C00D91067 /* GSFrustum.m */; };
-		AC202CC5151E453E00D91067 /* FoxPlane.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* FoxPlane.m */; };
+		AC202CC5151E453E00D91067 /* GSPlane.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* GSPlane.m */; };
 		AC2B281816927F6B00BFBF7F /* GSBlockMeshInsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */; };
 		AC2B281C1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281B1692919D00BFBF7F /* GSBlockMeshOutsideCorner.m */; };
 		AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */ = {isa = PBXBuildFile; fileRef = AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */; };
@@ -130,8 +130,8 @@
 		AC154884152C04EF00434374 /* GSBoxedVector.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedVector.m; sourceTree = "<group>"; };
 		AC202CBF151E437C00D91067 /* GSFrustum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSFrustum.h; sourceTree = "<group>"; };
 		AC202CC0151E437C00D91067 /* GSFrustum.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSFrustum.m; sourceTree = "<group>"; };
-		AC202CC3151E453100D91067 /* FoxPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxPlane.h; sourceTree = "<group>"; };
-		AC202CC4151E453E00D91067 /* FoxPlane.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxPlane.m; sourceTree = "<group>"; };
+		AC202CC3151E453100D91067 /* GSPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSPlane.h; sourceTree = "<group>"; };
+		AC202CC4151E453E00D91067 /* GSPlane.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSPlane.m; sourceTree = "<group>"; };
 		AC2B281616927F6B00BFBF7F /* GSBlockMeshInsideCorner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMeshInsideCorner.h; sourceTree = "<group>"; };
 		AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshInsideCorner.m; sourceTree = "<group>"; };
 		AC2B281A1692919D00BFBF7F /* GSBlockMeshOutsideCorner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMeshOutsideCorner.h; sourceTree = "<group>"; };
@@ -311,8 +311,8 @@
 				4ACB9C291527CF50005D50B8 /* GSRay.m */,
 				AC202CBF151E437C00D91067 /* GSFrustum.h */,
 				AC202CC0151E437C00D91067 /* GSFrustum.m */,
-				AC202CC3151E453100D91067 /* FoxPlane.h */,
-				AC202CC4151E453E00D91067 /* FoxPlane.m */,
+				AC202CC3151E453100D91067 /* GSPlane.h */,
+				AC202CC4151E453E00D91067 /* GSPlane.m */,
 				6FE2F2AE1BD171F0009A83DC /* FoxQuaternion.h */,
 				4A4E20751516B07E008745E0 /* FoxVectorUtils.h */,
 				6FE2F2AF1BD180EF009A83DC /* FoxMatrixUtils.h */,
@@ -519,7 +519,7 @@
 				AC5B2800151DC7BB0045B6E4 /* GSNoise.m in Sources */,
 				AC5B2804151E2C1D0045B6E4 /* GSChunkStore.m in Sources */,
 				AC202CC1151E437C00D91067 /* GSFrustum.m in Sources */,
-				AC202CC5151E453E00D91067 /* FoxPlane.m in Sources */,
+				AC202CC5151E453E00D91067 /* GSPlane.m in Sources */,
 				ACE99D70151FE922006055F6 /* snoise3.c in Sources */,
 				4ACB9C2A1527CF50005D50B8 /* GSRay.m in Sources */,
 				4A9EC91A15282ADA009C80FF /* GSAABB.m in Sources */,

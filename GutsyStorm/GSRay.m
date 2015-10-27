@@ -26,7 +26,7 @@ GSRay GSRayMake(vector_float3 origin, vector_float3 direction)
 }
 
 
-int GSRayIntersectsPlane(GSRay ray, struct fox_plane plane, vector_float3 *intersectionPointOut)
+int GSRayIntersectsPlane(GSRay ray, GSPlane plane, vector_float3 *intersectionPointOut)
 {
     float denominator = vector_dot(ray.direction, plane.n);
     
