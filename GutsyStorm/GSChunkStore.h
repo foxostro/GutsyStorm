@@ -1,5 +1,5 @@
 //
-//  FoxChunkStore.h
+//  GSChunkStore.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
@@ -12,7 +12,7 @@
 @class GSCamera;
 @class FoxShader;
 
-@interface FoxChunkStore : NSObject
+@interface GSChunkStore : NSObject
 
 - (nullable instancetype)initWithSeed:(NSUInteger)seed
                                camera:(nonnull GSCamera *)camera

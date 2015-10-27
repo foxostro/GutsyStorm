@@ -12,7 +12,7 @@
 #import "FoxRay.h"
 #import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
-#import "FoxChunkStore.h"
+#import "GSChunkStore.h"
 
 
 @implementation GSNeighborhood

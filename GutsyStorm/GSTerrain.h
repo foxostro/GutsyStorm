@@ -7,7 +7,7 @@
 //
 
 @class GSCamera;
-@class FoxChunkStore;
+@class GSChunkStore;
 @class GSTerrainCursor;
 @class FoxTextureArray;
 

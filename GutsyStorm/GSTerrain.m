@@ -10,7 +10,7 @@
 #import "GSVoxel.h"
 #import "GSNoise.h"
 #import "GSTerrainCursor.h"
-#import "FoxChunkStore.h"
+#import "GSChunkStore.h"
 #import "FoxTextureArray.h"
 #import "FoxShader.h"
 #import "GSCamera.h"
@@ -361,7 +361,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 {
     GSCamera *_camera;
     FoxTextureArray *_textureArray;
-    FoxChunkStore *_chunkStore;
+    GSChunkStore *_chunkStore;
     GSTerrainCursor *_cursor;
     float _maxPlaceDistance;
 }
@@ -469,7 +469,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             free(temp2);
         };
 
-        _chunkStore = [[FoxChunkStore alloc] initWithSeed:seed
+        _chunkStore = [[GSChunkStore alloc] initWithSeed:seed
                                                  camera:cam
                                             terrainShader:terrainShader
                                                 glContext:context

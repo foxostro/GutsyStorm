@@ -1,5 +1,5 @@
 //
-//  FoxChunkStore.m
+//  GSChunkStore.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
@@ -11,7 +11,7 @@
 #import "GSCamera.h"
 #import "GSActiveRegion.h"
 #import "FoxShader.h"
-#import "FoxChunkStore.h"
+#import "GSChunkStore.h"
 #import "FoxBoxedVector.h"
 #import "GSNeighborhood.h"
 
@@ -28,7 +28,7 @@
 #import "FoxMatrixUtils.h"
 
 
-@interface FoxChunkStore ()
+@interface GSChunkStore ()
 
 - (void)createGrids;
 - (void)setupGridDependencies;
@@ -48,7 +48,7 @@
 @end
 
 
-@implementation FoxChunkStore
+@implementation GSChunkStore
 {
     GSGridVBOs *_gridVBOs;
     GSGridGeometry *_gridGeometryData;
@@ -226,7 +226,7 @@
 {
     self = [super init];
     if (self) {
-        _folder = [FoxChunkStore newTerrainCacheFolderURL];
+        _folder = [GSChunkStore newTerrainCacheFolderURL];
         _groupForSaving = dispatch_group_create();
         _chunkStoreHasBeenShutdown = NO;
         _camera = cam;

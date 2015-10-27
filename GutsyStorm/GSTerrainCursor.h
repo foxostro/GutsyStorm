@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxChunkStore.h"
+#import "GSChunkStore.h"
 #import "FoxCube.h"
 
 @class FoxShader;
