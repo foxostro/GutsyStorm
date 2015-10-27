@@ -53,7 +53,7 @@
 		AC5B2804151E2C1D0045B6E4 /* FoxChunkStore.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5B2803151E2C1D0045B6E4 /* FoxChunkStore.m */; };
 		AC941759170149AD00EDAB98 /* GSGridVBOs.m in Sources */ = {isa = PBXBuildFile; fileRef = AC941758170149AD00EDAB98 /* GSGridVBOs.m */; };
 		AC96B179168CF2A500FF7FFC /* GSBlockMeshCube.m in Sources */ = {isa = PBXBuildFile; fileRef = AC96B178168CF2A500FF7FFC /* GSBlockMeshCube.m */; };
-		AC96B180168D154D00FF7FFC /* FoxBlockMeshRamp.m in Sources */ = {isa = PBXBuildFile; fileRef = AC96B17F168D154D00FF7FFC /* FoxBlockMeshRamp.m */; };
+		AC96B180168D154D00FF7FFC /* GSBlockMeshRamp.m in Sources */ = {isa = PBXBuildFile; fileRef = AC96B17F168D154D00FF7FFC /* GSBlockMeshRamp.m */; };
 		AC9CCD701519A90E0081964D /* FoxShader.m in Sources */ = {isa = PBXBuildFile; fileRef = AC9CCD6F1519A90E0081964D /* FoxShader.m */; };
 		AC9CCD741519B8AA0081964D /* terrain.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD721519B8AA0081964D /* terrain.frag.txt */; };
 		AC9CCD751519B8AA0081964D /* terrain.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC9CCD731519B8AA0081964D /* terrain.vert.txt */; };
@@ -162,8 +162,8 @@
 		AC941758170149AD00EDAB98 /* GSGridVBOs.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridVBOs.m; sourceTree = "<group>"; };
 		AC96B177168CF2A500FF7FFC /* GSBlockMeshCube.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMeshCube.h; sourceTree = "<group>"; };
 		AC96B178168CF2A500FF7FFC /* GSBlockMeshCube.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshCube.m; sourceTree = "<group>"; };
-		AC96B17E168D154C00FF7FFC /* FoxBlockMeshRamp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBlockMeshRamp.h; sourceTree = "<group>"; };
-		AC96B17F168D154D00FF7FFC /* FoxBlockMeshRamp.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxBlockMeshRamp.m; sourceTree = "<group>"; };
+		AC96B17E168D154C00FF7FFC /* GSBlockMeshRamp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMeshRamp.h; sourceTree = "<group>"; };
+		AC96B17F168D154D00FF7FFC /* GSBlockMeshRamp.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshRamp.m; sourceTree = "<group>"; };
 		AC9CCD6E1519A90E0081964D /* FoxShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxShader.h; sourceTree = "<group>"; };
 		AC9CCD6F1519A90E0081964D /* FoxShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxShader.m; sourceTree = "<group>"; };
 		AC9CCD721519B8AA0081964D /* terrain.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = terrain.frag.txt; sourceTree = "<group>"; };
@@ -393,8 +393,8 @@
 				ACE41C4C1693AE1A003C572B /* GSBlockMesh.m */,
 				AC96B177168CF2A500FF7FFC /* GSBlockMeshCube.h */,
 				AC96B178168CF2A500FF7FFC /* GSBlockMeshCube.m */,
-				AC96B17E168D154C00FF7FFC /* FoxBlockMeshRamp.h */,
-				AC96B17F168D154D00FF7FFC /* FoxBlockMeshRamp.m */,
+				AC96B17E168D154C00FF7FFC /* GSBlockMeshRamp.h */,
+				AC96B17F168D154D00FF7FFC /* GSBlockMeshRamp.m */,
 				AC2B281616927F6B00BFBF7F /* FoxBlockMeshInsideCorner.h */,
 				AC2B281716927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m */,
 				AC2B281A1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.h */,
@@ -536,7 +536,7 @@
 				AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */,
 				AC3767AA163E053400BAE03F /* FoxTerrainCursor.m in Sources */,
 				AC96B179168CF2A500FF7FFC /* GSBlockMeshCube.m in Sources */,
-				AC96B180168D154D00FF7FFC /* FoxBlockMeshRamp.m in Sources */,
+				AC96B180168D154D00FF7FFC /* GSBlockMeshRamp.m in Sources */,
 				AC2B281816927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m in Sources */,
 				AC2B281C1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.m in Sources */,
 				ACE41C4D1693AE1A003C572B /* GSBlockMesh.m in Sources */,

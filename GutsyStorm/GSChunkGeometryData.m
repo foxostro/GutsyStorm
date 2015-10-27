@@ -17,7 +17,7 @@
 #import "FoxNeighborhood.h"
 #import "GSBlockMesh.h"
 #import "GSBlockMeshCube.h"
-#import "FoxBlockMeshRamp.h"
+#import "GSBlockMeshRamp.h"
 #import "FoxBlockMeshInsideCorner.h"
 #import "FoxBlockMeshOutsideCorner.h"
 #import "SyscallWrappers.h"
@@ -57,7 +57,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     
     dispatch_once(&onceToken, ^{
         factories[VOXEL_TYPE_CUBE]           = [[GSBlockMeshCube alloc] init];
-        factories[VOXEL_TYPE_RAMP]           = [[FoxBlockMeshRamp alloc] init];
+        factories[VOXEL_TYPE_RAMP]           = [[GSBlockMeshRamp alloc] init];
         factories[VOXEL_TYPE_CORNER_INSIDE]  = [[FoxBlockMeshInsideCorner alloc] init];
         factories[VOXEL_TYPE_CORNER_OUTSIDE] = [[FoxBlockMeshOutsideCorner alloc] init];
     });
