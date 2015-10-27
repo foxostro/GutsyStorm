@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxGridItem.h"
+#import "GSGridItem.h"
 #import "FoxIntegerVector3.h"
 #import "GSVoxel.h"
 #import "FoxTerrainBuffer.h"
@@ -17,7 +17,7 @@ typedef void (^terrain_generator_t)(vector_float3, GSVoxel * _Nonnull);
 typedef void (^terrain_post_processor_t)(size_t count, GSVoxel * _Nonnull voxels, vector_long3 minP, vector_long3 maxP);
 
 
-@interface FoxChunkVoxelData : NSObject <FoxGridItem>
+@interface FoxChunkVoxelData : NSObject <GSGridItem>
 
 @property (nonatomic, readonly) FoxTerrainBuffer * _Nonnull voxels;
 

@@ -8,7 +8,7 @@
 
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
-#import "FoxGridItem.h"
+#import "GSGridItem.h"
 #import "GSVoxel.h"
 
 
@@ -18,7 +18,7 @@ struct GSTerrainVertex;
 @class FoxChunkSunlightData;
 
 
-@interface FoxChunkGeometryData : NSObject <FoxGridItem>
+@interface FoxChunkGeometryData : NSObject <GSGridItem>
 
 + (nonnull NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP;
 

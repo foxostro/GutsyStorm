@@ -8,7 +8,7 @@
 
 @class FoxChunkGeometryData;
 
-@interface FoxChunkVBOs : NSObject <FoxGridItem>
+@interface FoxChunkVBOs : NSObject <GSGridItem>
 
 - (nullable instancetype)initWithChunkGeometry:(nonnull FoxChunkGeometryData *)geometry
                                      glContext:(nonnull NSOpenGLContext *)glContext;

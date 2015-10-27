@@ -11,7 +11,7 @@
 #import "GSVoxel.h"
 #import "FoxBoxedVector.h"
 #import "GSCamera.h"
-#import "FoxGridItem.h"
+#import "GSGridItem.h"
 #import "FoxGridVBOs.h"
 #import "FoxChunkVBOs.h"
 

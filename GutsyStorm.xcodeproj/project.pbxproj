@@ -152,7 +152,7 @@
 		AC3BDE9717002EE20005E6C2 /* FoxGridSunlight.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxGridSunlight.m; sourceTree = "<group>"; };
 		AC48C44416F563E40017BA94 /* FoxGrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxGrid.h; sourceTree = "<group>"; };
 		AC48C44516F563E40017BA94 /* FoxGrid.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxGrid.m; sourceTree = "<group>"; };
-		AC56651416F03B440041E34F /* FoxGridItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxGridItem.h; sourceTree = "<group>"; };
+		AC56651416F03B440041E34F /* GSGridItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridItem.h; sourceTree = "<group>"; };
 		AC5B27FE151DC7BA0045B6E4 /* GSNoise.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSNoise.h; sourceTree = "<group>"; };
 		AC5B27FF151DC7BA0045B6E4 /* GSNoise.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSNoise.m; sourceTree = "<group>"; };
 		AC5B2802151E2C1D0045B6E4 /* FoxChunkStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxChunkStore.h; sourceTree = "<group>"; };
@@ -406,7 +406,7 @@
 		ACE6ABEC16F9985F00DE88E3 /* Grid */ = {
 			isa = PBXGroup;
 			children = (
-				AC56651416F03B440041E34F /* FoxGridItem.h */,
+				AC56651416F03B440041E34F /* GSGridItem.h */,
 				AC48C44416F563E40017BA94 /* FoxGrid.h */,
 				AC48C44516F563E40017BA94 /* FoxGrid.m */,
 				6FFCBA641BC98DAD00A8D876 /* FoxGridEdit.h */,

@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxGridItem.h"
+#import "GSGridItem.h"
 #import "FoxGridEdit.h"
 #import "GSReaderWriterLock.h"
 
@@ -58,7 +58,7 @@
  * Sub-classes should override this to get custom behavior on item invalidation.
  * For example, a sub-class may wish to delete on-disk caches for items which are currently evicted and are now invalid.
  */
-- (void)willInvalidateItem:(nonnull NSObject <FoxGridItem> *)item atPoint:(vector_float3)p;
+- (void)willInvalidateItem:(nonnull NSObject <GSGridItem> *)item atPoint:(vector_float3)p;
 
 // The specified change to the grid causes certain items to be invalidated in dependent grids.
 - (void)invalidateItemsInDependentGridsWithChange:(nonnull FoxGridEdit *)change;
@@ -73,6 +73,6 @@
  * This function returns a new grid item which is then inserted into the grid at the same position.
  */
 - (void)replaceItemAtPoint:(vector_float3)p
-                 transform:(NSObject <FoxGridItem> * _Nonnull (^ _Nonnull)(NSObject <FoxGridItem> * _Nonnull))fn;
+                 transform:(NSObject <GSGridItem> * _Nonnull (^ _Nonnull)(NSObject <GSGridItem> * _Nonnull))fn;
 
 @end

@@ -21,7 +21,7 @@
     return self;
 }
 
-- (void)willInvalidateItem:(NSObject <FoxGridItem> *)item atPoint:(vector_float3)p
+- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
 {
     self.invalidationNotification();
 }

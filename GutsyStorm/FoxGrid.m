@@ -16,8 +16,8 @@
 
 @interface FoxGrid ()
 
-- (NSObject <FoxGridItem> *)searchForItemAtPosition:(vector_float3)minP
-                                             bucket:(NSMutableArray<NSObject <FoxGridItem> *> *)bucket;
+- (NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP
+                                             bucket:(NSMutableArray<NSObject <GSGridItem> *> *)bucket;
 
 @end
 
@@ -27,7 +27,7 @@
     GSReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
 
     NSUInteger _numBuckets;
-    NSMutableArray<NSObject <FoxGridItem> *> * __strong *_buckets;
+    NSMutableArray<NSObject <GSGridItem> *> * __strong *_buckets;
 
     NSUInteger _numLocks;
     NSLock * __strong *_locks;
@@ -59,11 +59,11 @@
         _dependentGrids = [NSMutableArray<FoxGrid *> new];
         _mappingToDependentGrids = [NSMutableDictionary new];
 
-        _buckets = (NSMutableArray<NSObject <FoxGridItem> *> * __strong *)
-            calloc(_numBuckets, sizeof(NSMutableArray<NSObject <FoxGridItem> *> *));
+        _buckets = (NSMutableArray<NSObject <GSGridItem> *> * __strong *)
+            calloc(_numBuckets, sizeof(NSMutableArray<NSObject <GSGridItem> *> *));
         for(NSUInteger i=0; i<_numBuckets; ++i)
         {
-            _buckets[i] = [NSMutableArray<NSObject <FoxGridItem> *> new];
+            _buckets[i] = [NSMutableArray<NSObject <GSGridItem> *> new];
         }
 
         _locks = (NSLock * __strong *)calloc(_numLocks, sizeof(NSLock *));
@@ -102,13 +102,13 @@
     _n = 0;
 
     NSUInteger oldNumBuckets = _numBuckets;
-    NSMutableArray<NSObject <FoxGridItem> *> * __strong *oldBuckets = _buckets;
+    NSMutableArray<NSObject <GSGridItem> *> * __strong *oldBuckets = _buckets;
 
     // Allocate memory for a new set of buckets.
     _numBuckets *= 2;
     assert(_numBuckets>0);
-    _buckets = (NSMutableArray<NSObject <FoxGridItem> *> * __strong *)
-        calloc(_numBuckets, sizeof(NSMutableArray<NSObject <FoxGridItem> *> *));
+    _buckets = (NSMutableArray<NSObject <GSGridItem> *> * __strong *)
+        calloc(_numBuckets, sizeof(NSMutableArray<NSObject <GSGridItem> *> *));
     for(NSUInteger i=0; i<_numBuckets; ++i)
     {
         _buckets[i] = [NSMutableArray new];
@@ -117,7 +117,7 @@
     // Insert each object into the new hash table.
     for(NSUInteger i=0; i<oldNumBuckets; ++i)
     {
-        for(NSObject <FoxGridItem> *item in oldBuckets[i])
+        for(NSObject <GSGridItem> *item in oldBuckets[i])
         {
             NSUInteger hash = vector_hash(item.minP);
             [_buckets[hash % _numBuckets] addObject:item];
@@ -150,13 +150,13 @@
     BOOL result = NO;
     BOOL createdAnItem = NO;
     float load = 0;
-    NSObject <FoxGridItem> * anObject = nil;
+    NSObject <GSGridItem> * anObject = nil;
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
-    NSMutableArray<NSObject <FoxGridItem> *> *bucket = _buckets[idxBucket];
+    NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[idxBucket];
 
     if(blocking) {
         [lock lock];
@@ -221,11 +221,11 @@
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
-    NSMutableArray<NSObject <FoxGridItem> *> *bucket = _buckets[idxBucket];
+    NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[idxBucket];
 
     [lock lock];
 
-    NSObject <FoxGridItem> *foundItem = [self searchForItemAtPosition:minP bucket:bucket];
+    NSObject <GSGridItem> *foundItem = [self searchForItemAtPosition:minP bucket:bucket];
 
     if(foundItem) {
         if([foundItem respondsToSelector:@selector(itemWillBeEvicted)]) {
@@ -244,7 +244,7 @@
 
     for(NSUInteger i=0; i<_numBuckets; ++i)
     {
-        [_buckets[i] enumerateObjectsUsingBlock:^(NSObject <FoxGridItem> *item, NSUInteger idx, BOOL *stop) {
+        [_buckets[i] enumerateObjectsUsingBlock:^(NSObject <GSGridItem> *item, NSUInteger idx, BOOL *stop) {
             if([item respondsToSelector:@selector(itemWillBeEvicted)]) {
                 [item itemWillBeEvicted];
             }
@@ -259,12 +259,12 @@
     [_lockTheTableItself unlockForWriting];
 }
 
-- (NSObject <FoxGridItem> *)searchForItemAtPosition:(vector_float3)minP
-                                             bucket:(NSMutableArray<NSObject <FoxGridItem> *> *)bucket
+- (NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP
+                                             bucket:(NSMutableArray<NSObject <GSGridItem> *> *)bucket
 {
     assert(bucket);
 
-    for(NSObject <FoxGridItem> *item in bucket)
+    for(NSObject <GSGridItem> *item in bucket)
     {
         assert(item);
         if(vector_equal(item.minP, minP)) {
@@ -287,11 +287,11 @@
         NSUInteger idxBucket = hash % _numBuckets;
         NSUInteger idxLock = hash % _numLocks;
         NSLock *lock = _locks[idxLock];
-        NSMutableArray<NSObject <FoxGridItem> *> *bucket = _buckets[idxBucket];
+        NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[idxBucket];
 
         [lock lock];
 
-        NSObject <FoxGridItem> *foundItem = nil;
+        NSObject <GSGridItem> *foundItem = nil;
 
         foundItem = [self searchForItemAtPosition:minP bucket:bucket];
 
@@ -312,7 +312,7 @@
     });
 }
 
-- (void)willInvalidateItem:(NSObject <FoxGridItem> *)item atPoint:(vector_float3)p
+- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
 {
     // do nothing
 }
@@ -342,7 +342,7 @@
 }
 
 - (void)replaceItemAtPoint:(vector_float3)p
-                 transform:(NSObject <FoxGridItem> * (^)(NSObject <FoxGridItem> *original))newReplacementItem
+                 transform:(NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *original))newReplacementItem
 {
     [_lockTheTableItself lockForReading];
 
@@ -351,17 +351,17 @@
     NSUInteger idxBucket = hash % _numBuckets;
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
-    NSMutableArray<NSObject <FoxGridItem> *> *bucket = _buckets[idxBucket];
+    NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[idxBucket];
 
     [lock lock];
 
     // Search for an existing item at the specified point. If it exists then just do a straight-up replacement.
     for(NSUInteger i = 0, n = bucket.count; i < n; ++i)
     {
-        NSObject <FoxGridItem> *item = [bucket objectAtIndex:i];
+        NSObject <GSGridItem> *item = [bucket objectAtIndex:i];
 
         if(vector_equal(item.minP, minP)) {
-            NSObject <FoxGridItem> *replacement = newReplacementItem(item);
+            NSObject <GSGridItem> *replacement = newReplacementItem(item);
             if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
                 [item itemWillBeInvalidated];
             }

@@ -7,14 +7,14 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxGridItem.h"
+#import "GSGridItem.h"
 
 
 @class FoxNeighborhood;
 @class FoxTerrainBuffer;
 
 
-@interface FoxChunkSunlightData : NSObject <FoxGridItem>
+@interface FoxChunkSunlightData : NSObject <GSGridItem>
 
 @property (readonly, nonatomic) FoxTerrainBuffer * _Nonnull sunlight;
 @property (readonly, nonatomic) FoxNeighborhood * _Nonnull neighborhood;

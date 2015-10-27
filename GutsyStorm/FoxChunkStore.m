@@ -43,7 +43,7 @@
 - (FoxChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(FoxChunkVoxelData **)chunk;
-- (NSObject <FoxGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP;
+- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP;
 
 @end
 
@@ -86,14 +86,14 @@
     assert(!_gridVBOs);
 
     _gridVoxelData = [[FoxGrid alloc] initWithName:@"gridVoxelData"
-                                          factory:^NSObject <FoxGridItem> * (vector_float3 minCorner) {
+                                          factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                               return [self newChunkWithMinimumCorner:minCorner];
                                           }];
 
     _gridSunlightData = [[FoxGridSunlight alloc]
                          initWithName:@"gridSunlightData"
                           cacheFolder:_folder
-                              factory:^NSObject <FoxGridItem> * (vector_float3 minCorner) {
+                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                              FoxNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
                              return [[FoxChunkSunlightData alloc] initWithMinP:minCorner
                                                                        folder:_folder
@@ -106,7 +106,7 @@
     _gridGeometryData = [[FoxGridGeometry alloc]
                          initWithName:@"gridGeometryData"
                           cacheFolder:_folder
-                              factory:^NSObject <FoxGridItem> * (vector_float3 minCorner) {
+                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                   FoxChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
                                   return [[FoxChunkGeometryData alloc] initWithMinP:minCorner
                                                                        folder:_folder
@@ -114,9 +114,9 @@
                               }];
     
     _gridVBOs = [[FoxGridVBOs alloc] initWithName:@"gridVBOs"
-                                         factory:^NSObject <FoxGridItem> * (vector_float3 minCorner) {
+                                         factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                              FoxChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
-                                             NSObject <FoxGridItem> *vbo;
+                                             NSObject <GSGridItem> *vbo;
                                              vbo = [[FoxChunkVBOs alloc] initWithChunkGeometry:geometry
                                                                                     glContext:_glContext];
                                              return vbo;
@@ -325,7 +325,7 @@
     assert(_gridVoxelData);
     assert(_activeRegion);
 
-    [_gridVoxelData replaceItemAtPoint:pos transform:^NSObject<FoxGridItem> *(NSObject<FoxGridItem> *originalItem) {
+    [_gridVoxelData replaceItemAtPoint:pos transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
         FoxChunkVoxelData *modifiedItem = [((FoxChunkVoxelData *)originalItem) copyWithEditAtPoint:pos block:block];
         [modifiedItem saveToFile];
         return modifiedItem;
@@ -583,7 +583,7 @@
     return url;
 }
 
-- (NSObject <FoxGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP
+- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP
 {
     assert(!_chunkStoreHasBeenShutdown);
 
