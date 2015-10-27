@@ -8,7 +8,7 @@
 
 #import "FoxVectorUtils.h"
 #import "FoxIntegerVector3.h"
-#import "FoxQuaternion.h"
+#import "GSQuaternion.h"
 
 #define CHUNK_LIGHTING_MAX (8)
 

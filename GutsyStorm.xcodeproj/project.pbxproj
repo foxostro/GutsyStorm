@@ -119,7 +119,7 @@
 		6F90184C1BD33F8400CD21FB /* text.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.vert.txt; sourceTree = "<group>"; };
 		6FE184FE1BD7E9E7009A076D /* GSTextLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextLabel.h; sourceTree = "<group>"; };
 		6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTextLabel.m; sourceTree = "<group>"; };
-		6FE2F2AE1BD171F0009A83DC /* FoxQuaternion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FoxQuaternion.h; sourceTree = "<group>"; };
+		6FE2F2AE1BD171F0009A83DC /* GSQuaternion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSQuaternion.h; sourceTree = "<group>"; };
 		6FE2F2AF1BD180EF009A83DC /* FoxMatrixUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FoxMatrixUtils.h; sourceTree = "<group>"; };
 		6FEAEA7C1BDB75EA00C94A58 /* GSTerrainVertex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSTerrainVertex.h; sourceTree = "<group>"; };
 		6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cursor.frag.txt; sourceTree = "<group>"; };
@@ -313,7 +313,7 @@
 				AC202CC0151E437C00D91067 /* GSFrustum.m */,
 				AC202CC3151E453100D91067 /* GSPlane.h */,
 				AC202CC4151E453E00D91067 /* GSPlane.m */,
-				6FE2F2AE1BD171F0009A83DC /* FoxQuaternion.h */,
+				6FE2F2AE1BD171F0009A83DC /* GSQuaternion.h */,
 				4A4E20751516B07E008745E0 /* FoxVectorUtils.h */,
 				6FE2F2AF1BD180EF009A83DC /* FoxMatrixUtils.h */,
 				4A4E20761516B086008745E0 /* FoxVectorUtils.m */,
