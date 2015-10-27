@@ -39,7 +39,7 @@
 		AC154885152C04EF00434374 /* FoxBoxedVector.m in Sources */ = {isa = PBXBuildFile; fileRef = AC154884152C04EF00434374 /* FoxBoxedVector.m */; };
 		AC202CC1151E437C00D91067 /* FoxFrustum.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC0151E437C00D91067 /* FoxFrustum.m */; };
 		AC202CC5151E453E00D91067 /* FoxPlane.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* FoxPlane.m */; };
-		AC2B281816927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281716927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m */; };
+		AC2B281816927F6B00BFBF7F /* GSBlockMeshInsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */; };
 		AC2B281C1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281B1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.m */; };
 		AC319A3F16A52E1700F65F11 /* SyscallWrappers.m in Sources */ = {isa = PBXBuildFile; fileRef = AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */; };
 		AC3767A2163DFB4000BAE03F /* GSErrorCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = AC3767A1163DFB4000BAE03F /* GSErrorCodes.m */; };
@@ -132,8 +132,8 @@
 		AC202CC0151E437C00D91067 /* FoxFrustum.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxFrustum.m; sourceTree = "<group>"; };
 		AC202CC3151E453100D91067 /* FoxPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxPlane.h; sourceTree = "<group>"; };
 		AC202CC4151E453E00D91067 /* FoxPlane.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxPlane.m; sourceTree = "<group>"; };
-		AC2B281616927F6B00BFBF7F /* FoxBlockMeshInsideCorner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBlockMeshInsideCorner.h; sourceTree = "<group>"; };
-		AC2B281716927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxBlockMeshInsideCorner.m; sourceTree = "<group>"; };
+		AC2B281616927F6B00BFBF7F /* GSBlockMeshInsideCorner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBlockMeshInsideCorner.h; sourceTree = "<group>"; };
+		AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBlockMeshInsideCorner.m; sourceTree = "<group>"; };
 		AC2B281A1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBlockMeshOutsideCorner.h; sourceTree = "<group>"; };
 		AC2B281B1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxBlockMeshOutsideCorner.m; sourceTree = "<group>"; };
 		AC319A3D16A52E1700F65F11 /* SyscallWrappers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SyscallWrappers.h; sourceTree = "<group>"; };
@@ -395,8 +395,8 @@
 				AC96B178168CF2A500FF7FFC /* GSBlockMeshCube.m */,
 				AC96B17E168D154C00FF7FFC /* GSBlockMeshRamp.h */,
 				AC96B17F168D154D00FF7FFC /* GSBlockMeshRamp.m */,
-				AC2B281616927F6B00BFBF7F /* FoxBlockMeshInsideCorner.h */,
-				AC2B281716927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m */,
+				AC2B281616927F6B00BFBF7F /* GSBlockMeshInsideCorner.h */,
+				AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */,
 				AC2B281A1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.h */,
 				AC2B281B1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.m */,
 			);
@@ -537,7 +537,7 @@
 				AC3767AA163E053400BAE03F /* FoxTerrainCursor.m in Sources */,
 				AC96B179168CF2A500FF7FFC /* GSBlockMeshCube.m in Sources */,
 				AC96B180168D154D00FF7FFC /* GSBlockMeshRamp.m in Sources */,
-				AC2B281816927F6B00BFBF7F /* FoxBlockMeshInsideCorner.m in Sources */,
+				AC2B281816927F6B00BFBF7F /* GSBlockMeshInsideCorner.m in Sources */,
 				AC2B281C1692919D00BFBF7F /* FoxBlockMeshOutsideCorner.m in Sources */,
 				ACE41C4D1693AE1A003C572B /* GSBlockMesh.m in Sources */,
 				ACC82D2716A1E6C000F56FB8 /* FoxFace.m in Sources */,

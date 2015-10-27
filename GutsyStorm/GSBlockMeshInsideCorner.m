@@ -1,5 +1,5 @@
 //
-//  FoxBlockMeshInsideCorner.m
+//  GSBlockMeshInsideCorner.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 12/31/12.
@@ -13,9 +13,9 @@
 #import "FoxNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"
-#import "FoxBlockMeshInsideCorner.h"
+#import "GSBlockMeshInsideCorner.h"
 
-@implementation FoxBlockMeshInsideCorner
+@implementation GSBlockMeshInsideCorner
 
 - (instancetype)init
 {
