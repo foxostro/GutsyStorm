@@ -7,7 +7,7 @@
 //
 
 #import "GSChunkVoxelData.h"
-#import "FoxRay.h"
+#import "GSRay.h"
 
 @class GSCamera;
 @class GSShader;
@@ -36,7 +36,7 @@
  * (i.e. by waiting to take locks) and will return early if the alternative is to block. In this case, the function
  * returns NO.
  */
-- (BOOL)enumerateVoxelsOnRay:(struct fox_ray)ray
+- (BOOL)enumerateVoxelsOnRay:(GSRay)ray
                     maxDepth:(unsigned)maxDepth
                    withBlock:(void (^ _Nonnull)(vector_float3 p, BOOL * _Nullable stop, BOOL * _Nullable fail))block;
 

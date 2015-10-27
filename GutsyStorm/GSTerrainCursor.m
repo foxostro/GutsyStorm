@@ -6,7 +6,7 @@
 //  Copyright (c) 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxRay.h"
+#import "GSRay.h"
 #import "GSCamera.h"
 #import "FoxMatrixUtils.h"
 #import "GSTerrainCursor.h"

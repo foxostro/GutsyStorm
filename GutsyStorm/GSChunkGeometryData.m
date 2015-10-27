@@ -10,7 +10,7 @@
 #import "GSChunkGeometryData.h"
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
-#import "FoxRay.h"
+#import "GSRay.h"
 #import "GSChunkStore.h"
 #import "GSBoxedTerrainVertex.h"
 #import "GSVoxel.h"

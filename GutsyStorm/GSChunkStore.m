@@ -7,7 +7,7 @@
 //
 
 #import "FoxIntegerVector3.h"
-#import "FoxRay.h"
+#import "GSRay.h"
 #import "GSCamera.h"
 #import "GSActiveRegion.h"
 #import "GSShader.h"
@@ -368,7 +368,7 @@
                                                              pos.z-chunk.minP.z)];
 }
 
-- (BOOL)enumerateVoxelsOnRay:(struct fox_ray)ray
+- (BOOL)enumerateVoxelsOnRay:(GSRay)ray
                     maxDepth:(unsigned)maxDepth
                    withBlock:(void (^ _Nonnull)(vector_float3 p, BOOL * _Nonnull stop, BOOL * _Nonnull fail))block
 {

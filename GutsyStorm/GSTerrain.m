@@ -15,7 +15,7 @@
 #import "GSShader.h"
 #import "GSCamera.h"
 #import "GSTerrain.h"
-#import "FoxRay.h"
+#import "GSRay.h"
 #import "FoxMatrixUtils.h"
 
 #import <OpenGL/gl.h>
@@ -546,7 +546,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 - (void)recalcCursorPosition
 {
     vector_float3 rotated = quaternion_rotate_vector(_camera.cameraRot, vector_make(0, 0, -1));
-    struct fox_ray ray = fox_ray_make(_camera.cameraEye, vector_make(rotated.x, rotated.y, rotated.z));
+    GSRay ray = GSRayMake(_camera.cameraEye, vector_make(rotated.x, rotated.y, rotated.z));
     __block BOOL cursorIsActive = NO;
     __block vector_float3 prev = ray.origin;
     __block vector_float3 cursorPos;

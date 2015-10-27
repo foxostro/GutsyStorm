@@ -9,7 +9,7 @@
 #import "FoxIntegerVector3.h"
 #import "GSTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
 #import "GSVoxel.h"
-#import "FoxRay.h"
+#import "GSRay.h"
 #import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSChunkStore.h"

@@ -8,7 +8,7 @@
 
 #import "FoxIntegerVector3.h"
 #import "GSChunkVoxelData.h"
-#import "FoxRay.h"
+#import "GSRay.h"
 #import "GSBoxedVector.h"
 #import "GSChunkStore.h"
 #import "GSNeighborhood.h"

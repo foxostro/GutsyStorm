@@ -1,13 +1,13 @@
 //
-//  FoxRay.c
+//  GSRay.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#include <float.h>
-#include "FoxRay.h"
+#import <float.h>
+#import "GSRay.h"
 
 #define TOP    (0)
 #define BOTTOM (1)
@@ -17,16 +17,16 @@
 #define BACK   (5)
 
 
-struct fox_ray fox_ray_make(vector_float3 origin, vector_float3 direction)
+GSRay GSRayMake(vector_float3 origin, vector_float3 direction)
 {
-    struct fox_ray ray;
+    GSRay ray;
     ray.origin = origin;
     ray.direction = direction;
     return ray;
 }
 
 
-int fox_ray_intersects_plane(struct fox_ray ray, struct fox_plane plane, vector_float3 *intersectionPointOut)
+int GSRayIntersectsPlane(GSRay ray, struct fox_plane plane, vector_float3 *intersectionPointOut)
 {
     float denominator = vector_dot(ray.direction, plane.n);
     
@@ -59,8 +59,8 @@ int fox_ray_intersects_plane(struct fox_ray ray, struct fox_plane plane, vector_
  * exits the box. If the ray originates within the box then distanceToEntrance will be set to NAN.
  * Returns 1 if there is an intersection, and 0 if there is no intersection at all.
  */
-int fox_ray_intersects_aabb(struct fox_ray r, vector_float3 minP, vector_float3 maxP,
-							float *distanceToEntrance, float *distanceToExit)
+int GSRayIntersectsAABB(GSRay r, vector_float3 minP, vector_float3 maxP,
+						float *distanceToEntrance, float *distanceToExit)
 {
 	struct {
 		float t1, t2;
