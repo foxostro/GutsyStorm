@@ -1,5 +1,5 @@
 //
-//  FoxAABB.m
+//  GSAABB.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/31/12.
@@ -7,9 +7,9 @@
 //
 
 #import <assert.h>
-#import "FoxAABB.h"
+#import "GSAABB.h"
 
-@implementation FoxAABB
+@implementation GSAABB
 
 - (instancetype)initWithVerts:(vector_float3 *)vertices numVerts:(size_t)numVerts
 {

@@ -1,5 +1,5 @@
 //
-//  FoxAABB.h
+//  GSAABB.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/31/12.
@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <simd/vector.h>
 
-@interface FoxAABB : NSObject
+@interface GSAABB : NSObject
 
 @property (assign, nonatomic) vector_float3 mins;
 @property (assign, nonatomic) vector_float3 maxs;
