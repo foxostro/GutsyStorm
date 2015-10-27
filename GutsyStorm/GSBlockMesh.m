@@ -9,7 +9,7 @@
 #import "GSBoxedTerrainVertex.h"
 #import "GSTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
 #import "GSVoxel.h"
-#import "FoxFace.h"
+#import "GSFace.h"
 #import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"
@@ -18,10 +18,10 @@
 @interface GSBlockMesh ()
 
 - (void)rotateVertex:(struct GSTerrainVertex *)v quaternion:(vector_float4)quat;
-- (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(FoxFace *)face
+- (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(GSFace *)face
                                         upsideDown:(BOOL)upsideDown
                                              quatY:(vector_float4)quatY;
-- (NSArray<FoxFace *> *)transformFaces:(NSArray<FoxFace *> *)faces
+- (NSArray<GSFace *> *)transformFaces:(NSArray<GSFace *> *)faces
                              direction:(GSVoxelDirection)dir
                             upsideDown:(BOOL)upsideDown;
 - (GSVoxelFace)transformCubeFaceEnum:(GSVoxelFace)correspondingCubeFace upsideDown:(BOOL)upsideDown;
@@ -31,7 +31,7 @@
 
 @implementation GSBlockMesh
 {
-    NSArray<FoxFace *> *_faces[2][NUM_VOXEL_DIRECTIONS];
+    NSArray<GSFace *> *_faces[2][NUM_VOXEL_DIRECTIONS];
 }
 
 - (instancetype)init
@@ -61,7 +61,7 @@
     v->normal[2] = normal.z;
 }
 
-- (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(FoxFace *)face
+- (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(GSFace *)face
                                         upsideDown:(BOOL)upsideDown
                                              quatY:(vector_float4)quatY
 {
@@ -90,21 +90,21 @@
     return transformedVertices;
 }
 
-- (NSArray<FoxFace *> *)transformFaces:(NSArray<FoxFace *> *)faces
+- (NSArray<GSFace *> *)transformFaces:(NSArray<GSFace *> *)faces
                              direction:(GSVoxelDirection)dir
                             upsideDown:(BOOL)upsideDown
 {
     vector_float4 quatY = GSQuaternionForVoxelDirection(dir);
     NSUInteger faceCount = [faces count];
-    NSMutableArray<FoxFace *> *transformedFaces = [[NSMutableArray<FoxFace *> alloc] initWithCapacity:faceCount];
+    NSMutableArray<GSFace *> *transformedFaces = [[NSMutableArray<GSFace *> alloc] initWithCapacity:faceCount];
     
-    for(FoxFace *face in faces)
+    for(GSFace *face in faces)
     {
         NSArray<GSBoxedTerrainVertex *> *transformedVertices = [self transformVerticesForFace:face
                                                                         upsideDown:upsideDown
                                                                              quatY:quatY];
         GSVoxelFace faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace upsideDown:upsideDown];
-        FoxFace *transformedFace = [[FoxFace alloc] initWithVertices:transformedVertices
+        GSFace *transformedFace = [[GSFace alloc] initWithVertices:transformedVertices
                                              correspondingCubeFace:faceDir
                                                eligibleForOmission:face.eligibleForOmission];
         [transformedFaces addObject:transformedFace];
@@ -128,7 +128,7 @@
     }
 }
 
-- (void)setFaces:(NSArray<FoxFace *> *)faces
+- (void)setFaces:(NSArray<GSFace *> *)faces
 {
     for(int upsideDown = 0; upsideDown < 2; ++upsideDown)
     {
@@ -150,7 +150,7 @@
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSVoxel voxel = [[voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
 
-    for(FoxFace *face in _faces[voxel.upsideDown?1:0][voxel.dir])
+    for(GSFace *face in _faces[voxel.upsideDown?1:0][voxel.dir])
     {
         // Omit the face if the face is eligible for such omission and is adjacent to a cube block.
         // There are several configurations of several types of adjacent blocks that would permit faces to be omitted.

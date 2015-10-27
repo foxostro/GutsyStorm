@@ -1,5 +1,5 @@
 //
-//  FoxFace.m
+//  GSFace.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 1/12/13.
@@ -7,11 +7,11 @@
 //
 
 #import "GSTerrainBuffer.h" // for terrain_buffer_element_t, needed by GSVoxel.h
-#import "GSVoxel.h" // for GSVoxelFace, needed by FoxFace.h
-#import "FoxFace.h"
+#import "GSVoxel.h" // for GSVoxelFace, needed by GSFace.h
+#import "GSFace.h"
 #import "GSBoxedTerrainVertex.h"
 
-@implementation FoxFace
+@implementation GSFace
 
 + (NSArray<GSBoxedTerrainVertex *> *)decomposeQuad:(NSArray<GSBoxedTerrainVertex *> *)verticesIn
 {
@@ -55,21 +55,21 @@
     return result;
 }
 
-+ (FoxFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face
++ (GSFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face
 {
     NSParameterAssert(vertices && vertices.count == 4);
     NSArray<GSBoxedTerrainVertex *> *triangleVertices = [self decomposeQuad:vertices];
     BOOL omittable = [self determineEligibilityForOmission:vertices];
-    return [[FoxFace alloc] initWithVertices:triangleVertices
+    return [[GSFace alloc] initWithVertices:triangleVertices
                       correspondingCubeFace:face
                         eligibleForOmission:omittable];
 }
 
-+ (FoxFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face
++ (GSFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face
 {
     NSParameterAssert(vertices && vertices.count == 3);
     BOOL omittable = [self determineEligibilityForOmission:vertices];
-    return [[FoxFace alloc] initWithVertices:vertices
+    return [[GSFace alloc] initWithVertices:vertices
                       correspondingCubeFace:face
                         eligibleForOmission:omittable];
 }

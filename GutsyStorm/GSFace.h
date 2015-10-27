@@ -1,5 +1,5 @@
 //
-//  FoxFace.h
+//  GSFace.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 1/12/13.
@@ -12,14 +12,14 @@
 @class GSBoxedTerrainVertex;
 
 
-@interface FoxFace : NSObject
+@interface GSFace : NSObject
 
 @property (readonly) BOOL eligibleForOmission;
 @property (copy) NSArray<GSBoxedTerrainVertex *> *vertexList;
 @property (readonly) GSVoxelFace correspondingCubeFace;
 
-+ (FoxFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face;
-+ (FoxFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face;
++ (GSFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face;
++ (GSFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face;
 
 - (instancetype)init NS_UNAVAILABLE;
 
