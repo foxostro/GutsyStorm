@@ -7,7 +7,7 @@
 //
 
 #import "GSIntegerVector3.h"
-#import "GSTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
+#import "GSTerrainBuffer.h" // for GSTerrainBufferElement, needed by Voxel.h
 #import "GSVoxel.h"
 #import "GSRay.h"
 #import "GSNeighborhood.h"
@@ -111,7 +111,7 @@
 - (GSVoxel *)newVoxelBufferFromNeighborhood
 {
     // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
-    _Static_assert(sizeof(GSVoxel) == sizeof(terrain_buffer_element_t), "expected to be able to store a GSVoxel in a terrain_buffer_element_t");
+    _Static_assert(sizeof(GSVoxel) == sizeof(GSTerrainBufferElement), "expected to be able to store a GSVoxel in a GSTerrainBufferElement");
     static const size_t count = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     GSVoxel *combinedVoxelData = calloc(count, sizeof(GSVoxel));
     if(!combinedVoxelData) {
@@ -119,7 +119,7 @@
     }
 
     [self enumerateNeighborsWithBlock2:^(GSVoxelNeighborIndex i, GSChunkVoxelData *voxels) {
-        [voxels.voxels copyToCombinedNeighborhoodBuffer:(terrain_buffer_element_t *)combinedVoxelData
+        [voxels.voxels copyToCombinedNeighborhoodBuffer:(GSTerrainBufferElement *)combinedVoxelData
                                                   count:count
                                                neighbor:i];
     }];

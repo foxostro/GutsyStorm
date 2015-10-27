@@ -118,7 +118,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 - (BOOL)isAdjacentToSunlightAtPoint:(vector_long3)p
                          lightLevel:(int)lightLevel
                   combinedVoxelData:(GSVoxel *)combinedVoxelData
-               combinedSunlightData:(terrain_buffer_element_t *)combinedSunlightData
+               combinedSunlightData:(GSTerrainBufferElement *)combinedSunlightData
 {
     for(GSVoxelFace i=0; i<FACE_NUM_FACES; ++i)
     {
@@ -152,9 +152,9 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
  */
 - (GSTerrainBuffer *)newSunlightBufferUsingCombinedVoxelData:(GSVoxel *)combinedVoxelData
 {
-    terrain_buffer_element_t *combinedSunlightData = malloc((GSCombinedMaxP.x - GSCombinedMinP.x) *
+    GSTerrainBufferElement *combinedSunlightData = malloc((GSCombinedMaxP.x - GSCombinedMinP.x) *
                                                     (GSCombinedMaxP.y - GSCombinedMinP.y) *
-                                                    (GSCombinedMaxP.z - GSCombinedMinP.z) * sizeof(terrain_buffer_element_t));
+                                                    (GSCombinedMaxP.z - GSCombinedMinP.z) * sizeof(GSTerrainBufferElement));
 
     vector_long3 p;
     FOR_BOX(p, GSCombinedMinP, GSCombinedMaxP)

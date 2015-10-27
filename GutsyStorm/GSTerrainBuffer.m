@@ -64,13 +64,13 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
             const void *buffer = NULL;
             NS_VALID_UNTIL_END_OF_SCOPE dispatch_data_t mappedData = dispatch_data_create_map(dd, &buffer, &size);
             assert(len == size);
-            GSTerrainBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const terrain_buffer_element_t *)buffer];
+            GSTerrainBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const GSTerrainBufferElement *)buffer];
             completionHandler(aBuffer, nil);
         }
     });
 }
 
-+ (nullable instancetype)newBufferFromLargerRawBuffer:(const terrain_buffer_element_t * _Nonnull)srcBuf
++ (nullable instancetype)newBufferFromLargerRawBuffer:(const GSTerrainBufferElement * _Nonnull)srcBuf
                                               srcMinP:(vector_long3)GSCombinedMinP
                                               srcMaxP:(vector_long3)GSCombinedMaxP
 {
@@ -84,13 +84,13 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     vector_long3 b = GSMakeIntegerVector3(CHUNK_SIZE_X+1, 0, CHUNK_SIZE_Z+1);
     vector_long3 p; // loop counter
 
-    terrain_buffer_element_t *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
+    GSTerrainBufferElement *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
 
     FOR_Y_COLUMN_IN_BOX(p, a, b)
     {
         size_t srcOffset = INDEX_BOX(p, GSCombinedMinP, GSCombinedMaxP);
         size_t dstOffset = INDEX_BOX(p + offset, GSZeroIntVec3, dimensions);
-        memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(terrain_buffer_element_t));
+        memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(GSTerrainBufferElement));
     }
 
     id aBuffer = [[self alloc] initWithDimensions:dimensions data:dstBuf];
@@ -122,7 +122,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return self;
 }
 
-- (nullable instancetype)initWithDimensions:(vector_long3)dim data:(const terrain_buffer_element_t * _Nonnull)data
+- (nullable instancetype)initWithDimensions:(vector_long3)dim data:(const GSTerrainBufferElement * _Nonnull)data
 {
     assert(data);
     self = [self initWithDimensions:dim]; // NOTE: this call will allocate memory for _data
@@ -143,7 +143,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return self; // FoxBuffer is immutable. Return self rather than perform a deep copy.
 }
 
-- (terrain_buffer_element_t)valueAtPosition:(vector_long3)chunkLocalPos
+- (GSTerrainBufferElement)valueAtPosition:(vector_long3)chunkLocalPos
 {
     assert(_data);
 
@@ -159,7 +159,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     }
 }
 
-- (terrain_buffer_element_t)lightForVertexAtPoint:(vector_float3)vertexPosInWorldSpace
+- (GSTerrainBufferElement)lightForVertexAtPoint:(vector_float3)vertexPosInWorldSpace
                                withNormal:(vector_long3)normal
                                      minP:(vector_float3)minP
 {
@@ -211,7 +211,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     });
 }
 
-- (void)copyToCombinedNeighborhoodBuffer:(terrain_buffer_element_t *)dstBuf
+- (void)copyToCombinedNeighborhoodBuffer:(GSTerrainBufferElement *)dstBuf
                                    count:(NSUInteger)count
                                 neighbor:(GSVoxelNeighborIndex)neighbor
 {
@@ -248,7 +248,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     }
 }
 
-- (GSTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(terrain_buffer_element_t)newValue
+- (GSTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(GSTerrainBufferElement)newValue
 {
     vector_long3 dim = self.dimensions;
     vector_long3 p = chunkLocalPos + _offsetFromChunkLocalSpace;
@@ -257,7 +257,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     assert(chunkLocalPos.y >= 0 && chunkLocalPos.y < dim.y);
     assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < dim.z);
 
-    terrain_buffer_element_t *modifiedData = malloc(BUFFER_SIZE_IN_BYTES(dim));
+    GSTerrainBufferElement *modifiedData = malloc(BUFFER_SIZE_IN_BYTES(dim));
     
     if(!modifiedData) {
         [NSException raise:@"Out of Memory" format:@"Out of memory allocating modifiedData."];
@@ -273,7 +273,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return buffer;
 }
 
-- (const terrain_buffer_element_t * _Nonnull)data
+- (const GSTerrainBufferElement * _Nonnull)data
 {
     return _data;
 }

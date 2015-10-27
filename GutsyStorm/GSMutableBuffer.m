@@ -25,7 +25,7 @@
     return self;
 }
 
-- (instancetype)initWithDimensions:(vector_long3)dim data:(const terrain_buffer_element_t *)data
+- (instancetype)initWithDimensions:(vector_long3)dim data:(const GSTerrainBufferElement *)data
 {
     if (self = [super initWithDimensions:dim data:data]) {
         // initialize here
@@ -40,12 +40,12 @@
     return [[GSMutableBuffer allocWithZone:zone] initWithDimensions:self.dimensions data:_data];
 }
 
-- (terrain_buffer_element_t *)mutableData
+- (GSTerrainBufferElement *)mutableData
 {
     return _data;
 }
 
-- (terrain_buffer_element_t *)pointerToValueAtPosition:(vector_long3)chunkLocalPos
+- (GSTerrainBufferElement *)pointerToValueAtPosition:(vector_long3)chunkLocalPos
 {
     assert(_data);
 

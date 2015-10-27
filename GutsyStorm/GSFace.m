@@ -6,7 +6,7 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import "GSTerrainBuffer.h" // for terrain_buffer_element_t, needed by GSVoxel.h
+#import "GSTerrainBuffer.h" // for GSTerrainBufferElement, needed by GSVoxel.h
 #import "GSVoxel.h" // for GSVoxelFace, needed by GSFace.h
 #import "GSFace.h"
 #import "GSBoxedTerrainVertex.h"

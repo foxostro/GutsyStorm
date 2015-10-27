@@ -10,8 +10,8 @@
 #import "GSTerrainBuffer.h"
 #import "GSVoxel.h"
 
-_Static_assert(sizeof(GSVoxel) == sizeof(terrain_buffer_element_t),
-               "GSVoxel and terrain_buffer_element_t must be the same size");
+_Static_assert(sizeof(GSVoxel) == sizeof(GSTerrainBufferElement),
+               "GSVoxel and GSTerrainBufferElement must be the same size");
 
 const vector_long3 GSChunkSizeIntVec3 = {CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
 const vector_long3 GSOffsetForVoxelFace[FACE_NUM_FACES] =

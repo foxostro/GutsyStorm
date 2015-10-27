@@ -104,7 +104,7 @@
     assert(p.x >= 0 && p.x < CHUNK_SIZE_X);
     assert(p.y >= 0 && p.y < CHUNK_SIZE_Y);
     assert(p.z >= 0 && p.z < CHUNK_SIZE_Z);
-    terrain_buffer_element_t value = [_voxels valueAtPosition:p];
+    GSTerrainBufferElement value = [_voxels valueAtPosition:p];
     GSVoxel voxel = *((const GSVoxel *)&value);
     return voxel;
 }
@@ -224,10 +224,10 @@
             if (!goodSize) {
                 NSLog(@"ERROR: bad size for chunk data; assuming data corruption");
             }
-            const terrain_buffer_element_t * _Nullable bytes = [data bytes];
+            const GSTerrainBufferElement * _Nullable bytes = [data bytes];
             assert(bytes);
             buffer = [[GSTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3
-                                                             data:(const terrain_buffer_element_t * _Nonnull)bytes];
+                                                             data:(const GSTerrainBufferElement * _Nonnull)bytes];
         } else {
             buffer = [self newVoxelDataBufferWithGenerator:generator postProcessor:postProcessor];
             [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
@@ -242,7 +242,7 @@
 - (GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
 {
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
-    terrain_buffer_element_t newValue = *((terrain_buffer_element_t *)&newBlock);
+    GSTerrainBufferElement newValue = *((GSTerrainBufferElement *)&newBlock);
     GSTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue];
     GSChunkVoxelData *modifiedVoxelData = [[GSChunkVoxelData alloc] initWithMinP:minP
                                                                           folder:_folder
