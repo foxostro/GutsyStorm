@@ -7,7 +7,7 @@
 //
 
 #import "FoxIntegerVector3.h"
-#import "FoxTerrainBuffer.h"
+#import "GSTerrainBuffer.h"
 #import "GSVoxel.h"
 
 _Static_assert(sizeof(GSVoxel) == sizeof(terrain_buffer_element_t),

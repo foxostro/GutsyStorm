@@ -11,12 +11,12 @@
 
 
 @class FoxNeighborhood;
-@class FoxTerrainBuffer;
+@class GSTerrainBuffer;
 
 
 @interface GSChunkSunlightData : NSObject <GSGridItem>
 
-@property (readonly, nonatomic) FoxTerrainBuffer * _Nonnull sunlight;
+@property (readonly, nonatomic) GSTerrainBuffer * _Nonnull sunlight;
 @property (readonly, nonatomic) FoxNeighborhood * _Nonnull neighborhood;
 
 + (nonnull NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP;

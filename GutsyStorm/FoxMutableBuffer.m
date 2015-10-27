@@ -10,7 +10,7 @@
 
 @implementation FoxMutableBuffer
 
-+ (instancetype)newMutableBufferWithBuffer:(FoxTerrainBuffer *)buffer
++ (instancetype)newMutableBufferWithBuffer:(GSTerrainBuffer *)buffer
 {
     assert(buffer);
     return [[FoxMutableBuffer alloc] initWithDimensions:buffer.dimensions data:buffer->_data];

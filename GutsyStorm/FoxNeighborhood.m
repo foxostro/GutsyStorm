@@ -7,7 +7,7 @@
 //
 
 #import "FoxIntegerVector3.h"
-#import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
+#import "GSTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
 #import "GSVoxel.h"
 #import "FoxRay.h"
 #import "FoxNeighborhood.h"
@@ -196,7 +196,7 @@
     }
 }
 
-- (unsigned)lightAtPoint:(vector_long3)p getter:(FoxTerrainBuffer* (^)(GSChunkVoxelData *c))getter
+- (unsigned)lightAtPoint:(vector_long3)p getter:(GSTerrainBuffer* (^)(GSChunkVoxelData *c))getter
 {
     assert(CHUNK_LIGHTING_MAX < (1ull << (sizeof(unsigned)*8)) && "unsigned int must be large enough to store light values");
     
@@ -211,7 +211,7 @@
     }
     
     GSChunkVoxelData *chunk = [self neighborVoxelAtPoint:&p];
-    FoxTerrainBuffer *lightingBuffer = getter(chunk);
+    GSTerrainBuffer *lightingBuffer = getter(chunk);
     
     unsigned lightLevel = (unsigned)[lightingBuffer valueAtPosition:p];
 

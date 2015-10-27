@@ -6,7 +6,7 @@
 //  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxTerrainBuffer.h"
+#import "GSTerrainBuffer.h"
 #import "GSVoxel.h"
 #import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
@@ -17,12 +17,12 @@
 static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 normal);
 
 
-@implementation FoxTerrainBuffer
+@implementation GSTerrainBuffer
 
 + (void)newBufferFromFile:(NSURL *)url
                dimensions:(vector_long3)dimensions
                     queue:(dispatch_queue_t)queue
-        completionHandler:(void (^)(FoxTerrainBuffer *aBuffer, NSError *error))completionHandler
+        completionHandler:(void (^)(GSTerrainBuffer *aBuffer, NSError *error))completionHandler
 {
     // If the file does not exist then do nothing.
     if(![url checkResourceIsReachableAndReturnError:NULL]) {
@@ -64,7 +64,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
             const void *buffer = NULL;
             NS_VALID_UNTIL_END_OF_SCOPE dispatch_data_t mappedData = dispatch_data_create_map(dd, &buffer, &size);
             assert(len == size);
-            FoxTerrainBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const terrain_buffer_element_t *)buffer];
+            GSTerrainBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const terrain_buffer_element_t *)buffer];
             completionHandler(aBuffer, nil);
         }
     });
@@ -248,7 +248,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     }
 }
 
-- (FoxTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(terrain_buffer_element_t)newValue
+- (GSTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(terrain_buffer_element_t)newValue
 {
     vector_long3 dim = self.dimensions;
     vector_long3 p = chunkLocalPos + _offsetFromChunkLocalSpace;
@@ -266,7 +266,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     memcpy(modifiedData, _data, BUFFER_SIZE_IN_BYTES(dim));
     modifiedData[INDEX_INTO_LIGHTING_BUFFER(dim, p)] = newValue;
 
-    FoxTerrainBuffer *buffer = [[FoxTerrainBuffer alloc] initWithDimensions:dim data:modifiedData];
+    GSTerrainBuffer *buffer = [[GSTerrainBuffer alloc] initWithDimensions:dim data:modifiedData];
 
     free(modifiedData);
 

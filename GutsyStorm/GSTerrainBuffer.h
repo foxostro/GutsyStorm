@@ -27,16 +27,16 @@ static inline size_t INDEX_INTO_LIGHTING_BUFFER(vector_long3 dimensions, vector_
 }
 
 
-@class FoxTerrainBuffer;
+@class GSTerrainBuffer;
 
 
-typedef void (^buffer_completion_handler_t)(FoxTerrainBuffer * _Nonnull aBuffer, NSError * _Nullable error);
+typedef void (^buffer_completion_handler_t)(GSTerrainBuffer * _Nonnull aBuffer, NSError * _Nullable error);
 
 
 /* Represents a three-dimensional grid of bytes.
  * This can be used for myriad purposes including volumetric lighting values and voxel data.
  */
-@interface FoxTerrainBuffer : NSObject <NSCopying>
+@interface GSTerrainBuffer : NSObject <NSCopying>
 {
 @protected
     vector_long3 _offsetFromChunkLocalSpace;
@@ -96,7 +96,7 @@ typedef void (^buffer_completion_handler_t)(FoxTerrainBuffer * _Nonnull aBuffer,
                                    count:(NSUInteger)count
                                 neighbor:(GSVoxelNeighborIndex)neighbor;
 
-- (nonnull FoxTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(terrain_buffer_element_t)value;
+- (nonnull GSTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(terrain_buffer_element_t)value;
 
 - (const terrain_buffer_element_t * _Nonnull)data;
 

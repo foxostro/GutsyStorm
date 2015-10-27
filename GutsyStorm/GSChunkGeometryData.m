@@ -33,7 +33,7 @@ struct fox_chunk_geometry_header
 
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct GSTerrainVertex *vertsBuffer,
-                                 FoxTerrainBuffer *sunlight,
+                                 GSTerrainBuffer *sunlight,
                                  vector_float3 minP);
 
 @interface GSChunkGeometryData ()
@@ -192,7 +192,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
 static void applyLightToVertices(size_t numChunkVerts,
                                  struct GSTerrainVertex *vertsBuffer,
-                                 FoxTerrainBuffer *sunlight,
+                                 GSTerrainBuffer *sunlight,
                                  vector_float3 minP)
 {
     assert(vertsBuffer);

@@ -20,9 +20,9 @@
 @interface GSChunkVoxelData ()
 
 - (void)markOutsideVoxels:(FoxMutableBuffer *)data;
-- (FoxTerrainBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
+- (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
                                 postProcessor:(terrain_post_processor_t)postProcessor;
-- (FoxTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
+- (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
                                                      postProcessor:(terrain_post_processor_t)postProcessor;
 
 @end
@@ -70,7 +70,7 @@
               groupForSaving:(dispatch_group_t)groupForSaving
               queueForSaving:(dispatch_queue_t)queueForSaving
               chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-                        data:(FoxTerrainBuffer *)data
+                        data:(GSTerrainBuffer *)data
 {
     if (self = [super init]) {
         minP = mp;
@@ -160,7 +160,7 @@
  * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
  * the chunk is equal to maxP-minP. Ditto for the other major axii.
  */
-- (FoxTerrainBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
+- (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
                                 postProcessor:(terrain_post_processor_t)postProcessor
 {
     vector_float3 thisMinP = self.minP;
@@ -206,10 +206,10 @@
     [self.voxels saveToFile:url queue:_queueForSaving group:_groupForSaving];
 }
 
-- (FoxTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
+- (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
                                                      postProcessor:(terrain_post_processor_t)postProcessor
 {
-    FoxTerrainBuffer *buffer = nil;
+    GSTerrainBuffer *buffer = nil;
 
     @autoreleasepool {
         NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
@@ -226,7 +226,7 @@
             }
             const terrain_buffer_element_t * _Nullable bytes = [data bytes];
             assert(bytes);
-            buffer = [[FoxTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3
+            buffer = [[GSTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3
                                                              data:(const terrain_buffer_element_t * _Nonnull)bytes];
         } else {
             buffer = [self newVoxelDataBufferWithGenerator:generator postProcessor:postProcessor];
@@ -243,7 +243,7 @@
 {
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     terrain_buffer_element_t newValue = *((terrain_buffer_element_t *)&newBlock);
-    FoxTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue];
+    GSTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue];
     GSChunkVoxelData *modifiedVoxelData = [[GSChunkVoxelData alloc] initWithMinP:minP
                                                                           folder:_folder
                                                                   groupForSaving:_groupForSaving

@@ -150,7 +150,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
  * region of the buffer corresponding to this chunk should be considered to be totally correct.
  * Assumes the caller has already locked the sunlight buffer for reading.
  */
-- (FoxTerrainBuffer *)newSunlightBufferUsingCombinedVoxelData:(GSVoxel *)combinedVoxelData
+- (GSTerrainBuffer *)newSunlightBufferUsingCombinedVoxelData:(GSVoxel *)combinedVoxelData
 {
     terrain_buffer_element_t *combinedSunlightData = malloc((GSCombinedMaxP.x - GSCombinedMinP.x) *
                                                     (GSCombinedMaxP.y - GSCombinedMinP.y) *
@@ -190,7 +190,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     }
 
     // Copy the sunlight data we just calculated into _sunlight. Discard non-overlapping portions.
-    FoxTerrainBuffer *sunlight = [FoxTerrainBuffer newBufferFromLargerRawBuffer:combinedSunlightData
+    GSTerrainBuffer *sunlight = [GSTerrainBuffer newBufferFromLargerRawBuffer:combinedSunlightData
                                                                         srcMinP:GSCombinedMinP
                                                                         srcMaxP:GSCombinedMaxP];
 
@@ -199,9 +199,9 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     return sunlight;
 }
 
-- (FoxTerrainBuffer *)newSunlightBufferWithNeighborhood:(FoxNeighborhood *)neighborhood folder:(NSURL *)folder
+- (GSTerrainBuffer *)newSunlightBufferWithNeighborhood:(FoxNeighborhood *)neighborhood folder:(NSURL *)folder
 {
-    FoxTerrainBuffer *buffer = nil;
+    GSTerrainBuffer *buffer = nil;
 
     @autoreleasepool {
         BOOL failedToLoadFromFile = YES;
@@ -217,7 +217,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
                 NSLog(@"unexpected number of bytes in sunlight file \"%@\": found %lu but expected %zu bytes",
                       fileName, (unsigned long)[data length], BUFFER_SIZE_IN_BYTES(sunlightDim));
             } else {
-                buffer = [[FoxTerrainBuffer alloc] initWithDimensions:sunlightDim data:[data bytes]];
+                buffer = [[GSTerrainBuffer alloc] initWithDimensions:sunlightDim data:[data bytes]];
                 failedToLoadFromFile = NO;
             }
         }

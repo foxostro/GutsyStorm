@@ -10,7 +10,7 @@
 #import "GSGridItem.h"
 #import "FoxIntegerVector3.h"
 #import "GSVoxel.h"
-#import "FoxTerrainBuffer.h"
+#import "GSTerrainBuffer.h"
 
 
 typedef void (^terrain_generator_t)(vector_float3, GSVoxel * _Nonnull);
@@ -19,7 +19,7 @@ typedef void (^terrain_post_processor_t)(size_t count, GSVoxel * _Nonnull voxels
 
 @interface GSChunkVoxelData : NSObject <GSGridItem>
 
-@property (nonatomic, readonly) FoxTerrainBuffer * _Nonnull voxels;
+@property (nonatomic, readonly) GSTerrainBuffer * _Nonnull voxels;
 
 + (nonnull NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP;
 
@@ -36,7 +36,7 @@ typedef void (^terrain_post_processor_t)(size_t count, GSVoxel * _Nonnull voxels
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                        chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
-                                 data:(nonnull FoxTerrainBuffer *)data;
+                                 data:(nonnull GSTerrainBuffer *)data;
 
 - (GSVoxel)voxelAtLocalPosition:(vector_long3)chunkLocalP;
 

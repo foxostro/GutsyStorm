@@ -7,11 +7,11 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FoxTerrainBuffer.h"
+#import "GSTerrainBuffer.h"
 
-@interface FoxMutableBuffer : FoxTerrainBuffer
+@interface FoxMutableBuffer : GSTerrainBuffer
 
-+ (nullable instancetype)newMutableBufferWithBuffer:(nonnull FoxTerrainBuffer *)buffer;
++ (nullable instancetype)newMutableBufferWithBuffer:(nonnull GSTerrainBuffer *)buffer;
 
 - (nonnull terrain_buffer_element_t *)mutableData;
 

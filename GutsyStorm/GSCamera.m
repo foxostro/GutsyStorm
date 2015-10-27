@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import "GSCamera.h"
 #import "FoxIntegerVector3.h"
-#import "FoxTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
+#import "GSTerrainBuffer.h" // for terrain_buffer_element_t, needed by Voxel.h
 #import "GSVoxel.h"
 #import "FoxQuaternion.h"
 

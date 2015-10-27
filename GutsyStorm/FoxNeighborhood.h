@@ -13,7 +13,7 @@
 
 
 @class GSChunkVoxelData;
-@class FoxTerrainBuffer;
+@class GSTerrainBuffer;
 
 
 @interface FoxNeighborhood : NSObject
@@ -44,6 +44,6 @@
 
 /* Returns the lighting value at the specified block position for the specified lighting buffer. */
 - (unsigned)lightAtPoint:(vector_long3)p
-                  getter:(FoxTerrainBuffer * _Nonnull (^ _Nonnull)(GSChunkVoxelData *  _Nonnull c))getter;
+                  getter:(GSTerrainBuffer * _Nonnull (^ _Nonnull)(GSChunkVoxelData *  _Nonnull c))getter;
 
 @end
