@@ -9,7 +9,7 @@
 #import "FoxIntegerVector3.h"
 #import "FoxRay.h"
 #import "GSCamera.h"
-#import "FoxActiveRegion.h"
+#import "GSActiveRegion.h"
 #import "FoxShader.h"
 #import "FoxChunkStore.h"
 #import "FoxBoxedVector.h"
@@ -68,7 +68,7 @@
     terrain_generator_t _generator;
     terrain_post_processor_t _postProcessor;
 
-    FoxActiveRegion *_activeRegion;
+    GSActiveRegion *_activeRegion;
     vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
 }
 
@@ -206,12 +206,12 @@
     // Active region is bounded at y>=0.
     const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
     _activeRegionExtent = vector_make(w, CHUNK_SIZE_Y, w);
-    _activeRegion = [[FoxActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
+    _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
                                                                 camera:cam
                                                                vboGrid:_gridVBOs];
 
     // Whenever a VBO is invalidated, the active region must be invalidated.
-    __weak FoxActiveRegion *weakActiveRegion = _activeRegion;
+    __weak GSActiveRegion *weakActiveRegion = _activeRegion;
     _gridVBOs.invalidationNotification = ^{
         [weakActiveRegion notifyOfChangeInActiveRegionVBOs];
     };

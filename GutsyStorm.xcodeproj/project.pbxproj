@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		1338A2DA15B792C800663E28 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1338A2D915B792C800663E28 /* CoreVideo.framework */; };
 		13C8BE191602854300403815 /* FoxNeighborhood.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE171602854300403815 /* FoxNeighborhood.m */; };
-		13C8BE1D16038DC000403815 /* FoxActiveRegion.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE1C16038DC000403815 /* FoxActiveRegion.m */; };
+		13C8BE1D16038DC000403815 /* GSActiveRegion.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE1C16038DC000403815 /* GSActiveRegion.m */; };
 		4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */; };
 		4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */; };
 		4A2CCFF71513C3FC006C6551 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A2CCFF61513C3FC006C6551 /* Cocoa.framework */; };
@@ -74,8 +74,8 @@
 		13C8BE161602854300403815 /* FoxNeighborhood.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxNeighborhood.h; sourceTree = "<group>"; };
 		13C8BE171602854300403815 /* FoxNeighborhood.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxNeighborhood.m; sourceTree = "<group>"; };
 		13C8BE181602854300403815 /* GSVoxel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVoxel.h; sourceTree = "<group>"; };
-		13C8BE1B16038DC000403815 /* FoxActiveRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxActiveRegion.h; sourceTree = "<group>"; };
-		13C8BE1C16038DC000403815 /* FoxActiveRegion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxActiveRegion.m; sourceTree = "<group>"; };
+		13C8BE1B16038DC000403815 /* GSActiveRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSActiveRegion.h; sourceTree = "<group>"; };
+		13C8BE1C16038DC000403815 /* GSActiveRegion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSActiveRegion.m; sourceTree = "<group>"; };
 		4A1F6E51153F6F6100D194AE /* FoxIntegerVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxIntegerVector3.h; sourceTree = "<group>"; };
 		4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkVoxelData.h; sourceTree = "<group>"; };
 		4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkVoxelData.m; sourceTree = "<group>"; };
@@ -378,8 +378,8 @@
 				ACE8F00B16FE6A7D00ABA2AD /* GSMutableBuffer.m */,
 				AC3767A8163E053400BAE03F /* GSTerrainCursor.h */,
 				AC3767A9163E053400BAE03F /* GSTerrainCursor.m */,
-				13C8BE1B16038DC000403815 /* FoxActiveRegion.h */,
-				13C8BE1C16038DC000403815 /* FoxActiveRegion.m */,
+				13C8BE1B16038DC000403815 /* GSActiveRegion.h */,
+				13C8BE1C16038DC000403815 /* GSActiveRegion.m */,
 				13C8BE161602854300403815 /* FoxNeighborhood.h */,
 				13C8BE171602854300403815 /* FoxNeighborhood.m */,
 			);
@@ -531,7 +531,7 @@
 				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
 				4AC7C9F91559E00000806635 /* FoxCube.m in Sources */,
 				13C8BE191602854300403815 /* FoxNeighborhood.m in Sources */,
-				13C8BE1D16038DC000403815 /* FoxActiveRegion.m in Sources */,
+				13C8BE1D16038DC000403815 /* GSActiveRegion.m in Sources */,
 				AC3767A2163DFB4000BAE03F /* GSErrorCodes.m in Sources */,
 				AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */,
 				AC3767AA163E053400BAE03F /* GSTerrainCursor.m in Sources */,

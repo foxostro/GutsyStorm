@@ -1,12 +1,12 @@
 //
-//  FoxActiveRegion.m
+//  GSActiveRegion.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/14/12.
 //  Copyright (c) 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxActiveRegion.h"
+#import "GSActiveRegion.h"
 #import "FoxFrustum.h"
 #import "GSVoxel.h"
 #import "FoxBoxedVector.h"
@@ -44,7 +44,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
 #endif
 
 
-@implementation FoxActiveRegion
+@implementation GSActiveRegion
 {
     /* The camera at the center of the active region. */
     GSCamera *_camera;
@@ -85,7 +85,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
         _vbosInCameraFrustum = nil;
         _lockVbosInCameraFrustum = [NSLock new];
         _gridVBOs = gridVBOs;
-        _updateQueue = dispatch_queue_create("FoxActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
+        _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
         _semaQueueDepth = dispatch_semaphore_create(2);
         _shouldShutdown = NO;
 

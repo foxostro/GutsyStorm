@@ -1,5 +1,5 @@
 //
-//  FoxActiveRegion.h
+//  GSActiveRegion.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/14/12.
@@ -14,7 +14,7 @@
 @class FoxBoxedVector;
 
 
-@interface FoxActiveRegion : NSObject
+@interface GSActiveRegion : NSObject
 
 /* Constructor.
  *
