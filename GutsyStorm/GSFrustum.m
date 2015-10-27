@@ -144,7 +144,7 @@
 
 - (int)boxInFrustumWithBoxVertices:(nonnull vector_float3 *)vertices
 {
-    int result = FRUSTUM_INSIDE, out, in;
+    int result = GSFrustumInside, out, in;
     
     // for each plane do ...
     for(int i=0; i < 6; i++) {
@@ -164,10 +164,10 @@
         }
         //if all corners are out
         if (!in)
-            return (FRUSTUM_OUTSIDE);
+            return (GSFrustumOutside);
         // if some corners are out and others are in    
         else if (out)
-            result = FRUSTUM_INTERSECT;
+            result = GSFrustumIntersect;
     }
     return(result);
 }

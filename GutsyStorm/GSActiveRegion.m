@@ -226,7 +226,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
         corners[6] = corners[0] + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y, 0};
         corners[7] = corners[0] + (vector_float3){0,            CHUNK_SIZE_Y, 0};
 
-        if(FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
+        if(GSFrustumOutside != [frustum boxInFrustumWithBoxVertices:corners]) {
             [points addObject:[GSBoxedVector boxedVectorWithVector:centerP]];
         }
     }

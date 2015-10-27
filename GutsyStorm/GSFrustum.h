@@ -15,9 +15,9 @@
 
 enum
 {
-    FRUSTUM_OUTSIDE=0,
-    FRUSTUM_INTERSECT,
-    FRUSTUM_INSIDE
+    GSFrustumOutside=0,
+    GSFrustumIntersect,
+    GSFrustumInside
 };
 
 
