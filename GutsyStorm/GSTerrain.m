@@ -442,7 +442,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             generateTerrainVoxel(seed, terrainHeight, a, voxel);
         };
 
-        terrain_post_processor_t postProcessor = ^(size_t count, GSVoxel *voxels, vector_long3 minP, vector_long3 maxP) {
+        GSTerrainPostProcessorBlock postProcessor = ^(size_t count, GSVoxel *voxels, vector_long3 minP, vector_long3 maxP) {
             _Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
 
             GSVoxel *temp1 = malloc(count * sizeof(GSVoxel));

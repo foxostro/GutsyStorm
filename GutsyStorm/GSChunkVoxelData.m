@@ -21,9 +21,9 @@
 
 - (void)markOutsideVoxels:(GSMutableBuffer *)data;
 - (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(GSTerrainGeneratorBlock)generator
-                                postProcessor:(terrain_post_processor_t)postProcessor;
+                                postProcessor:(GSTerrainPostProcessorBlock)postProcessor;
 - (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(GSTerrainGeneratorBlock)generator
-                                                     postProcessor:(terrain_post_processor_t)postProcessor;
+                                                     postProcessor:(GSTerrainPostProcessorBlock)postProcessor;
 
 @end
 
@@ -49,7 +49,7 @@
               queueForSaving:(dispatch_queue_t)queueForSaving
               chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
                    generator:(GSTerrainGeneratorBlock)generator
-               postProcessor:(terrain_post_processor_t)postProcessor
+               postProcessor:(GSTerrainPostProcessorBlock)postProcessor
 {
     assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
@@ -161,7 +161,7 @@
  * the chunk is equal to maxP-minP. Ditto for the other major axii.
  */
 - (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(GSTerrainGeneratorBlock)generator
-                                postProcessor:(terrain_post_processor_t)postProcessor
+                                postProcessor:(GSTerrainPostProcessorBlock)postProcessor
 {
     vector_float3 thisMinP = self.minP;
     vector_long3 p, a, b;
@@ -207,7 +207,7 @@
 }
 
 - (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(GSTerrainGeneratorBlock)generator
-                                                     postProcessor:(terrain_post_processor_t)postProcessor
+                                                     postProcessor:(GSTerrainPostProcessorBlock)postProcessor
 {
     GSTerrainBuffer *buffer = nil;
 

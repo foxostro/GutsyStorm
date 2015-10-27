@@ -66,7 +66,7 @@
     NSOpenGLContext *_glContext;
 
     GSTerrainGeneratorBlock _generator;
-    terrain_post_processor_t _postProcessor;
+    GSTerrainPostProcessorBlock _postProcessor;
 
     GSActiveRegion *_activeRegion;
     vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
@@ -222,7 +222,7 @@
                terrainShader:(GSShader *)shader
                    glContext:(NSOpenGLContext *)context
                    generator:(GSTerrainGeneratorBlock)generatorCallback
-               postProcessor:(terrain_post_processor_t)postProcessorCallback
+               postProcessor:(GSTerrainPostProcessorBlock)postProcessorCallback
 {
     self = [super init];
     if (self) {

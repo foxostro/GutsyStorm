@@ -19,7 +19,7 @@
                         terrainShader:(nonnull GSShader *)terrainShader
                             glContext:(nonnull NSOpenGLContext *)glContext
                             generator:(nonnull GSTerrainGeneratorBlock)generator
-                        postProcessor:(nonnull terrain_post_processor_t)postProcessor;
+                        postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor;
 
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.
