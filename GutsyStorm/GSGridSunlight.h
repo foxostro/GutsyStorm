@@ -1,5 +1,5 @@
 //
-//  FoxGridSunlight.h
+//  GSGridSunlight.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/25/13.
@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSGrid.h"
 
-@interface FoxGridSunlight : GSGrid<FoxChunkSunlightData *>
+@interface GSGridSunlight : GSGrid<FoxChunkSunlightData *>
 
 - (nullable instancetype)initWithName:(nonnull NSString *)name
                           cacheFolder:(nonnull NSURL *)folder

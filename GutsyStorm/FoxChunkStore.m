@@ -23,7 +23,7 @@
 #import "GSGrid.h"
 #import "FoxGridVBOs.h"
 #import "FoxGridGeometry.h"
-#import "FoxGridSunlight.h"
+#import "GSGridSunlight.h"
 
 #import "FoxMatrixUtils.h"
 
@@ -52,7 +52,7 @@
 {
     FoxGridVBOs *_gridVBOs;
     FoxGridGeometry *_gridGeometryData;
-    FoxGridSunlight *_gridSunlightData;
+    GSGridSunlight *_gridSunlightData;
     GSGrid<FoxChunkVoxelData *> *_gridVoxelData;
 
     dispatch_group_t _groupForSaving;
@@ -90,7 +90,7 @@
                                               return [self newChunkWithMinimumCorner:minCorner];
                                           }];
 
-    _gridSunlightData = [[FoxGridSunlight alloc]
+    _gridSunlightData = [[GSGridSunlight alloc]
                          initWithName:@"gridSunlightData"
                           cacheFolder:_folder
                               factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {

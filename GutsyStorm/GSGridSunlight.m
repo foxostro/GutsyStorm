@@ -1,5 +1,5 @@
 //
-//  FoxGridSunlight.m
+//  GSGridSunlight.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/25/13.
@@ -11,9 +11,9 @@
 #import "GSVoxel.h"
 #import "GSGrid.h"
 #import "FoxChunkSunlightData.h"
-#import "FoxGridSunlight.h"
+#import "GSGridSunlight.h"
 
-@implementation FoxGridSunlight
+@implementation GSGridSunlight
 {
     NSURL *_folder;
 }
