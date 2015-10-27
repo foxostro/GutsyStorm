@@ -10,7 +10,7 @@
 		1338A2DA15B792C800663E28 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1338A2D915B792C800663E28 /* CoreVideo.framework */; };
 		13C8BE191602854300403815 /* FoxNeighborhood.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE171602854300403815 /* FoxNeighborhood.m */; };
 		13C8BE1D16038DC000403815 /* FoxActiveRegion.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE1C16038DC000403815 /* FoxActiveRegion.m */; };
-		4A2310C0153E10F100A4EBE6 /* FoxChunkVoxelData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310BF153E10F100A4EBE6 /* FoxChunkVoxelData.m */; };
+		4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */; };
 		4A2310C4153E110400A4EBE6 /* FoxChunkGeometryData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C3153E110400A4EBE6 /* FoxChunkGeometryData.m */; };
 		4A2CCFF71513C3FC006C6551 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A2CCFF61513C3FC006C6551 /* Cocoa.framework */; };
 		4A2CD0011513C3FC006C6551 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4A2CCFFF1513C3FC006C6551 /* InfoPlist.strings */; };
@@ -77,8 +77,8 @@
 		13C8BE1B16038DC000403815 /* FoxActiveRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxActiveRegion.h; sourceTree = "<group>"; };
 		13C8BE1C16038DC000403815 /* FoxActiveRegion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxActiveRegion.m; sourceTree = "<group>"; };
 		4A1F6E51153F6F6100D194AE /* FoxIntegerVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxIntegerVector3.h; sourceTree = "<group>"; };
-		4A2310BE153E10F100A4EBE6 /* FoxChunkVoxelData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxChunkVoxelData.h; sourceTree = "<group>"; };
-		4A2310BF153E10F100A4EBE6 /* FoxChunkVoxelData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxChunkVoxelData.m; sourceTree = "<group>"; };
+		4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkVoxelData.h; sourceTree = "<group>"; };
+		4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkVoxelData.m; sourceTree = "<group>"; };
 		4A2310C2153E110400A4EBE6 /* FoxChunkGeometryData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxChunkGeometryData.h; sourceTree = "<group>"; };
 		4A2310C3153E110400A4EBE6 /* FoxChunkGeometryData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxChunkGeometryData.m; sourceTree = "<group>"; };
 		4A2CCFF21513C3FC006C6551 /* GutsyStorm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GutsyStorm.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -417,8 +417,8 @@
 				ACE6ABE616F984D300DE88E3 /* GSGridGeometry.m */,
 				AC941757170149AD00EDAB98 /* GSGridVBOs.h */,
 				AC941758170149AD00EDAB98 /* GSGridVBOs.m */,
-				4A2310BE153E10F100A4EBE6 /* FoxChunkVoxelData.h */,
-				4A2310BF153E10F100A4EBE6 /* FoxChunkVoxelData.m */,
+				4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */,
+				4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */,
 				AC3BDE93170016CE0005E6C2 /* FoxChunkSunlightData.h */,
 				AC3BDE94170016CF0005E6C2 /* FoxChunkSunlightData.m */,
 				4A2310C2153E110400A4EBE6 /* FoxChunkGeometryData.h */,
@@ -526,7 +526,7 @@
 				AC154885152C04EF00434374 /* FoxBoxedVector.m in Sources */,
 				6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */,
 				4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */,
-				4A2310C0153E10F100A4EBE6 /* FoxChunkVoxelData.m in Sources */,
+				4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */,
 				4A2310C4153E110400A4EBE6 /* FoxChunkGeometryData.m in Sources */,
 				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
 				4AC7C9F91559E00000806635 /* FoxCube.m in Sources */,

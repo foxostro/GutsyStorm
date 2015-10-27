@@ -12,7 +12,7 @@
 #import "GSVoxel.h"
 
 
-@class FoxChunkVoxelData;
+@class GSChunkVoxelData;
 @class FoxTerrainBuffer;
 
 
@@ -20,10 +20,10 @@
 
 + (vector_float3)offsetForNeighborIndex:(GSVoxelNeighborIndex)idx;
 
-- (nonnull FoxChunkVoxelData *)neighborAtIndex:(GSVoxelNeighborIndex)idx;
-- (void)setNeighborAtIndex:(GSVoxelNeighborIndex)idx neighbor:(nonnull FoxChunkVoxelData *)neighbor;
-- (void)enumerateNeighborsWithBlock:(void (^ _Nonnull)(FoxChunkVoxelData * _Nonnull voxels))block;
-- (void)enumerateNeighborsWithBlock2:(void (^ _Nonnull)(GSVoxelNeighborIndex i, FoxChunkVoxelData * _Nonnull voxels))block;
+- (nonnull GSChunkVoxelData *)neighborAtIndex:(GSVoxelNeighborIndex)idx;
+- (void)setNeighborAtIndex:(GSVoxelNeighborIndex)idx neighbor:(nonnull GSChunkVoxelData *)neighbor;
+- (void)enumerateNeighborsWithBlock:(void (^ _Nonnull)(GSChunkVoxelData * _Nonnull voxels))block;
+- (void)enumerateNeighborsWithBlock2:(void (^ _Nonnull)(GSVoxelNeighborIndex i, GSChunkVoxelData * _Nonnull voxels))block;
 
 /* Copy the voxel data for this neighborhood into a new buffer and return that buffer.
  * The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and may be indexed using the INDEX2 macro.
@@ -34,7 +34,7 @@
  * Also returns the position in the local coordinate system of that chunk.
  * The position must be within the neighborhood.
  */
-- (nonnull FoxChunkVoxelData *)neighborVoxelAtPoint:(nonnull vector_long3 *)chunkLocalP;
+- (nonnull GSChunkVoxelData *)neighborVoxelAtPoint:(nonnull vector_long3 *)chunkLocalP;
 
 /* Returns a copy of the voxel at the the specified position in the neighborhood.
  * Positions are specified in chunk-local space relative to the center chunk of the neighborhood.
@@ -44,6 +44,6 @@
 
 /* Returns the lighting value at the specified block position for the specified lighting buffer. */
 - (unsigned)lightAtPoint:(vector_long3)p
-                  getter:(FoxTerrainBuffer * _Nonnull (^ _Nonnull)(FoxChunkVoxelData *  _Nonnull c))getter;
+                  getter:(FoxTerrainBuffer * _Nonnull (^ _Nonnull)(GSChunkVoxelData *  _Nonnull c))getter;
 
 @end

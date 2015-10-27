@@ -11,7 +11,7 @@
 #import "FoxFace.h"
 #import "GSBoxedTerrainVertex.h"
 #import "FoxNeighborhood.h"
-#import "FoxChunkVoxelData.h"
+#import "GSChunkVoxelData.h"
 #import "FoxBlockMesh.h"
 #import "FoxBlockMeshInsideCorner.h"
 

@@ -11,7 +11,7 @@
 #import "GSVoxel.h"
 #import "FoxFace.h"
 #import "FoxNeighborhood.h"
-#import "FoxChunkVoxelData.h"
+#import "GSChunkVoxelData.h"
 #import "FoxBlockMesh.h"
 #import "FoxBlockMeshRamp.h"
 

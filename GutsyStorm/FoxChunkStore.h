@@ -6,7 +6,7 @@
 //  Copyright 2012-2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxChunkVoxelData.h"
+#import "GSChunkVoxelData.h"
 #import "FoxRay.h"
 
 @class GSCamera;

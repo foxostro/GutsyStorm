@@ -9,7 +9,7 @@
 #import "FoxIntegerVector3.h"
 #import "FoxChunkGeometryData.h"
 #import "FoxChunkSunlightData.h"
-#import "FoxChunkVoxelData.h"
+#import "GSChunkVoxelData.h"
 #import "FoxRay.h"
 #import "FoxChunkStore.h"
 #import "GSBoxedTerrainVertex.h"

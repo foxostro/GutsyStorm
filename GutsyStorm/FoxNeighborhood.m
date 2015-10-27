@@ -11,13 +11,13 @@
 #import "GSVoxel.h"
 #import "FoxRay.h"
 #import "FoxNeighborhood.h"
-#import "FoxChunkVoxelData.h"
+#import "GSChunkVoxelData.h"
 #import "FoxChunkStore.h"
 
 
 @implementation FoxNeighborhood
 {
-    FoxChunkVoxelData *_neighbors[CHUNK_NUM_NEIGHBORS];
+    GSChunkVoxelData *_neighbors[CHUNK_NUM_NEIGHBORS];
 }
 
 + (vector_float3)offsetForNeighborIndex:(GSVoxelNeighborIndex)idx
@@ -80,19 +80,19 @@
     }
 }
 
-- (FoxChunkVoxelData *)neighborAtIndex:(GSVoxelNeighborIndex)idx
+- (GSChunkVoxelData *)neighborAtIndex:(GSVoxelNeighborIndex)idx
 {
     NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
     return _neighbors[idx];
 }
 
-- (void)setNeighborAtIndex:(GSVoxelNeighborIndex)idx neighbor:(FoxChunkVoxelData *)neighbor
+- (void)setNeighborAtIndex:(GSVoxelNeighborIndex)idx neighbor:(GSChunkVoxelData *)neighbor
 {
     NSAssert(idx < CHUNK_NUM_NEIGHBORS, @"idx is out of range");
     _neighbors[idx] = neighbor;
 }
 
-- (void)enumerateNeighborsWithBlock:(void (^)(FoxChunkVoxelData*))block
+- (void)enumerateNeighborsWithBlock:(void (^)(GSChunkVoxelData*))block
 {
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
@@ -100,7 +100,7 @@
     }
 }
 
-- (void)enumerateNeighborsWithBlock2:(void (^)(GSVoxelNeighborIndex, FoxChunkVoxelData*))block
+- (void)enumerateNeighborsWithBlock2:(void (^)(GSVoxelNeighborIndex, GSChunkVoxelData*))block
 {
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
@@ -118,7 +118,7 @@
         [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
     }
 
-    [self enumerateNeighborsWithBlock2:^(GSVoxelNeighborIndex i, FoxChunkVoxelData *voxels) {
+    [self enumerateNeighborsWithBlock2:^(GSVoxelNeighborIndex i, GSChunkVoxelData *voxels) {
         [voxels.voxels copyToCombinedNeighborhoodBuffer:(terrain_buffer_element_t *)combinedVoxelData
                                                   count:count
                                                neighbor:i];
@@ -127,7 +127,7 @@
     return combinedVoxelData;
 }
 
-- (FoxChunkVoxelData *)neighborVoxelAtPoint:(vector_long3 *)chunkLocalP
+- (GSChunkVoxelData *)neighborVoxelAtPoint:(vector_long3 *)chunkLocalP
 {
     if(chunkLocalP->x >= CHUNK_SIZE_X) {
         chunkLocalP->x -= CHUNK_SIZE_X;
@@ -196,7 +196,7 @@
     }
 }
 
-- (unsigned)lightAtPoint:(vector_long3)p getter:(FoxTerrainBuffer* (^)(FoxChunkVoxelData *c))getter
+- (unsigned)lightAtPoint:(vector_long3)p getter:(FoxTerrainBuffer* (^)(GSChunkVoxelData *c))getter
 {
     assert(CHUNK_LIGHTING_MAX < (1ull << (sizeof(unsigned)*8)) && "unsigned int must be large enough to store light values");
     
@@ -210,7 +210,7 @@
         return CHUNK_LIGHTING_MAX; // Space above the world is always bright.
     }
     
-    FoxChunkVoxelData *chunk = [self neighborVoxelAtPoint:&p];
+    GSChunkVoxelData *chunk = [self neighborVoxelAtPoint:&p];
     FoxTerrainBuffer *lightingBuffer = getter(chunk);
     
     unsigned lightLevel = (unsigned)[lightingBuffer valueAtPosition:p];

@@ -18,7 +18,7 @@
 #import "FoxChunkVBOs.h"
 #import "FoxChunkGeometryData.h"
 #import "FoxChunkSunlightData.h"
-#import "FoxChunkVoxelData.h"
+#import "GSChunkVoxelData.h"
 
 #import "GSGrid.h"
 #import "GSGridVBOs.h"
@@ -40,9 +40,9 @@
 
 - (FoxChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
 - (FoxChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
-- (FoxChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
-- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(FoxChunkVoxelData **)chunk;
+- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData **)chunk;
 - (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP;
 
 @end
@@ -53,7 +53,7 @@
     GSGridVBOs *_gridVBOs;
     GSGridGeometry *_gridGeometryData;
     GSGridSunlight *_gridSunlightData;
-    GSGrid<FoxChunkVoxelData *> *_gridVoxelData;
+    GSGrid<GSChunkVoxelData *> *_gridVoxelData;
 
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _chunkTaskQueue;
@@ -131,7 +131,7 @@
     GSVoxel voxel;
 
     {
-        FoxChunkVoxelData *voxelChunk = edit.originalObject;
+        GSChunkVoxelData *voxelChunk = edit.originalObject;
         vector_float3 minP = voxelChunk.minP;
         vector_long3 chunkLocalPos = GSMakeIntegerVector3(p.x-minP.x, p.y-minP.y+1, p.z-minP.z);
         voxel = [voxelChunk voxelAtLocalPosition:chunkLocalPos];
@@ -326,7 +326,7 @@
     assert(_activeRegion);
 
     [_gridVoxelData replaceItemAtPoint:pos transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
-        FoxChunkVoxelData *modifiedItem = [((FoxChunkVoxelData *)originalItem) copyWithEditAtPoint:pos block:block];
+        GSChunkVoxelData *modifiedItem = [((GSChunkVoxelData *)originalItem) copyWithEditAtPoint:pos block:block];
         [modifiedItem saveToFile];
         return modifiedItem;
     }];
@@ -337,7 +337,7 @@
 
 - (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(GSVoxel *)voxel
 {
-    FoxChunkVoxelData *chunk = nil;
+    GSChunkVoxelData *chunk = nil;
 
     assert(!_chunkStoreHasBeenShutdown);
     assert(voxel);
@@ -359,7 +359,7 @@
 {
     assert(!_chunkStoreHasBeenShutdown);
 
-    FoxChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
+    GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
 
     assert(chunk);
 
@@ -476,7 +476,7 @@
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         vector_float3 a = p + [FoxNeighborhood offsetForNeighborIndex:i];
-        FoxChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a]; // NOTE: may block
+        GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a]; // NOTE: may block
         assert(voxels);
         [neighborhood setNeighborAtIndex:i neighbor:voxels];
     }
@@ -495,7 +495,7 @@
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
         vector_float3 a = p + [FoxNeighborhood offsetForNeighborIndex:i];
-        FoxChunkVoxelData *voxels = nil;
+        GSChunkVoxelData *voxels = nil;
 
         if(![self tryToGetChunkVoxelsAtPoint:a chunk:&voxels]) {
             return NO;
@@ -528,7 +528,7 @@
     return [_gridSunlightData objectAtPoint:p];
 }
 
-- (FoxChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p
+- (GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
@@ -536,14 +536,14 @@
     return [_gridVoxelData objectAtPoint:p];
 }
 
-- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(FoxChunkVoxelData **)chunk
+- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData **)chunk
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(chunk);
     assert(_gridVoxelData);
 
-    FoxChunkVoxelData *v = nil;
+    GSChunkVoxelData *v = nil;
     BOOL success = [_gridVoxelData objectAtPoint:p
                                         blocking:NO
                                           object:&v
@@ -587,7 +587,7 @@
 {
     assert(!_chunkStoreHasBeenShutdown);
 
-    return [[FoxChunkVoxelData alloc] initWithMinP:minP
+    return [[GSChunkVoxelData alloc] initWithMinP:minP
                                            folder:_folder
                                    groupForSaving:_groupForSaving
                                    queueForSaving:_queueForSaving

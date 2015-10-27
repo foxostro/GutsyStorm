@@ -7,7 +7,7 @@
 //
 
 #import "FoxChunkSunlightData.h"
-#import "FoxChunkVoxelData.h"
+#import "GSChunkVoxelData.h"
 #import "FoxNeighborhood.h"
 #import "FoxMutableBuffer.h"
 
@@ -89,7 +89,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         }
     });
 
-    [neighborhood enumerateNeighborsWithBlock2:^(GSVoxelNeighborIndex i, FoxChunkVoxelData *voxels) {
+    [neighborhood enumerateNeighborsWithBlock2:^(GSVoxelNeighborIndex i, GSChunkVoxelData *voxels) {
         const GSVoxel *data = (const GSVoxel *)[voxels.voxels data];
         long offsetX = offsetsX[i];
         long offsetZ = offsetsZ[i];

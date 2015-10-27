@@ -1,5 +1,5 @@
 //
-//  FoxChunkVoxelData.m
+//  GSChunkVoxelData.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/17/12.
@@ -7,7 +7,7 @@
 //
 
 #import "FoxIntegerVector3.h"
-#import "FoxChunkVoxelData.h"
+#import "GSChunkVoxelData.h"
 #import "FoxRay.h"
 #import "FoxBoxedVector.h"
 #import "FoxChunkStore.h"
@@ -17,7 +17,7 @@
 #import "FoxMutableBuffer.h"
 
 
-@interface FoxChunkVoxelData ()
+@interface GSChunkVoxelData ()
 
 - (void)markOutsideVoxels:(FoxMutableBuffer *)data;
 - (FoxTerrainBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
@@ -28,7 +28,7 @@
 @end
 
 
-@implementation FoxChunkVoxelData
+@implementation GSChunkVoxelData
 {
     NSURL *_folder;
     dispatch_group_t _groupForSaving;
@@ -201,7 +201,7 @@
 
 - (void)saveToFile
 {
-    NSString *fileName = [FoxChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
+    NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
     NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
     [self.voxels saveToFile:url queue:_queueForSaving group:_groupForSaving];
 }
@@ -212,7 +212,7 @@
     FoxTerrainBuffer *buffer = nil;
 
     @autoreleasepool {
-        NSString *fileName = [FoxChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
+        NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
         NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
         NSError *error = nil;
         NSData *data = [NSData dataWithContentsOfFile:[url path]
@@ -239,12 +239,12 @@
     return buffer;
 }
 
-- (FoxChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
+- (GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
 {
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     terrain_buffer_element_t newValue = *((terrain_buffer_element_t *)&newBlock);
     FoxTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue];
-    FoxChunkVoxelData *modifiedVoxelData = [[FoxChunkVoxelData alloc] initWithMinP:minP
+    GSChunkVoxelData *modifiedVoxelData = [[GSChunkVoxelData alloc] initWithMinP:minP
                                                                           folder:_folder
                                                                   groupForSaving:_groupForSaving
                                                                   queueForSaving:_queueForSaving
