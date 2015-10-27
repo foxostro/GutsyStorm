@@ -20,9 +20,9 @@
 @interface GSChunkVoxelData ()
 
 - (void)markOutsideVoxels:(GSMutableBuffer *)data;
-- (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
+- (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(GSTerrainGeneratorBlock)generator
                                 postProcessor:(terrain_post_processor_t)postProcessor;
-- (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
+- (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(GSTerrainGeneratorBlock)generator
                                                      postProcessor:(terrain_post_processor_t)postProcessor;
 
 @end
@@ -48,7 +48,7 @@
               groupForSaving:(dispatch_group_t)groupForSaving
               queueForSaving:(dispatch_queue_t)queueForSaving
               chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-                   generator:(terrain_generator_t)generator
+                   generator:(GSTerrainGeneratorBlock)generator
                postProcessor:(terrain_post_processor_t)postProcessor
 {
     assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
@@ -160,7 +160,7 @@
  * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
  * the chunk is equal to maxP-minP. Ditto for the other major axii.
  */
-- (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(terrain_generator_t)generator
+- (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(GSTerrainGeneratorBlock)generator
                                 postProcessor:(terrain_post_processor_t)postProcessor
 {
     vector_float3 thisMinP = self.minP;
@@ -206,7 +206,7 @@
     [self.voxels saveToFile:url queue:_queueForSaving group:_groupForSaving];
 }
 
-- (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(terrain_generator_t)generator
+- (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(GSTerrainGeneratorBlock)generator
                                                      postProcessor:(terrain_post_processor_t)postProcessor
 {
     GSTerrainBuffer *buffer = nil;

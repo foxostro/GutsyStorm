@@ -18,7 +18,7 @@
                                camera:(nonnull GSCamera *)camera
                         terrainShader:(nonnull GSShader *)terrainShader
                             glContext:(nonnull NSOpenGLContext *)glContext
-                            generator:(nonnull terrain_generator_t)generator
+                            generator:(nonnull GSTerrainGeneratorBlock)generator
                         postProcessor:(nonnull terrain_post_processor_t)postProcessor;
 
 /* Assumes the caller has already locked the GL context or

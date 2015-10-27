@@ -437,7 +437,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                                   ofType:@"png"]
                                                      numTextures:4];
 
-        terrain_generator_t generator = ^(vector_float3 a, GSVoxel *voxel) {
+        GSTerrainGeneratorBlock generator = ^(vector_float3 a, GSVoxel *voxel) {
             const float terrainHeight = 40.0f;
             generateTerrainVoxel(seed, terrainHeight, a, voxel);
         };

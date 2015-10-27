@@ -65,7 +65,7 @@
     GSShader *_terrainShader;
     NSOpenGLContext *_glContext;
 
-    terrain_generator_t _generator;
+    GSTerrainGeneratorBlock _generator;
     terrain_post_processor_t _postProcessor;
 
     GSActiveRegion *_activeRegion;
@@ -221,7 +221,7 @@
                       camera:(GSCamera *)cam
                terrainShader:(GSShader *)shader
                    glContext:(NSOpenGLContext *)context
-                   generator:(terrain_generator_t)generatorCallback
+                   generator:(GSTerrainGeneratorBlock)generatorCallback
                postProcessor:(terrain_post_processor_t)postProcessorCallback
 {
     self = [super init];
