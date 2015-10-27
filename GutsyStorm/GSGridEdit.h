@@ -1,5 +1,5 @@
 //
-//  FoxGridEdit.h
+//  GSGridEdit.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/10/15.
@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #include <simd/simd.h>
 
-@interface FoxGridEdit : NSObject
+@interface GSGridEdit : NSObject
 
 @property (nonatomic, strong) id _Nullable originalObject;
 @property (nonatomic, strong) id _Nullable modifiedObject;

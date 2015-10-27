@@ -35,7 +35,7 @@
 		6FE185001BD7E9E7009A076D /* FoxTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* FoxTextLabel.m */; settings = {ASSET_TAGS = (); }; };
 		6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */; settings = {ASSET_TAGS = (); }; };
 		6FEE3F4E1BCF92800076E5B9 /* cursor.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */; settings = {ASSET_TAGS = (); }; };
-		6FFCBA661BC98DAD00A8D876 /* FoxGridEdit.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FFCBA651BC98DAD00A8D876 /* FoxGridEdit.m */; settings = {ASSET_TAGS = (); }; };
+		6FFCBA661BC98DAD00A8D876 /* GSGridEdit.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */; settings = {ASSET_TAGS = (); }; };
 		AC154885152C04EF00434374 /* FoxBoxedVector.m in Sources */ = {isa = PBXBuildFile; fileRef = AC154884152C04EF00434374 /* FoxBoxedVector.m */; };
 		AC202CC1151E437C00D91067 /* FoxFrustum.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC0151E437C00D91067 /* FoxFrustum.m */; };
 		AC202CC5151E453E00D91067 /* FoxPlane.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* FoxPlane.m */; };
@@ -124,8 +124,8 @@
 		6FEAEA7C1BDB75EA00C94A58 /* GSTerrainVertex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSTerrainVertex.h; sourceTree = "<group>"; };
 		6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cursor.frag.txt; sourceTree = "<group>"; };
 		6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cursor.vert.txt; sourceTree = "<group>"; };
-		6FFCBA641BC98DAD00A8D876 /* FoxGridEdit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxGridEdit.h; sourceTree = "<group>"; };
-		6FFCBA651BC98DAD00A8D876 /* FoxGridEdit.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxGridEdit.m; sourceTree = "<group>"; };
+		6FFCBA641BC98DAD00A8D876 /* GSGridEdit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridEdit.h; sourceTree = "<group>"; };
+		6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridEdit.m; sourceTree = "<group>"; };
 		AC154883152C04EF00434374 /* FoxBoxedVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBoxedVector.h; sourceTree = "<group>"; };
 		AC154884152C04EF00434374 /* FoxBoxedVector.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxBoxedVector.m; sourceTree = "<group>"; };
 		AC202CBF151E437C00D91067 /* FoxFrustum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxFrustum.h; sourceTree = "<group>"; };
@@ -409,8 +409,8 @@
 				AC56651416F03B440041E34F /* GSGridItem.h */,
 				AC48C44416F563E40017BA94 /* GSGrid.h */,
 				AC48C44516F563E40017BA94 /* GSGrid.m */,
-				6FFCBA641BC98DAD00A8D876 /* FoxGridEdit.h */,
-				6FFCBA651BC98DAD00A8D876 /* FoxGridEdit.m */,
+				6FFCBA641BC98DAD00A8D876 /* GSGridEdit.h */,
+				6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */,
 				AC3BDE9617002EE10005E6C2 /* FoxGridSunlight.h */,
 				AC3BDE9717002EE20005E6C2 /* FoxGridSunlight.m */,
 				ACE6ABE516F984D300DE88E3 /* FoxGridGeometry.h */,
@@ -507,7 +507,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6FFCBA661BC98DAD00A8D876 /* FoxGridEdit.m in Sources */,
+				6FFCBA661BC98DAD00A8D876 /* GSGridEdit.m in Sources */,
 				4A2CD0031513C3FC006C6551 /* main.m in Sources */,
 				6FE185001BD7E9E7009A076D /* FoxTextLabel.m in Sources */,
 				4A4E20771516B086008745E0 /* FoxVectorUtils.m in Sources */,

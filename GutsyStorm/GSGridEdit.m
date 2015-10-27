@@ -1,14 +1,14 @@
 //
-//  FoxGridEdit.m
+//  GSGridEdit.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/10/15.
 //  Copyright © 2015 Andrew Fox. All rights reserved.
 //
 
-#import "FoxGridEdit.h"
+#import "GSGridEdit.h"
 
-@implementation FoxGridEdit
+@implementation GSGridEdit
 
 - (instancetype)initWithOriginalItem:(id)item
                         modifiedItem:(id)replacement

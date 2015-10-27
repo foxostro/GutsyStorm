@@ -123,7 +123,7 @@
                                          }];
 }
 
-- (NSSet<FoxBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(FoxGridEdit *)edit
+- (NSSet<FoxBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(GSGridEdit *)edit
 {
     assert(edit);
     vector_float3 p = edit.pos;
@@ -181,11 +181,11 @@
     assert(_gridGeometryData);
 
     // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
-    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet<FoxBoxedVector *> * (FoxGridEdit *edit) {
+    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet<FoxBoxedVector *> * (GSGridEdit *edit) {
         return [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
     }];
 
-    NSSet<FoxBoxedVector *> * (^oneToOne)(FoxGridEdit *) = ^NSSet<FoxBoxedVector *> * (FoxGridEdit *edit) {
+    NSSet<FoxBoxedVector *> * (^oneToOne)(GSGridEdit *) = ^NSSet<FoxBoxedVector *> * (GSGridEdit *edit) {
         FoxBoxedVector *p = [FoxBoxedVector boxedVectorWithVector:edit.pos];
         return [NSSet<FoxBoxedVector *> setWithObject:p];
     };

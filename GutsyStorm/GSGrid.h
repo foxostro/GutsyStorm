@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "GSGridItem.h"
-#import "FoxGridEdit.h"
+#import "GSGridEdit.h"
 #import "GSReaderWriterLock.h"
 
 
@@ -51,7 +51,7 @@
 /* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are
  * notified that the item has been invalidated.
  */
-- (void)invalidateItemWithChange:(nonnull FoxGridEdit *)change;
+- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change;
 
 /* Method is called when the grid is just about to invalidate an item.
  * The item is passed in 'item' unless it is currently non-resident/evicted. In that case, 'item' will be nil.
@@ -61,13 +61,13 @@
 - (void)willInvalidateItem:(nonnull NSObject <GSGridItem> *)item atPoint:(vector_float3)p;
 
 // The specified change to the grid causes certain items to be invalidated in dependent grids.
-- (void)invalidateItemsInDependentGridsWithChange:(nonnull FoxGridEdit *)change;
+- (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change;
 
 /* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns
  * the points in 'dependentGrid' which actually depend on that point.
  */
 - (void)registerDependentGrid:(nonnull GSGrid *)dependentGrid
-                      mapping:(NSSet<FoxBoxedVector *> * _Nonnull (^ _Nonnull)(FoxGridEdit * _Nonnull))mapping;
+                      mapping:(NSSet<FoxBoxedVector *> * _Nonnull (^ _Nonnull)(GSGridEdit * _Nonnull))mapping;
 
 /* Applies the given transformation function to the item at the specified point.
  * This function returns a new grid item which is then inserted into the grid at the same position.

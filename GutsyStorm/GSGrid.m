@@ -275,7 +275,7 @@
     return nil;
 }
 
-- (void)invalidateItemWithChange:(FoxGridEdit *)change
+- (void)invalidateItemWithChange:(GSGridEdit *)change
 {
     // Invalidate asynchronously to avoid deadlock.
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
@@ -317,17 +317,17 @@
     // do nothing
 }
 
-- (void)invalidateItemsInDependentGridsWithChange:(FoxGridEdit *)change
+- (void)invalidateItemsInDependentGridsWithChange:(GSGridEdit *)change
 {
     assert(change);
 
     for(GSGrid *grid in _dependentGrids)
     {
-        NSSet * (^mapping)(FoxGridEdit *) = [_mappingToDependentGrids objectForKey:[grid description]];
+        NSSet * (^mapping)(GSGridEdit *) = [_mappingToDependentGrids objectForKey:[grid description]];
         NSSet *correspondingPoints = mapping(change);
         for(FoxBoxedVector *q in correspondingPoints)
         {
-            FoxGridEdit *secondaryChange = [[FoxGridEdit alloc] initWithOriginalItem:nil
+            GSGridEdit *secondaryChange = [[GSGridEdit alloc] initWithOriginalItem:nil
                                                                         modifiedItem:nil
                                                                                  pos:[q vectorValue]];
             [grid invalidateItemWithChange:secondaryChange];
@@ -335,7 +335,7 @@
     }
 }
 
-- (void)registerDependentGrid:(GSGrid *)grid mapping:(NSSet<FoxBoxedVector *> * (^)(FoxGridEdit *))mapping
+- (void)registerDependentGrid:(GSGrid *)grid mapping:(NSSet<FoxBoxedVector *> * (^)(GSGridEdit *))mapping
 {
     [_dependentGrids addObject:grid];
     [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
@@ -367,7 +367,7 @@
             }
             [bucket replaceObjectAtIndex:i withObject:replacement];
             
-            FoxGridEdit *change = [[FoxGridEdit alloc] initWithOriginalItem:item
+            GSGridEdit *change = [[GSGridEdit alloc] initWithOriginalItem:item
                                                            modifiedItem:replacement
                                                                     pos:p];
 
