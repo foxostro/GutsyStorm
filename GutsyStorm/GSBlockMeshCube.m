@@ -1,5 +1,5 @@
 //
-//  FoxBlockMeshCube.m
+//  GSBlockMeshCube.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 12/27/12.
@@ -13,9 +13,9 @@
 #import "FoxNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"
-#import "FoxBlockMeshCube.h"
+#import "GSBlockMeshCube.h"
 
-@implementation FoxBlockMeshCube
+@implementation GSBlockMeshCube
 
 - (instancetype)init
 {
