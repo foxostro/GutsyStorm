@@ -1,5 +1,5 @@
 //
-//  FoxBlockMeshMesh.m
+//  GSBlockMesh.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 1/1/13.
@@ -12,10 +12,10 @@
 #import "FoxFace.h"
 #import "FoxNeighborhood.h"
 #import "GSChunkVoxelData.h"
-#import "FoxBlockMesh.h"
+#import "GSBlockMesh.h"
 
 
-@interface FoxBlockMesh ()
+@interface GSBlockMesh ()
 
 - (void)rotateVertex:(struct GSTerrainVertex *)v quaternion:(vector_float4)quat;
 - (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(FoxFace *)face
@@ -29,7 +29,7 @@
 @end
 
 
-@implementation FoxBlockMesh
+@implementation GSBlockMesh
 {
     NSArray<FoxFace *> *_faces[2][NUM_VOXEL_DIRECTIONS];
 }

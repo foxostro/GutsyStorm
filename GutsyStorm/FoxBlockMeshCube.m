@@ -12,7 +12,7 @@
 #import "FoxFace.h"
 #import "FoxNeighborhood.h"
 #import "GSChunkVoxelData.h"
-#import "FoxBlockMesh.h"
+#import "GSBlockMesh.h"
 #import "FoxBlockMeshCube.h"
 
 @implementation FoxBlockMeshCube

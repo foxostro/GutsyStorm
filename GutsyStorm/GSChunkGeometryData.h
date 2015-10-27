@@ -14,7 +14,7 @@
 
 struct GSTerrainVertex;
 @class FoxNeighborhood;
-@class FoxBlockMesh;
+@class GSBlockMesh;
 @class GSChunkSunlightData;
 
 
@@ -23,7 +23,7 @@ struct GSTerrainVertex;
 + (nonnull NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP;
 
 /* Returns the shared block mesh factory for the specified voxel type. */
-+ (nonnull FoxBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type;
++ (nonnull GSBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type;
 
 - (nullable instancetype)initWithMinP:(vector_float3)minCorner
                                folder:(nonnull NSURL *)folder

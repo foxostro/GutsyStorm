@@ -6,6 +6,6 @@
 //  Copyright (c) 2012-2015 Andrew Fox. All rights reserved.
 //
 
-@interface FoxBlockMeshOutsideCorner : FoxBlockMesh
+@interface FoxBlockMeshOutsideCorner : GSBlockMesh
 
 @end

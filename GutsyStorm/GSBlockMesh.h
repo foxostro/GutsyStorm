@@ -1,5 +1,5 @@
 //
-//  FoxBlockMeshMesh.h
+//  GSBlockMesh.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 1/1/13.
@@ -8,7 +8,7 @@
 
 @class FoxFace;
 
-@interface FoxBlockMesh : NSObject
+@interface GSBlockMesh : NSObject
 
 - (void)setFaces:(nonnull NSArray<FoxFace *> *)faces;
 

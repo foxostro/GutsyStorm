@@ -12,7 +12,7 @@
 #import "GSBoxedTerrainVertex.h"
 #import "FoxNeighborhood.h"
 #import "GSChunkVoxelData.h"
-#import "FoxBlockMesh.h"
+#import "GSBlockMesh.h"
 #import "FoxBlockMeshOutsideCorner.h"
 
 @implementation FoxBlockMeshOutsideCorner

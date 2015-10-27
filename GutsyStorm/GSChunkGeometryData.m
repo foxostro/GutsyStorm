@@ -15,7 +15,7 @@
 #import "GSBoxedTerrainVertex.h"
 #import "GSVoxel.h"
 #import "FoxNeighborhood.h"
-#import "FoxBlockMesh.h"
+#import "GSBlockMesh.h"
 #import "FoxBlockMeshCube.h"
 #import "FoxBlockMeshRamp.h"
 #import "FoxBlockMeshInsideCorner.h"
@@ -50,9 +50,9 @@ static void applyLightToVertices(size_t numChunkVerts,
 
 @synthesize minP;
 
-+ (FoxBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type
++ (GSBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type
 {
-    static FoxBlockMesh *factories[NUM_VOXEL_TYPES] = {nil};
+    static GSBlockMesh *factories[NUM_VOXEL_TYPES] = {nil};
     static dispatch_once_t onceToken;
     
     dispatch_once(&onceToken, ^{
@@ -151,7 +151,7 @@ static void applyLightToVertices(size_t numChunkVerts,
             assert(type < NUM_VOXEL_TYPES);
 
             if(type != VOXEL_TYPE_EMPTY) {
-                FoxBlockMesh *factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
+                GSBlockMesh *factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
                 [factory generateGeometryForSingleBlockAtPosition:pos
                                                        vertexList:vertices
                                                         voxelData:neighborhood
