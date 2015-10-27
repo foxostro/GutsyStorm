@@ -9,10 +9,10 @@
 #import <Foundation/Foundation.h>
 #import "GSGrid.h"
 
-typedef void (^vbo_invalidation_notification_t)(void);
+typedef void (^GSVBOInvalidationNotificationBlock)(void);
 
 @interface GSGridVBOs : GSGrid<GSChunkVBOs *>
 
-@property (copy) vbo_invalidation_notification_t invalidationNotification;
+@property (nonatomic, copy) GSVBOInvalidationNotificationBlock invalidationNotification;
 
 @end
