@@ -22,29 +22,9 @@ enum
 
 
 @interface GSFrustum : NSObject
-{
-    struct fox_plane pl[6];
-    vector_float3 ntl;
-    vector_float3 ntr;
-    vector_float3 nbl;
-    vector_float3 nbr;
-    vector_float3 ftl;
-    vector_float3 ftr;
-    vector_float3 fbl;
-    vector_float3 fbr;
-    float nearD;
-    float farD;
-    float ratio;
-    float angle;
-    float tang;
-    float nw;
-    float nh;
-    float fw;
-    float fh;
-}
 
 - (void)setCamInternalsWithAngle:(float)angle ratio:(float)ratio nearD:(float)nearD farD:(float)farD;
 - (void)setCamDefWithCameraEye:(vector_float3)p cameraCenter:(vector_float3)l cameraUp:(vector_float3)u;
-- (int)boxInFrustumWithBoxVertices:(vector_float3 *)vertices;
+- (int)boxInFrustumWithBoxVertices:(nonnull vector_float3 *)vertices;
 
 @end

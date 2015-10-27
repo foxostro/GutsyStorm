@@ -19,10 +19,31 @@
 
 
 @implementation GSFrustum
+{
+    struct fox_plane pl[6];
+    vector_float3 ntl;
+    vector_float3 ntr;
+    vector_float3 nbl;
+    vector_float3 nbr;
+    vector_float3 ftl;
+    vector_float3 ftr;
+    vector_float3 fbl;
+    vector_float3 fbr;
+    float nearD;
+    float farD;
+    float ratio;
+    float angle;
+    float tang;
+    float nw;
+    float nh;
+    float fw;
+    float fh;
+}
 
-- (instancetype)init
+- (nullable instancetype)init
 {
     self = [super init];
+
     if (self) {
         // Initialization code here.
         const vector_float3 zero = {0};
@@ -121,9 +142,9 @@
 }
 
 
-- (int)boxInFrustumWithBoxVertices:(vector_float3 *)vertices
+- (int)boxInFrustumWithBoxVertices:(nonnull vector_float3 *)vertices
 {
-    int result = FRUSTUM_INSIDE, out,in;
+    int result = FRUSTUM_INSIDE, out, in;
     
     // for each plane do ...
     for(int i=0; i < 6; i++) {
