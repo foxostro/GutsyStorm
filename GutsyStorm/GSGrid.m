@@ -11,7 +11,7 @@
 #import "GSVoxel.h"
 #import "GSGrid.h"
 #import "GSReaderWriterLock.h"
-#import "FoxBoxedVector.h"
+#import "GSBoxedVector.h"
 
 
 @interface GSGrid ()
@@ -325,7 +325,7 @@
     {
         NSSet * (^mapping)(GSGridEdit *) = [_mappingToDependentGrids objectForKey:[grid description]];
         NSSet *correspondingPoints = mapping(change);
-        for(FoxBoxedVector *q in correspondingPoints)
+        for(GSBoxedVector *q in correspondingPoints)
         {
             GSGridEdit *secondaryChange = [[GSGridEdit alloc] initWithOriginalItem:nil
                                                                         modifiedItem:nil
@@ -335,7 +335,7 @@
     }
 }
 
-- (void)registerDependentGrid:(GSGrid *)grid mapping:(NSSet<FoxBoxedVector *> * (^)(GSGridEdit *))mapping
+- (void)registerDependentGrid:(GSGrid *)grid mapping:(NSSet<GSBoxedVector *> * (^)(GSGridEdit *))mapping
 {
     [_dependentGrids addObject:grid];
     [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];

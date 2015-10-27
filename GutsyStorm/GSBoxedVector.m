@@ -1,5 +1,5 @@
 //
-//  FoxBoxedVector.m
+//  GSBoxedVector.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/3/12.
@@ -7,30 +7,30 @@
 //
 
 #import "FoxVectorUtils.h"
-#import "FoxBoxedVector.h"
+#import "GSBoxedVector.h"
 
 
-@interface FoxBoxedVector ()
+@interface GSBoxedVector ()
 
 - (NSUInteger)computeHash;
 
 @end
 
 
-@implementation FoxBoxedVector
+@implementation GSBoxedVector
 {
     vector_float3 _vector;
     NSUInteger _cachedHash;
 }
 
-+ (FoxBoxedVector *)boxedVectorWithVector:(vector_float3)vector
++ (GSBoxedVector *)boxedVectorWithVector:(vector_float3)vector
 {
-    return [[FoxBoxedVector alloc] initWithVector:vector];
+    return [[GSBoxedVector alloc] initWithVector:vector];
 }
 
-+ (FoxBoxedVector *)boxedVectorWithIntegerVector:(vector_long3)vector
++ (GSBoxedVector *)boxedVectorWithIntegerVector:(vector_long3)vector
 {
-    return [[FoxBoxedVector alloc] initWithIntegerVector:vector];
+    return [[GSBoxedVector alloc] initWithIntegerVector:vector];
 }
 
 - (instancetype)initWithVector:(vector_float3)v
@@ -79,7 +79,7 @@
     return [self isEqualToVector:other];
 }
 
-- (BOOL)isEqualToVector:(FoxBoxedVector *)otherVector
+- (BOOL)isEqualToVector:(GSBoxedVector *)otherVector
 {
     if(self == otherVector) {
         return YES;
@@ -102,7 +102,7 @@
 
 - (instancetype)copyWithZone:(NSZone *)zone
 {
-    return self; // FoxBoxedVector is immutable. Return self rather than performing a deep copy.
+    return self; // GSBoxedVector is immutable. Return self rather than performing a deep copy.
 }
 
 - (NSUInteger)computeHash

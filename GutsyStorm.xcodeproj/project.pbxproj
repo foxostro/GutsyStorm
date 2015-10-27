@@ -36,7 +36,7 @@
 		6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */; settings = {ASSET_TAGS = (); }; };
 		6FEE3F4E1BCF92800076E5B9 /* cursor.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */; settings = {ASSET_TAGS = (); }; };
 		6FFCBA661BC98DAD00A8D876 /* GSGridEdit.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */; settings = {ASSET_TAGS = (); }; };
-		AC154885152C04EF00434374 /* FoxBoxedVector.m in Sources */ = {isa = PBXBuildFile; fileRef = AC154884152C04EF00434374 /* FoxBoxedVector.m */; };
+		AC154885152C04EF00434374 /* GSBoxedVector.m in Sources */ = {isa = PBXBuildFile; fileRef = AC154884152C04EF00434374 /* GSBoxedVector.m */; };
 		AC202CC1151E437C00D91067 /* FoxFrustum.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC0151E437C00D91067 /* FoxFrustum.m */; };
 		AC202CC5151E453E00D91067 /* FoxPlane.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* FoxPlane.m */; };
 		AC2B281816927F6B00BFBF7F /* GSBlockMeshInsideCorner.m in Sources */ = {isa = PBXBuildFile; fileRef = AC2B281716927F6B00BFBF7F /* GSBlockMeshInsideCorner.m */; };
@@ -126,8 +126,8 @@
 		6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cursor.vert.txt; sourceTree = "<group>"; };
 		6FFCBA641BC98DAD00A8D876 /* GSGridEdit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridEdit.h; sourceTree = "<group>"; };
 		6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridEdit.m; sourceTree = "<group>"; };
-		AC154883152C04EF00434374 /* FoxBoxedVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxBoxedVector.h; sourceTree = "<group>"; };
-		AC154884152C04EF00434374 /* FoxBoxedVector.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxBoxedVector.m; sourceTree = "<group>"; };
+		AC154883152C04EF00434374 /* GSBoxedVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBoxedVector.h; sourceTree = "<group>"; };
+		AC154884152C04EF00434374 /* GSBoxedVector.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedVector.m; sourceTree = "<group>"; };
 		AC202CBF151E437C00D91067 /* FoxFrustum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxFrustum.h; sourceTree = "<group>"; };
 		AC202CC0151E437C00D91067 /* FoxFrustum.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FoxFrustum.m; sourceTree = "<group>"; };
 		AC202CC3151E453100D91067 /* FoxPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FoxPlane.h; sourceTree = "<group>"; };
@@ -303,8 +303,8 @@
 				6FEAEA7C1BDB75EA00C94A58 /* GSTerrainVertex.h */,
 				4AE4E550153B982100FC3047 /* GSBoxedTerrainVertex.h */,
 				4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */,
-				AC154883152C04EF00434374 /* FoxBoxedVector.h */,
-				AC154884152C04EF00434374 /* FoxBoxedVector.m */,
+				AC154883152C04EF00434374 /* GSBoxedVector.h */,
+				AC154884152C04EF00434374 /* GSBoxedVector.m */,
 				4A9EC91815282ADA009C80FF /* FoxAABB.h */,
 				4A9EC91915282ADA009C80FF /* FoxAABB.m */,
 				4ACB9C271527CF45005D50B8 /* FoxRay.h */,
@@ -523,7 +523,7 @@
 				ACE99D70151FE922006055F6 /* snoise3.c in Sources */,
 				4ACB9C2A1527CF50005D50B8 /* FoxRay.m in Sources */,
 				4A9EC91A15282ADA009C80FF /* FoxAABB.m in Sources */,
-				AC154885152C04EF00434374 /* FoxBoxedVector.m in Sources */,
+				AC154885152C04EF00434374 /* GSBoxedVector.m in Sources */,
 				6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */,
 				4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */,
 				4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */,

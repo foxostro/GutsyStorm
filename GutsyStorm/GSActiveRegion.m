@@ -9,7 +9,7 @@
 #import "GSActiveRegion.h"
 #import "FoxFrustum.h"
 #import "GSVoxel.h"
-#import "FoxBoxedVector.h"
+#import "GSBoxedVector.h"
 #import "GSCamera.h"
 #import "GSGridItem.h"
 #import "GSGridVBOs.h"
@@ -130,12 +130,12 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     
     BOOL didSkipSomeCreationTasks = NO;
     NSMutableArray<GSChunkVBOs *> *vbosInCameraFrustum = [NSMutableArray<GSChunkVBOs *> new];
-    NSArray<FoxBoxedVector *> *points = [self pointsInCameraFrustum];
+    NSArray<GSBoxedVector *> *points = [self pointsInCameraFrustum];
     
     NSUInteger vboGenLimit = 2;
     NSUInteger vboGenCount = 0;
     
-    for(FoxBoxedVector *boxedPosition in points)
+    for(GSBoxedVector *boxedPosition in points)
     {
         if (_shouldShutdown) {
             return;
@@ -185,9 +185,9 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     }
 }
 
-- (NSArray<FoxBoxedVector *> *)pointsInCameraFrustum
+- (NSArray<GSBoxedVector *> *)pointsInCameraFrustum
 {
-    NSMutableArray<FoxBoxedVector *> *points = [NSMutableArray<FoxBoxedVector *> new];
+    NSMutableArray<GSBoxedVector *> *points = [NSMutableArray<GSBoxedVector *> new];
 
     FoxFrustum *frustum = _camera.frustum;
     const vector_float3 center = _camera.cameraEye;
@@ -227,11 +227,11 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
         corners[7] = corners[0] + (vector_float3){0,            CHUNK_SIZE_Y, 0};
 
         if(FRUSTUM_OUTSIDE != [frustum boxInFrustumWithBoxVertices:corners]) {
-            [points addObject:[FoxBoxedVector boxedVectorWithVector:centerP]];
+            [points addObject:[GSBoxedVector boxedVectorWithVector:centerP]];
         }
     }
     
-    [points sortUsingComparator:^NSComparisonResult(FoxBoxedVector *p1, FoxBoxedVector *p2) {
+    [points sortUsingComparator:^NSComparisonResult(GSBoxedVector *p1, GSBoxedVector *p2) {
         float d1 = vector_distance([p1 vectorValue], center);
         float d2 = vector_distance([p2 vectorValue], center);
         

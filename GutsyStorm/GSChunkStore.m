@@ -12,7 +12,7 @@
 #import "GSActiveRegion.h"
 #import "GSShader.h"
 #import "GSChunkStore.h"
-#import "FoxBoxedVector.h"
+#import "GSBoxedVector.h"
 #import "GSNeighborhood.h"
 
 #import "GSChunkVBOs.h"
@@ -123,7 +123,7 @@
                                          }];
 }
 
-- (NSSet<FoxBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(GSGridEdit *)edit
+- (NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(GSGridEdit *)edit
 {
     assert(edit);
     vector_float3 p = edit.pos;
@@ -142,15 +142,15 @@
     }
 
     if (fullRebuild) {
-        NSMutableArray<FoxBoxedVector *> *correspondingPoints =
-            [[NSMutableArray<FoxBoxedVector *> alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
+        NSMutableArray<GSBoxedVector *> *correspondingPoints =
+            [[NSMutableArray<GSBoxedVector *> alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
         for(GSVoxelNeighborIndex i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
         {
             vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
-            FoxBoxedVector *boxedPoint = [FoxBoxedVector boxedVectorWithVector:(p + offset)];
+            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:(p + offset)];
             [correspondingPoints addObject:boxedPoint];
         }
-        return [NSSet<FoxBoxedVector *> setWithArray:correspondingPoints];
+        return [NSSet<GSBoxedVector *> setWithArray:correspondingPoints];
     } else {
         /* If the modified block is below an Inside block then changes to it can only affect lighting for blocks at most
          * CHUNK_LIGHTING_MAX steps away, but even this is too generous for many changes. To precisely determine the
@@ -161,13 +161,13 @@
          */
         // XXX: Do the precise change range computation described above.
         const unsigned m = CHUNK_LIGHTING_MAX;
-        NSMutableSet<FoxBoxedVector *> *set = [NSMutableSet<FoxBoxedVector *> new];
-        [set addObjectsFromArray:@[[FoxBoxedVector boxedVectorWithVector:p],
-                                   [FoxBoxedVector boxedVectorWithVector:(p + vector_make(+m,  0,  0))],
-                                   [FoxBoxedVector boxedVectorWithVector:(p + vector_make(-m,  0,  0))],
-                                   [FoxBoxedVector boxedVectorWithVector:(p + vector_make( 0, -m,  0))],
-                                   [FoxBoxedVector boxedVectorWithVector:(p + vector_make( 0,  0, +m))],
-                                   [FoxBoxedVector boxedVectorWithVector:(p + vector_make( 0,  0, -m))],
+        NSMutableSet<GSBoxedVector *> *set = [NSMutableSet<GSBoxedVector *> new];
+        [set addObjectsFromArray:@[[GSBoxedVector boxedVectorWithVector:p],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make(+m,  0,  0))],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make(-m,  0,  0))],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make( 0, -m,  0))],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make( 0,  0, +m))],
+                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make( 0,  0, -m))],
                                    ]];
         return set;
     }
@@ -181,13 +181,13 @@
     assert(_gridGeometryData);
 
     // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
-    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet<FoxBoxedVector *> * (GSGridEdit *edit) {
+    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet<GSBoxedVector *> * (GSGridEdit *edit) {
         return [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
     }];
 
-    NSSet<FoxBoxedVector *> * (^oneToOne)(GSGridEdit *) = ^NSSet<FoxBoxedVector *> * (GSGridEdit *edit) {
-        FoxBoxedVector *p = [FoxBoxedVector boxedVectorWithVector:edit.pos];
-        return [NSSet<FoxBoxedVector *> setWithObject:p];
+    NSSet<GSBoxedVector *> * (^oneToOne)(GSGridEdit *) = ^NSSet<GSBoxedVector *> * (GSGridEdit *edit) {
+        GSBoxedVector *p = [GSBoxedVector boxedVectorWithVector:edit.pos];
+        return [NSSet<GSBoxedVector *> setWithObject:p];
     };
 
     // Each chunk geometry object depends on the single, corresponding chunk sunlight object.

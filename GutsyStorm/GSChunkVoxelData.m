@@ -9,7 +9,7 @@
 #import "FoxIntegerVector3.h"
 #import "GSChunkVoxelData.h"
 #import "FoxRay.h"
-#import "FoxBoxedVector.h"
+#import "GSBoxedVector.h"
 #import "GSChunkStore.h"
 #import "GSNeighborhood.h"
 #import "GSErrorCodes.h"

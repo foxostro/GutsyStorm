@@ -12,7 +12,7 @@
 #import "GSReaderWriterLock.h"
 
 
-@class FoxBoxedVector;
+@class GSBoxedVector;
 
 
 @interface GSGrid<__covariant TYPE> : NSObject
@@ -67,7 +67,7 @@
  * the points in 'dependentGrid' which actually depend on that point.
  */
 - (void)registerDependentGrid:(nonnull GSGrid *)dependentGrid
-                      mapping:(NSSet<FoxBoxedVector *> * _Nonnull (^ _Nonnull)(GSGridEdit * _Nonnull))mapping;
+                      mapping:(NSSet<GSBoxedVector *> * _Nonnull (^ _Nonnull)(GSGridEdit * _Nonnull))mapping;
 
 /* Applies the given transformation function to the item at the specified point.
  * This function returns a new grid item which is then inserted into the grid at the same position.
