@@ -14,6 +14,8 @@
 #import "GSBoxedTerrainVertex.h"
 #import "GSVBOHolder.h"
 
+#import <OpenGL/gl.h>
+
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
 

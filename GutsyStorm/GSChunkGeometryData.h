@@ -7,7 +7,6 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <OpenGL/gl.h>
 #import "GSGridItem.h"
 #import "GSVoxel.h"
 #import "GSTerrainVertex.h"

@@ -27,6 +27,8 @@
 
 #import "GSMatrixUtils.h"
 
+#import <OpenGL/gl.h>
+
 
 @interface GSChunkStore ()
 
