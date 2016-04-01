@@ -36,7 +36,7 @@ If the frame rate is very low then there are two things you might want to try:
 2. Try lowering the size of the "active region" by entering the following in
    Terminal:
 
-    % defaults write com.foxostro.GutsyStorm ActiveRegionExtent -int 128
+    % defaults write ~/Library/Containers/com.foxostro.GutsyStorm/Data/Library/Preferences/com.foxostro.GutsyStorm.plist ActiveRegionExtent -int 128
 
    You may also want to this with a value of "64" or "192".
    (The default is 256.)
