@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import "GSOpenGLView.h"
 
-@interface GSOpenGLViewController : NSViewController<FoxOpenGLViewDelegate, NSApplicationDelegate>
+@interface GSOpenGLViewController : NSViewController<GSOpenGLViewDelegate, NSApplicationDelegate>
 
 - (void)openGLView:(nonnull GSOpenGLView *)view drawableSizeWillChange:(CGSize)size;
 - (void)drawInOpenGLView:(nonnull GSOpenGLView *)view;

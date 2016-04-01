@@ -1,5 +1,5 @@
 //
-//  FoxByteBuffer.h
+//  GSTerrainBuffer.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/17/13.
@@ -45,9 +45,10 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
 
 @property (nonatomic, readonly) vector_long3 dimensions;
 
-/* Creates a new FoxByteBuffer and initializes it with data from file.
- * The dimensions of the buffer must be specified upfront in order to ensure the file contains the correct amount of data.
- * File I/O is performed asynchronously on the specified queue, and the new object is returned through the completion handler block.
+/* Creates a new GSTerrainBuffer and initializes it with data from file.
+ * The dimensions of the buffer must be specified upfront in order to ensure the file contains the correct amount of
+ * data. File I/O is performed asynchronously on the specified queue, and the new object is returned through the
+ * completion handler block.
  * On error, the completion handler has aBuffer==nil and `error' provides details about the failure.
  */
 + (void)newBufferFromFile:(nonnull NSURL *)url
@@ -56,7 +57,8 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
         completionHandler:(nonnull GSBufferCompletionHandler)completionHandler;
 
 /* Creates a new buffer of dimensions (CHUNK_SIZE_X+2) x (CHUNK_SIZE_Y) x (CHUNK_SIZE_Z+2).
- * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are discarded.
+ * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are
+ * discarded.
  */
 + (nullable instancetype)newBufferFromLargerRawBuffer:(const GSTerrainBufferElement * _Nonnull)srcBuf
                                               srcMinP:(vector_long3)srcMinP
@@ -73,8 +75,8 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
  */
 - (GSTerrainBufferElement)valueAtPosition:(vector_long3)chunkLocalP;
 
-/* Given a specific vertex position in the chunk, and a normal for that vertex, get the contribution of the (lighting) buffer on
- * the vertex.
+/* Given a specific vertex position in the chunk, and a normal for that vertex, get the contribution of the (lighting)
+ * buffer on the vertex.
  *
  * vertexPosInWorldSpace -- Vertex position in world space.
  * normal -- Vertex normal

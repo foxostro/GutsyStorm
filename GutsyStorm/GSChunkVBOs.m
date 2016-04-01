@@ -102,7 +102,7 @@ typedef GLuint index_t;
 
 - (instancetype)copyWithZone:(NSZone *)zone
 {
-    return self; // All FoxChunkVBO objects are immutable, so return self instead of deep copying.
+    return self; // All GSChunkVBO objects are immutable, so return self instead of deep copying.
 }
 
 - (void)draw

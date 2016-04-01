@@ -12,7 +12,7 @@
 @class GSOpenGLView;
 
 
-@protocol FoxOpenGLViewDelegate <NSObject>
+@protocol GSOpenGLViewDelegate <NSObject>
 
 - (void)openGLView:(nonnull GSOpenGLView *)view drawableSizeWillChange:(CGSize)size;
 - (void)drawInOpenGLView:(nonnull GSOpenGLView *)view;
@@ -22,7 +22,7 @@
 
 @interface GSOpenGLView : NSOpenGLView
 
-@property (nonatomic, weak) id<FoxOpenGLViewDelegate> _Nullable delegate;
+@property (nonatomic, weak) id<GSOpenGLViewDelegate> _Nullable delegate;
 
 - (void)shutdown;
 

@@ -1,5 +1,5 @@
 //
-//  FoxErrorCodes.m
+//  GSErrorCodes.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/28/12.

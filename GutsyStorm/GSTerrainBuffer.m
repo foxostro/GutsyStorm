@@ -1,5 +1,5 @@
 //
-//  FoxByteBuffer.m
+//  GSTerrainBuffer.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/17/13.
@@ -58,7 +58,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
             return;
         }
 
-        // Map the data object to a buffer in memory and use it to initialize a new FoxByteBuffer object.
+        // Map the data object to a buffer in memory and use it to initialize a new GSTerrainBuffer object.
         {
             size_t size = 0;
             const void *buffer = NULL;
@@ -140,7 +140,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
 
 - (instancetype)copyWithZone:(NSZone *)zone
 {
-    return self; // FoxBuffer is immutable. Return self rather than perform a deep copy.
+    return self; // GSTerrainBuffer is immutable. Return self rather than perform a deep copy.
 }
 
 - (GSTerrainBufferElement)valueAtPosition:(vector_long3)chunkLocalPos
