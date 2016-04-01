@@ -27,15 +27,15 @@
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
 		4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */; };
-		6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */; settings = {ASSET_TAGS = (); }; };
-		6F9018491BD31EE300CD21FB /* crosshairs.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018471BD31EE300CD21FB /* crosshairs.frag.txt */; settings = {ASSET_TAGS = (); }; };
-		6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */; settings = {ASSET_TAGS = (); }; };
-		6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184B1BD33F8400CD21FB /* text.frag.txt */; settings = {ASSET_TAGS = (); }; };
-		6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184C1BD33F8400CD21FB /* text.vert.txt */; settings = {ASSET_TAGS = (); }; };
-		6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */; settings = {ASSET_TAGS = (); }; };
-		6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */; settings = {ASSET_TAGS = (); }; };
-		6FEE3F4E1BCF92800076E5B9 /* cursor.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */; settings = {ASSET_TAGS = (); }; };
-		6FFCBA661BC98DAD00A8D876 /* GSGridEdit.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */; settings = {ASSET_TAGS = (); }; };
+		6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */; };
+		6F9018491BD31EE300CD21FB /* crosshairs.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018471BD31EE300CD21FB /* crosshairs.frag.txt */; };
+		6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */; };
+		6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184B1BD33F8400CD21FB /* text.frag.txt */; };
+		6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184C1BD33F8400CD21FB /* text.vert.txt */; };
+		6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */; };
+		6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */; };
+		6FEE3F4E1BCF92800076E5B9 /* cursor.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */; };
+		6FFCBA661BC98DAD00A8D876 /* GSGridEdit.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FFCBA651BC98DAD00A8D876 /* GSGridEdit.m */; };
 		AC154885152C04EF00434374 /* GSBoxedVector.m in Sources */ = {isa = PBXBuildFile; fileRef = AC154884152C04EF00434374 /* GSBoxedVector.m */; };
 		AC202CC1151E437C00D91067 /* GSFrustum.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC0151E437C00D91067 /* GSFrustum.m */; };
 		AC202CC5151E453E00D91067 /* GSPlane.m in Sources */ = {isa = PBXBuildFile; fileRef = AC202CC4151E453E00D91067 /* GSPlane.m */; };
@@ -455,7 +455,7 @@
 		4A2CCFE91513C3FC006C6551 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0700;
+				LastUpgradeCheck = 0730;
 				ORGANIZATIONNAME = "Andrew Fox";
 				TargetAttributes = {
 					4A2CCFF11513C3FC006C6551 = {
@@ -618,6 +618,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 			};
 			name = Debug;
