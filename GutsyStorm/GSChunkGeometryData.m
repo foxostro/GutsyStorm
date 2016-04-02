@@ -23,7 +23,7 @@
 #import "SyscallWrappers.h"
 
 
-struct fox_chunk_geometry_header
+struct GSChunkGeometryHeader
 {
     uint8_t w, h, d;
     GLsizei numChunkVerts;
@@ -106,8 +106,8 @@ static void applyLightToVertices(size_t numChunkVerts,
 {
     assert(dst);
 
-    const struct fox_chunk_geometry_header *restrict header = [_data bytes];
-    const GSTerrainVertex * restrict vertsBuffer = ((void *)header) + sizeof(struct fox_chunk_geometry_header);
+    const struct GSChunkGeometryHeader *restrict header = [_data bytes];
+    const GSTerrainVertex * restrict vertsBuffer = ((void *)header) + sizeof(struct GSChunkGeometryHeader);
 
     // consistency checks
     assert(header->w == CHUNK_SIZE_X);
@@ -163,11 +163,11 @@ static void applyLightToVertices(size_t numChunkVerts,
     const GLsizei numChunkVerts = (GLsizei)[vertices count];
 
     const uint32_t len = numChunkVerts * sizeof(GSTerrainVertex);
-    const size_t capacity = sizeof(struct fox_chunk_geometry_header) + len;
+    const size_t capacity = sizeof(struct GSChunkGeometryHeader) + len;
     NSMutableData *data = [[NSMutableData alloc] initWithBytesNoCopy:malloc(capacity) length:capacity freeWhenDone:YES];
 
-    struct fox_chunk_geometry_header * header = [data mutableBytes];
-    GSTerrainVertex * vertsBuffer = (void *)header + sizeof(struct fox_chunk_geometry_header);
+    struct GSChunkGeometryHeader * header = [data mutableBytes];
+    GSTerrainVertex * vertsBuffer = (void *)header + sizeof(struct GSChunkGeometryHeader);
 
     header->w = CHUNK_SIZE_X;
     header->h = CHUNK_SIZE_Y;
