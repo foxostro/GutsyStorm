@@ -42,7 +42,7 @@ struct GSPostProcessingRule
     GSVoxel replacement;
 };
 
-struct fox_post_processing_rule_set
+struct GSPostProcessingRuleSet
 {
     size_t count;
     struct GSPostProcessingRule *rules;
@@ -311,7 +311,7 @@ static struct GSPostProcessingRule replacementRulesB[] =
     },
 };
 
-static struct fox_post_processing_rule_set replacementRuleSets[] =
+static struct GSPostProcessingRuleSet replacementRuleSets[] =
 {
     {
         .count = ARRAY_LEN(replacementRulesA),
@@ -348,8 +348,8 @@ static struct GSPostProcessingRule * findRuleForCellPosition(size_t numRules, st
                                                            GSVoxel *voxels, vector_long3 minP, vector_long3 maxP);
 static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
                                     GSVoxel *voxelsIn, GSVoxel *voxelsOut,
-                                    struct fox_post_processing_rule_set *ruleSet, GSVoxelType *prevType_p);
-static void postProcessVoxels(struct fox_post_processing_rule_set *ruleSet,
+                                    struct GSPostProcessingRuleSet *ruleSet, GSVoxelType *prevType_p);
+static void postProcessVoxels(struct GSPostProcessingRuleSet *ruleSet,
                               GSVoxel *voxelsIn, GSVoxel *voxelsOut,
                               vector_long3 minP, vector_long3 maxP);
 static float groundGradient(float terrainHeight, vector_float3 p);
@@ -651,7 +651,7 @@ static struct GSPostProcessingRule * findRuleForCellPosition(size_t numRules, st
 
 static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
                                     GSVoxel *voxelsIn, GSVoxel *voxelsOut,
-                                    struct fox_post_processing_rule_set *ruleSet, GSVoxelType *prevType_p)
+                                    struct GSPostProcessingRuleSet *ruleSet, GSVoxelType *prevType_p)
 {
     assert(voxelsIn);
     assert(voxelsOut);
@@ -678,7 +678,7 @@ static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector
     *prevType_p = voxel->type;
 }
 
-static void postProcessVoxels(struct fox_post_processing_rule_set *ruleSet,
+static void postProcessVoxels(struct GSPostProcessingRuleSet *ruleSet,
                               GSVoxel *voxelsIn, GSVoxel *voxelsOut,
                               vector_long3 minP, vector_long3 maxP)
 {
