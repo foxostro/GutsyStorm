@@ -20,7 +20,7 @@
 
 - (instancetype)initWithName:(NSString *)name
                  cacheFolder:(NSURL *)folder
-                     factory:(fox_grid_item_factory_t)factory
+                     factory:(GSGridItemFactory)factory
 {
     if (self = [super initWithName:name factory:factory]) {
         _folder = folder;

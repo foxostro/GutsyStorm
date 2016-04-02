@@ -13,7 +13,7 @@
 
 @implementation GSGridVBOs
 
-- (instancetype)initWithName:(NSString *)name factory:(fox_grid_item_factory_t)factory
+- (instancetype)initWithName:(NSString *)name factory:(GSGridItemFactory)factory
 {
     if (self = [super initWithName:name factory:factory]) {
         self.invalidationNotification = ^{ /* do nothing */ };

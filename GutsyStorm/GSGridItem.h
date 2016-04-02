@@ -30,4 +30,4 @@
 @end
 
 /* This block defines a factory to generate new grid item objects given only the unique minP of the item. */
-typedef NSObject<GSGridItem> * (^fox_grid_item_factory_t)(vector_float3 minP);
+typedef NSObject<GSGridItem> * (^GSGridItemFactory)(vector_float3 minP);

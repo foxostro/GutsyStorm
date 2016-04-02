@@ -10,6 +10,6 @@
 
 - (nullable instancetype)initWithName:(nonnull NSString *)name
                           cacheFolder:(nonnull NSURL *)folder
-                              factory:(nonnull fox_grid_item_factory_t)factory;
+                              factory:(nonnull GSGridItemFactory)factory;
 
 @end

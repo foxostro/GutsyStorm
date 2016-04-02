@@ -20,7 +20,7 @@
 - (nullable instancetype)init NS_UNAVAILABLE;
 
 - (nullable instancetype)initWithName:(nonnull NSString *)name
-                            factory:(nonnull fox_grid_item_factory_t)factory NS_DESIGNATED_INITIALIZER;
+                            factory:(nonnull GSGridItemFactory)factory NS_DESIGNATED_INITIALIZER;
 
 /* Returns the object corresponding to the given point on the grid. Creates the object from the factory, if necessary. */
 - (TYPE _Nonnull)objectAtPoint:(vector_float3)p;

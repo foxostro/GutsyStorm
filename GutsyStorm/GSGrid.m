@@ -35,7 +35,7 @@
     int32_t _n;
     float _loadLevelToTriggerResize;
     
-    fox_grid_item_factory_t _factory;
+    GSGridItemFactory _factory;
 
     NSMutableArray<GSGrid *> *_dependentGrids;
     NSMutableDictionary *_mappingToDependentGrids;
@@ -48,7 +48,7 @@
 }
 
 - (instancetype)initWithName:(NSString *)name
-                     factory:(fox_grid_item_factory_t)factory
+                     factory:(GSGridItemFactory)factory
 {
     if (self = [super init]) {
         _factory = [factory copy];
