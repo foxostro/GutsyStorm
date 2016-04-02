@@ -14,17 +14,20 @@
 
 @interface GSFace : NSObject
 
-@property (readonly) BOOL eligibleForOmission;
-@property (copy) NSArray<GSBoxedTerrainVertex *> *vertexList;
-@property (readonly) GSVoxelFace correspondingCubeFace;
+@property (nonatomic, readonly) BOOL eligibleForOmission;
+@property (nonatomic, copy, nonnull) NSArray<GSBoxedTerrainVertex *> *vertexList;
+@property (nonatomic, readonly) GSVoxelFace correspondingCubeFace;
 
-+ (GSFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face;
-+ (GSFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face;
++ (nonnull GSFace *)faceWithQuad:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
+           correspondingCubeFace:(GSVoxelFace)face;
 
-- (instancetype)init NS_UNAVAILABLE;
++ (nonnull GSFace *)faceWithTri:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
+          correspondingCubeFace:(GSVoxelFace)face;
 
-- (instancetype)initWithVertices:(NSArray<GSBoxedTerrainVertex *> *)vertices
-           correspondingCubeFace:(GSVoxelFace)face
-             eligibleForOmission:(BOOL)omittable NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)init NS_UNAVAILABLE;
+
+- (nullable instancetype)initWithVertices:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
+                    correspondingCubeFace:(GSVoxelFace)face
+                      eligibleForOmission:(BOOL)omittable NS_DESIGNATED_INITIALIZER;
 
 @end

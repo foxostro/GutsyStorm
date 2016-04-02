@@ -22,7 +22,7 @@
 
 @interface GSOpenGLView : NSOpenGLView
 
-@property (nonatomic, weak) id<GSOpenGLViewDelegate> _Nullable delegate;
+@property (nonatomic, weak, nullable) id<GSOpenGLViewDelegate> delegate;
 
 - (void)shutdown;
 

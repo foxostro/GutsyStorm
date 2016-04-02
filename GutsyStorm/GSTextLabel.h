@@ -11,7 +11,7 @@
 
 @interface GSTextLabel : NSObject
 
-@property (nonatomic, copy, setter=setText:) NSString * _Nonnull text;
+@property (nonatomic, copy, nonnull, setter=setText:) NSString * text;
 @property (nonatomic, readwrite) matrix_float4x4 projectionMatrix;
 
 - (nullable instancetype)init NS_DESIGNATED_INITIALIZER;

@@ -11,12 +11,12 @@
 
 @interface GSGridEdit : NSObject
 
-@property (nonatomic, strong) id _Nullable originalObject;
-@property (nonatomic, strong) id _Nullable modifiedObject;
+@property (nonatomic, strong, nullable) id originalObject;
+@property (nonatomic, strong, nullable) id modifiedObject;
 @property (nonatomic, assign) vector_float3 pos;
 
-- (nullable instancetype)initWithOriginalItem:(id _Nullable)item
-                                 modifiedItem:(id _Nullable)replacement
+- (nullable instancetype)initWithOriginalItem:(nullable id)item
+                                 modifiedItem:(nullable id)replacement
                                           pos:(vector_float3)p;
 
 @end

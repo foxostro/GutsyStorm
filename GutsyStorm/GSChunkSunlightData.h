@@ -16,8 +16,8 @@
 
 @interface GSChunkSunlightData : NSObject <GSGridItem>
 
-@property (readonly, nonatomic) GSTerrainBuffer * _Nonnull sunlight;
-@property (readonly, nonatomic) GSNeighborhood * _Nonnull neighborhood;
+@property (readonly, nonatomic, nonnull) GSTerrainBuffer * sunlight;
+@property (readonly, nonatomic, nonnull) GSNeighborhood * neighborhood;
 
 + (nonnull NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP;
 

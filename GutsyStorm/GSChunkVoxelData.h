@@ -19,7 +19,7 @@ typedef void (^GSTerrainPostProcessorBlock)(size_t count, GSVoxel * _Nonnull vox
 
 @interface GSChunkVoxelData : NSObject <GSGridItem>
 
-@property (nonatomic, readonly) GSTerrainBuffer * _Nonnull voxels;
+@property (nonatomic, readonly, nonnull) GSTerrainBuffer * voxels;
 
 + (nonnull NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP;
 

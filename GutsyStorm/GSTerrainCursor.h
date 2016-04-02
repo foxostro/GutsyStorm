@@ -15,9 +15,9 @@
 
 @interface GSTerrainCursor : NSObject
 
-@property (assign) BOOL cursorIsActive;
-@property (assign) vector_float3 cursorPos;
-@property (assign) vector_float3 cursorPlacePos;
+@property (nonatomic, assign) BOOL cursorIsActive;
+@property (nonatomic, assign) vector_float3 cursorPos;
+@property (nonatomic, assign) vector_float3 cursorPlacePos;
 
 - (nullable instancetype)init NS_UNAVAILABLE;
 - (nullable instancetype)initWithContext:(nonnull NSOpenGLContext *)context

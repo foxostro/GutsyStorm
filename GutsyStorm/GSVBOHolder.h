@@ -11,8 +11,8 @@
 // Holds an OpenGL vertex buffer object, allowing it to be reference counted.
 @interface GSVBOHolder : NSObject
 
-@property (readonly) GLuint handle;
+@property (nonatomic, readonly) GLuint handle;
 
-- (instancetype)initWithHandle:(GLuint)handle context:(NSOpenGLContext *)context;
+- (nullable instancetype)initWithHandle:(GLuint)handle context:(nonnull NSOpenGLContext *)context;
 
 @end

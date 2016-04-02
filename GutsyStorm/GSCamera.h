@@ -20,7 +20,7 @@
 @property (readonly, nonatomic) vector_float4 cameraRot;
 @property (readonly, nonatomic) matrix_float4x4 modelViewMatrix;
 @property (readonly, nonatomic) matrix_float4x4 projectionMatrix;
-@property (strong, nonatomic) GSFrustum * _Nullable frustum;
+@property (strong, nonatomic, nullable) GSFrustum * frustum;
 
 - (void)updateCameraLookVectors;
 - (void)resetCamera;
