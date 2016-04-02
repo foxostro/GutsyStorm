@@ -3,7 +3,7 @@
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 10/16/15.
-//  Copyright © 2015 Andrew Fox. All rights reserved.
+//  Copyright © 2015-2016 Andrew Fox. All rights reserved.
 //
 
 #import <simd/matrix.h>

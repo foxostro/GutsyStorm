@@ -3,7 +3,7 @@
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/16/12.
-//  Copyright © 2012-2015 Andrew Fox. All rights reserved.
+//  Copyright © 2012-2016 Andrew Fox. All rights reserved.
 //
 
 #import <Cocoa/Cocoa.h>

@@ -3,7 +3,7 @@
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/19/13.
-//  Copyright (c) 2013-2015 Andrew Fox. All rights reserved.
+//  Copyright © 2013-2016 Andrew Fox. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>

@@ -3,7 +3,7 @@
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
-//  Copyright 2012-2015 Andrew Fox. All rights reserved.
+//  Copyright © 2012-2016 Andrew Fox. All rights reserved.
 //
 // Based tutorial at:
 // <http://zach.in.tu-clausthal.de/teaching/cg_literatur/lighthouse3d_view_frustum_culling/index.html>
