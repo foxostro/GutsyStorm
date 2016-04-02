@@ -24,7 +24,7 @@
 #define SWAP(x, y) do { typeof(x) temp##x##y = x; x = y; y = temp##x##y; } while (0)
 
 
-struct fox_post_processing_rule
+struct GSPostProcessingRule
 {
     /* Diagram shows the 9 voxel types at and around the block which matches this replacement rule.
      * So, if all surrounding voxel types match the diagram then this rule applies to that block.
@@ -45,7 +45,7 @@ struct fox_post_processing_rule
 struct fox_post_processing_rule_set
 {
     size_t count;
-    struct fox_post_processing_rule *rules;
+    struct GSPostProcessingRule *rules;
 
     /* The rules only apply to empty blocks placed on top of blocks of the type specified by `appliesAboveBlockType'. */
     GSVoxelType appliesAboveBlockType;
@@ -54,7 +54,7 @@ struct fox_post_processing_rule_set
     BOOL upsideDown;
 };
 
-static struct fox_post_processing_rule replacementRulesA[] =
+static struct GSPostProcessingRule replacementRulesA[] =
 {
     // Ramp pieces
     {
@@ -183,7 +183,7 @@ static struct fox_post_processing_rule replacementRulesA[] =
     },
 };
 
-static struct fox_post_processing_rule replacementRulesB[] =
+static struct GSPostProcessingRule replacementRulesB[] =
 {
     {
         " r "
@@ -341,9 +341,9 @@ static struct fox_post_processing_rule_set replacementRuleSets[] =
 
 
 static BOOL typeMatchesCharacter(GSVoxelType type, char c);
-static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vector_long3 clp,
+static BOOL cellPositionMatchesRule(struct GSPostProcessingRule *rule, vector_long3 clp,
                                     GSVoxel *voxels, vector_long3 minP, vector_long3 maxP);
-static struct fox_post_processing_rule * findRuleForCellPosition(size_t numRules, struct fox_post_processing_rule *rules,
+static struct GSPostProcessingRule * findRuleForCellPosition(size_t numRules, struct GSPostProcessingRule *rules,
                                                            vector_long3 clp,
                                                            GSVoxel *voxels, vector_long3 minP, vector_long3 maxP);
 static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
@@ -602,7 +602,7 @@ static BOOL typeMatchesCharacter(GSVoxelType type, char c)
     return NO;
 }
 
-static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vector_long3 clp,
+static BOOL cellPositionMatchesRule(struct GSPostProcessingRule *rule, vector_long3 clp,
                                     GSVoxel *voxels, vector_long3 minP, vector_long3 maxP)
 {
     assert(rule);
@@ -633,7 +633,7 @@ static BOOL cellPositionMatchesRule(struct fox_post_processing_rule *rule, vecto
     return YES;
 }
 
-static struct fox_post_processing_rule * findRuleForCellPosition(size_t numRules, struct fox_post_processing_rule *rules,
+static struct GSPostProcessingRule * findRuleForCellPosition(size_t numRules, struct GSPostProcessingRule *rules,
                                                            vector_long3 clp,
                                                            GSVoxel *voxels, vector_long3 minP, vector_long3 maxP)
 {
@@ -664,7 +664,7 @@ static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector
 
     if(voxel->type == VOXEL_TYPE_EMPTY && (prevType == ruleSet->appliesAboveBlockType)) {
         // Find and apply the first post-processing rule which matches this position.
-        struct fox_post_processing_rule *rule = findRuleForCellPosition(ruleSet->count, ruleSet->rules, p, voxelsIn, minP, maxP);
+        struct GSPostProcessingRule *rule = findRuleForCellPosition(ruleSet->count, ruleSet->rules, p, voxelsIn, minP, maxP);
         if(rule) {
             GSVoxel replacement = rule->replacement;
             replacement.tex = voxel->tex;
