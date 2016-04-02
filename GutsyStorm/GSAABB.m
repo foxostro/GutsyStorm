@@ -11,7 +11,7 @@
 
 @implementation GSAABB
 
-- (instancetype)initWithVerts:(vector_float3 *)vertices numVerts:(size_t)numVerts
+- (nonnull instancetype)initWithVerts:(nonnull vector_float3 *)vertices numVerts:(size_t)numVerts
 {
     self = [super init];
     if (self) {
@@ -36,7 +36,7 @@
     return self;
 }
 
-- (instancetype)initWithMinP:(vector_float3)minP maxP:(vector_float3)maxP
+- (nonnull instancetype)initWithMinP:(vector_float3)minP maxP:(vector_float3)maxP
 {
     vector_float3 verts[2] = {minP, maxP};
     return [self initWithVerts:verts numVerts:2];

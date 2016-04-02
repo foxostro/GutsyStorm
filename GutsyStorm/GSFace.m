@@ -13,7 +13,7 @@
 
 @implementation GSFace
 
-+ (NSArray<GSBoxedTerrainVertex *> *)decomposeQuad:(NSArray<GSBoxedTerrainVertex *> *)verticesIn
++ (nonnull NSArray<GSBoxedTerrainVertex *> *)decomposeQuad:(nonnull NSArray<GSBoxedTerrainVertex *> *)verticesIn
 {
     NSParameterAssert(verticesIn);
     
@@ -32,7 +32,7 @@
     return verticesOut;
 }
 
-+ (BOOL)determineEligibilityForOmission:(NSArray<GSBoxedTerrainVertex *> *)vertices
++ (BOOL)determineEligibilityForOmission:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
 {
     NSParameterAssert(vertices && vertices.count >= 3);
 
@@ -55,7 +55,8 @@
     return result;
 }
 
-+ (GSFace *)faceWithQuad:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face
++ (nonnull GSFace *)faceWithQuad:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
+           correspondingCubeFace:(GSVoxelFace)face
 {
     NSParameterAssert(vertices && vertices.count == 4);
     NSArray<GSBoxedTerrainVertex *> *triangleVertices = [self decomposeQuad:vertices];
@@ -65,7 +66,8 @@
                         eligibleForOmission:omittable];
 }
 
-+ (GSFace *)faceWithTri:(NSArray<GSBoxedTerrainVertex *> *)vertices correspondingCubeFace:(GSVoxelFace)face
++ (nonnull GSFace *)faceWithTri:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
+          correspondingCubeFace:(GSVoxelFace)face
 {
     NSParameterAssert(vertices && vertices.count == 3);
     BOOL omittable = [self determineEligibilityForOmission:vertices];
@@ -74,15 +76,15 @@
                         eligibleForOmission:omittable];
 }
 
-- (instancetype)init
+- (nonnull instancetype)init
 {
     @throw nil;
     return nil;
 }
 
-- (instancetype)initWithVertices:(NSArray<GSBoxedTerrainVertex *> *)vertices
-           correspondingCubeFace:(GSVoxelFace)face
-             eligibleForOmission:(BOOL)omittable
+- (nonnull instancetype)initWithVertices:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
+                    correspondingCubeFace:(GSVoxelFace)face
+                      eligibleForOmission:(BOOL)omittable
 {
     NSParameterAssert(vertices);
     NSParameterAssert(face >= 0 && face < FACE_NUM_FACES);

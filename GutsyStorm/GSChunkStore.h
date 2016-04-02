@@ -14,7 +14,7 @@
 
 @interface GSChunkStore : NSObject
 
-- (nullable instancetype)initWithSeed:(NSUInteger)seed
+- (nonnull instancetype)initWithSeed:(NSUInteger)seed
                                camera:(nonnull GSCamera *)camera
                         terrainShader:(nonnull GSShader *)terrainShader
                             glContext:(nonnull NSOpenGLContext *)glContext

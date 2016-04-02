@@ -17,7 +17,7 @@ extern int checkGLErrors(void);
     NSRect _bounds;
 }
 
-- (instancetype)initWithImagePath:(NSString *)path numTextures:(NSUInteger)numTextures
+- (nonnull instancetype)initWithImagePath:(nonnull NSString *)path numTextures:(NSUInteger)numTextures
 {
     self = [super init];
     if (self) {

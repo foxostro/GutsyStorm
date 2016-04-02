@@ -15,7 +15,7 @@
     NSMutableDictionary<NSString *, id> *_stringAttribs; // attributes for string textures
 }
 
-- (nullable instancetype)init
+- (nonnull instancetype)init
 {
     self = [super init];
 
@@ -42,7 +42,7 @@
     return self;
 }
 
-- (void)setText:(NSString *)text
+- (void)setText:(nonnull NSString *)text
 {
     _text = text;
     [_fpsStringTex setString:text withAttributes:_stringAttribs];

@@ -40,7 +40,7 @@
     float fh;
 }
 
-- (nullable instancetype)init
+- (nonnull instancetype)init
 {
     self = [super init];
 

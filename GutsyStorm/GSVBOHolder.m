@@ -14,7 +14,7 @@
     NSOpenGLContext *_glContext;
 }
 
-- (instancetype)initWithHandle:(GLuint)handle context:(NSOpenGLContext *)context
+- (nonnull instancetype)initWithHandle:(GLuint)handle context:(nonnull NSOpenGLContext *)context
 {
     if(self = [super init]) {
         _glContext = context;

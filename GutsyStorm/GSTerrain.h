@@ -13,7 +13,7 @@
 
 @interface GSTerrain : NSObject
 
-- (nullable instancetype)initWithSeed:(NSUInteger)seed
+- (nonnull instancetype)initWithSeed:(NSUInteger)seed
                                camera:(nonnull GSCamera *)camera
                             glContext:(nonnull NSOpenGLContext *)glContext;
 

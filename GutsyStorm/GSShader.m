@@ -16,14 +16,14 @@ extern int checkGLErrors(void);
 
 @interface GSShader ()
 
-- (const GLchar **)buildSourceStringsArray:(NSString *)source
-                                    length:(GLsizei *)length;
+- (const GLchar * _Nonnull * _Nonnull )buildSourceStringsArray:(nonnull NSString *)source
+                                                        length:(nonnull GLsizei *)length;
 
-- (NSString *)shaderInfoLog:(GLuint)shader;
-- (NSString *)programInfoLog:(GLuint)program;
+- (nonnull NSString *)shaderInfoLog:(GLuint)shader;
+- (nonnull NSString *)programInfoLog:(GLuint)program;
 - (BOOL)wasShaderCompileSuccessful:(GLuint)shader;
 - (BOOL)wasProgramLinkSuccessful:(GLuint)shader;
-- (void)createShaderWithSource:(NSString *)sourceString
+- (void)createShaderWithSource:(nonnull NSString *)sourceString
                           type:(GLenum)type;
 - (void)link;
 
@@ -36,8 +36,8 @@ extern int checkGLErrors(void);
     BOOL _linked;
 }
 
-- (instancetype)initWithVertexShaderSource:(NSString *)vert
-                      fragmentShaderSource:(NSString *)frag;
+- (nonnull instancetype)initWithVertexShaderSource:(nonnull NSString *)vert
+                               fragmentShaderSource:(nonnull NSString *)frag;
 {
     self = [super init];
     if (self) {
@@ -64,7 +64,7 @@ extern int checkGLErrors(void);
     glUseProgram(0);
 }
 
-- (void)bindUniformWithInt:(GLint)value name:(NSString *)name
+- (void)bindUniformWithInt:(GLint)value name:(nonnull NSString *)name
 {
     // XXX: Could speed this up by storing the uniform location instead of searching for it every time.
     const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
@@ -73,7 +73,7 @@ extern int checkGLErrors(void);
     assert(checkGLErrors() == 0);
 }
 
-- (void)bindUniformWithMatrix4x4:(matrix_float4x4)value name:(NSString *)name
+- (void)bindUniformWithMatrix4x4:(matrix_float4x4)value name:(nonnull NSString *)name
 {
     // XXX: Could speed this up by storing the uniform location instead of searching for it every time.
     const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
@@ -82,7 +82,7 @@ extern int checkGLErrors(void);
     assert(checkGLErrors() == 0);
 }
 
-- (void)bindUniformWithVector2:(vector_float2)value name:(NSString *)name
+- (void)bindUniformWithVector2:(vector_float2)value name:(nonnull NSString *)name
 {
     // XXX: Could speed this up by storing the uniform location instead of searching for it every time.
     const GLchar *nameCStr = [name cStringUsingEncoding:NSMacOSRomanStringEncoding];
@@ -95,8 +95,8 @@ extern int checkGLErrors(void);
  * Caller must free the returned array. Strings in the array will be autoreleased.
  * The length of the array is returned in length.
  */
-- (const GLchar **)buildSourceStringsArray:(NSString *)source 
-                                    length:(GLsizei *)length
+- (const GLchar * _Nonnull * _Nonnull)buildSourceStringsArray:(nonnull NSString *)source
+                                                       length:(nonnull GLsizei *)length
 {
     NSArray<NSString *> *lines = [source componentsSeparatedByString: @"\n"];
     NSUInteger count = [lines count];
@@ -117,7 +117,7 @@ extern int checkGLErrors(void);
     return src;
 }
 
-- (NSString *)shaderInfoLog:(GLuint)shader
+- (nonnull NSString *)shaderInfoLog:(GLuint)shader
 {
     GLint errorLogLen = 0;
     
@@ -138,7 +138,7 @@ extern int checkGLErrors(void);
     return infoLogStr;
 }
 
-- (NSString *)programInfoLog:(GLuint)program
+- (nonnull NSString *)programInfoLog:(GLuint)program
 {
     GLint errorLogLen = 0;
     
@@ -189,7 +189,7 @@ extern int checkGLErrors(void);
     }
 }
 
-- (void)createShaderWithSource:(NSString *)sourceString type:(GLenum)type
+- (void)createShaderWithSource:(nonnull NSString *)sourceString type:(GLenum)type
 {
     const GLchar *src = [sourceString cStringUsingEncoding:NSMacOSRomanStringEncoding];
     

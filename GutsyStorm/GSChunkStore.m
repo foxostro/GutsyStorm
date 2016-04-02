@@ -34,18 +34,18 @@
 
 - (void)createGrids;
 - (void)setupGridDependencies;
-- (void)setupActiveRegionWithCamera:(GSCamera *)cam;
+- (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam;
 
-+ (NSURL *)newTerrainCacheFolderURL;
-- (GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
-- (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p neighborhood:(GSNeighborhood **)neighborhood;
++ (nonnull NSURL *)newTerrainCacheFolderURL;
+- (nonnull GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
+- (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p neighborhood:(GSNeighborhood * _Nonnull * _Nonnull)neighborhood;
 
-- (GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
-- (GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
-- (GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
+- (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
+- (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
+- (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
-- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData **)chunk;
-- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP;
+- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData * _Nonnull * _Nonnull)chunk;
+- (nonnull NSObject <GSGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP;
 
 @end
 
@@ -125,7 +125,7 @@
                                          }];
 }
 
-- (NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(GSGridEdit *)edit
+- (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(nonnull GSGridEdit *)edit
 {
     assert(edit);
     vector_float3 p = edit.pos;
@@ -199,7 +199,7 @@
     [_gridGeometryData registerDependentGrid:_gridVBOs mapping:oneToOne];
 }
 
-- (void)setupActiveRegionWithCamera:(GSCamera *)cam
+- (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(cam);
@@ -219,12 +219,12 @@
     };
 }
 
-- (instancetype)initWithSeed:(NSUInteger)seed
-                      camera:(GSCamera *)cam
-               terrainShader:(GSShader *)shader
-                   glContext:(NSOpenGLContext *)context
-                   generator:(GSTerrainGeneratorBlock)generatorCallback
-               postProcessor:(GSTerrainPostProcessorBlock)postProcessorCallback
+- (nonnull instancetype)initWithSeed:(NSUInteger)seed
+                               camera:(nonnull GSCamera *)cam
+                        terrainShader:(nonnull GSShader *)shader
+                            glContext:(nonnull NSOpenGLContext *)context
+                            generator:(nonnull GSTerrainGeneratorBlock)generatorCallback
+                        postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessorCallback
 {
     self = [super init];
     if (self) {
@@ -337,7 +337,7 @@
     [_activeRegion updateVBOsInCameraFrustum];
 }
 
-- (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(GSVoxel *)voxel
+- (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel
 {
     GSChunkVoxelData *chunk = nil;
 
@@ -469,7 +469,7 @@
     return YES;
 }
 
-- (GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p
+- (nonnull GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
 
@@ -487,7 +487,7 @@
 }
 
 - (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p
-                       neighborhood:(GSNeighborhood **)outNeighborhood
+                       neighborhood:(GSNeighborhood * _Nonnull * _Nonnull)outNeighborhood
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(outNeighborhood);
@@ -512,7 +512,7 @@
     return YES;
 }
 
-- (GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
+- (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
 {
     if (_chunkStoreHasBeenShutdown) {
         @throw nil;
@@ -522,7 +522,7 @@
     return [_gridGeometryData objectAtPoint:p];
 }
 
-- (GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p
+- (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
@@ -530,7 +530,7 @@
     return [_gridSunlightData objectAtPoint:p];
 }
 
-- (GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p
+- (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
@@ -538,7 +538,7 @@
     return [_gridVoxelData objectAtPoint:p];
 }
 
-- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData **)chunk
+- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData * _Nonnull * _Nonnull)chunk
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
@@ -559,7 +559,7 @@
     return success;
 }
 
-+ (NSURL *)newTerrainCacheFolderURL
++ (nonnull NSURL *)newTerrainCacheFolderURL
 {
     NSArray<NSString *> *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *folder = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
@@ -585,7 +585,7 @@
     return url;
 }
 
-- (NSObject <GSGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP
+- (nonnull NSObject <GSGridItem> *)newChunkWithMinimumCorner:(vector_float3)minP
 {
     assert(!_chunkStoreHasBeenShutdown);
 

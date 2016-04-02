@@ -19,11 +19,11 @@
 
 @interface GSChunkVoxelData ()
 
-- (void)markOutsideVoxels:(GSMutableBuffer *)data;
-- (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(GSTerrainGeneratorBlock)generator
-                                postProcessor:(GSTerrainPostProcessorBlock)postProcessor;
-- (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(GSTerrainGeneratorBlock)generator
-                                                     postProcessor:(GSTerrainPostProcessorBlock)postProcessor;
+- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data;
+- (nonnull GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(nonnull GSTerrainGeneratorBlock)generator
+                                               postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor;
+- (nonnull GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(nonnull GSTerrainGeneratorBlock)generator
+                                                                    postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor;
 
 @end
 
@@ -38,18 +38,18 @@
 
 @synthesize minP;
 
-+ (NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP
++ (nonnull NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.voxels.dat", minP.x, minP.y, minP.z];
 }
 
-- (instancetype)initWithMinP:(vector_float3)mp
-                      folder:(NSURL *)folder
-              groupForSaving:(dispatch_group_t)groupForSaving
-              queueForSaving:(dispatch_queue_t)queueForSaving
-              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-                   generator:(GSTerrainGeneratorBlock)generator
-               postProcessor:(GSTerrainPostProcessorBlock)postProcessor
+- (nonnull instancetype)initWithMinP:(vector_float3)mp
+                               folder:(nonnull NSURL *)folder
+                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
+                            generator:(nonnull GSTerrainGeneratorBlock)generator
+                        postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor
 {
     assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
@@ -65,12 +65,12 @@
     return self;
 }
 
-- (instancetype)initWithMinP:(vector_float3)mp
-                      folder:(NSURL *)folder
-              groupForSaving:(dispatch_group_t)groupForSaving
-              queueForSaving:(dispatch_queue_t)queueForSaving
-              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-                        data:(GSTerrainBuffer *)data
+- (nonnull instancetype)initWithMinP:(vector_float3)mp
+                               folder:(nonnull NSURL *)folder
+                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
+                                 data:(nonnull GSTerrainBuffer *)data
 {
     if (self = [super init]) {
         minP = mp;
@@ -94,7 +94,7 @@
     _queueForSaving = NULL;
 }
 
-- (instancetype)copyWithZone:(NSZone *)zone
+- (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // all voxel data objects are immutable, so return self instead of deep copying
 }
@@ -109,7 +109,7 @@
     return voxel;
 }
 
-- (void)markOutsideVoxels:(GSMutableBuffer *)data
+- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
 {
     vector_long3 p;
 
@@ -160,8 +160,8 @@
  * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
  * the chunk is equal to maxP-minP. Ditto for the other major axii.
  */
-- (GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(GSTerrainGeneratorBlock)generator
-                                postProcessor:(GSTerrainPostProcessorBlock)postProcessor
+- (nonnull GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(nonnull GSTerrainGeneratorBlock)generator
+                                               postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor
 {
     vector_float3 thisMinP = self.minP;
     vector_long3 p, a, b;
@@ -206,8 +206,8 @@
     [self.voxels saveToFile:url queue:_queueForSaving group:_groupForSaving];
 }
 
-- (GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(GSTerrainGeneratorBlock)generator
-                                                     postProcessor:(GSTerrainPostProcessorBlock)postProcessor
+- (nonnull GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(nonnull GSTerrainGeneratorBlock)generator
+                                                                    postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor
 {
     GSTerrainBuffer *buffer = nil;
 
@@ -239,7 +239,7 @@
     return buffer;
 }
 
-- (GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
+- (nonnull GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
 {
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSTerrainBufferElement newValue = *((GSTerrainBufferElement *)&newBlock);

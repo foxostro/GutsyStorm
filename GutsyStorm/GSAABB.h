@@ -15,7 +15,7 @@
 @property (assign, nonatomic) vector_float3 maxs;
 
 - (vector_float3)getVertex:(size_t)i;
-- (instancetype)initWithVerts:(vector_float3 *)vertices numVerts:(size_t)numVerts;
-- (instancetype)initWithMinP:(vector_float3)minP maxP:(vector_float3)maxP;
+- (nonnull instancetype)initWithVerts:(nonnull vector_float3 *)vertices numVerts:(size_t)numVerts;
+- (nonnull instancetype)initWithMinP:(vector_float3)minP maxP:(vector_float3)maxP;
 
 @end

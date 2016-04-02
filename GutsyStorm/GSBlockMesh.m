@@ -18,12 +18,12 @@
 @interface GSBlockMesh ()
 
 - (void)rotateVertex:(GSTerrainVertex *)v quaternion:(vector_float4)quat;
-- (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(GSFace *)face
-                                        upsideDown:(BOOL)upsideDown
-                                             quatY:(vector_float4)quatY;
-- (NSArray<GSFace *> *)transformFaces:(NSArray<GSFace *> *)faces
-                             direction:(GSVoxelDirection)dir
-                            upsideDown:(BOOL)upsideDown;
+- (nonnull NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(nonnull GSFace *)face
+                                                           upsideDown:(BOOL)upsideDown
+                                                                quatY:(vector_float4)quatY;
+- (nonnull NSArray<GSFace *> *)transformFaces:(nonnull NSArray<GSFace *> *)faces
+                                    direction:(GSVoxelDirection)dir
+                                   upsideDown:(BOOL)upsideDown;
 - (GSVoxelFace)transformCubeFaceEnum:(GSVoxelFace)correspondingCubeFace upsideDown:(BOOL)upsideDown;
 
 @end
@@ -34,7 +34,7 @@
     NSArray<GSFace *> *_faces[2][NUM_VOXEL_DIRECTIONS];
 }
 
-- (instancetype)init
+- (nonnull instancetype)init
 {
     self = [super init];
     if (self) {
@@ -44,7 +44,7 @@
     return self;
 }
 
-- (void)rotateVertex:(GSTerrainVertex *)v quaternion:(vector_float4)quat
+- (void)rotateVertex:(nonnull GSTerrainVertex *)v quaternion:(vector_float4)quat
 {
     vector_float3 vertexPos, normal;
 
@@ -61,9 +61,9 @@
     v->normal[2] = normal.z;
 }
 
-- (NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(GSFace *)face
-                                        upsideDown:(BOOL)upsideDown
-                                             quatY:(vector_float4)quatY
+- (nonnull NSArray<GSBoxedTerrainVertex *> *)transformVerticesForFace:(nonnull GSFace *)face
+                                                           upsideDown:(BOOL)upsideDown
+                                                                quatY:(vector_float4)quatY
 {
     assert(face);
 
@@ -90,9 +90,9 @@
     return transformedVertices;
 }
 
-- (NSArray<GSFace *> *)transformFaces:(NSArray<GSFace *> *)faces
-                             direction:(GSVoxelDirection)dir
-                            upsideDown:(BOOL)upsideDown
+- (nonnull NSArray<GSFace *> *)transformFaces:(nonnull NSArray<GSFace *> *)faces
+                                    direction:(GSVoxelDirection)dir
+                                   upsideDown:(BOOL)upsideDown
 {
     vector_float4 quatY = GSQuaternionForVoxelDirection(dir);
     NSUInteger faceCount = [faces count];
@@ -128,7 +128,7 @@
     }
 }
 
-- (void)setFaces:(NSArray<GSFace *> *)faces
+- (void)setFaces:(nonnull NSArray<GSFace *> *)faces
 {
     for(int upsideDown = 0; upsideDown < 2; ++upsideDown)
     {
@@ -140,8 +140,8 @@
 }
 
 - (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
-                                      vertexList:(NSMutableArray<GSBoxedTerrainVertex *> *)vertexList
-                                       voxelData:(GSNeighborhood *)voxelData
+                                      vertexList:(nonnull NSMutableArray<GSBoxedTerrainVertex *> *)vertexList
+                                       voxelData:(nonnull GSNeighborhood *)voxelData
                                             minP:(vector_float3)minP
 {
     assert(vertexList);

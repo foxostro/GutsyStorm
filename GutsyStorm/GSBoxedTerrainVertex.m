@@ -12,19 +12,19 @@
 
 @implementation GSBoxedTerrainVertex
 
-+ (GSBoxedTerrainVertex *)vertexWithPosition:(vector_float3)position
-                          normal:(vector_long3)normal
-                        texCoord:(vector_long3)texCoord
++ (nonnull GSBoxedTerrainVertex *)vertexWithPosition:(vector_float3)position
+                                              normal:(vector_long3)normal
+                                            texCoord:(vector_long3)texCoord
 {
     return [[GSBoxedTerrainVertex alloc] initWithPosition:position normal:normal texCoord:texCoord];
 }
 
-+ (GSBoxedTerrainVertex *)vertexWithVertex:(GSTerrainVertex *)pv
++ (nonnull GSBoxedTerrainVertex *)vertexWithVertex:(nonnull GSTerrainVertex *)pv
 {
     return [[GSBoxedTerrainVertex alloc] initWithVertex:pv];
 }
 
-- (instancetype)initWithVertex:(GSTerrainVertex *)pv
+- (nonnull instancetype)initWithVertex:(nonnull GSTerrainVertex *)pv
 {
     assert(pv);
     
@@ -36,9 +36,9 @@
     return self;
 }
 
-- (instancetype)initWithPosition:(vector_float3)position
-                          normal:(vector_long3)normal
-                        texCoord:(vector_long3)texCoord
+- (nonnull instancetype)initWithPosition:(vector_float3)position
+                                   normal:(vector_long3)normal
+                                 texCoord:(vector_long3)texCoord
 {
     self = [super init];
     if (self) {

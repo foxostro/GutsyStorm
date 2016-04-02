@@ -24,7 +24,7 @@
  * camera -- The camera at the center of the active region.
  * vboGrid -- Used to generate and retrieve VBOs.
  */
-- (nullable instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
+- (nonnull instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                              camera:(nonnull GSCamera *)camera
                                             vboGrid:(nonnull GSGridVBOs *)gridVBOs;
 

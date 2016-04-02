@@ -52,7 +52,7 @@
     size_t _numFramesSinceLastFpsLabelUpdate;
 }
 
-- (void)applicationWillTerminate:(NSNotification *)notification
+- (void)applicationWillTerminate:(nonnull NSNotification *)notification
 {
     _timerShouldShutdown = YES;
     dispatch_semaphore_wait(_semaTimerShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/30.0));
@@ -112,7 +112,7 @@
     return YES;
 }
 
-- (void)mouseMoved:(NSEvent *)theEvent
+- (void)mouseMoved:(nonnull NSEvent *)theEvent
 {
     static BOOL first = YES;
     
@@ -145,13 +145,13 @@
     CGWarpMouseCursorPosition(viewCenter);
 }
 
-- (void)keyDown:(NSEvent *)theEvent
+- (void)keyDown:(nonnull NSEvent *)theEvent
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     _keysDown[@(key)] = @YES;
 }
 
-- (void)keyUp:(NSEvent *)theEvent
+- (void)keyUp:(nonnull NSEvent *)theEvent
 {
     int key = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     _keysDown[@(key)] = @NO;
@@ -202,7 +202,7 @@
     return cameraModifiedFlags;
 }
 
-- (void)timerFired:(id)sender
+- (void)timerFired:(nonnull id)sender
 {
     if (_timerShouldShutdown) {
         dispatch_semaphore_signal(_semaTimerShutdown);
@@ -222,7 +222,7 @@
     _prevFrameTime = frameTime;
 }
 
-- (void)openGLView:(GSOpenGLView *)view drawableSizeWillChange:(CGSize)size
+- (void)openGLView:(nonnull GSOpenGLView *)view drawableSizeWillChange:(CGSize)size
 {
     const float fovyRadians = 60.0 * (M_PI / 180.0);
     const float nearZ = 0.1;
@@ -237,7 +237,7 @@
     _frameRateLabel.projectionMatrix = projection;
 }
 
-- (void)drawInOpenGLView:(GSOpenGLView *)view
+- (void)drawInOpenGLView:(nonnull GSOpenGLView *)view
 {
     [_terrain draw];
     [_frameRateLabel drawAtPoint:NSMakePoint(10.0f, 10.0f)];

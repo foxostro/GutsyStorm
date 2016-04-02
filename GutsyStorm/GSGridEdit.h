@@ -15,7 +15,7 @@
 @property (nonatomic, strong, nullable) id modifiedObject;
 @property (nonatomic, assign) vector_float3 pos;
 
-- (nullable instancetype)initWithOriginalItem:(nullable id)item
+- (nonnull instancetype)initWithOriginalItem:(nullable id)item
                                  modifiedItem:(nullable id)replacement
                                           pos:(vector_float3)p;
 

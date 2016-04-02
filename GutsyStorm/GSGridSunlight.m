@@ -18,9 +18,9 @@
     NSURL *_folder;
 }
 
-- (instancetype)initWithName:(NSString *)name
-                 cacheFolder:(NSURL *)folder
-                     factory:(GSGridItemFactory)factory
+- (nonnull instancetype)initWithName:(nonnull NSString *)name
+                          cacheFolder:(nonnull NSURL *)folder
+                              factory:(nonnull GSGridItemFactory)factory
 {
     if (self = [super initWithName:name factory:factory]) {
         _folder = folder;
@@ -28,7 +28,7 @@
     return self;
 }
 
-- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
+- (void)willInvalidateItem:(nonnull NSObject <GSGridItem> * __unused)item atPoint:(vector_float3)p // AFOX_TODO: is item used ever?
 {
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:minP];

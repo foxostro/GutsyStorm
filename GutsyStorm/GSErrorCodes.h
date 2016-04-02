@@ -8,6 +8,6 @@
 
 #import <Foundation/Foundation.h>
 
-extern NSString *GSErrorDomain;
+extern NSString * const GSErrorDomain;
 extern const NSUInteger GSInvalidChunkDataOnDiskError;
 extern const NSUInteger GSFileNotFoundError;

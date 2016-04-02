@@ -10,13 +10,13 @@
 
 @implementation GSMutableBuffer
 
-+ (instancetype)newMutableBufferWithBuffer:(GSTerrainBuffer *)buffer
++ (nonnull instancetype)newMutableBufferWithBuffer:(nonnull GSTerrainBuffer *)buffer
 {
     assert(buffer);
     return [[GSMutableBuffer alloc] initWithDimensions:buffer.dimensions data:buffer->_data];
 }
 
-- (instancetype)initWithDimensions:(vector_long3)dim
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim
 {
     if (self = [super initWithDimensions:dim]) {
         // initialize here
@@ -25,7 +25,7 @@
     return self;
 }
 
-- (instancetype)initWithDimensions:(vector_long3)dim data:(const GSTerrainBufferElement *)data
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim data:(nonnull const GSTerrainBufferElement *)data
 {
     if (self = [super initWithDimensions:dim data:data]) {
         // initialize here
@@ -34,18 +34,18 @@
     return self;
 }
 
-- (instancetype)copyWithZone:(NSZone *)zone
+- (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     // Copies the underlying buffer to a new buffer.
     return [[GSMutableBuffer allocWithZone:zone] initWithDimensions:self.dimensions data:_data];
 }
 
-- (GSTerrainBufferElement *)mutableData
+- (nonnull GSTerrainBufferElement *)mutableData
 {
     return _data;
 }
 
-- (GSTerrainBufferElement *)pointerToValueAtPosition:(vector_long3)chunkLocalPos
+- (nonnull GSTerrainBufferElement *)pointerToValueAtPosition:(vector_long3)chunkLocalPos
 {
     assert(_data);
 

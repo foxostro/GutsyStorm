@@ -38,7 +38,7 @@ typedef GLuint index_t;
 
 @synthesize minP;
 
-+ (GSVBOHolder *)sharedIndexBufferObject
++ (nonnull GSVBOHolder *)sharedIndexBufferObject
 {
     static dispatch_once_t onceToken;
     static GSVBOHolder *iboHolder;
@@ -69,8 +69,8 @@ typedef GLuint index_t;
     return iboHolder;
 }
 
-- (instancetype)initWithChunkGeometry:(GSChunkGeometryData *)geometry
-                            glContext:(NSOpenGLContext *)context
+- (nonnull instancetype)initWithChunkGeometry:(nonnull GSChunkGeometryData *)geometry
+                                     glContext:(nonnull NSOpenGLContext *)context
 {
     assert(geometry);
     assert(context);
@@ -102,7 +102,7 @@ typedef GLuint index_t;
     return self;
 }
 
-- (instancetype)copyWithZone:(NSZone *)zone
+- (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // All GSChunkVBO objects are immutable, so return self instead of deep copying.
 }

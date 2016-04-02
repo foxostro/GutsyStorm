@@ -13,7 +13,7 @@
 
 @implementation GSGridVBOs
 
-- (instancetype)initWithName:(NSString *)name factory:(GSGridItemFactory)factory
+- (nonnull instancetype)initWithName:(nonnull NSString *)name factory:(nonnull GSGridItemFactory)factory
 {
     if (self = [super initWithName:name factory:factory]) {
         self.invalidationNotification = ^{ /* do nothing */ };
@@ -21,7 +21,7 @@
     return self;
 }
 
-- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
+- (void)willInvalidateItem:(nonnull NSObject <GSGridItem> * __unused)item atPoint:(vector_float3)p
 {
     self.invalidationNotification();
 }

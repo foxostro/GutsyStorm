@@ -14,15 +14,15 @@
 #import "GSVoxel.h" // for INDEX_BOX
 
 
-static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 normal);
+static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector_long3 normal);
 
 
 @implementation GSTerrainBuffer
 
-+ (void)newBufferFromFile:(NSURL *)url
++ (void)newBufferFromFile:(nonnull NSURL *)url
                dimensions:(vector_long3)dimensions
                     queue:(dispatch_queue_t)queue
-        completionHandler:(void (^)(GSTerrainBuffer *aBuffer, NSError *error))completionHandler
+        completionHandler:(void (^)(GSTerrainBuffer * _Nullable aBuffer, NSError * _Nullable error))completionHandler
 {
     // If the file does not exist then do nothing.
     if(![url checkResourceIsReachableAndReturnError:NULL]) {
@@ -70,7 +70,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     });
 }
 
-+ (nullable instancetype)newBufferFromLargerRawBuffer:(const GSTerrainBufferElement * _Nonnull)srcBuf
++ (nonnull instancetype)newBufferFromLargerRawBuffer:(const GSTerrainBufferElement * _Nonnull)srcBuf
                                               srcMinP:(vector_long3)GSCombinedMinP
                                               srcMaxP:(vector_long3)GSCombinedMaxP
 {
@@ -100,7 +100,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return aBuffer;
 }
 
-- (nullable instancetype)initWithDimensions:(vector_long3)dim
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim
 {
     self = [super init];
     if (self) {
@@ -122,7 +122,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return self;
 }
 
-- (nullable instancetype)initWithDimensions:(vector_long3)dim data:(const GSTerrainBufferElement * _Nonnull)data
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim data:(nonnull const GSTerrainBufferElement *)data
 {
     assert(data);
     self = [self initWithDimensions:dim]; // NOTE: this call will allocate memory for _data
@@ -138,7 +138,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     free(_data);
 }
 
-- (instancetype)copyWithZone:(NSZone *)zone
+- (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // GSTerrainBuffer is immutable. Return self rather than perform a deep copy.
 }
@@ -160,8 +160,8 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
 }
 
 - (GSTerrainBufferElement)lightForVertexAtPoint:(vector_float3)vertexPosInWorldSpace
-                               withNormal:(vector_long3)normal
-                                     minP:(vector_float3)minP
+                                     withNormal:(vector_long3)normal
+                                           minP:(vector_float3)minP
 {
     static const size_t count = 4;
     vector_float3 sample[count];
@@ -188,7 +188,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return light;
 }
 
-- (void)saveToFile:(NSURL *)url queue:(dispatch_queue_t)queue group:(dispatch_group_t)group
+- (void)saveToFile:(nonnull NSURL *)url queue:(nonnull dispatch_queue_t)queue group:(nonnull dispatch_group_t)group
 {
     dispatch_group_enter(group);
 
@@ -211,7 +211,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     });
 }
 
-- (void)copyToCombinedNeighborhoodBuffer:(GSTerrainBufferElement *)dstBuf
+- (void)copyToCombinedNeighborhoodBuffer:(nonnull GSTerrainBufferElement *)dstBuf
                                    count:(NSUInteger)count
                                 neighbor:(GSVoxelNeighborIndex)neighbor
 {
@@ -248,7 +248,7 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     }
 }
 
-- (GSTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(GSTerrainBufferElement)newValue
+- (nonnull GSTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(GSTerrainBufferElement)newValue
 {
     vector_long3 dim = self.dimensions;
     vector_long3 p = chunkLocalPos + _offsetFromChunkLocalSpace;
@@ -273,15 +273,16 @@ static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 nor
     return buffer;
 }
 
-- (const GSTerrainBufferElement * _Nonnull)data
+- (nonnull GSTerrainBufferElement *)data
 {
+    assert(_data);
     return _data;
 }
 
 @end
 
 
-static void samplingPoints(size_t count, vector_float3 *sample, vector_long3 n)
+static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector_long3 n)
 {
     assert(count == 4);
     assert(sample);

@@ -56,7 +56,7 @@
 #import <simd/matrix.h>
 
 @interface NSBezierPath (RoundRect)
-+ (nullable NSBezierPath *)bezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius;
++ (nonnull NSBezierPath *)bezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius;
 
 - (void)appendBezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius;
 @end
@@ -67,21 +67,21 @@
 // the same context should be current for all method calls for a particular object instance
 
 // designated initializer
-- (nullable instancetype) initWithAttributedString:(nonnull NSAttributedString *)attributedString
+- (nonnull instancetype) initWithAttributedString:(nonnull NSAttributedString *)attributedString
                                      withTextColor:(nonnull NSColor *)color
                                       withBoxColor:(nonnull NSColor *)color
                                    withBorderColor:(nonnull NSColor *)color;
 
-- (nullable instancetype) initWithString:(nonnull NSString *)aString
+- (nonnull instancetype) initWithString:(nonnull NSString *)aString
                           withAttributes:(nonnull NSDictionary<NSString *, id> *)attribs
                            withTextColor:(nonnull NSColor *)color
                             withBoxColor:(nonnull NSColor *)color
                          withBorderColor:(nonnull NSColor *)color;
 
 // basic methods that pick up defaults
-- (nullable instancetype) initWithString:(nonnull NSString *)aString
+- (nonnull instancetype) initWithString:(nonnull NSString *)aString
                           withAttributes:(nonnull NSDictionary<NSString *, id> *)attribs;
-- (nullable instancetype) initWithAttributedString:(nonnull NSAttributedString *)attributedString;
+- (nonnull instancetype) initWithAttributedString:(nonnull NSAttributedString *)attributedString;
 
 - (void) dealloc;
 

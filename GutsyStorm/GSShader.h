@@ -11,7 +11,7 @@
 
 @interface GSShader : NSObject
 
-- (nullable instancetype)initWithVertexShaderSource:(nonnull NSString *)vert
+- (nonnull instancetype)initWithVertexShaderSource:(nonnull NSString *)vert
                                fragmentShaderSource:(nonnull NSString *)frag;
 - (void)bind;
 - (void)unbind;

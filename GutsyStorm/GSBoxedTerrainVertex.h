@@ -14,17 +14,17 @@
 
 @property (assign, nonatomic) GSTerrainVertex v;
 
-+ (GSBoxedTerrainVertex *)vertexWithPosition:(vector_float3)position
-                                      normal:(vector_long3)normal
-                                    texCoord:(vector_long3)texCoord;
++ (nonnull GSBoxedTerrainVertex *)vertexWithPosition:(vector_float3)position
+                                              normal:(vector_long3)normal
+                                            texCoord:(vector_long3)texCoord;
 
-+ (GSBoxedTerrainVertex *)vertexWithVertex:(GSTerrainVertex *)pv;
++ (nonnull GSBoxedTerrainVertex *)vertexWithVertex:(nonnull GSTerrainVertex *)pv;
 
-- (instancetype)initWithVertex:(GSTerrainVertex *)pv;
+- (nonnull instancetype)initWithVertex:(nonnull GSTerrainVertex *)pv;
 
-- (instancetype)initWithPosition:(vector_float3)position
-                          normal:(vector_long3)normal
-                        texCoord:(vector_long3)texCoord;
+- (nonnull instancetype)initWithPosition:(vector_float3)position
+                                   normal:(vector_long3)normal
+                                 texCoord:(vector_long3)texCoord;
 
 - (vector_float3)position;
 

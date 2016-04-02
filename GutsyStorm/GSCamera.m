@@ -20,7 +20,7 @@
     float _cameraRotSpeed;
 }
 
-- (instancetype)init
+- (nonnull instancetype)init
 {
     self = [super init];
     if (self) {
@@ -168,7 +168,7 @@
         (vector_float4){0,              cotan, 0,                               0},
         (vector_float4){0,              0,     (farZ + nearZ) / (nearZ - farZ), (2.0f * farZ * nearZ) / (nearZ - farZ)},
         (vector_float4){0,              0,     -1,                              0},
-    };;
+    };
 }
 
 - (void)setCameraRot:(vector_float4)rot

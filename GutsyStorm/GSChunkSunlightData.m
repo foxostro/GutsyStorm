@@ -24,17 +24,17 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
 @synthesize minP;
 
-+ (NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP
++ (nonnull NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.sunlight.dat", minP.x, minP.y, minP.z];
 }
 
-- (instancetype)initWithMinP:(vector_float3)minCorner
-                      folder:(NSURL *)folder
-              groupForSaving:(dispatch_group_t)groupForSaving
-              queueForSaving:(dispatch_queue_t)queueForSaving
-              chunkTaskQueue:(dispatch_queue_t)chunkTaskQueue
-                neighborhood:(GSNeighborhood *)neighborhood
+- (nonnull instancetype)initWithMinP:(vector_float3)minCorner
+                               folder:(nonnull NSURL *)folder
+                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
+                         neighborhood:(nonnull GSNeighborhood *)neighborhood
 {
     if(self = [super init]) {
         assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
@@ -57,7 +57,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     _queueForSaving = NULL;
 }
 
-- (instancetype)copyWithZone:(NSZone *)zone
+- (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // GSChunkSunlightData is immutable, so return self instead of deep copying
 }
@@ -66,7 +66,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
  * locks on the neighborhood then instead return NULL. The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y
  * elements in size and may be indexed using the INDEX2 macro.
  */
-- (GSVoxel *)newVoxelBufferWithNeighborhood:(GSNeighborhood *)neighborhood
+- (nonnull GSVoxel *)newVoxelBufferWithNeighborhood:(nonnull GSNeighborhood *)neighborhood
 {
     static const size_t size = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
 
@@ -117,8 +117,8 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
 - (BOOL)isAdjacentToSunlightAtPoint:(vector_long3)p
                          lightLevel:(int)lightLevel
-                  combinedVoxelData:(GSVoxel *)combinedVoxelData
-               combinedSunlightData:(GSTerrainBufferElement *)combinedSunlightData
+                  combinedVoxelData:(nonnull GSVoxel *)combinedVoxelData
+               combinedSunlightData:(nonnull GSTerrainBufferElement *)combinedSunlightData
 {
     for(GSVoxelFace i=0; i<FACE_NUM_FACES; ++i)
     {
@@ -145,16 +145,18 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 }
 
 /* Generate and return  sunlight data for this chunk from the specified voxel data buffer. The voxel data buffer must be
- * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local neighborhood.
- * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight values for the
- * region of the buffer corresponding to this chunk should be considered to be totally correct.
+ * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local
+ * neighborhood.
+ * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight
+ * values for the region of the buffer corresponding to this chunk should be considered to be totally correct.
  * Assumes the caller has already locked the sunlight buffer for reading.
  */
-- (GSTerrainBuffer *)newSunlightBufferUsingCombinedVoxelData:(GSVoxel *)combinedVoxelData
+- (nonnull GSTerrainBuffer *)newSunlightBufferUsingCombinedVoxelData:(nonnull GSVoxel *)combinedVoxelData
 {
-    GSTerrainBufferElement *combinedSunlightData = malloc((GSCombinedMaxP.x - GSCombinedMinP.x) *
-                                                    (GSCombinedMaxP.y - GSCombinedMinP.y) *
-                                                    (GSCombinedMaxP.z - GSCombinedMinP.z) * sizeof(GSTerrainBufferElement));
+    GSTerrainBufferElement *combinedSunlightData =
+        malloc((GSCombinedMaxP.x - GSCombinedMinP.x) *
+               (GSCombinedMaxP.y - GSCombinedMinP.y) *
+               (GSCombinedMaxP.z - GSCombinedMinP.z) * sizeof(GSTerrainBufferElement));
 
     vector_long3 p;
     FOR_BOX(p, GSCombinedMinP, GSCombinedMaxP)
@@ -199,7 +201,8 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     return sunlight;
 }
 
-- (GSTerrainBuffer *)newSunlightBufferWithNeighborhood:(GSNeighborhood *)neighborhood folder:(NSURL *)folder
+- (nonnull GSTerrainBuffer *)newSunlightBufferWithNeighborhood:(nonnull GSNeighborhood *)neighborhood
+                                                        folder:(nonnull NSURL *)folder
 {
     GSTerrainBuffer *buffer = nil;
 

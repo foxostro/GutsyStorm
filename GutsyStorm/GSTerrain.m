@@ -366,7 +366,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     float _maxPlaceDistance;
 }
 
-- (NSString *)newShaderSourceStringFromFileAt:(NSString *)path
+- (nonnull NSString *)newShaderSourceStringFromFileAt:(nonnull NSString *)path
 {
     NSError *error;
     NSString *str = [[NSString alloc] initWithContentsOfFile:path
@@ -380,7 +380,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     return str;
 }
 
-- (GSShader *)newCursorShader
+- (nonnull GSShader *)newCursorShader
 {
     NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"cursor.vert" ofType:@"txt"];
     NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"cursor.frag" ofType:@"txt"];
@@ -399,7 +399,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     return cursorShader;
 }
 
-- (GSShader *)newTerrainShader
+- (nonnull GSShader *)newTerrainShader
 {
     NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"terrain.vert" ofType:@"txt"];
     NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"terrain.frag" ofType:@"txt"];
@@ -419,9 +419,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     return terrainShader;
 }
 
-- (instancetype)initWithSeed:(NSUInteger)seed
-                      camera:(GSCamera *)cam
-                   glContext:(NSOpenGLContext *)context
+- (nonnull instancetype)initWithSeed:(NSUInteger)seed
+                               camera:(nonnull GSCamera *)cam
+                            glContext:(nonnull NSOpenGLContext *)context
 {
     self = [super init];
     if(self) {
@@ -602,8 +602,8 @@ static BOOL typeMatchesCharacter(GSVoxelType type, char c)
     return NO;
 }
 
-static BOOL cellPositionMatchesRule(struct GSPostProcessingRule *rule, vector_long3 clp,
-                                    GSVoxel *voxels, vector_long3 minP, vector_long3 maxP)
+static BOOL cellPositionMatchesRule(struct GSPostProcessingRule * _Nonnull rule, vector_long3 clp,
+                                    GSVoxel * _Nonnull voxels, vector_long3 minP, vector_long3 maxP)
 {
     assert(rule);
     assert(clp.x >= minP.x && clp.x < maxP.x);
@@ -633,9 +633,12 @@ static BOOL cellPositionMatchesRule(struct GSPostProcessingRule *rule, vector_lo
     return YES;
 }
 
-static struct GSPostProcessingRule * findRuleForCellPosition(size_t numRules, struct GSPostProcessingRule *rules,
-                                                           vector_long3 clp,
-                                                           GSVoxel *voxels, vector_long3 minP, vector_long3 maxP)
+static struct GSPostProcessingRule * _Nonnull findRuleForCellPosition(size_t numRules,
+                                                                      struct GSPostProcessingRule * _Nonnull rules,
+                                                                      vector_long3 clp,
+                                                                      GSVoxel * _Nonnull voxels,
+                                                                      vector_long3 minP,
+                                                                      vector_long3 maxP)
 {
     assert(rules);
 
@@ -650,8 +653,9 @@ static struct GSPostProcessingRule * findRuleForCellPosition(size_t numRules, st
 }
 
 static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
-                                    GSVoxel *voxelsIn, GSVoxel *voxelsOut,
-                                    struct GSPostProcessingRuleSet *ruleSet, GSVoxelType *prevType_p)
+                                    GSVoxel * _Nonnull voxelsIn, GSVoxel * _Nonnull voxelsOut,
+                                    struct GSPostProcessingRuleSet * _Nonnull ruleSet,
+                                    GSVoxelType * _Nonnull prevType_p)
 {
     assert(voxelsIn);
     assert(voxelsOut);
@@ -678,8 +682,8 @@ static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector
     *prevType_p = voxel->type;
 }
 
-static void postProcessVoxels(struct GSPostProcessingRuleSet *ruleSet,
-                              GSVoxel *voxelsIn, GSVoxel *voxelsOut,
+static void postProcessVoxels(struct GSPostProcessingRuleSet * _Nonnull ruleSet,
+                              GSVoxel * _Nonnull voxelsIn, GSVoxel * _Nonnull voxelsOut,
                               vector_long3 minP, vector_long3 maxP)
 {
     assert(ruleSet);
@@ -732,7 +736,7 @@ static float groundGradient(float terrainHeight, vector_float3 p)
 }
 
 // Generates a voxel for the specified point in space. Returns that voxel in `outVoxel'.
-static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, GSVoxel *outVoxel)
+static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, GSVoxel * _Nonnull outVoxel)
 {
     static dispatch_once_t onceToken;
     static GSNoise *noiseSource0;

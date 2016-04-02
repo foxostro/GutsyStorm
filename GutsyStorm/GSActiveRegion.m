@@ -69,9 +69,9 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     BOOL _shouldShutdown;
 }
 
-- (instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
-                                    camera:(GSCamera *)camera
-                                   vboGrid:(GSGridVBOs *)gridVBOs
+- (nonnull instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
+                                             camera:(nonnull GSCamera *)camera
+                                            vboGrid:(nonnull GSGridVBOs *)gridVBOs
 {
     self = [super init];
     if (self) {
@@ -185,7 +185,7 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     }
 }
 
-- (NSArray<GSBoxedVector *> *)pointsInCameraFrustum
+- (nonnull NSArray<GSBoxedVector *> *)pointsInCameraFrustum
 {
     NSMutableArray<GSBoxedVector *> *points = [NSMutableArray<GSBoxedVector *> new];
 

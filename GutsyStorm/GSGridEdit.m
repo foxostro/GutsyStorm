@@ -10,9 +10,9 @@
 
 @implementation GSGridEdit
 
-- (instancetype)initWithOriginalItem:(id)item
-                        modifiedItem:(id)replacement
-                                 pos:(vector_float3)p
+- (nonnull instancetype)initWithOriginalItem:(nullable id)item
+                                 modifiedItem:(nullable id)replacement
+                                          pos:(vector_float3)p
 {
     self = [super init];
     if (self) {

@@ -24,7 +24,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                       CVOptionFlags* flagsOut,
                                       void* displayLinkContext);
 BOOL checkForOpenGLExtension(NSString *extension);
-NSString *stringForOpenGLError(GLenum error);
+NSString * _Nonnull stringForOpenGLError(GLenum error);
 int checkGLErrors(void);
 
 
@@ -46,7 +46,7 @@ int checkGLErrors(void);
     dispatch_semaphore_t _semaDisplayLinkShutdown;
 }
 
-+ (GSShader *)newCrosshairShader
++ (nonnull GSShader *)newCrosshairShader
 {
     NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"];
     NSString *vertFn = [bundle pathForResource:@"crosshairs.vert" ofType:@"txt"];
@@ -61,7 +61,7 @@ int checkGLErrors(void);
     return shader;
 }
 
-+ (GSVBOHolder *)newCrosshairsVboWithContext:(NSOpenGLContext *)context
++ (nonnull GSVBOHolder *)newCrosshairsVboWithContext:(NSOpenGLContext *)context
 {
     vector_float4 crosshair_vertex = {400, 300, 0, 1};
     GLuint handle = 0;
@@ -268,7 +268,7 @@ BOOL checkForOpenGLExtension(NSString *extension)
     return NO;
 }
 
-NSString *stringForOpenGLError(GLenum error)
+NSString * _Nonnull stringForOpenGLError(GLenum error)
 {
     switch(error)
     {

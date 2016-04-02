@@ -60,15 +60,15 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
  * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are
  * discarded.
  */
-+ (nullable instancetype)newBufferFromLargerRawBuffer:(const GSTerrainBufferElement * _Nonnull)srcBuf
++ (nonnull instancetype)newBufferFromLargerRawBuffer:(const GSTerrainBufferElement * _Nonnull)srcBuf
                                               srcMinP:(vector_long3)srcMinP
                                               srcMaxP:(vector_long3)srcMaxP;
 
 /* Initialize a buffer of the specified dimensions */
-- (nullable instancetype)initWithDimensions:(vector_long3)dim;
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim;
 
 /* Initialize a buffer of the specified dimensions. The specified backing data is copied into the internal buffer. */
-- (nullable instancetype)initWithDimensions:(vector_long3)dim data:(const GSTerrainBufferElement * _Nonnull)data;
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim data:(const GSTerrainBufferElement * _Nonnull)data;
 
 /* Returns the value for the specified point in chunk-local space.
  * Always returns 0 for points which have no corresponding mapping in the buffer.
@@ -85,8 +85,8 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
  * As the lighting buffer has no knowledge of the neighboring chunks, expect values on the border to be incorrect.
  */
 - (GSTerrainBufferElement)lightForVertexAtPoint:(vector_float3)vertexPosInWorldSpace
-                                       withNormal:(vector_long3)normal
-                                             minP:(vector_float3)minP;
+                                     withNormal:(vector_long3)normal
+                                           minP:(vector_float3)minP;
 
 /* Saves the buffer contents to file asynchronously on the specified dispatch */
 - (void)saveToFile:(nonnull NSURL *)url
@@ -100,6 +100,6 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
 
 - (nonnull GSTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(GSTerrainBufferElement)value;
 
-- (const GSTerrainBufferElement * _Nonnull)data;
+- (nonnull GSTerrainBufferElement *)data;
 
 @end

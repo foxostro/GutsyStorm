@@ -18,7 +18,7 @@
     unsigned _readcount;
 }
 
-- (instancetype)init
+- (nonnull instancetype)init
 {
     self = [super init];
     if (self) {

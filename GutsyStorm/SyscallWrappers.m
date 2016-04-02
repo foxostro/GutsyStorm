@@ -8,14 +8,14 @@
 
 #import "SyscallWrappers.h"
 
-void raiseExceptionForPOSIXError(int error, NSString *desc)
+void raiseExceptionForPOSIXError(int error, NSString * _Nonnull desc)
 {
     char errorMsg[LINE_MAX];
     strerror_r(error, errorMsg, LINE_MAX);
     [NSException raise:@"POSIX error" format:@"%@%s", desc, errorMsg];
 }
 
-int Open(NSURL *url, int oflags, mode_t mode)
+int Open(NSURL * _Nonnull url, int oflags, mode_t mode)
 {
     assert(url);
     assert([url isFileURL]);

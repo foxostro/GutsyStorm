@@ -8,6 +8,6 @@
 
 #import "GSErrorCodes.h"
 
-NSString *GSErrorDomain = @"GutsyStorm";
+NSString * const GSErrorDomain = @"GutsyStorm";
 const NSUInteger GSInvalidChunkDataOnDiskError = 1;
 const NSUInteger GSFileNotFoundError = 2;

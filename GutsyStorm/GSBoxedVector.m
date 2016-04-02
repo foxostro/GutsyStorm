@@ -23,17 +23,17 @@
     NSUInteger _cachedHash;
 }
 
-+ (GSBoxedVector *)boxedVectorWithVector:(vector_float3)vector
++ (nonnull GSBoxedVector *)boxedVectorWithVector:(vector_float3)vector
 {
     return [[GSBoxedVector alloc] initWithVector:vector];
 }
 
-+ (GSBoxedVector *)boxedVectorWithIntegerVector:(vector_long3)vector
++ (nonnull GSBoxedVector *)boxedVectorWithIntegerVector:(vector_long3)vector
 {
     return [[GSBoxedVector alloc] initWithIntegerVector:vector];
 }
 
-- (instancetype)initWithVector:(vector_float3)v
+- (nonnull instancetype)initWithVector:(vector_float3)v
 {
     self = [super init];
     if (self) {
@@ -45,7 +45,7 @@
     return self;
 }
 
-- (instancetype)initWithIntegerVector:(vector_long3)v
+- (nonnull instancetype)initWithIntegerVector:(vector_long3)v
 {
     self = [super init];
     if (self) {
@@ -66,8 +66,12 @@
     return GSMakeIntegerVector3(_vector.x, _vector.y, _vector.z);
 }
 
-- (BOOL)isEqual:(id)other
+- (BOOL)isEqual:(nullable id)other
 {
+    if (!other) {
+        return NO;
+    }
+    
     if(other == self) {
         return YES;
     }
@@ -79,8 +83,12 @@
     return [self isEqualToVector:other];
 }
 
-- (BOOL)isEqualToVector:(GSBoxedVector *)otherVector
+- (BOOL)isEqualToVector:(nullable GSBoxedVector *)otherVector
 {
+    if (!otherVector) {
+        return NO;
+    }
+
     if(self == otherVector) {
         return YES;
     }
@@ -95,12 +103,12 @@
     return _cachedHash;
 }
 
-- (NSString *)toString
+- (nonnull NSString *)toString
 {
     return [NSString stringWithFormat:@"%f_%f_%f", _vector.x, _vector.y, _vector.z];
 }
 
-- (instancetype)copyWithZone:(NSZone *)zone
+- (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // GSBoxedVector is immutable. Return self rather than performing a deep copy.
 }

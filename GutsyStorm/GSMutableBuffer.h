@@ -11,7 +11,7 @@
 
 @interface GSMutableBuffer : GSTerrainBuffer
 
-+ (nullable instancetype)newMutableBufferWithBuffer:(nonnull GSTerrainBuffer *)buffer;
++ (nonnull instancetype)newMutableBufferWithBuffer:(nonnull GSTerrainBuffer *)buffer;
 
 - (nonnull GSTerrainBufferElement *)mutableData;
 

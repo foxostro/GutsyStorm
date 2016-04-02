@@ -38,13 +38,13 @@ static const GLfloat vertices[] = {
     GSShader *_shader;
 }
 
-- (instancetype)init
+- (nonnull instancetype)init
 {
     @throw nil;
     return nil;
 }
 
-- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(GSShader *)shader
+- (nonnull instancetype)initWithContext:(nonnull NSOpenGLContext *)context shader:(nonnull GSShader *)shader
 {
     NSParameterAssert(context);
     assert(checkGLErrors() == 0);

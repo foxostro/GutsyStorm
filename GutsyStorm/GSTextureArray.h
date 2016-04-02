@@ -10,7 +10,7 @@
 
 @interface GSTextureArray : NSObject
 
-- (nullable instancetype)initWithImagePath:(nonnull NSString *)path numTextures:(NSUInteger)numTextures;
+- (nonnull instancetype)initWithImagePath:(nonnull NSString *)path numTextures:(NSUInteger)numTextures;
 - (void)bind;
 - (void)unbind;
 

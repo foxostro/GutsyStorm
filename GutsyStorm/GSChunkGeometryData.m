@@ -32,13 +32,13 @@ struct GSChunkGeometryHeader
 
 
 static void applyLightToVertices(size_t numChunkVerts,
-                                 GSTerrainVertex *vertsBuffer,
-                                 GSTerrainBuffer *sunlight,
+                                 GSTerrainVertex * _Nonnull vertsBuffer,
+                                 GSTerrainBuffer * _Nonnull sunlight,
                                  vector_float3 minP);
 
 @interface GSChunkGeometryData ()
 
-+ (NSData *)dataWithSunlight:(GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner;
++ (nonnull NSData *)dataWithSunlight:(nonnull GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner;
 
 @end
 
@@ -50,7 +50,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
 @synthesize minP;
 
-+ (GSBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type
++ (nonnull GSBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type
 {
     static GSBlockMesh *factories[NUM_VOXEL_TYPES] = {nil};
     static dispatch_once_t onceToken;
@@ -62,17 +62,18 @@ static void applyLightToVertices(size_t numChunkVerts,
         factories[VOXEL_TYPE_CORNER_OUTSIDE] = [[GSBlockMeshOutsideCorner alloc] init];
     });
 
+    assert(factories[type]);
     return factories[type];
 }
 
-+ (NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP
++ (nonnull NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP
 {
     return [NSString stringWithFormat:@"%.0f_%.0f_%.0f.geometry.dat", minP.x, minP.y, minP.z];
 }
 
-- (instancetype)initWithMinP:(vector_float3)minCorner
-                      folder:(NSURL *)folder
-                    sunlight:(GSChunkSunlightData *)sunlight
+- (nonnull instancetype)initWithMinP:(vector_float3)minCorner
+                               folder:(nonnull NSURL *)folder
+                             sunlight:(nonnull GSChunkSunlightData *)sunlight
 {
     self = [super init];
     if (self) {
@@ -97,12 +98,12 @@ static void applyLightToVertices(size_t numChunkVerts,
     return self;
 }
 
-- (instancetype)copyWithZone:(NSZone *)zone
+- (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // all geometry objects are immutable, so return self instead of deep copying
 }
 
-- (GLsizei)copyVertsToBuffer:(GSTerrainVertex **)dst
+- (GLsizei)copyVertsToBuffer:(GSTerrainVertex * _Nonnull * _Nonnull)dst
 {
     assert(dst);
 
@@ -127,7 +128,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 // Completely regenerate geometry for the chunk.
-+ (NSData *)dataWithSunlight:(GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner
++ (nonnull NSData *)dataWithSunlight:(nonnull GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner
 {
     vector_float3 pos;
     NSMutableArray<GSBoxedTerrainVertex *> *vertices;
@@ -191,8 +192,8 @@ static void applyLightToVertices(size_t numChunkVerts,
 @end
 
 static void applyLightToVertices(size_t numChunkVerts,
-                                 GSTerrainVertex *vertsBuffer,
-                                 GSTerrainBuffer *sunlight,
+                                 GSTerrainVertex * _Nonnull vertsBuffer,
+                                 GSTerrainBuffer * _Nonnull sunlight,
                                  vector_float3 minP)
 {
     assert(vertsBuffer);

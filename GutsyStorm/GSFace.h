@@ -19,14 +19,14 @@
 @property (nonatomic, readonly) GSVoxelFace correspondingCubeFace;
 
 + (nonnull GSFace *)faceWithQuad:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
-           correspondingCubeFace:(GSVoxelFace)face;
+            correspondingCubeFace:(GSVoxelFace)face;
 
 + (nonnull GSFace *)faceWithTri:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
           correspondingCubeFace:(GSVoxelFace)face;
 
-- (nullable instancetype)init NS_UNAVAILABLE;
+- (nonnull instancetype)init NS_UNAVAILABLE;
 
-- (nullable instancetype)initWithVertices:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
+- (nonnull instancetype)initWithVertices:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
                     correspondingCubeFace:(GSVoxelFace)face
                       eligibleForOmission:(BOOL)omittable NS_DESIGNATED_INITIALIZER;
 

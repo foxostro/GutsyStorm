@@ -24,7 +24,7 @@
 /* Returns the shared block mesh factory for the specified voxel type. */
 + (nonnull GSBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type;
 
-- (nullable instancetype)initWithMinP:(vector_float3)minCorner
+- (nonnull instancetype)initWithMinP:(vector_float3)minCorner
                                folder:(nonnull NSURL *)folder
                              sunlight:(nonnull GSChunkSunlightData *)sunlight;
 

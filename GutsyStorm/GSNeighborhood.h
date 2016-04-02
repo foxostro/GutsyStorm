@@ -23,7 +23,7 @@
 - (nonnull GSChunkVoxelData *)neighborAtIndex:(GSVoxelNeighborIndex)idx;
 - (void)setNeighborAtIndex:(GSVoxelNeighborIndex)idx neighbor:(nonnull GSChunkVoxelData *)neighbor;
 - (void)enumerateNeighborsWithBlock:(void (^ _Nonnull)(GSChunkVoxelData * _Nonnull voxels))block;
-- (void)enumerateNeighborsWithBlock2:(void (^ _Nonnull)(GSVoxelNeighborIndex i, GSChunkVoxelData * _Nonnull voxels))block;
+- (void)enumerateNeighborsWithBlock2:(void (^ _Nonnull)(GSVoxelNeighborIndex i, GSChunkVoxelData * _Nonnull v))block;
 
 /* Copy the voxel data for this neighborhood into a new buffer and return that buffer.
  * The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and may be indexed using the INDEX2 macro.

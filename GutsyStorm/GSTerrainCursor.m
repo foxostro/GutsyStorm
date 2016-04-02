@@ -19,13 +19,13 @@
     GSCube *_cursor;
 }
 
-- (instancetype)init
+- (nonnull instancetype)init
 {
     @throw nil;
     return nil;
 }
 
-- (instancetype)initWithContext:(NSOpenGLContext *)context shader:(GSShader *)shader
+- (nonnull instancetype)initWithContext:(nonnull NSOpenGLContext *)context shader:(nonnull GSShader *)shader
 {
     self = [super init];
     if (self) {
@@ -36,7 +36,7 @@
     return self;
 }
 
-- (void)drawWithCamera:(GSCamera *)camera
+- (void)drawWithCamera:(nonnull GSCamera *)camera
 {
     if (!_cursorIsActive) {
         return;

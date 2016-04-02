@@ -63,7 +63,7 @@
 
 @implementation NSBezierPath (RoundRect)
 
-+ (NSBezierPath *)bezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius {
++ (nonnull NSBezierPath *)bezierPathWithRoundedRect:(NSRect)rect cornerRadius:(float)radius {
     NSBezierPath *result = [NSBezierPath bezierPath];
     [result appendBezierPathWithRoundedRect:rect cornerRadius:radius];
     return result;
@@ -143,7 +143,10 @@
 #pragma mark Initializers
 
 // designated initializer
-- (instancetype) initWithAttributedString:(NSAttributedString *)attributedString withTextColor:(NSColor *)text withBoxColor:(NSColor *)box withBorderColor:(NSColor *)border
+- (nonnull instancetype) initWithAttributedString:(nonnull NSAttributedString *)attributedString
+                                     withTextColor:(nonnull NSColor *)text
+                                      withBoxColor:(nonnull NSColor *)box
+                                   withBorderColor:(nonnull NSColor *)border
 {
     self = [super init];
     if (self) {
@@ -168,23 +171,24 @@
     return self;
 }
 
-- (instancetype) initWithString:(NSString *)aString
-                 withAttributes:(NSDictionary<NSString *, id> *)attribs
-                  withTextColor:(NSColor *)text
-                   withBoxColor:(NSColor *)box
-                withBorderColor:(NSColor *)border
+- (nonnull instancetype) initWithString:(nonnull NSString *)aString
+                          withAttributes:(nonnull NSDictionary<NSString *, id> *)attribs
+                           withTextColor:(nonnull NSColor *)text
+                            withBoxColor:(nonnull NSColor *)box
+                         withBorderColor:(nonnull NSColor *)border
 {
     NSAttributedString *attr = [[NSAttributedString alloc] initWithString:aString attributes:attribs];
     return [self initWithAttributedString:attr withTextColor:text withBoxColor:box withBorderColor:border];
 }
 
 // basic methods that pick up defaults
-- (instancetype) initWithAttributedString:(NSAttributedString *)attributedString;
+- (nonnull instancetype) initWithAttributedString:(nonnull NSAttributedString *)attributedString;
 {
     return [self initWithAttributedString:attributedString withTextColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:1.0f] withBoxColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f] withBorderColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f]];
 }
 
-- (instancetype) initWithString:(NSString *)aString withAttributes:(NSDictionary<NSString *, id> *)attribs
+- (nonnull instancetype) initWithString:(nonnull NSString *)aString
+                          withAttributes:(nonnull NSDictionary<NSString *, id> *)attribs
 {
     return [self initWithAttributedString:[[NSAttributedString alloc] initWithString:aString attributes:attribs] withTextColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:1.0f] withBoxColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f] withBorderColor:[NSColor colorWithDeviceRed:1.0f green:1.0f blue:1.0f alpha:0.0f]];
 }
@@ -262,7 +266,7 @@
 
 #pragma mark Text Color
 
-- (void) setTextColor:(NSColor *)color // set default text color
+- (void) setTextColor:(nonnull NSColor *)color // set default text color
 {
     _textColor = color;
     _requiresUpdate = YES;
@@ -275,7 +279,7 @@
 
 #pragma mark Box Color
 
-- (void) setBoxColor:(NSColor *)color // set default text color
+- (void) setBoxColor:(nonnull NSColor *)color // set default text color
 {
     _boxColor = color;
     _requiresUpdate = YES;
@@ -288,7 +292,7 @@
 
 #pragma mark Border Color
 
-- (void) setBorderColor:(NSColor *)color // set default text color
+- (void) setBorderColor:(nonnull NSColor *)color // set default text color
 {
     _borderColor = color;
     _requiresUpdate = YES;
@@ -366,7 +370,7 @@
 
 #pragma mark String
 
-- (void) setString:(NSAttributedString *)attributedString // set string after initial creation
+- (void) setString:(nonnull NSAttributedString *)attributedString // set string after initial creation
 {
     _string = attributedString;
     if (NO == _staticFrame) { // ensure dynamic frame sizes will be recalculated
@@ -377,7 +381,7 @@
 }
 
 // set string after initial creation
-- (void) setString:(NSString *)aString withAttributes:(NSDictionary<NSString *, id> *)attribs
+- (void) setString:(nonnull NSString *)aString withAttributes:(nonnull NSDictionary<NSString *, id> *)attribs
 {
     [self setString:[[NSAttributedString alloc] initWithString:aString attributes:attribs]];
 }

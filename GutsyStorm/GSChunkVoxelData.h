@@ -14,7 +14,8 @@
 
 
 typedef void (^GSTerrainGeneratorBlock)(vector_float3, GSVoxel * _Nonnull);
-typedef void (^GSTerrainPostProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels, vector_long3 minP, vector_long3 maxP);
+typedef void (^GSTerrainPostProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
+                                            vector_long3 minP, vector_long3 maxP);
 
 
 @interface GSChunkVoxelData : NSObject <GSGridItem>
@@ -23,7 +24,7 @@ typedef void (^GSTerrainPostProcessorBlock)(size_t count, GSVoxel * _Nonnull vox
 
 + (nonnull NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP;
 
-- (nullable instancetype)initWithMinP:(vector_float3)minP
+- (nonnull instancetype)initWithMinP:(vector_float3)minP
                                folder:(nonnull NSURL *)folder
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
@@ -31,7 +32,7 @@ typedef void (^GSTerrainPostProcessorBlock)(size_t count, GSVoxel * _Nonnull vox
                             generator:(nonnull GSTerrainGeneratorBlock)generator
                         postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor;
 
-- (nullable instancetype)initWithMinP:(vector_float3)minP
+- (nonnull instancetype)initWithMinP:(vector_float3)minP
                                folder:(nonnull NSURL *)folder
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving

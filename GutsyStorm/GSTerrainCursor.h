@@ -19,8 +19,8 @@
 @property (nonatomic, assign) vector_float3 cursorPos;
 @property (nonatomic, assign) vector_float3 cursorPlacePos;
 
-- (nullable instancetype)init NS_UNAVAILABLE;
-- (nullable instancetype)initWithContext:(nonnull NSOpenGLContext *)context
+- (nonnull instancetype)init NS_UNAVAILABLE;
+- (nonnull instancetype)initWithContext:(nonnull NSOpenGLContext *)context
                                   shader:(nonnull GSShader *)shader NS_DESIGNATED_INITIALIZER;
 - (void)drawWithCamera:(nonnull GSCamera *)camera;
 

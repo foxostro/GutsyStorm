@@ -12,14 +12,14 @@
 
 @interface GSBoxedVector : NSObject <NSCopying>
 
-+ (GSBoxedVector *)boxedVectorWithVector:(vector_float3)vector;
-+ (GSBoxedVector *)boxedVectorWithIntegerVector:(vector_long3)vector;
-- (instancetype)initWithVector:(vector_float3)vector;
-- (instancetype)initWithIntegerVector:(vector_long3)vector;
-- (BOOL)isEqual:(id)other;
-- (BOOL)isEqualToVector:(GSBoxedVector *)vector;
++ (nonnull GSBoxedVector *)boxedVectorWithVector:(vector_float3)vector;
++ (nonnull GSBoxedVector *)boxedVectorWithIntegerVector:(vector_long3)vector;
+- (nonnull instancetype)initWithVector:(vector_float3)vector;
+- (nonnull instancetype)initWithIntegerVector:(vector_long3)vector;
+- (BOOL)isEqual:(nullable id)other;
+- (BOOL)isEqualToVector:(nullable GSBoxedVector *)vector;
 - (NSUInteger)hash;
-- (NSString *)toString;
+- (nonnull NSString *)toString;
 - (vector_float3)vectorValue;
 - (vector_long3)integerVectorValue;
 

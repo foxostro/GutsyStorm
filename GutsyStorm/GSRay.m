@@ -26,7 +26,7 @@ GSRay GSRayMake(vector_float3 origin, vector_float3 direction)
 }
 
 
-int GSRayIntersectsPlane(GSRay ray, GSPlane plane, vector_float3 *intersectionPointOut)
+int GSRayIntersectsPlane(GSRay ray, GSPlane plane, vector_float3 * _Nullable intersectionPointOut)
 {
     float denominator = vector_dot(ray.direction, plane.n);
     
@@ -60,7 +60,7 @@ int GSRayIntersectsPlane(GSRay ray, GSPlane plane, vector_float3 *intersectionPo
  * Returns 1 if there is an intersection, and 0 if there is no intersection at all.
  */
 int GSRayIntersectsAABB(GSRay r, vector_float3 minP, vector_float3 maxP,
-						float *distanceToEntrance, float *distanceToExit)
+						float * _Nullable distanceToEntrance, float * _Nullable distanceToExit)
 {
 	struct {
 		float t1, t2;

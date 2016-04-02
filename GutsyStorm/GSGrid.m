@@ -17,7 +17,7 @@
 @interface GSGrid ()
 
 - (NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP
-                                             bucket:(NSMutableArray<NSObject <GSGridItem> *> *)bucket;
+                                            bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket;
 
 @end
 
@@ -41,14 +41,13 @@
     NSMutableDictionary *_mappingToDependentGrids;
 }
 
-- (instancetype)init
+- (nonnull instancetype)init
 {
     assert(!"call -initWithFactory: instead");
     @throw nil;
 }
 
-- (instancetype)initWithName:(NSString *)name
-                     factory:(GSGridItemFactory)factory
+- (nonnull instancetype)initWithName:(nonnull NSString *)name factory:(nonnull GSGridItemFactory)factory
 {
     if (self = [super init]) {
         _factory = [factory copy];
@@ -200,7 +199,7 @@
     return result;
 }
 
-- (id)objectAtPoint:(vector_float3)p
+- (nonnull id)objectAtPoint:(vector_float3)p
 {
     id anItem = nil;
     [self objectAtPoint:p
@@ -259,8 +258,8 @@
     [_lockTheTableItself unlockForWriting];
 }
 
-- (NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP
-                                             bucket:(NSMutableArray<NSObject <GSGridItem> *> *)bucket
+- (nullable NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP
+                                                     bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket
 {
     assert(bucket);
 
@@ -275,7 +274,7 @@
     return nil;
 }
 
-- (void)invalidateItemWithChange:(GSGridEdit *)change
+- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change
 {
     // Invalidate asynchronously to avoid deadlock.
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
@@ -312,12 +311,12 @@
     });
 }
 
-- (void)willInvalidateItem:(NSObject <GSGridItem> *)item atPoint:(vector_float3)p
+- (void)willInvalidateItem:(nonnull NSObject <GSGridItem> *)item atPoint:(vector_float3)p
 {
     // do nothing
 }
 
-- (void)invalidateItemsInDependentGridsWithChange:(GSGridEdit *)change
+- (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change
 {
     assert(change);
 
@@ -335,14 +334,14 @@
     }
 }
 
-- (void)registerDependentGrid:(GSGrid *)grid mapping:(NSSet<GSBoxedVector *> * (^)(GSGridEdit *))mapping
+- (void)registerDependentGrid:(GSGrid *)grid mapping:(nonnull NSSet<GSBoxedVector *> * (^)(GSGridEdit *))mapping
 {
     [_dependentGrids addObject:grid];
     [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
 }
 
 - (void)replaceItemAtPoint:(vector_float3)p
-                 transform:(NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *original))newReplacementItem
+                 transform:(nonnull NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *original))newReplacementItem
 {
     [_lockTheTableItself lockForReading];
 
@@ -379,7 +378,8 @@
         }
     }
 
-    // If the item does not already exist in the cache then have the factory retrieve/create it, transform, and add to the cache.
+    // If the item does not already exist in the cache then have the factory retrieve/create it, transform, and add to
+    // the cache.
     [bucket addObject:newReplacementItem(_factory(minP))];
     OSAtomicIncrement32Barrier(&_n);
     float load = (float)_n / _numBuckets;
