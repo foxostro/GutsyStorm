@@ -17,6 +17,36 @@
 #import "GSMutableBuffer.h"
 
 
+#define LOG_PERF 0
+
+
+#if LOG_PERF
+#import <mach/mach.h>
+#import <mach/mach_time.h>
+
+static inline uint64_t stopwatchStart()
+{
+    return mach_absolute_time();
+}
+
+static inline uint64_t stopwatchEnd(uint64_t startAbs)
+{
+    static mach_timebase_info_data_t sTimebaseInfo;
+    static dispatch_once_t onceToken;
+    
+    uint64_t endAbs = mach_absolute_time();
+    uint64_t elapsedAbs = endAbs - startAbs;
+    
+    dispatch_once(&onceToken, ^{
+        mach_timebase_info(&(sTimebaseInfo));
+    });
+    assert(sTimebaseInfo.denom != 0);
+    uint64_t elapsedNs = elapsedAbs * sTimebaseInfo.numer / sTimebaseInfo.denom;
+    return elapsedNs;
+}
+#endif
+
+
 @interface GSChunkVoxelData ()
 
 - (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data;
@@ -199,15 +229,28 @@
     // Note that whether the block is outside or not is calculated later.
     generator(count, voxels, a, b, thisMinP);
 
+    GSMutableBuffer *data;
+    
     // Copy the voxels for the chunk to their final destination.
-    // TODO: Copy each column wholesale using memcpy
-    // XXX: I suspect that a highly efficient bit-blit could be written which copies voxels much faster than this.
-    GSMutableBuffer *data = [[GSMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
+#if LOG_PERF
+    uint64_t startAbs = stopwatchStart();
+#endif
+
+    data = [[GSMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
     GSVoxel *buf = (GSVoxel *)[data mutableData];
-    FOR_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
+
+    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
     {
-        buf[INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)] = voxels[INDEX_BOX(p, a, b)];
+        memcpy(&buf[INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)],
+               &voxels[INDEX_BOX(p, a, b)],
+               GSChunkSizeIntVec3.y * sizeof(GSVoxel));
     }
+    
+#if LOG_PERF
+    uint64_t elapsedNs = stopwatchEnd(startAbs);
+    float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
+    NSLog(@"newTerrainBufferWithGenerator: %.3f ms", elapsedMs);
+#endif
 
     free(voxels);
 
