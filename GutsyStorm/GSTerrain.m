@@ -341,19 +341,32 @@ static struct GSPostProcessingRuleSet replacementRuleSets[] =
 
 
 static BOOL typeMatchesCharacter(GSVoxelType type, char c);
-static BOOL cellPositionMatchesRule(struct GSPostProcessingRule *rule, vector_long3 clp,
+static BOOL cellPositionMatchesRule(struct GSPostProcessingRule * _Nonnull rule, vector_long3 clp,
                                     GSVoxel *voxels, vector_long3 minP, vector_long3 maxP);
-static struct GSPostProcessingRule * findRuleForCellPosition(size_t numRules, struct GSPostProcessingRule *rules,
-                                                           vector_long3 clp,
-                                                           GSVoxel *voxels, vector_long3 minP, vector_long3 maxP);
-static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
-                                    GSVoxel *voxelsIn, GSVoxel *voxelsOut,
-                                    struct GSPostProcessingRuleSet *ruleSet, GSVoxelType *prevType_p);
-static void postProcessVoxels(struct GSPostProcessingRuleSet *ruleSet,
-                              GSVoxel *voxelsIn, GSVoxel *voxelsOut,
-                              vector_long3 minP, vector_long3 maxP);
+static struct GSPostProcessingRule * _Nullable findRuleForCellPosition(size_t numRules,
+                                                                       struct GSPostProcessingRule * _Nonnull rules,
+                                                                       vector_long3 clp,
+                                                                       GSVoxel * _Nonnull voxels,
+                                                                       vector_long3 minP,
+                                                                       vector_long3 maxP);
+static void postProcessingInnerLoop(vector_long3 maxP,
+                                    vector_long3 minP,
+                                    vector_long3 p,
+                                    GSVoxel * _Nonnull voxelsIn,
+                                    GSVoxel * _Nonnull voxelsOut,
+                                    struct GSPostProcessingRuleSet * _Nonnull ruleSet,
+                                    GSVoxelType * _Nonnull prevType_p);
+static void postProcessVoxels(struct GSPostProcessingRuleSet * _Nonnull ruleSet,
+                              GSVoxel * _Nonnull voxelsIn,
+                              GSVoxel * _Nonnull voxelsOut,
+                              vector_long3 minP,
+                              vector_long3 maxP);
 static float groundGradient(float terrainHeight, vector_float3 p);
-static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, GSVoxel *outVoxel);
+static void generateTerrainVoxel(NSUInteger seed,
+                                 float terrainHeight,
+                                 vector_float3 p,
+                                 GSVoxel * _Nonnull outVoxel);
+
 int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 
@@ -420,29 +433,29 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 }
 
 - (nonnull instancetype)initWithSeed:(NSUInteger)seed
-                               camera:(nonnull GSCamera *)cam
-                            glContext:(nonnull NSOpenGLContext *)context
+                              camera:(nonnull GSCamera *)cam
+                           glContext:(nonnull NSOpenGLContext *)context
 {
-    self = [super init];
-    if(self) {
+    if (self = [super init]) {
         _camera = cam;
-        
+
         assert(checkGLErrors() == 0);
-        
+
         GSShader *cursorShader = [self newCursorShader];
         GSShader *terrainShader = [self newTerrainShader];
-        
-        _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
-                                                                  pathForResource:@"terrain"
-                                                                  ofType:@"png"]
-                                                     numTextures:4];
 
-        GSTerrainGeneratorBlock generator = ^(vector_float3 a, GSVoxel *voxel) {
+        _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
+                                                                                  pathForResource:@"terrain"
+                                                                                           ofType:@"png"]
+                                                      numTextures:4];
+
+        GSTerrainGeneratorBlock generator = ^(vector_float3 a, GSVoxel * _Nonnull voxel) {
             const float terrainHeight = 40.0f;
             generateTerrainVoxel(seed, terrainHeight, a, voxel);
         };
 
-        GSTerrainPostProcessorBlock postProcessor = ^(size_t count, GSVoxel *voxels, vector_long3 minP, vector_long3 maxP) {
+        GSTerrainPostProcessorBlock postProcessor = ^(size_t count, GSVoxel * _Nonnull voxels,
+                                                      vector_long3 minP, vector_long3 maxP) {
             _Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
 
             GSVoxel *temp1 = malloc(count * sizeof(GSVoxel));
@@ -633,12 +646,12 @@ static BOOL cellPositionMatchesRule(struct GSPostProcessingRule * _Nonnull rule,
     return YES;
 }
 
-static struct GSPostProcessingRule * _Nonnull findRuleForCellPosition(size_t numRules,
-                                                                      struct GSPostProcessingRule * _Nonnull rules,
-                                                                      vector_long3 clp,
-                                                                      GSVoxel * _Nonnull voxels,
-                                                                      vector_long3 minP,
-                                                                      vector_long3 maxP)
+static struct GSPostProcessingRule * _Nullable findRuleForCellPosition(size_t numRules,
+                                                                       struct GSPostProcessingRule * _Nonnull rules,
+                                                                       vector_long3 clp,
+                                                                       GSVoxel * _Nonnull voxels,
+                                                                       vector_long3 minP,
+                                                                       vector_long3 maxP)
 {
     assert(rules);
 

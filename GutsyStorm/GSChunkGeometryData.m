@@ -166,6 +166,9 @@ static void applyLightToVertices(size_t numChunkVerts,
     const uint32_t len = numChunkVerts * sizeof(GSTerrainVertex);
     const size_t capacity = sizeof(struct GSChunkGeometryHeader) + len;
     NSMutableData *data = [[NSMutableData alloc] initWithBytesNoCopy:malloc(capacity) length:capacity freeWhenDone:YES];
+    if(!data) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating `data' in -dataWithSunlight:minP:."];
+    }
 
     struct GSChunkGeometryHeader * header = [data mutableBytes];
     GSTerrainVertex * vertsBuffer = (void *)header + sizeof(struct GSChunkGeometryHeader);

@@ -23,6 +23,9 @@
         assert(seed < UINT_MAX);
         unsigned s = (unsigned)seed;
         _context = FeepingCreature_CreateNoiseContext(&s);
+        if (!_context) {
+            [NSException raise:@"Out of Memory" format:@"Failed to create noise context in GSNoise."];
+        }
     }
     
     return self;

@@ -85,6 +85,9 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     vector_long3 p; // loop counter
 
     GSTerrainBufferElement *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
+    if(!dstBuf) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating dstBuf."];
+    }
 
     FOR_Y_COLUMN_IN_BOX(p, a, b)
     {
@@ -97,6 +100,7 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
 
     free(dstBuf);
 
+    assert(aBuffer);
     return aBuffer;
 }
 

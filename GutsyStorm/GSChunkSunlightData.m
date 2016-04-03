@@ -157,6 +157,10 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         malloc((GSCombinedMaxP.x - GSCombinedMinP.x) *
                (GSCombinedMaxP.y - GSCombinedMinP.y) *
                (GSCombinedMaxP.z - GSCombinedMinP.z) * sizeof(GSTerrainBufferElement));
+    
+    if(!combinedSunlightData) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating `combinedSunlightData'."];
+    }
 
     vector_long3 p;
     FOR_BOX(p, GSCombinedMinP, GSCombinedMaxP)
