@@ -11,7 +11,7 @@
 
 typedef void (^GSVBOInvalidationNotificationBlock)(void);
 
-@interface GSGridVBOs : GSGrid<GSChunkVBOs *>
+@interface GSGridVBOs : GSGrid<GSChunkVAO *>
 
 @property (nonatomic, copy, nonnull) GSVBOInvalidationNotificationBlock invalidationNotification;
 

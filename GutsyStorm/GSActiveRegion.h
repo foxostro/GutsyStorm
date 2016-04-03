@@ -9,7 +9,7 @@
 #import <simd/vector.h>
 
 @class GSCamera;
-@class GSChunkVBOs;
+@class GSChunkVAO;
 @class GSGridVBOs;
 @class GSBoxedVector;
 

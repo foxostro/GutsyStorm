@@ -1,5 +1,5 @@
 //
-//  GSChunkVBOs.m
+//  GSChunkVAO.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/17/13.
@@ -10,7 +10,7 @@
 #import <OpenGL/gl.h>
 
 #import "GSGridItem.h"
-#import "GSChunkVBOs.h"
+#import "GSChunkVAO.h"
 #import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSBoxedTerrainVertex.h"
@@ -30,7 +30,7 @@ static const GLsizei SHARED_INDEX_BUFFER_LEN = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHU
 typedef GLuint index_t;
 
 
-@implementation GSChunkVBOs
+@implementation GSChunkVAO
 {
     GLsizei _numIndicesForDrawing;
     GSVBOHolder *_vbo, *_ibo;
@@ -76,16 +76,16 @@ typedef GLuint index_t;
 {
     assert(geometry);
     assert(context);
-    
+
     if(self = [super init]) {
         GSTerrainVertex *vertsBuffer = NULL;
         _numIndicesForDrawing = [geometry copyVertsToBuffer:&vertsBuffer];
         _glContext = context;
         minP = geometry.minP;
-        
+
         [context makeCurrentContext];
         CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
-        
+
         GLuint vbo = 0;
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -105,10 +105,10 @@ typedef GLuint index_t;
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
-        
+
         glBindBuffer(GL_ARRAY_BUFFER, _vbo.handle);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ibo.handle);
-        
+
 #ifndef NDEBUG
         static dispatch_once_t onceToken;
         dispatch_once(&onceToken, ^{
@@ -119,18 +119,18 @@ typedef GLuint index_t;
             assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, color));
         });
 #endif
-        
+
         const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertex, position);
         const GLvoid *offsetNormal   = (const GLvoid *)offsetof(GSTerrainVertex, normal);
         const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertex, texCoord);
         const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertex, color);
-        
+
         const GLsizei stride = sizeof(GSTerrainVertex);
         glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
         glNormalPointer(     GL_BYTE,          stride, offsetNormal);
         glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
         glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
-        
+
         glBindVertexArrayAPPLE(0);
 
         _vao = [[GSVAOHolder alloc] initWithHandle:vao context:context];
@@ -144,7 +144,7 @@ typedef GLuint index_t;
 
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
-    return self; // All GSChunkVBO objects are immutable, so return self instead of deep copying.
+    return self; // All GSChunkVAO objects are immutable, so return self instead of deep copying.
 }
 
 - (void)draw

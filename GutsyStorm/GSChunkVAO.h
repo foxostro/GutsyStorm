@@ -1,5 +1,5 @@
 //
-//  GSChunkVBOs.h
+//  GSChunkVAO.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/17/13.
@@ -8,7 +8,7 @@
 
 @class GSChunkGeometryData;
 
-@interface GSChunkVBOs : NSObject <GSGridItem>
+@interface GSChunkVAO : NSObject <GSGridItem>
 
 - (nonnull instancetype)initWithChunkGeometry:(nonnull GSChunkGeometryData *)geometry
                                      glContext:(nonnull NSOpenGLContext *)glContext;
