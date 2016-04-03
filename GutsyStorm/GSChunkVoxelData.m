@@ -20,10 +20,7 @@
 @interface GSChunkVoxelData ()
 
 - (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data;
-- (nonnull GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(nonnull GSTerrainGeneratorBlock)generator
-                                               postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor;
-- (nonnull GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(nonnull GSTerrainGeneratorBlock)generator
-                                                                    postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor;
+- (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainProcessorBlock)generator;
 
 @end
 
@@ -48,8 +45,7 @@
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                        chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
-                            generator:(nonnull GSTerrainGeneratorBlock)generator
-                        postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor
+                            generator:(nonnull GSTerrainProcessorBlock)generator
 {
     assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
@@ -59,7 +55,32 @@
         _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
-        _voxels = [self newVoxelDataBufferFromFileOrFromScratchWithGenerator:generator postProcessor:postProcessor];
+
+        // Load the terrain from disk if possible, else generate it form scratch.
+        GSTerrainBuffer *buffer = nil;
+        NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:minP];
+        NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
+        NSError *error = nil;
+        NSData *data = [NSData dataWithContentsOfFile:[url path]
+                                              options:NSDataReadingMapped
+                                                error:&error];
+        BOOL goodSize = [data length] == BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
+
+        if (data && goodSize) {
+            if (!goodSize) {
+                NSLog(@"ERROR: bad size for chunk data; assuming data corruption");
+            }
+            const GSTerrainBufferElement * _Nullable bytes = [data bytes];
+            assert(bytes);
+            buffer = [[GSTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3
+                                                            data:(const GSTerrainBufferElement * _Nonnull)bytes];
+        } else {
+            buffer = [self newTerrainBufferWithGenerator:generator];
+            [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
+        }
+
+        assert(buffer);
+        _voxels = buffer;
     }
 
     return self;
@@ -160,8 +181,7 @@
  * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
  * the chunk is equal to maxP-minP. Ditto for the other major axii.
  */
-- (nonnull GSTerrainBuffer *)newVoxelDataBufferWithGenerator:(nonnull GSTerrainGeneratorBlock)generator
-                                               postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor
+- (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainProcessorBlock)generator
 {
     vector_float3 thisMinP = self.minP;
     vector_long3 p, a, b;
@@ -169,18 +189,12 @@
     b = GSMakeIntegerVector3(GSChunkSizeIntVec3.x+2, GSChunkSizeIntVec3.y, GSChunkSizeIntVec3.z+2);
 
     const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
-    GSVoxel *voxels = calloc(count, sizeof(GSVoxel));
+    GSVoxel *voxels = calloc(count, sizeof(GSVoxel)); // XXX: is this calloc necesary? The generator can initialize memory.
+    // XXX: need to be able to respond to failure of call to calloc() above
 
-    // First, generate voxels for the region of the chunk, plus a 1 block wide border.
+    // Generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.
-    // XXX: Remove this loop and replace with a modified generator() that performs batch voxel generation.
-    FOR_BOX(p, a, b)
-    {
-        generator(vector_make(p.x, p.y, p.z) + thisMinP, &voxels[INDEX_BOX(p, a, b)]);
-    }
-
-    // Post-process the voxels to add ramps, &c.
-    postProcessor(count, voxels, a, b);
+    generator(count, voxels, a, b, thisMinP);
 
     // Copy the voxels for the chunk to their final destination.
     // TODO: Copy each column wholesale using memcpy
@@ -204,39 +218,6 @@
     NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
     NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
     [self.voxels saveToFile:url queue:_queueForSaving group:_groupForSaving];
-}
-
-- (nonnull GSTerrainBuffer *)newVoxelDataBufferFromFileOrFromScratchWithGenerator:(nonnull GSTerrainGeneratorBlock)generator
-                                                                    postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor
-{
-    GSTerrainBuffer *buffer = nil;
-
-    @autoreleasepool {
-        NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
-        NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
-        NSError *error = nil;
-        NSData *data = [NSData dataWithContentsOfFile:[url path]
-                                              options:NSDataReadingMapped
-                                                error:&error];
-        BOOL goodSize = [data length] == BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
-
-        if (data && goodSize) {
-            if (!goodSize) {
-                NSLog(@"ERROR: bad size for chunk data; assuming data corruption");
-            }
-            const GSTerrainBufferElement * _Nullable bytes = [data bytes];
-            assert(bytes);
-            buffer = [[GSTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3
-                                                             data:(const GSTerrainBufferElement * _Nonnull)bytes];
-        } else {
-            buffer = [self newVoxelDataBufferWithGenerator:generator postProcessor:postProcessor];
-            [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
-        }
-        
-        assert(buffer);
-    }
-
-    return buffer;
 }
 
 - (nonnull GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock

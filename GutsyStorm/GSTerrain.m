@@ -450,35 +450,46 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
         GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:seed+1];
 
-        GSTerrainGeneratorBlock generator = ^(vector_float3 a, GSVoxel * _Nonnull voxel) {
-            const float terrainHeight = 40.0f;
-            generateTerrainVoxel(noiseSource0, noiseSource1, terrainHeight, a, voxel);
-        };
+        GSTerrainProcessorBlock generator = ^(size_t count, GSVoxel * _Nonnull voxels,
+                                              vector_long3 minP, vector_long3 maxP, vector_float3 offsetToWorld) {
+            const static float terrainHeight = 40.0f;
+            vector_long3 clp;
 
-        GSTerrainPostProcessorBlock postProcessor = ^(size_t count, GSVoxel * _Nonnull voxels,
-                                                      vector_long3 minP, vector_long3 maxP) {
+            // First, generate voxels for a region of terrain.
+            // XXX: need batch noise generation here
+            FOR_BOX(clp, minP, maxP)
+            {
+                vector_float3 worldPosition = vector_make(clp.x, clp.y, clp.z) + offsetToWorld;
+                GSVoxel *voxel = &voxels[INDEX_BOX(clp, minP, maxP)];
+
+                generateTerrainVoxel(noiseSource0, noiseSource1, terrainHeight, worldPosition, voxel);
+            }
+
+            // Second, post-process the voxels to add ramps and slopes.
+            // XXX: can marching cubes teach me a better way to do this?
+
             _Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
-
+            
             GSVoxel *temp1 = malloc(count * sizeof(GSVoxel));
             if(!temp1) {
                 [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp1."];
             }
-
+            
             GSVoxel *temp2 = malloc(count * sizeof(GSVoxel));
             if(!temp2) {
                 [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp2."];
             }
-
+            
             postProcessVoxels(&replacementRuleSets[0], voxels, temp1, minP, maxP);
-
+            
             for(size_t i=1; i<ARRAY_LEN(replacementRuleSets); ++i)
             {
                 postProcessVoxels(&replacementRuleSets[i], temp1, temp2, minP, maxP);
                 SWAP(temp1, temp2);
             }
-
+            
             memcpy(voxels, temp1, count * sizeof(GSVoxel));
-
+            
             free(temp1);
             free(temp2);
         };
@@ -487,8 +498,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                  camera:cam
                                             terrainShader:terrainShader
                                                 glContext:context
-                                                generator:generator
-                                            postProcessor:postProcessor];
+                                                generator:generator];
         
         _cursor = [[GSTerrainCursor alloc] initWithContext:context shader:cursorShader];
         

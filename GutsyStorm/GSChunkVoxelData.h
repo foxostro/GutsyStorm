@@ -13,9 +13,9 @@
 #import "GSTerrainBuffer.h"
 
 
-typedef void (^GSTerrainGeneratorBlock)(vector_float3, GSVoxel * _Nonnull);
-typedef void (^GSTerrainPostProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
-                                            vector_long3 minP, vector_long3 maxP);
+typedef void (^GSTerrainProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
+                                        vector_long3 minP, vector_long3 maxP,
+                                        vector_float3 offsetToWorld);
 
 
 @interface GSChunkVoxelData : NSObject <GSGridItem>
@@ -29,8 +29,7 @@ typedef void (^GSTerrainPostProcessorBlock)(size_t count, GSVoxel * _Nonnull vox
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                        chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
-                            generator:(nonnull GSTerrainGeneratorBlock)generator
-                        postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessor;
+                            generator:(nonnull GSTerrainProcessorBlock)generator;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minP
                                folder:(nonnull NSURL *)folder

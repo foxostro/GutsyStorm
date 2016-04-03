@@ -67,8 +67,7 @@
     GSShader *_terrainShader;
     NSOpenGLContext *_glContext;
 
-    GSTerrainGeneratorBlock _generator;
-    GSTerrainPostProcessorBlock _postProcessor;
+    GSTerrainProcessorBlock _generator;
 
     GSActiveRegion *_activeRegion;
     vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
@@ -223,8 +222,7 @@
                                camera:(nonnull GSCamera *)cam
                         terrainShader:(nonnull GSShader *)shader
                             glContext:(nonnull NSOpenGLContext *)context
-                            generator:(nonnull GSTerrainGeneratorBlock)generatorCallback
-                        postProcessor:(nonnull GSTerrainPostProcessorBlock)postProcessorCallback
+                            generator:(nonnull GSTerrainProcessorBlock)generator
 {
     self = [super init];
     if (self) {
@@ -234,8 +232,7 @@
         _camera = cam;
         _terrainShader = shader;
         _glContext = context;
-        _generator = [generatorCallback copy];
-        _postProcessor = [postProcessorCallback copy];
+        _generator = [generator copy];
         _chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
         
@@ -594,8 +591,7 @@
                                    groupForSaving:_groupForSaving
                                    queueForSaving:_queueForSaving
                                    chunkTaskQueue:_chunkTaskQueue
-                                        generator:_generator
-                                    postProcessor:_postProcessor];
+                                        generator:_generator];
 }
 
 - (void)purge
