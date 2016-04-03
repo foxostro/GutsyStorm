@@ -7,6 +7,8 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <OpenGL/gl.h>
+
 #import "GSGridItem.h"
 #import "GSChunkVBOs.h"
 #import "GSIntegerVector3.h"
@@ -14,7 +16,8 @@
 #import "GSBoxedTerrainVertex.h"
 #import "GSVBOHolder.h"
 
-#import <OpenGL/gl.h>
+#define LOG_PERF 1
+#import "Stopwatch.h"
 
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
@@ -109,14 +112,16 @@ typedef GLuint index_t;
 
 - (void)draw
 {
-    // TODO: use VAOs
+#if LOG_PERF
+    uint64_t startAbs = stopwatchStart();
+#endif
 
     assert(checkGLErrors() == 0);
     assert(_numIndicesForDrawing < SHARED_INDEX_BUFFER_LEN);
 
     glBindBuffer(GL_ARRAY_BUFFER, _vbo.handle);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ibo.handle);
-    
+
 #ifndef NDEBUG
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -147,10 +152,16 @@ typedef GLuint index_t;
     } else {
         assert(!"I don't know the GLenum to use with index_t.");
     }
-    
+
     glDrawElements(GL_TRIANGLES, _numIndicesForDrawing, indexEnum, NULL);
 
     assert(checkGLErrors() == 0);
+    
+#if LOG_PERF
+    uint64_t elapsedNs = stopwatchEnd(startAbs);
+    float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
+    NSLog(@"-[GSChunkVBOs draw]: %.5f ms", elapsedMs);
+#endif
 }
 
 @end
