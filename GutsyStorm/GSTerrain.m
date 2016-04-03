@@ -362,10 +362,8 @@ static void postProcessVoxels(struct GSPostProcessingRuleSet * _Nonnull ruleSet,
                               vector_long3 minP,
                               vector_long3 maxP);
 static float groundGradient(float terrainHeight, vector_float3 p);
-static void generateTerrainVoxel(NSUInteger seed,
-                                 float terrainHeight,
-                                 vector_float3 p,
-                                 GSVoxel * _Nonnull outVoxel);
+static void generateTerrainVoxel(GSNoise * _Nonnull noiseSource0, GSNoise * _Nonnull noiseSource1,
+                                 float terrainHeight, vector_float3 p, GSVoxel * _Nonnull outVoxel);
 
 int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
@@ -447,11 +445,14 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
                                                                                   pathForResource:@"terrain"
                                                                                            ofType:@"png"]
-                                                      numTextures:4];
+                                                     numTextures:4];
+
+        GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
+        GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:seed+1];
 
         GSTerrainGeneratorBlock generator = ^(vector_float3 a, GSVoxel * _Nonnull voxel) {
             const float terrainHeight = 40.0f;
-            generateTerrainVoxel(seed, terrainHeight, a, voxel);
+            generateTerrainVoxel(noiseSource0, noiseSource1, terrainHeight, a, voxel);
         };
 
         GSTerrainPostProcessorBlock postProcessor = ^(size_t count, GSVoxel * _Nonnull voxels,
@@ -749,21 +750,13 @@ static float groundGradient(float terrainHeight, vector_float3 p)
 }
 
 // Generates a voxel for the specified point in space. Returns that voxel in `outVoxel'.
-static void generateTerrainVoxel(NSUInteger seed, float terrainHeight, vector_float3 p, GSVoxel * _Nonnull outVoxel)
+static void generateTerrainVoxel(GSNoise * _Nonnull noiseSource0, GSNoise * _Nonnull noiseSource1,
+                                 float terrainHeight, vector_float3 p, GSVoxel * _Nonnull outVoxel)
 {
-    static dispatch_once_t onceToken;
-    static GSNoise *noiseSource0;
-    static GSNoise *noiseSource1;
-
     BOOL groundLayer = NO;
     BOOL floatingMountain = NO;
 
     assert(outVoxel);
-
-    dispatch_once(&onceToken, ^{
-        noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
-        noiseSource1 = [[GSNoise alloc] initWithSeed:seed+1];
-    });
 
     // Normal rolling hills
     {
