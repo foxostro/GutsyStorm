@@ -47,6 +47,8 @@
 
 - (GSVoxel)voxelAtPoint:(vector_float3)pos;
 
+- (GSTerrainBufferElement)sunlightAtPoint:(vector_float3)pos;
+
 - (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block;
 
 - (void)purge;

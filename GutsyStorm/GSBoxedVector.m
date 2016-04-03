@@ -108,6 +108,11 @@
     return [NSString stringWithFormat:@"%f_%f_%f", _vector.x, _vector.y, _vector.z];
 }
 
+- (nonnull NSString *)description
+{
+    return [NSString stringWithFormat:@"(%.1f, %.1f, %.1f)", _vector.x, _vector.y, _vector.z];
+}
+
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // GSBoxedVector is immutable. Return self rather than performing a deep copy.

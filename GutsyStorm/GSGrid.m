@@ -327,8 +327,8 @@
         for(GSBoxedVector *q in correspondingPoints)
         {
             GSGridEdit *secondaryChange = [[GSGridEdit alloc] initWithOriginalItem:nil
-                                                                        modifiedItem:nil
-                                                                                 pos:[q vectorValue]];
+                                                                      modifiedItem:nil
+                                                                               pos:[q vectorValue]];
             [grid invalidateItemWithChange:secondaryChange];
         }
     }

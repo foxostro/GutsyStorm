@@ -29,6 +29,8 @@
 
 #import <OpenGL/gl.h>
 
+#define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0])) // XXX: find a better home for ARRAY_LEN macro
+
 
 @interface GSChunkStore ()
 
@@ -128,50 +130,87 @@
 {
     assert(edit);
     vector_float3 p = edit.pos;
-    BOOL fullRebuild = YES;
-    GSVoxel voxel;
 
-    {
-        GSChunkVoxelData *voxelChunk = edit.originalObject;
-        vector_float3 minP = voxelChunk.minP;
-        vector_long3 chunkLocalPos = GSMakeIntegerVector3(p.x-minP.x, p.y-minP.y+1, p.z-minP.z);
-        voxel = [voxelChunk voxelAtLocalPosition:chunkLocalPos];
+    vector_float3 minP = GSMinCornerForChunkAtPoint(p);
+    vector_long3 clpOfEdit = GSMakeIntegerVector3(p.x - minP.x, p.y - minP.y, p.z - minP.z);
+
+    // If the change is deep enough into the interior of the block then the change cannot affect the neighbors.
+    if (clpOfEdit.x >= CHUNK_LIGHTING_MAX && clpOfEdit.z >= CHUNK_LIGHTING_MAX &&
+        clpOfEdit.x < (CHUNK_SIZE_X-CHUNK_LIGHTING_MAX) && clpOfEdit.z < (CHUNK_SIZE_Z-CHUNK_LIGHTING_MAX)) {
+        return [NSSet setWithObject:[GSBoxedVector boxedVectorWithVector:minP]];
     }
 
-    if (!voxel.outside) {
-        fullRebuild = NO;
-    }
+    GSVoxel originalVoxel = [edit.originalObject voxelAtLocalPosition:clpOfEdit];
+    GSVoxel modifiedVoxel = [edit.modifiedObject voxelAtLocalPosition:clpOfEdit];
 
-    if (fullRebuild) {
-        NSMutableArray<GSBoxedVector *> *correspondingPoints =
-            [[NSMutableArray<GSBoxedVector *> alloc] initWithCapacity:CHUNK_NUM_NEIGHBORS];
-        for(GSVoxelNeighborIndex i=0; i<CHUNK_NUM_NEIGHBORS; ++i)
-        {
-            vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
-            GSBoxedVector *boxedPoint = [GSBoxedVector boxedVectorWithVector:(p + offset)];
-            [correspondingPoints addObject:boxedPoint];
+    BOOL originalIsOpaque = originalVoxel.opaque;
+    BOOL modifiedIsOpaque = modifiedVoxel.opaque;
+    
+    // If the original block was opaque, and the new block is opaque, then the change actually can be resolved by
+    // updating sunlight for the one block that was modified, and nothing else.
+    // If the original block was not-opaque and the new block is also not-opaque then the change can be resolved as in
+    // the above case. Only one sunlight block needs to be updated.
+    if (originalIsOpaque == modifiedIsOpaque) {
+        return [NSSet setWithObject:[GSBoxedVector boxedVectorWithVector:minP]];
+    }
+    
+    GSTerrainBufferElement m = CHUNK_LIGHTING_MAX;
+    
+    // If the original block was opaque, and the new block is not-opaque, then the change cannot propagate a further
+    // distance than the difference between the the maximum and minimum adjacent light levels. Noting, however, that
+    // light levels of opaque blocks must be ignored.
+    if (originalIsOpaque && !modifiedIsOpaque) {
+        GSTerrainBufferElement maxSunlight = 0, minSunlight = CHUNK_LIGHTING_MAX;
+        
+        // Is the edit on the border of the chunk? If so then testing the adjacent chunks would involve taking a lock on
+        // the neighboring chunks. If that's the case then skip neighbor tests and assume the edit affects the full
+        // range. We do this because, upon entering this method, we're already holding a lock on the stripe which
+        // contains the chunk which contains the edit. If we attempt to take the lock on another voxel data chunk, and
+        // both chunks reside on the same stripe, then taking the lock will cause a deadlock.
+        if (clpOfEdit.x > 0 && clpOfEdit.z > 0 && clpOfEdit.x < (CHUNK_SIZE_X-1) && clpOfEdit.z < (CHUNK_SIZE_Z-1)) {
+            vector_long3 adjacentPoints[] = {
+                clpOfEdit,
+                clpOfEdit + GSMakeIntegerVector3(+1,  0,  0),
+                clpOfEdit + GSMakeIntegerVector3(-1,  0,  0),
+                clpOfEdit + GSMakeIntegerVector3( 0, +1,  0),
+                clpOfEdit + GSMakeIntegerVector3( 0, -1,  0),
+                clpOfEdit + GSMakeIntegerVector3( 0,  0, +1),
+                clpOfEdit + GSMakeIntegerVector3( 0,  0, -1)
+            };
+            for(size_t i = 0; i < ARRAY_LEN(adjacentPoints); ++i)
+            {
+                vector_long3 adjacentPoint = adjacentPoints[i];
+                
+                if (adjacentPoint.y >= 0 && adjacentPoint.y < CHUNK_SIZE_Y) {
+                    GSVoxel voxel = [edit.originalObject voxelAtLocalPosition:adjacentPoint];
+                    
+                    if (!voxel.opaque) {
+                        vector_float3 worldPos = vector_make(adjacentPoint.x + minP.x,
+                                                             adjacentPoint.y + minP.y,
+                                                             adjacentPoint.z + minP.z);
+                        GSTerrainBufferElement sunlightLevel = [self sunlightAtPoint:worldPos];
+                        maxSunlight = MAX(maxSunlight, sunlightLevel);
+                        minSunlight = MIN(minSunlight, sunlightLevel);
+                    }
+                }
+            }
+            
+            m = maxSunlight - minSunlight;
         }
-        return [NSSet<GSBoxedVector *> setWithArray:correspondingPoints];
     } else {
-        /* If the modified block is below an Inside block then changes to it can only affect lighting for blocks at most
-         * CHUNK_LIGHTING_MAX steps away, but even this is too generous for many changes. To precisely determine the
-         * range of the lighting change, take the light levels of all blocks directly adjacent to the one that was
-         * modified. In the case where a block is being added, the brightest adjacent block was flooding over the space
-         * and now will no longer do that. The range of the change is determined by the difference between the lighting
-         * levels of the brightest and the dimmest adjacent blocks. Ditto the case where a block is being removed.
-         */
-        // XXX: Do the precise change range computation described above.
-        const unsigned m = CHUNK_LIGHTING_MAX;
-        NSMutableSet<GSBoxedVector *> *set = [NSMutableSet<GSBoxedVector *> new];
-        [set addObjectsFromArray:@[[GSBoxedVector boxedVectorWithVector:p],
-                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make(+m,  0,  0))],
-                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make(-m,  0,  0))],
-                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make( 0, -m,  0))],
-                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make( 0,  0, +m))],
-                                   [GSBoxedVector boxedVectorWithVector:(p + vector_make( 0,  0, -m))],
-                                   ]];
-        return set;
+        // If the original block was not-opaque and the new block is opaque then the change CANNOT be resolved by taking
+        // a difference as above. In this case, light must be propagated through first in order for the max - min calc
+        // to work. So: in this case, assume the change propagates the maximum distance.
     }
+
+    NSArray *points = @[[GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p)],
+                        [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p + vector_make(+m,  0,  0))],
+                        [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p + vector_make(-m,  0,  0))],
+                        [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p + vector_make( 0,  0, +m))],
+                        [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p + vector_make( 0,  0, -m))],
+                        ];
+    NSSet *set = [NSSet setWithArray:points];
+    return set;
 }
 
 - (void)setupGridDependencies
@@ -365,6 +404,16 @@
     return [chunk voxelAtLocalPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
                                                              pos.y-chunk.minP.y,
                                                              pos.z-chunk.minP.z)];
+}
+
+- (GSTerrainBufferElement)sunlightAtPoint:(vector_float3)pos
+{
+    assert(!_chunkStoreHasBeenShutdown);
+    GSChunkSunlightData *chunk = [self chunkSunlightAtPoint:pos];
+    assert(chunk);
+    return [chunk.sunlight valueAtPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
+                                                                pos.y-chunk.minP.y,
+                                                                pos.z-chunk.minP.z)];
 }
 
 - (BOOL)enumerateVoxelsOnRay:(GSRay)ray
