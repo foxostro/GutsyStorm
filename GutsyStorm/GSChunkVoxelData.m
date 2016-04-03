@@ -189,8 +189,11 @@
     b = GSMakeIntegerVector3(GSChunkSizeIntVec3.x+2, GSChunkSizeIntVec3.y, GSChunkSizeIntVec3.z+2);
 
     const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
-    GSVoxel *voxels = calloc(count, sizeof(GSVoxel)); // XXX: is this calloc necesary? The generator can initialize memory.
-    // XXX: need to be able to respond to failure of call to calloc() above
+    GSVoxel *voxels = malloc(count * sizeof(GSVoxel));
+
+    if (!voxels) {
+        [NSException raise:@"Out of Memory" format:@"Out of memory allocating voxels in -newTerrainBufferWithGenerator:."];
+    }
 
     // Generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.

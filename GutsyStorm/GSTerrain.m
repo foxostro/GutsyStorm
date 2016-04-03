@@ -461,7 +461,6 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             {
                 vector_float3 worldPosition = vector_make(clp.x, clp.y, clp.z) + offsetToWorld;
                 GSVoxel *voxel = &voxels[INDEX_BOX(clp, minP, maxP)];
-
                 generateTerrainVoxel(noiseSource0, noiseSource1, terrainHeight, worldPosition, voxel);
             }
 
@@ -815,10 +814,11 @@ static void generateTerrainVoxel(GSNoise * _Nonnull noiseSource0, GSNoise * _Non
         }
     }
 
-    outVoxel->dir = VOXEL_DIR_NORTH;
     outVoxel->outside = NO; // calculated later
     outVoxel->exposedToAirOnTop = NO; // calculated later
     outVoxel->opaque = groundLayer || floatingMountain;
-    outVoxel->tex = VOXEL_TEX_GRASS;
+    outVoxel->upsideDown = NO; // calculated later
+    outVoxel->dir = VOXEL_DIR_NORTH;
     outVoxel->type = (groundLayer || floatingMountain) ? VOXEL_TYPE_CUBE : VOXEL_TYPE_EMPTY;
+    outVoxel->tex = VOXEL_TEX_GRASS;
 }
