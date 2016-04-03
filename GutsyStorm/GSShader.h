@@ -17,6 +17,5 @@
 - (void)unbind;
 - (void)bindUniformWithInt:(int)value name:(nonnull NSString *)name;
 - (void)bindUniformWithMatrix4x4:(matrix_float4x4)value name:(nonnull NSString *)name;
-- (void)bindUniformWithVector2:(vector_float2)value name:(nonnull NSString *)name;
 
 @end
