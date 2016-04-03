@@ -15,9 +15,7 @@
 #import "GSChunkGeometryData.h"
 #import "GSBoxedTerrainVertex.h"
 #import "GSVBOHolder.h"
-
-#define LOG_PERF 1
-#import "Stopwatch.h"
+#import "GSVAOHolder.h"
 
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
@@ -36,6 +34,7 @@ typedef GLuint index_t;
 {
     GLsizei _numIndicesForDrawing;
     GSVBOHolder *_vbo, *_ibo;
+    GSVAOHolder *_vao;
     NSOpenGLContext *_glContext;
 }
 
@@ -97,7 +96,45 @@ typedef GLuint index_t;
         free(vertsBuffer);
 
         _ibo = [[self class] sharedIndexBufferObject];
+
+        GLuint vao = 0;
+        glGenVertexArraysAPPLE(1, &vao);
+        glBindVertexArrayAPPLE(vao);
+
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
         
+        glBindBuffer(GL_ARRAY_BUFFER, _vbo.handle);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ibo.handle);
+        
+#ifndef NDEBUG
+        static dispatch_once_t onceToken;
+        dispatch_once(&onceToken, ^{
+            // Verify that vertex attribute formats are consistent with in-memory storage.
+            assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, position));
+            assert(sizeof(GLbyte)  == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, normal));
+            assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, texCoord));
+            assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, color));
+        });
+#endif
+        
+        const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertex, position);
+        const GLvoid *offsetNormal   = (const GLvoid *)offsetof(GSTerrainVertex, normal);
+        const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertex, texCoord);
+        const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertex, color);
+        
+        const GLsizei stride = sizeof(GSTerrainVertex);
+        glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
+        glNormalPointer(     GL_BYTE,          stride, offsetNormal);
+        glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
+        glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
+        
+        glBindVertexArrayAPPLE(0);
+
+        _vao = [[GSVAOHolder alloc] initWithHandle:vao context:context];
+
         assert(checkGLErrors() == 0);
         CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
     }
@@ -112,37 +149,8 @@ typedef GLuint index_t;
 
 - (void)draw
 {
-#if LOG_PERF
-    uint64_t startAbs = stopwatchStart();
-#endif
-
     assert(checkGLErrors() == 0);
     assert(_numIndicesForDrawing < SHARED_INDEX_BUFFER_LEN);
-
-    glBindBuffer(GL_ARRAY_BUFFER, _vbo.handle);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ibo.handle);
-
-#ifndef NDEBUG
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        // Verify that vertex attribute formats are consistent with in-memory storage.
-        assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, position));
-        assert(sizeof(GLbyte)  == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, normal));
-        assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, texCoord));
-        assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, color));
-    });
-#endif
-
-    const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertex, position);
-    const GLvoid *offsetNormal   = (const GLvoid *)offsetof(GSTerrainVertex, normal);
-    const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertex, texCoord);
-    const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertex, color);
-
-    const GLsizei stride = sizeof(GSTerrainVertex);
-    glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
-    glNormalPointer(     GL_BYTE,          stride, offsetNormal);
-    glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
-    glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
 
     GLenum indexEnum;
     if(2 == sizeof(index_t)) {
@@ -153,15 +161,10 @@ typedef GLuint index_t;
         assert(!"I don't know the GLenum to use with index_t.");
     }
 
+    glBindVertexArrayAPPLE(_vao.handle);
     glDrawElements(GL_TRIANGLES, _numIndicesForDrawing, indexEnum, NULL);
-
+    glBindVertexArrayAPPLE(0);
     assert(checkGLErrors() == 0);
-    
-#if LOG_PERF
-    uint64_t elapsedNs = stopwatchEnd(startAbs);
-    float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
-    NSLog(@"-[GSChunkVBOs draw]: %.5f ms", elapsedMs);
-#endif
 }
 
 @end
