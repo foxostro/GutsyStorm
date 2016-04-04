@@ -15,6 +15,9 @@
 /* The minimum corner of the item, which is a rectangular prism (box). */
 @property (readonly, nonatomic) vector_float3 minP;
 
+/* The cost of the item for use in grids which enforce cost limits. */
+@property (readonly, nonatomic) NSUInteger cost;
+
 @optional
 
 /* Message indicates the grid item is about to be evicted from the grid cache.

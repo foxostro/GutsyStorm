@@ -37,6 +37,7 @@
     dispatch_queue_t _chunkTaskQueue;
 }
 
+@synthesize cost;
 @synthesize minP;
 
 + (nonnull NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP
@@ -82,6 +83,8 @@
             buffer = [self newTerrainBufferWithGenerator:generator];
             [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
         }
+
+        cost = BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
 
         assert(buffer);
         _voxels = buffer;

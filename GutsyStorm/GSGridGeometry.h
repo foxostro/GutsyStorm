@@ -9,7 +9,7 @@
 @interface GSGridGeometry : GSGrid<GSChunkGeometryData *>
 
 - (nonnull instancetype)initWithName:(nonnull NSString *)name
-                          cacheFolder:(nonnull NSURL *)folder
-                              factory:(nonnull GSGridItemFactory)factory;
+                         cacheFolder:(nonnull NSURL *)folder
+                             factory:(nonnull GSGridItemFactory)factory;
 
 @end

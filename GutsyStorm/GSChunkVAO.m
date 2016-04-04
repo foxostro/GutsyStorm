@@ -38,6 +38,7 @@ typedef GLuint index_t;
     NSOpenGLContext *_glContext;
 }
 
+@synthesize cost;
 @synthesize minP;
 
 + (nonnull GSVBOHolder *)sharedIndexBufferObject
@@ -142,6 +143,8 @@ typedef GLuint index_t;
 
         assert(checkGLErrors() == 0);
         CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
+
+        cost = geometry.cost;
     }
 
     return self;

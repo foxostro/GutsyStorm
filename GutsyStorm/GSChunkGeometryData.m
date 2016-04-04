@@ -49,6 +49,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 @synthesize minP;
+@synthesize cost;
 
 + (nonnull GSBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type
 {
@@ -72,8 +73,8 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                               folder:(nonnull NSURL *)folder
-                             sunlight:(nonnull GSChunkSunlightData *)sunlight
+                              folder:(nonnull NSURL *)folder
+                            sunlight:(nonnull GSChunkSunlightData *)sunlight
 {
     self = [super init];
     if (self) {
@@ -92,6 +93,7 @@ static void applyLightToVertices(size_t numChunkVerts,
             [_data writeToURL:url atomically:YES];
         }
 
+        cost = _data.length;
         assert(_data);
     }
     

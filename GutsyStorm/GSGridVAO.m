@@ -13,7 +13,8 @@
 
 @implementation GSGridVAO
 
-- (nonnull instancetype)initWithName:(nonnull NSString *)name factory:(nonnull GSGridItemFactory)factory
+- (nonnull instancetype)initWithName:(nonnull NSString *)name
+                             factory:(nonnull GSGridItemFactory)factory
 {
     if (self = [super initWithName:name factory:factory]) {
         self.invalidationNotification = ^{ /* do nothing */ };

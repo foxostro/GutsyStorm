@@ -22,6 +22,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     dispatch_queue_t _chunkTaskQueue;
 }
 
+@synthesize cost;
 @synthesize minP;
 
 + (nonnull NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP
@@ -46,6 +47,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _neighborhood = neighborhood;
         _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder];
+        cost = BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
     }
     return self;
 }

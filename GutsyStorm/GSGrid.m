@@ -32,8 +32,11 @@
     NSUInteger _numLocks;
     NSLock * __strong *_locks;
 
-    int32_t _n;
+    NSLock *_lockTheCount;
+    NSUInteger _count;
     float _loadLevelToTriggerResize;
+    NSUInteger _costCount;
+    NSUInteger _costLimit;
     
     GSGridItemFactory _factory;
 
@@ -47,25 +50,36 @@
     @throw nil;
 }
 
-- (nonnull instancetype)initWithName:(nonnull NSString *)name factory:(nonnull GSGridItemFactory)factory
+- (nonnull instancetype)initWithName:(nonnull NSString *)name
+                             factory:(nonnull GSGridItemFactory)factory
 {
     if (self = [super init]) {
         _factory = [factory copy];
         _numLocks = [[NSProcessInfo processInfo] processorCount] * 2;
         _numBuckets = 1024;
-        _n = 0;
-        _loadLevelToTriggerResize = 0.80;
         _dependentGrids = [NSMutableArray<GSGrid *> new];
         _mappingToDependentGrids = [NSMutableDictionary new];
 
+        _lockTheCount = [NSLock new];
+        _lockTheCount.name = @"lockTheCount";
+        _count = 0;
+        _costLimit = 0; // XXX: need to allow this to be specified
+        _loadLevelToTriggerResize = 0.80;
+
         _buckets = (NSMutableArray<NSObject <GSGridItem> *> * __strong *)
             calloc(_numBuckets, sizeof(NSMutableArray<NSObject <GSGridItem> *> *));
+        if (!_buckets) {
+            [NSException raise:@"Out of Memory" format:@"Out of memory allocating `_buckets'."];
+        }
         for(NSUInteger i=0; i<_numBuckets; ++i)
         {
             _buckets[i] = [NSMutableArray<NSObject <GSGridItem> *> new];
         }
 
         _locks = (NSLock * __strong *)calloc(_numLocks, sizeof(NSLock *));
+        if (!_locks) {
+            [NSException raise:@"Out of Memory" format:@"Out of memory allocating `_locks'."];
+        }
         for(NSUInteger i=0; i<_numLocks; ++i)
         {
             _locks[i] = [NSLock new];
@@ -98,7 +112,10 @@
 {
     [_lockTheTableItself lockForWriting];
 
-    _n = 0;
+    [_lockTheCount lock];
+    _count = 0;
+    _costCount = 0;
+    [_lockTheCount unlock];
 
     NSUInteger oldNumBuckets = _numBuckets;
     NSMutableArray<NSObject <GSGridItem> *> * __strong *oldBuckets = _buckets;
@@ -120,7 +137,11 @@
         {
             NSUInteger hash = vector_hash(item.minP);
             [_buckets[hash % _numBuckets] addObject:item];
-            _n++;
+
+            [_lockTheCount lock];
+            _count++;
+            _costCount += item.cost;
+            [_lockTheCount unlock];
         }
     }
 
@@ -177,11 +198,16 @@
                 [NSException raise:@"Out of Memory" format:@"Out of memory allocating `anObject' for GSGrid."];
             }
         } else {
-            [bucket addObject:anObject];
-            OSAtomicIncrement32Barrier(&_n);
-            load = (float)_n / _numBuckets;
-            createdAnItem = YES;
-        }
+        [bucket addObject:anObject];
+
+            [_lockTheCount lock];
+            _count++;
+        _costCount += anObject.cost;
+            load = (float)_count / _numBuckets;
+            [_lockTheCount unlock];
+
+        createdAnItem = YES;
+    }
     }
 
     if(anObject) {
@@ -190,7 +216,7 @@
 
     [lock unlock];
     [_lockTheTableItself unlockForReading];
-    
+
     if (factoryDidFail) {
         [self evictAllItems];
         return [self objectAtPoint:p
@@ -199,22 +225,22 @@
                    createIfMissing:createIfMissing
                      didCreateItem:outDidCreateItem];
     } else {
-        if(load > _loadLevelToTriggerResize) {
-            [self resizeTable];
-        }
-
-        if (result) {
-            if (item) {
-                *item = anObject;
-            }
-            
-            if (outDidCreateItem) {
-                *outDidCreateItem = createdAnItem;
-            }
-        }
-
-        return result;
+    if(load > _loadLevelToTriggerResize) {
+        [self resizeTable];
     }
+
+    if (result) {
+        if (item) {
+            *item = anObject;
+        }
+        
+        if (outDidCreateItem) {
+            *outDidCreateItem = createdAnItem;
+        }
+    }
+
+    return result;
+}
 }
 
 - (nonnull id)objectAtPoint:(vector_float3)p
@@ -345,8 +371,8 @@
         for(GSBoxedVector *q in correspondingPoints)
         {
             GSGridEdit *secondaryChange = [[GSGridEdit alloc] initWithOriginalItem:nil
-                                                                      modifiedItem:nil
-                                                                               pos:[q vectorValue]];
+                                                                        modifiedItem:nil
+                                                                                 pos:[q vectorValue]];
             [grid invalidateItemWithChange:secondaryChange];
         }
     }
@@ -384,6 +410,11 @@
             }
             [bucket replaceObjectAtIndex:i withObject:replacement];
             
+            [_lockTheCount lock];
+            _costCount -= item.cost;
+            _costCount += replacement.cost;
+            [_lockTheCount unlock];
+
             GSGridEdit *change = [[GSGridEdit alloc] initWithOriginalItem:item
                                                            modifiedItem:replacement
                                                                     pos:p];
@@ -398,15 +429,23 @@
 
     // If the item does not already exist in the cache then have the factory retrieve/create it, transform, and add to
     // the cache.
-    [bucket addObject:newReplacementItem(_factory(minP))];
-    OSAtomicIncrement32Barrier(&_n);
-    float load = (float)_n / _numBuckets;
+    {
+        NSObject <GSGridItem> *replacement = newReplacementItem(_factory(minP));
 
-    [lock unlock];
-    [_lockTheTableItself unlockForReading];
+        [bucket addObject:replacement];
 
-    if(load > _loadLevelToTriggerResize) {
-        [self resizeTable];
+        [_lockTheCount lock];
+        _costCount += replacement.cost;
+        _count++;
+        float load = (float)_count / _numBuckets;
+        [_lockTheCount unlock];
+
+        [lock unlock];
+        [_lockTheTableItself unlockForReading];
+
+        if(load > _loadLevelToTriggerResize) {
+            [self resizeTable];
+        }
     }
 }
 

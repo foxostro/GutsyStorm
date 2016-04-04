@@ -18,8 +18,8 @@
 }
 
 - (nonnull instancetype)initWithName:(nonnull NSString *)name
-                          cacheFolder:(nonnull NSURL *)folder
-                              factory:(nonnull GSGridItemFactory)factory
+                         cacheFolder:(nonnull NSURL *)folder
+                             factory:(nonnull GSGridItemFactory)factory
 {
     if (self = [super initWithName:name factory:factory]) {
         _folder = folder;
