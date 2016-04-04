@@ -456,7 +456,6 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             vector_long3 clp;
 
             // First, generate voxels for a region of terrain.
-            // XXX: need batch noise generation here
             FOR_BOX(clp, minP, maxP)
             {
                 vector_float3 worldPosition = vector_make(clp.x, clp.y, clp.z) + offsetToWorld;
