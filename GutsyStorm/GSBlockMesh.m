@@ -24,7 +24,9 @@
 - (nonnull NSArray<GSFace *> *)transformFaces:(nonnull NSArray<GSFace *> *)faces
                                     direction:(GSVoxelDirection)dir
                                    upsideDown:(BOOL)upsideDown;
-- (GSVoxelFace)transformCubeFaceEnum:(GSVoxelFace)correspondingCubeFace upsideDown:(BOOL)upsideDown;
+- (GSVoxelFace)transformCubeFaceEnum:(GSVoxelFace)correspondingCubeFace
+                           direction:(GSVoxelDirection)dir
+                          upsideDown:(BOOL)upsideDown;
 
 @end
 
@@ -97,35 +99,47 @@
     vector_float4 quatY = GSQuaternionForVoxelDirection(dir);
     NSUInteger faceCount = [faces count];
     NSMutableArray<GSFace *> *transformedFaces = [[NSMutableArray<GSFace *> alloc] initWithCapacity:faceCount];
-    
+
     for(GSFace *face in faces)
     {
         NSArray<GSBoxedTerrainVertex *> *transformedVertices = [self transformVerticesForFace:face
                                                                         upsideDown:upsideDown
                                                                              quatY:quatY];
-        GSVoxelFace faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace upsideDown:upsideDown];
+        GSVoxelFace faceDir = [self transformCubeFaceEnum:face.correspondingCubeFace
+                                                direction:dir
+                                               upsideDown:upsideDown];
         GSFace *transformedFace = [[GSFace alloc] initWithVertices:transformedVertices
                                              correspondingCubeFace:faceDir
                                                eligibleForOmission:face.eligibleForOmission];
         [transformedFaces addObject:transformedFace];
     }
-    
+
     return transformedFaces;
 }
 
-- (GSVoxelFace)transformCubeFaceEnum:(GSVoxelFace)correspondingCubeFace upsideDown:(BOOL)upsideDown
+- (GSVoxelFace)transformCubeFaceEnum:(GSVoxelFace)correspondingCubeFace
+                           direction:(GSVoxelDirection)dir
+                          upsideDown:(BOOL)upsideDown
 {
-    if(upsideDown) {
-        if(correspondingCubeFace == FACE_TOP) {
-            return FACE_BOTTOM;
-        } else if(correspondingCubeFace == FACE_BOTTOM) {
-            return FACE_TOP;
-        } else {
-            return correspondingCubeFace;
-        }
+    GSVoxelFace transformedFace;
+
+    if(correspondingCubeFace == FACE_TOP) {
+        transformedFace = upsideDown ? FACE_BOTTOM : FACE_TOP;
+    } else if(correspondingCubeFace == FACE_BOTTOM) {
+        transformedFace = upsideDown ? FACE_TOP : FACE_BOTTOM;
     } else {
-        return correspondingCubeFace;
+        GSVoxelFace face[FACE_NUM_FACES][NUM_VOXEL_DIRECTIONS] = {
+            {0},
+            {0},
+            {FACE_BACK,  FACE_RIGHT, FACE_FRONT, FACE_LEFT},  // BACK
+            {FACE_FRONT, FACE_LEFT,  FACE_BACK,  FACE_RIGHT}, // FRONT
+            {FACE_RIGHT, FACE_FRONT, FACE_LEFT,  FACE_BACK},  // RIGHT
+            {FACE_LEFT,  FACE_BACK,  FACE_RIGHT, FACE_FRONT}, // LEFT
+        };
+        transformedFace = face[correspondingCubeFace][dir];
     }
+    
+    return transformedFace;
 }
 
 - (void)setFaces:(nonnull NSArray<GSFace *> *)faces
@@ -152,10 +166,9 @@
 
     for(GSFace *face in _faces[voxel.upsideDown?1:0][voxel.dir])
     {
-        // Omit the face if the face is eligible for such omission and is adjacent to a cube block.
-        // There are several configurations of several types of adjacent blocks that would permit faces to be omitted.
-        // However, the logic for determining whether a face polygon is perfectly occluded by an adjacent block face
-        // polygon is tricky. So, we're just going to skip that.
+        // Some faces are marked as being eligible for omission. These faces are generally unit squares which are
+        // aligned with the faces of the basic axis-aligned cube for the block. These faces can be omitted when this
+        // voxel directly abuts a cube block.
         if(face.eligibleForOmission && [voxelData voxelAtPoint:(chunkLocalPos + GSOffsetForVoxelFace[face.correspondingCubeFace])].type == VOXEL_TYPE_CUBE) {
             continue;
         }

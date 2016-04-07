@@ -32,35 +32,12 @@
     return verticesOut;
 }
 
-+ (BOOL)determineEligibilityForOmission:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
-{
-    NSParameterAssert(vertices && vertices.count >= 3);
-
-    // The face is eligible for omission if it fits exactly into a cube face. (i.e. unit area)
-    vector_float3 a = [((GSBoxedTerrainVertex *)[vertices objectAtIndex:0]) position];
-    vector_float3 b = [((GSBoxedTerrainVertex *)[vertices objectAtIndex:1]) position];
-    vector_float3 c = [((GSBoxedTerrainVertex *)[vertices objectAtIndex:2]) position];
-
-    vector_float3 ba = b - a;
-    vector_float3 bc = b - c;
-    vector_float3 n1 = vector_cross(ba, bc);
-
-    BOOL result = vector_equal(n1, vector_make(0, 0, -1)) ||
-                  vector_equal(n1, vector_make(0, 0, +1)) ||
-                  vector_equal(n1, vector_make(0, -1, 0)) ||
-                  vector_equal(n1, vector_make(0, +1, 0)) ||
-                  vector_equal(n1, vector_make(-1, 0, 0)) ||
-                  vector_equal(n1, vector_make(+1, 0, 0));
-    
-    return result;
-}
-
 + (nonnull GSFace *)faceWithQuad:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
            correspondingCubeFace:(GSVoxelFace)face
+             eligibleForOmission:(BOOL)omittable
 {
     NSParameterAssert(vertices && vertices.count == 4);
     NSArray<GSBoxedTerrainVertex *> *triangleVertices = [self decomposeQuad:vertices];
-    BOOL omittable = [self determineEligibilityForOmission:vertices];
     return [[GSFace alloc] initWithVertices:triangleVertices
                       correspondingCubeFace:face
                         eligibleForOmission:omittable];
@@ -70,10 +47,9 @@
           correspondingCubeFace:(GSVoxelFace)face
 {
     NSParameterAssert(vertices && vertices.count == 3);
-    BOOL omittable = [self determineEligibilityForOmission:vertices];
     return [[GSFace alloc] initWithVertices:vertices
                       correspondingCubeFace:face
-                        eligibleForOmission:omittable];
+                        eligibleForOmission:NO];
 }
 
 - (nonnull instancetype)init
@@ -83,8 +59,8 @@
 }
 
 - (nonnull instancetype)initWithVertices:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
-                    correspondingCubeFace:(GSVoxelFace)face
-                      eligibleForOmission:(BOOL)omittable
+                   correspondingCubeFace:(GSVoxelFace)face
+                     eligibleForOmission:(BOOL)omittable
 {
     NSParameterAssert(vertices);
     NSParameterAssert(face >= 0 && face < FACE_NUM_FACES);

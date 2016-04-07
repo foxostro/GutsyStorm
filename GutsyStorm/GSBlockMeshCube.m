@@ -36,7 +36,8 @@
                                     [GSBoxedTerrainVertex vertexWithPosition:vector_make(+L, +L, -L)
                                                           normal:GSMakeIntegerVector3(0, 1, 0)
                                                         texCoord:GSMakeIntegerVector3(0, 1, VOXEL_TEX_GRASS)]]
-            correspondingCubeFace:FACE_TOP],
+            correspondingCubeFace:FACE_TOP
+              eligibleForOmission:YES],
              [GSFace faceWithQuad:@[[GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, -L)
                                                           normal:GSMakeIntegerVector3(0, -1, 0)
                                                         texCoord:GSMakeIntegerVector3(1, 0, VOXEL_TEX_DIRT)],
@@ -49,7 +50,8 @@
                                     [GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, +L)
                                                           normal:GSMakeIntegerVector3(0, -1, 0)
                                                         texCoord:GSMakeIntegerVector3(1, 1, VOXEL_TEX_DIRT)]]
-            correspondingCubeFace:FACE_BOTTOM],
+            correspondingCubeFace:FACE_BOTTOM
+              eligibleForOmission:YES],
              [GSFace faceWithQuad:@[[GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, +L)
                                                           normal:GSMakeIntegerVector3(0, 0, 1)
                                                         texCoord:GSMakeIntegerVector3(0, 1, VOXEL_TEX_SIDE)],
@@ -62,7 +64,8 @@
                                     [GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, +L, +L)
                                                           normal:GSMakeIntegerVector3(0, 0, 1)
                                                         texCoord:GSMakeIntegerVector3(0, 0, VOXEL_TEX_SIDE)]]
-            correspondingCubeFace:FACE_BACK],
+            correspondingCubeFace:FACE_BACK
+              eligibleForOmission:YES],
              [GSFace faceWithQuad:@[[GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, -L)
                                                           normal:GSMakeIntegerVector3(0, 0, -1)
                                                         texCoord:GSMakeIntegerVector3(0, 1, VOXEL_TEX_SIDE)],
@@ -75,7 +78,8 @@
                                     [GSBoxedTerrainVertex vertexWithPosition:vector_make(+L, -L, -L)
                                                           normal:GSMakeIntegerVector3(0, 0, -1)
                                                         texCoord:GSMakeIntegerVector3(1, 1, VOXEL_TEX_SIDE)]]
-            correspondingCubeFace:FACE_FRONT],
+            correspondingCubeFace:FACE_FRONT
+              eligibleForOmission:YES],
              [GSFace faceWithQuad:@[[GSBoxedTerrainVertex vertexWithPosition:vector_make(+L, -L, -L)
                                                           normal:GSMakeIntegerVector3(1, 0, 0)
                                                         texCoord:GSMakeIntegerVector3(0, 1, VOXEL_TEX_SIDE)],
@@ -88,7 +92,8 @@
                                     [GSBoxedTerrainVertex vertexWithPosition:vector_make(+L, -L, +L)
                                                           normal:GSMakeIntegerVector3(1, 0, 0)
                                                         texCoord:GSMakeIntegerVector3(1, 1, VOXEL_TEX_SIDE)]]
-            correspondingCubeFace:FACE_RIGHT],
+            correspondingCubeFace:FACE_RIGHT
+              eligibleForOmission:YES],
              [GSFace faceWithQuad:@[[GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, -L, -L)
                                                           normal:GSMakeIntegerVector3(-1, 0, 0)
                                                         texCoord:GSMakeIntegerVector3(0, 1, VOXEL_TEX_SIDE)],
@@ -101,7 +106,8 @@
                                     [GSBoxedTerrainVertex vertexWithPosition:vector_make(-L, +L, -L)
                                                           normal:GSMakeIntegerVector3(-1, 0, 0)
                                                         texCoord:GSMakeIntegerVector3(0, 0, VOXEL_TEX_SIDE)]]
-            correspondingCubeFace:FACE_LEFT]
+            correspondingCubeFace:FACE_LEFT
+              eligibleForOmission:YES]
          ]];
     }
 

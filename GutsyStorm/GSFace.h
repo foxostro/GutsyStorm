@@ -19,7 +19,8 @@
 @property (nonatomic, readonly) GSVoxelFace correspondingCubeFace;
 
 + (nonnull GSFace *)faceWithQuad:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
-            correspondingCubeFace:(GSVoxelFace)face;
+           correspondingCubeFace:(GSVoxelFace)face
+             eligibleForOmission:(BOOL)omittable;
 
 + (nonnull GSFace *)faceWithTri:(nonnull NSArray<GSBoxedTerrainVertex *> *)vertices
           correspondingCubeFace:(GSVoxelFace)face;
