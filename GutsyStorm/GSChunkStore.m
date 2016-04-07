@@ -21,7 +21,7 @@
 #import "GSChunkVoxelData.h"
 
 #import "GSGrid.h"
-#import "GSGridVBOs.h"
+#import "GSGridVAO.h"
 #import "GSGridGeometry.h"
 #import "GSGridSunlight.h"
 
@@ -54,7 +54,7 @@
 
 @implementation GSChunkStore
 {
-    GSGridVBOs *_gridVBOs;
+    GSGridVAO *_gridVAO;
     GSGridGeometry *_gridGeometryData;
     GSGridSunlight *_gridSunlightData;
     GSGrid<GSChunkVoxelData *> *_gridVoxelData;
@@ -86,7 +86,7 @@
     assert(!_chunkStoreHasBeenShutdown);
     assert(!_gridVoxelData);
     assert(!_gridSunlightData);
-    assert(!_gridVBOs);
+    assert(!_gridVAO);
 
     _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"
                                           factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
@@ -116,14 +116,12 @@
                                                                      sunlight:sunlight];
                               }];
     
-    _gridVBOs = [[GSGridVBOs alloc] initWithName:@"gridVBOs"
-                                         factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
-                                             GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
-                                             NSObject <GSGridItem> *vbo;
-                                             vbo = [[GSChunkVAO alloc] initWithChunkGeometry:geometry
-                                                                                    glContext:_glContext];
-                                             return vbo;
-                                         }];
+    _gridVAO = [[GSGridVAO alloc] initWithName:@"gridVAO"
+                                       factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
+                                           GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
+                                           return [[GSChunkVAO alloc] initWithChunkGeometry:geometry
+                                                                                  glContext:_glContext];
+                                       }];
 }
 
 - (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(nonnull GSGridEdit *)edit
@@ -233,27 +231,27 @@
     // Each chunk geometry object depends on the single, corresponding chunk sunlight object.
     [_gridSunlightData registerDependentGrid:_gridGeometryData mapping:oneToOne];
 
-    // Each chunk VBO object depends on the single, corresponding chunk geometry object.
-    [_gridGeometryData registerDependentGrid:_gridVBOs mapping:oneToOne];
+    // Each chunk VAO object depends on the single, corresponding chunk geometry object.
+    [_gridGeometryData registerDependentGrid:_gridVAO mapping:oneToOne];
 }
 
 - (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(cam);
-    assert(_gridVBOs);
+    assert(_gridVAO);
 
     // Active region is bounded at y>=0.
     const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
     _activeRegionExtent = vector_make(w, CHUNK_SIZE_Y, w);
     _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
                                                                 camera:cam
-                                                               vboGrid:_gridVBOs];
+                                                               vaoGrid:_gridVAO];
 
-    // Whenever a VBO is invalidated, the active region must be invalidated.
+    // Whenever a VAO is invalidated, the active region must be invalidated.
     __weak GSActiveRegion *weakActiveRegion = _activeRegion;
-    _gridVBOs.invalidationNotification = ^{
-        [weakActiveRegion notifyOfChangeInActiveRegionVBOs];
+    _gridVAO.invalidationNotification = ^{
+        [weakActiveRegion notifyOfChangeInActiveRegionVAOs];
     };
 }
 
@@ -289,7 +287,7 @@
     assert(_gridVoxelData);
     assert(_gridSunlightData);
     assert(_gridGeometryData);
-    assert(_gridVBOs);
+    assert(_gridVAO);
     assert(_groupForSaving);
     assert(_chunkTaskQueue);
     assert(_queueForSaving);
@@ -315,8 +313,8 @@
     [_gridGeometryData evictAllItems];
     _gridGeometryData = nil;
 
-    [_gridVBOs evictAllItems];
-    _gridVBOs = nil;
+    [_gridVAO evictAllItems];
+    _gridVAO = nil;
 
     _groupForSaving = NULL;
     _chunkTaskQueue = NULL;
@@ -370,7 +368,7 @@
     }];
 
     // Must notify the active region so that the change will get picked up right away.
-    [_activeRegion updateVBOsInCameraFrustum];
+    [_activeRegion updateVAOsInCameraFrustum];
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel
@@ -649,12 +647,12 @@
         assert(_gridVoxelData);
         assert(_gridGeometryData);
         assert(_gridSunlightData);
-        assert(_gridVBOs);
+        assert(_gridVAO);
 
         [_gridVoxelData evictAllItems];
         [_gridGeometryData evictAllItems];
         [_gridSunlightData evictAllItems];
-        [_gridVBOs evictAllItems];
+        [_gridVAO evictAllItems];
     }
 }
 

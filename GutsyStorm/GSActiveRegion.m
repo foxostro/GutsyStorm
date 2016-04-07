@@ -12,7 +12,7 @@
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
 #import "GSGridItem.h"
-#import "GSGridVBOs.h"
+#import "GSGridVAO.h"
 #import "GSChunkVAO.h"
 
 #define LOG_PERF 0
@@ -30,13 +30,13 @@
     vector_float3 _activeRegionExtent;
 
     /* List of GSChunkVAO which are within the camera frustum. */
-    NSArray<GSChunkVAO *> *_vbosInCameraFrustum;
-    NSLock *_lockVbosInCameraFrustum;
+    NSArray<GSChunkVAO *> *_vaosInCameraFrustum;
+    NSLock *_lockVAOsInCameraFrustum;
 
-    /* Used to generate and retrieve VBOs. */
-    GSGridVBOs *_gridVBOs;
+    /* Used to generate and retrieve Vertex Array Objects. */
+    GSGridVAO *_gridVAO;
 
-    /* Dispatch queue for processing updates to _vbosInCameraFrustum. */
+    /* Dispatch queue for processing updates to _vaosInCameraFrustum. */
     dispatch_queue_t _updateQueue;
     dispatch_semaphore_t _semaQueueDepth;
 
@@ -46,7 +46,7 @@
 
 - (nonnull instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                              camera:(nonnull GSCamera *)camera
-                                            vboGrid:(nonnull GSGridVBOs *)gridVBOs
+                                            vaoGrid:(nonnull GSGridVAO *)gridVAO
 {
     self = [super init];
     if (self) {
@@ -57,14 +57,14 @@
 
         _camera = camera;
         _activeRegionExtent = activeRegionExtent;
-        _vbosInCameraFrustum = nil;
-        _lockVbosInCameraFrustum = [NSLock new];
-        _gridVBOs = gridVBOs;
+        _vaosInCameraFrustum = nil;
+        _lockVAOsInCameraFrustum = [NSLock new];
+        _gridVAO = gridVAO;
         _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
         _semaQueueDepth = dispatch_semaphore_create(2);
         _shouldShutdown = NO;
 
-        [self notifyOfChangeInActiveRegionVBOs];
+        [self notifyOfChangeInActiveRegionVAOs];
     }
     
     return self;
@@ -76,57 +76,57 @@
     uint64_t startAbs = stopwatchStart();
 #endif
 
-    NSArray<GSChunkVAO *> *vbos;
+    NSArray<GSChunkVAO *> *vaos;
 
     if (!_shouldShutdown) {
 
-        [_lockVbosInCameraFrustum lock];
-        vbos = _vbosInCameraFrustum;
-        [_lockVbosInCameraFrustum unlock];
+        [_lockVAOsInCameraFrustum lock];
+        vaos = _vaosInCameraFrustum;
+        [_lockVAOsInCameraFrustum unlock];
 
-        for(GSChunkVAO *vbo in vbos)
+        for(GSChunkVAO *vao in vaos)
         {
-            [vbo draw];
+            [vao draw];
         }
     }
 
 #if LOG_PERF
     uint64_t elapsedNs = stopwatchEnd(startAbs);
     float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
-    NSLog(@"draw: %.3f ms (count=%lu)", elapsedMs, vbos.count);
+    NSLog(@"draw: %.3f ms (count=%lu)", elapsedMs, vaos.count);
 #endif
 }
 
-- (void)updateVBOsInCameraFrustum
+- (void)updateVAOsInCameraFrustum
 {
 #if LOG_PERF
     uint64_t startAbs = stopwatchStart();
 #endif
     
     BOOL didSkipSomeCreationTasks = NO;
-    NSMutableArray<GSChunkVAO *> *vbosInCameraFrustum = [NSMutableArray<GSChunkVAO *> new];
+    NSMutableArray<GSChunkVAO *> *vaosInCameraFrustum = [NSMutableArray<GSChunkVAO *> new];
     NSArray<GSBoxedVector *> *points = [self pointsInCameraFrustum];
     
-    NSUInteger vboGenLimit = 2;
-    NSUInteger vboGenCount = 0;
+    NSUInteger vaoGenLimit = 2;
+    NSUInteger vaoGenCount = 0;
     
     for(GSBoxedVector *boxedPosition in points)
     {
         if (_shouldShutdown) {
             return;
         } else {
-            BOOL createIfMissing = vboGenCount < vboGenLimit;
-            BOOL vboGenDidHappen = NO;
-            GSChunkVAO *vbo = nil;
-            [_gridVBOs objectAtPoint:[boxedPosition vectorValue]
+            BOOL createIfMissing = vaoGenCount < vaoGenLimit;
+            BOOL vaoGenDidHappen = NO;
+            GSChunkVAO *vao = nil;
+            [_gridVAO objectAtPoint:[boxedPosition vectorValue]
                             blocking:YES
-                              object:&vbo
+                              object:&vao
                      createIfMissing:createIfMissing
-                       didCreateItem:&vboGenDidHappen];
+                       didCreateItem:&vaoGenDidHappen];
 
-            if (vbo) {
-                vboGenCount += vboGenDidHappen ? 1 : 0;
-                [vbosInCameraFrustum addObject:vbo];
+            if (vao) {
+                vaoGenCount += vaoGenDidHappen ? 1 : 0;
+                [vaosInCameraFrustum addObject:vao];
             }
             
             if (!createIfMissing) {
@@ -135,28 +135,28 @@
         }
     }
 
-    /* Publish the list of chunk VBOs which are in the camera frustum.
+    /* Publish the list of chunk VAOs which are in the camera frustum.
      * This is consumed on the rendering thread by -draw.
      */
-    [_lockVbosInCameraFrustum lock];
-    _vbosInCameraFrustum = vbosInCameraFrustum;
-    [_lockVbosInCameraFrustum unlock];
+    [_lockVAOsInCameraFrustum lock];
+    _vaosInCameraFrustum = vaosInCameraFrustum;
+    [_lockVAOsInCameraFrustum unlock];
     
     if (didSkipSomeCreationTasks) {
-        [self notifyOfChangeInActiveRegionVBOs]; // Remember to pick up where we left off later.
+        [self notifyOfChangeInActiveRegionVAOs]; // Remember to pick up where we left off later.
     }
 
 #if LOG_PERF
     uint64_t elapsedNs = stopwatchEnd(startAbs);
     float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
-    NSLog(@"updateVBOsInCameraFrustum: %.3f ms (count=%lu)", elapsedMs, vbosInCameraFrustum.count);
+    NSLog(@"updateVAOsInCameraFrustum: %.3f ms (count=%lu)", elapsedMs, vaosInCameraFrustum.count);
 #endif
 }
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags
 {
     if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        [self notifyOfChangeInActiveRegionVBOs];
+        [self notifyOfChangeInActiveRegionVAOs];
     }
 }
 
@@ -222,12 +222,12 @@
     return points;
 }
 
-- (void)notifyOfChangeInActiveRegionVBOs
+- (void)notifyOfChangeInActiveRegionVAOs
 {
     if(0 == dispatch_semaphore_wait(_semaQueueDepth, DISPATCH_TIME_NOW)) {
         dispatch_async(_updateQueue, ^{
             if (!_shouldShutdown) {
-                [self updateVBOsInCameraFrustum];
+                [self updateVAOsInCameraFrustum];
             }
             dispatch_semaphore_signal(_semaQueueDepth);
         });
@@ -239,9 +239,9 @@
     _shouldShutdown = YES;
 
     dispatch_barrier_sync(_updateQueue, ^{
-        [_lockVbosInCameraFrustum lock];
-        _vbosInCameraFrustum = nil;
-        [_lockVbosInCameraFrustum unlock];
+        [_lockVAOsInCameraFrustum lock];
+        _vaosInCameraFrustum = nil;
+        [_lockVAOsInCameraFrustum unlock];
     });
 }
 

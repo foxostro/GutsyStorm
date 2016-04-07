@@ -168,7 +168,15 @@
 
     if(!anObject && createIfMissing) {
         anObject = _factory(minP);
-        assert(anObject);
+
+        if (!anObject) {
+            if (!self.factoryMayFail) {
+                [NSException raise:@"Out of Memory" format:@"Out of memory allocating `anObject' for GSGrid."];
+            } else {
+                assert(!"TODO: implement retry mechanism");
+            }
+        }
+
         [bucket addObject:anObject];
         OSAtomicIncrement32Barrier(&_n);
         load = (float)_n / _numBuckets;

@@ -17,6 +17,9 @@
 
 @interface GSGrid<__covariant TYPE> : NSObject
 
+/* Is the designated grid item factory permitted to fail by returning nil. */
+@property (nonatomic) BOOL factoryMayFail;
+
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
 - (nonnull instancetype)initWithName:(nonnull NSString *)name
@@ -42,10 +45,10 @@
       createIfMissing:(BOOL)createIfMissing
         didCreateItem:(nullable BOOL *)outDidCreateItem;
 
-// Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids.
+/* Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids. */
 - (void)evictItemAtPoint:(vector_float3)p;
 
-// Evicts all items in the grid. (For example, to evict all items when the system comes under memory pressure.)
+/* Evicts all items in the grid. (For example, to evict all items when the system comes under memory pressure.) */
 - (void)evictAllItems;
 
 /* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are
@@ -60,7 +63,7 @@
  */
 - (void)willInvalidateItem:(nonnull NSObject <GSGridItem> *)item atPoint:(vector_float3)p;
 
-// The specified change to the grid causes certain items to be invalidated in dependent grids.
+/* The specified change to the grid causes certain items to be invalidated in dependent grids. */
 - (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change;
 
 /* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns

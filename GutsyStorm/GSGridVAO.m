@@ -1,5 +1,5 @@
 //
-//  GSGridVBOs.m
+//  GSGridVAO.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/25/13.
@@ -9,14 +9,15 @@
 #import <Foundation/Foundation.h>
 #import "GSGrid.h"
 #import "GSChunkVAO.h"
-#import "GSGridVBOs.h"
+#import "GSGridVAO.h"
 
-@implementation GSGridVBOs
+@implementation GSGridVAO
 
 - (nonnull instancetype)initWithName:(nonnull NSString *)name factory:(nonnull GSGridItemFactory)factory
 {
     if (self = [super initWithName:name factory:factory]) {
         self.invalidationNotification = ^{ /* do nothing */ };
+        self.factoryMayFail = YES;
     }
     return self;
 }
