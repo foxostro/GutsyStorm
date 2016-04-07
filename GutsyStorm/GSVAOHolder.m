@@ -30,7 +30,7 @@
 
     assert(context);
 
-    dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
         assert(context);
         if(handle) {
             [context makeCurrentContext];

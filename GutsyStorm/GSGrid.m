@@ -148,6 +148,7 @@
 
     BOOL result = NO;
     BOOL createdAnItem = NO;
+    BOOL factoryDidFail = NO;
     float load = 0;
     NSObject <GSGridItem> * anObject = nil;
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
@@ -170,17 +171,17 @@
         anObject = _factory(minP);
 
         if (!anObject) {
+            factoryDidFail = YES;
+
             if (!self.factoryMayFail) {
                 [NSException raise:@"Out of Memory" format:@"Out of memory allocating `anObject' for GSGrid."];
-            } else {
-                assert(!"TODO: implement retry mechanism");
             }
+        } else {
+            [bucket addObject:anObject];
+            OSAtomicIncrement32Barrier(&_n);
+            load = (float)_n / _numBuckets;
+            createdAnItem = YES;
         }
-
-        [bucket addObject:anObject];
-        OSAtomicIncrement32Barrier(&_n);
-        load = (float)_n / _numBuckets;
-        createdAnItem = YES;
     }
 
     if(anObject) {
@@ -189,22 +190,31 @@
 
     [lock unlock];
     [_lockTheTableItself unlockForReading];
-
-    if(load > _loadLevelToTriggerResize) {
-        [self resizeTable];
-    }
-
-    if (result) {
-        if (item) {
-            *item = anObject;
+    
+    if (factoryDidFail) {
+        [self evictAllItems];
+        return [self objectAtPoint:p
+                          blocking:blocking
+                            object:item
+                   createIfMissing:createIfMissing
+                     didCreateItem:outDidCreateItem];
+    } else {
+        if(load > _loadLevelToTriggerResize) {
+            [self resizeTable];
         }
-        
-        if (outDidCreateItem) {
-            *outDidCreateItem = createdAnItem;
-        }
-    }
 
-    return result;
+        if (result) {
+            if (item) {
+                *item = anObject;
+            }
+            
+            if (outDidCreateItem) {
+                *outDidCreateItem = createdAnItem;
+            }
+        }
+
+        return result;
+    }
 }
 
 - (nonnull id)objectAtPoint:(vector_float3)p

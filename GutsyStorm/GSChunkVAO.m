@@ -91,7 +91,6 @@ typedef GLuint index_t;
         GLuint vao = 0;
         glGenVertexArraysAPPLE(1, &vao);
         glBindVertexArrayAPPLE(vao);
-        _vao = [[GSVAOHolder alloc] initWithHandle:vao context:context];
 
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
@@ -102,11 +101,15 @@ typedef GLuint index_t;
 
         GLuint vbo = 0;
         glGenBuffers(1, &vbo);
-        _vbo = [[GSVBOHolder alloc] initWithHandle:vbo context:context];
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, _numIndicesForDrawing * sizeof(GSTerrainVertex), vertsBuffer, GL_STATIC_DRAW);
         free(vertsBuffer);
         if (glGetError() == GL_OUT_OF_MEMORY) {
+            NSLog(@"GSChunkVAO failed to acquire GPU resources.");
+            glDeleteBuffers(1, &vbo);
+            glDeleteVertexArraysAPPLE(1, &vao);
+            assert(checkGLErrors() == 0);
+            CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
             return nil;
         }
 
@@ -133,6 +136,10 @@ typedef GLuint index_t;
         glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
 
         glBindVertexArrayAPPLE(0);
+
+        _vao = [[GSVAOHolder alloc] initWithHandle:vao context:context];
+        _vbo = [[GSVBOHolder alloc] initWithHandle:vbo context:context];
+
         assert(checkGLErrors() == 0);
         CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
     }
