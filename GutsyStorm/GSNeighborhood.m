@@ -115,7 +115,7 @@
     static const size_t count = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
     GSVoxel *combinedVoxelData = calloc(count, sizeof(GSVoxel));
     if(!combinedVoxelData) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
+        [NSException raise:NSMallocException format:@"Failed to allocate memory for combinedVoxelData."];
     }
 
     [self enumerateNeighborsWithBlock2:^(GSVoxelNeighborIndex i, GSChunkVoxelData *voxels) {

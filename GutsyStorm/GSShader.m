@@ -92,7 +92,7 @@ extern int checkGLErrors(void);
     
     const GLchar **src = malloc(count * sizeof(const GLchar *));
     if(!src) {
-        [NSException raise:@"Out of memory" format:@"Failed to malloc memory for src"];
+        [NSException raise:NSMallocException format:@"Failed to malloc memory for src"];
     }
     
     NSEnumerator *e = [lines objectEnumerator];
@@ -114,8 +114,7 @@ extern int checkGLErrors(void);
     
     char *buffer = malloc(errorLogLen);
     if(!buffer) {
-        [NSException raise:@"Out of memory"
-                    format:@"Failed to malloc memory for shader info log."];
+        [NSException raise:NSMallocException format:@"Failed to malloc memory for shader info log."];
     }
     
     glGetShaderInfoLog(shader, errorLogLen, NULL, buffer);
@@ -135,8 +134,7 @@ extern int checkGLErrors(void);
     
     char *buffer = malloc(errorLogLen);
     if(!buffer) {
-        [NSException raise:@"Out of memory"
-                    format:@"Failed to malloc memory for program info log."];
+        [NSException raise:NSMallocException format:@"Failed to malloc memory for program info log."];
     }
     
     glGetProgramInfoLog(program, errorLogLen, NULL, buffer);

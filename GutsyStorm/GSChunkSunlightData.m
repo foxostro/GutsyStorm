@@ -75,7 +75,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
     GSVoxel *combinedVoxelData = combinedVoxelData = malloc(size*sizeof(GSVoxel));
     if(!combinedVoxelData) {
-        [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for combinedVoxelData."];
+        [NSException raise:NSMallocException format:@"Failed to allocate memory for combinedVoxelData."];
     }
 
     static long offsetsX[CHUNK_NUM_NEIGHBORS];
@@ -161,7 +161,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
                (GSCombinedMaxP.z - GSCombinedMinP.z) * sizeof(GSTerrainBufferElement));
     
     if(!combinedSunlightData) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating `combinedSunlightData'."];
+        [NSException raise:NSMallocException format:@"Out of memory allocating `combinedSunlightData'."];
     }
 
     vector_long3 p;

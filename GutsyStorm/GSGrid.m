@@ -14,12 +14,8 @@
 #import "GSBoxedVector.h"
 
 
-@interface GSGrid ()
-
-- (NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP
-                                            bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket;
-
-@end
+//#define DEBUG_LOG(...) NSLog(__VA_ARGS__)
+#define DEBUG_LOG(...)
 
 
 @implementation GSGrid
@@ -33,10 +29,10 @@
     NSLock * __strong *_locks;
 
     NSLock *_lockTheCount;
-    NSUInteger _count;
+    NSInteger _count;
     float _loadLevelToTriggerResize;
-    NSUInteger _costCount;
-    NSUInteger _costLimit;
+    NSInteger _costCount;
+    NSInteger _costLimit;
     
     GSGridItemFactory _factory;
 
@@ -50,44 +46,52 @@
     @throw nil;
 }
 
++ (NSMutableArray<NSObject <GSGridItem> *> * __strong *)newBuckets:(NSUInteger)count
+{
+    NSMutableArray<NSObject <GSGridItem> *> * __strong *buckets = (NSMutableArray<NSObject <GSGridItem> *> * __strong *)calloc(count, sizeof(NSMutableArray<NSObject <GSGridItem> *> *));
+
+    if (!buckets) {
+        [NSException raise:NSMallocException format:@"Out of memory allocating `_buckets'."];
+    }
+
+    for(NSUInteger i=0; i<count; ++i)
+    {
+        buckets[i] = [NSMutableArray<NSObject <GSGridItem> *> new];
+    }
+
+    return buckets;
+}
+
 - (nonnull instancetype)initWithName:(nonnull NSString *)name
                              factory:(nonnull GSGridItemFactory)factory
 {
     if (self = [super init]) {
         _factory = [factory copy];
         _numLocks = [[NSProcessInfo processInfo] processorCount] * 2;
-        _numBuckets = 1024;
+        _numBuckets = 2;
+        _buckets = [[self class] newBuckets:_numBuckets];
         _dependentGrids = [NSMutableArray<GSGrid *> new];
         _mappingToDependentGrids = [NSMutableDictionary new];
+        _name = name;
 
         _lockTheCount = [NSLock new];
-        _lockTheCount.name = @"lockTheCount";
+        _lockTheCount.name = [NSString stringWithFormat:@"%@.lockTheCount", name];
         _count = 0;
         _costLimit = 0; // XXX: need to allow this to be specified
         _loadLevelToTriggerResize = 0.80;
 
-        _buckets = (NSMutableArray<NSObject <GSGridItem> *> * __strong *)
-            calloc(_numBuckets, sizeof(NSMutableArray<NSObject <GSGridItem> *> *));
-        if (!_buckets) {
-            [NSException raise:@"Out of Memory" format:@"Out of memory allocating `_buckets'."];
-        }
-        for(NSUInteger i=0; i<_numBuckets; ++i)
-        {
-            _buckets[i] = [NSMutableArray<NSObject <GSGridItem> *> new];
-        }
-
         _locks = (NSLock * __strong *)calloc(_numLocks, sizeof(NSLock *));
         if (!_locks) {
-            [NSException raise:@"Out of Memory" format:@"Out of memory allocating `_locks'."];
+            [NSException raise:NSMallocException format:@"Out of memory allocating `_locks'."];
         }
         for(NSUInteger i=0; i<_numLocks; ++i)
         {
             _locks[i] = [NSLock new];
-            _locks[i].name = [NSString stringWithFormat:@"%u", (unsigned)i];
+            _locks[i].name = [NSString stringWithFormat:@"%@.lock[%lu]", name, i];
         }
 
         _lockTheTableItself = [GSReaderWriterLock new];
-        _lockTheTableItself.name = [NSString stringWithFormat:@"%@", name];
+        _lockTheTableItself.name = [NSString stringWithFormat:@"%@.lockTheTableItself", name];
     }
 
     return self;
@@ -108,51 +112,58 @@
     free(_locks);
 }
 
-- (void)resizeTable
+- (void)resizeTableIfNecessary
 {
-    [_lockTheTableItself lockForWriting];
-
+    // Perform a quick test to detect whether a resize is likely necessary.
+    // Do not take the write lock unless we think there's a good chance we'll need to resize.
+    [_lockTheTableItself lockForReading];
     [_lockTheCount lock];
-    _count = 0;
-    _costCount = 0;
+    NSAssert(_numBuckets>0, @"Cannot have zero buckets.");
+    BOOL resizeIsNeeded = ((float)_count / _numBuckets) > _loadLevelToTriggerResize;
     [_lockTheCount unlock];
+    [_lockTheTableItself unlockForReading];
 
-    NSUInteger oldNumBuckets = _numBuckets;
-    NSMutableArray<NSObject <GSGridItem> *> * __strong *oldBuckets = _buckets;
-
-    // Allocate memory for a new set of buckets.
-    _numBuckets *= 2;
-    assert(_numBuckets>0);
-    _buckets = (NSMutableArray<NSObject <GSGridItem> *> * __strong *)
-        calloc(_numBuckets, sizeof(NSMutableArray<NSObject <GSGridItem> *> *));
-    for(NSUInteger i=0; i<_numBuckets; ++i)
-    {
-        _buckets[i] = [NSMutableArray new];
+    if(!resizeIsNeeded) {
+        return;
     }
 
-    // Insert each object into the new hash table.
-    for(NSUInteger i=0; i<oldNumBuckets; ++i)
-    {
-        for(NSObject <GSGridItem> *item in oldBuckets[i])
+    [_lockTheTableItself lockForWriting];
+    [_lockTheCount lock]; // Not strictly necessary since locking the table prevents reading too.
+
+    // Test again whether a resize is necessary. It's possible, for example, that someone evicted all items just now.
+    NSAssert(_numBuckets>0, @"Cannot have zero buckets.");
+    if(((float)_count / _numBuckets) > _loadLevelToTriggerResize) {
+        NSUInteger oldNumBuckets = _numBuckets;
+
+        _numBuckets *= 2;
+        DEBUG_LOG(@"Resizing table \"%@\": buckets %lu -> %lu ; count=%lu",
+                  self.name, oldNumBuckets, _numBuckets, _count);
+
+        NSMutableArray<NSObject <GSGridItem> *> * __strong *oldBuckets = _buckets;
+
+        // Allocate a new, and larger, set of buckets.
+        _buckets = [[self class] newBuckets:_numBuckets];
+
+        // Insert each object into the new hash table.
+        for(NSUInteger i=0; i<oldNumBuckets; ++i)
         {
-            NSUInteger hash = vector_hash(item.minP);
-            [_buckets[hash % _numBuckets] addObject:item];
-
-            [_lockTheCount lock];
-            _count++;
-            _costCount += item.cost;
-            [_lockTheCount unlock];
+            for(NSObject <GSGridItem> *item in oldBuckets[i])
+            {
+                NSUInteger hash = vector_hash(item.minP);
+                [_buckets[hash % _numBuckets] addObject:item];
+            }
         }
+        
+        // Free the old set of buckets.
+        for(NSUInteger i=0; i<oldNumBuckets; ++i)
+        {
+            oldBuckets[i] = nil;
+        }
+        free(oldBuckets);
     }
-
+    
+    [_lockTheCount unlock];
     [_lockTheTableItself unlockForWriting];
-
-    // Free the old set of buckets.
-    for(NSUInteger i=0; i<oldNumBuckets; ++i)
-    {
-        oldBuckets[i] = nil;
-    }
-    free(oldBuckets);
 }
 
 - (BOOL)objectAtPoint:(vector_float3)p
@@ -166,11 +177,10 @@
     } else if(![_lockTheTableItself tryLockForReading]) {
         return NO;
     }
-
+    
     BOOL result = NO;
     BOOL createdAnItem = NO;
     BOOL factoryDidFail = NO;
-    float load = 0;
     NSObject <GSGridItem> * anObject = nil;
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
@@ -178,45 +188,43 @@
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
     NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[idxBucket];
-
+    
     if(blocking) {
         [lock lock];
     } else if(![lock tryLock]) {
         [_lockTheTableItself unlockForReading];
         return NO;
     }
-
-    anObject = [self searchForItemAtPosition:minP bucket:bucket];
-
+    
+    anObject = [self _searchForItemAtPosition:minP bucket:bucket];
+    
     if(!anObject && createIfMissing) {
         anObject = _factory(minP);
-
+        
         if (!anObject) {
             factoryDidFail = YES;
-
+            
             if (!self.factoryMayFail) {
-                [NSException raise:@"Out of Memory" format:@"Out of memory allocating `anObject' for GSGrid."];
+                [NSException raise:NSMallocException format:@"Out of memory allocating `anObject' for GSGrid."];
             }
         } else {
-        [bucket addObject:anObject];
-
             [_lockTheCount lock];
+            [bucket addObject:anObject];
             _count++;
-        _costCount += anObject.cost;
-            load = (float)_count / _numBuckets;
+            _costCount += anObject.cost;
             [_lockTheCount unlock];
-
-        createdAnItem = YES;
+            
+            createdAnItem = YES;
+        }
     }
-    }
-
+    
     if(anObject) {
         result = YES;
     }
-
+    
     [lock unlock];
     [_lockTheTableItself unlockForReading];
-
+    
     if (factoryDidFail) {
         [self evictAllItems];
         return [self objectAtPoint:p
@@ -225,33 +233,37 @@
                    createIfMissing:createIfMissing
                      didCreateItem:outDidCreateItem];
     } else {
-    if(load > _loadLevelToTriggerResize) {
-        [self resizeTable];
-    }
-
-    if (result) {
-        if (item) {
-            *item = anObject;
+        // AFOX_TODO: This would be a great time to enforce grid cost limits.
+        [self resizeTableIfNecessary];
+        
+        if (result) {
+            if (item) {
+                *item = anObject;
+            }
+            
+            if (outDidCreateItem) {
+                *outDidCreateItem = createdAnItem;
+            }
         }
         
-        if (outDidCreateItem) {
-            *outDidCreateItem = createdAnItem;
-        }
+        return result;
     }
-
-    return result;
-}
 }
 
 - (nonnull id)objectAtPoint:(vector_float3)p
 {
     id anItem = nil;
+
     [self objectAtPoint:p
                blocking:YES
                  object:&anItem
         createIfMissing:YES
           didCreateItem:nil];
-    assert(anItem);
+
+    if (!anItem) {
+        [NSException raise:NSGenericException format:@"Failed to get the object, and failure is not an option."];
+    }
+
     return anItem;
 }
 
@@ -268,13 +280,10 @@
 
     [lock lock];
 
-    NSObject <GSGridItem> *foundItem = [self searchForItemAtPosition:minP bucket:bucket];
+    NSObject <GSGridItem> *foundItem = [self _searchForItemAtPosition:minP bucket:bucket];
 
     if(foundItem) {
-        if([foundItem respondsToSelector:@selector(itemWillBeEvicted)]) {
-            [foundItem itemWillBeEvicted];
-        }
-        [bucket removeObject:foundItem];
+        [self _unlockedEvictItem:foundItem bucket:bucket];
     }
 
     [lock unlock];
@@ -283,43 +292,15 @@
 
 - (void)evictAllItems
 {
-    [_lockTheTableItself lockForWriting]; // take the global lock to prevent reading from any stripe
-
-    for(NSUInteger i=0; i<_numBuckets; ++i)
-    {
-        [_buckets[i] enumerateObjectsUsingBlock:^(NSObject <GSGridItem> *item, NSUInteger idx, BOOL *stop) {
-            if([item respondsToSelector:@selector(itemWillBeEvicted)]) {
-                [item itemWillBeEvicted];
-            }
-        }];
-    }
-
-    for(NSUInteger i=0; i<_numBuckets; ++i)
-    {
-        [_buckets[i] removeAllObjects];
-    }
-
+    [_lockTheTableItself lockForWriting]; // Take the global lock to prevent reading from any stripe.
+    [self _unlockedEvictAllItems];
     [_lockTheTableItself unlockForWriting];
-}
-
-- (nullable NSObject <GSGridItem> *)searchForItemAtPosition:(vector_float3)minP
-                                                     bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket
-{
-    assert(bucket);
-
-    for(NSObject <GSGridItem> *item in bucket)
-    {
-        assert(item);
-        if(vector_equal(item.minP, minP)) {
-            return item;
-        }
-    }
-
-    return nil;
 }
 
 - (void)invalidateItemWithChange:(nonnull GSGridEdit *)change
 {
+    NSParameterAssert(change);
+
     // Invalidate asynchronously to avoid deadlock.
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
         [_lockTheTableItself lockForReading];
@@ -334,21 +315,11 @@
 
         [lock lock];
 
-        NSObject <GSGridItem> *foundItem = nil;
-
-        foundItem = [self searchForItemAtPosition:minP bucket:bucket];
-
-        if(foundItem && [foundItem respondsToSelector:@selector(itemWillBeInvalidated)]) {
-            [foundItem itemWillBeInvalidated];
-        }
-
-        [self willInvalidateItem:foundItem atPoint:minP];
+        NSObject <GSGridItem> *foundItem = [self _searchForItemAtPosition:minP bucket:bucket];
 
         if(foundItem) {
-            [bucket removeObject:foundItem];
+            [self _unlockedInvalidateItem:foundItem bucket:bucket change:change];
         }
-
-        [self invalidateItemsInDependentGridsWithChange:change];
 
         [lock unlock];
         [_lockTheTableItself unlockForReading];
@@ -371,8 +342,8 @@
         for(GSBoxedVector *q in correspondingPoints)
         {
             GSGridEdit *secondaryChange = [[GSGridEdit alloc] initWithOriginalItem:nil
-                                                                        modifiedItem:nil
-                                                                                 pos:[q vectorValue]];
+                                                                      modifiedItem:nil
+                                                                               pos:[q vectorValue]];
             [grid invalidateItemWithChange:secondaryChange];
         }
     }
@@ -380,6 +351,8 @@
 
 - (void)registerDependentGrid:(GSGrid *)grid mapping:(nonnull NSSet<GSBoxedVector *> * (^)(GSGridEdit *))mapping
 {
+    NSParameterAssert(grid);
+    NSParameterAssert(mapping);
     [_dependentGrids addObject:grid];
     [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
 }
@@ -387,6 +360,8 @@
 - (void)replaceItemAtPoint:(vector_float3)p
                  transform:(nonnull NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *original))newReplacementItem
 {
+    NSParameterAssert(newReplacementItem);
+
     [_lockTheTableItself lockForReading];
 
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
@@ -395,6 +370,7 @@
     NSUInteger idxLock = hash % _numLocks;
     NSLock *lock = _locks[idxLock];
     NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[idxBucket];
+    NSUInteger indexOfFoundItem = NSNotFound;
 
     [lock lock];
 
@@ -404,49 +380,154 @@
         NSObject <GSGridItem> *item = [bucket objectAtIndex:i];
 
         if(vector_equal(item.minP, minP)) {
-            NSObject <GSGridItem> *replacement = newReplacementItem(item);
-            if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
-                [item itemWillBeInvalidated];
-            }
-            [bucket replaceObjectAtIndex:i withObject:replacement];
-            
-            [_lockTheCount lock];
-            _costCount -= item.cost;
-            _costCount += replacement.cost;
-            [_lockTheCount unlock];
-
-            GSGridEdit *change = [[GSGridEdit alloc] initWithOriginalItem:item
-                                                           modifiedItem:replacement
-                                                                    pos:p];
-
-            [self invalidateItemsInDependentGridsWithChange:change];
-
-            [lock unlock];
-            [_lockTheTableItself unlockForReading];
-            return;
+            indexOfFoundItem = i;
+            break;
         }
     }
-
+    
     // If the item does not already exist in the cache then have the factory retrieve/create it, transform, and add to
     // the cache.
-    {
-        NSObject <GSGridItem> *replacement = newReplacementItem(_factory(minP));
-
-        [bucket addObject:replacement];
-
+    if (indexOfFoundItem == NSNotFound) {
+        NSObject <GSGridItem> *item = newReplacementItem(_factory(minP));
         [_lockTheCount lock];
-        _costCount += replacement.cost;
+        [bucket addObject:item];
+        _costCount += item.cost;
         _count++;
-        float load = (float)_count / _numBuckets;
         [_lockTheCount unlock];
+    } else {
+        NSObject <GSGridItem> *item = [bucket objectAtIndex:indexOfFoundItem];
+        NSObject <GSGridItem> *replacement = newReplacementItem(item);
 
-        [lock unlock];
-        [_lockTheTableItself unlockForReading];
+        GSGridEdit *change = [[GSGridEdit alloc] initWithOriginalItem:item
+                                                         modifiedItem:replacement
+                                                                  pos:p];
+        
+        [self _unlockedReplaceItemAtIndex:indexOfFoundItem inBucket:bucket withChange:change];
+    }
 
-        if(load > _loadLevelToTriggerResize) {
-            [self resizeTable];
+    [lock unlock];
+    [_lockTheTableItself unlockForReading];
+    
+    // AFOX_TODO: This would be a great time to enforce grid cost limits.
+    
+    if (indexOfFoundItem == NSNotFound) {
+        [self resizeTableIfNecessary];
+    }
+}
+
+#pragma mark Private
+
+- (void)_unlockedEvictItem:(nonnull NSObject <GSGridItem> *)item
+                    bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket
+{
+    NSParameterAssert(item);
+    NSParameterAssert(bucket);
+    
+    [_lockTheCount lock];
+    _count--;
+    _costCount -= item.cost;
+    
+    if([item respondsToSelector:@selector(itemWillBeEvicted)]) {
+        [item itemWillBeEvicted];
+    }
+    
+    [bucket removeObject:item];
+    [_lockTheCount unlock];
+}
+
+- (void)_unlockedInvalidateItem:(nonnull NSObject <GSGridItem> *)item
+                         bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket
+                         change:(nonnull GSGridEdit *)change
+{
+    NSParameterAssert(item);
+    NSParameterAssert(bucket);
+    NSParameterAssert(change);
+    
+    if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
+        [item itemWillBeInvalidated];
+    }
+    
+    [self willInvalidateItem:item atPoint:change.pos];
+    
+    if(item) {
+        [_lockTheCount lock];
+        _count--;
+        _costCount -= item.cost;
+        [bucket removeObject:item];
+        [_lockTheCount unlock];
+    }
+    
+    [self invalidateItemsInDependentGridsWithChange:change];
+}
+
+- (void)_unlockedEvictAllItems
+{
+    for(NSUInteger i=0; i<_numBuckets; ++i)
+    {
+        NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[i];
+        
+        for(NSObject <GSGridItem> *item in bucket)
+        {
+            if([item respondsToSelector:@selector(itemWillBeEvicted)]) {
+                [item itemWillBeEvicted];
+            }
         }
     }
+    
+    for(NSUInteger i=0; i<_numBuckets; ++i)
+    {
+        NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[i];
+        [bucket removeAllObjects];
+    }
+    
+    [_lockTheCount lock];
+    _count = 0;
+    _costCount = 0;
+    [_lockTheCount unlock];
+}
+
+- (void)_unlockedReplaceItemAtIndex:(NSUInteger)index
+                           inBucket:(nonnull NSMutableArray *)bucket
+                         withChange:(nonnull GSGridEdit *)change
+{
+    NSParameterAssert(bucket);
+    NSParameterAssert(index < bucket.count);
+    NSParameterAssert(change);
+    
+    NSObject <GSGridItem> *item = [bucket objectAtIndex:index];
+    NSAssert(item == change.originalObject, @"`change' is inconsistent");
+    
+    NSObject <GSGridItem> *replacement = change.modifiedObject;
+    NSAssert(replacement, @"`change.modifiedObject' must not be nil");
+
+    if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
+        [item itemWillBeInvalidated];
+    }
+    [bucket replaceObjectAtIndex:index withObject:change.modifiedObject];
+
+    [_lockTheCount lock];
+    _costCount -= item.cost;
+    _costCount += replacement.cost;
+    [_lockTheCount unlock];
+
+    [self invalidateItemsInDependentGridsWithChange:change];
+
+    // AFOX_TODO: This would be a great time to enforce grid cost limits.
+}
+
+- (nullable NSObject <GSGridItem> *)_searchForItemAtPosition:(vector_float3)minP
+                                                      bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket
+{
+    NSParameterAssert(bucket);
+    
+    for(NSObject <GSGridItem> *item in bucket)
+    {
+        if(vector_equal(item.minP, minP)) {
+            return item;
+        }
+    }
+    
+    return nil;
 }
 
 @end

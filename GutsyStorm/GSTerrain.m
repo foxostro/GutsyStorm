@@ -470,12 +470,12 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             
             GSVoxel *temp1 = malloc(count * sizeof(GSVoxel));
             if(!temp1) {
-                [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp1."];
+                [NSException raise:NSMallocException format:@"Out of memory allocating temp1."];
             }
             
             GSVoxel *temp2 = malloc(count * sizeof(GSVoxel));
             if(!temp2) {
-                [NSException raise:@"Out of Memory" format:@"Out of memory allocating temp2."];
+                [NSException raise:NSMallocException format:@"Out of memory allocating temp2."];
             }
             
             postProcessVoxels(&replacementRuleSets[0], voxels, temp1, minP, maxP);

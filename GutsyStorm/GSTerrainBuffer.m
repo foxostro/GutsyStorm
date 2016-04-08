@@ -86,7 +86,7 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
 
     GSTerrainBufferElement *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
     if(!dstBuf) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating dstBuf."];
+        [NSException raise:NSMallocException format:@"Out of memory allocating dstBuf."];
     }
 
     FOR_Y_COLUMN_IN_BOX(p, a, b)
@@ -117,7 +117,7 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
         _data = malloc(BUFFER_SIZE_IN_BYTES(dim));
 
         if(!_data) {
-            [NSException raise:@"Out of Memory" format:@"Failed to allocate memory for lighting buffer."];
+            [NSException raise:NSMallocException format:@"Failed to allocate memory for lighting buffer."];
         }
 
         bzero(_data, BUFFER_SIZE_IN_BYTES(dim));
@@ -264,7 +264,7 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     GSTerrainBufferElement *modifiedData = malloc(BUFFER_SIZE_IN_BYTES(dim));
     
     if(!modifiedData) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating modifiedData."];
+        [NSException raise:NSMallocException format:@"Out of memory allocating modifiedData."];
     }
 
     memcpy(modifiedData, _data, BUFFER_SIZE_IN_BYTES(dim));

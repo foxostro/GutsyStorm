@@ -50,7 +50,7 @@ typedef GLuint index_t;
         // Take the indices array and generate a raw index buffer that OpenGL can consume.
         index_t *buffer = malloc(sizeof(index_t) * SHARED_INDEX_BUFFER_LEN);
         if(!buffer) {
-            [NSException raise:@"Out of Memory" format:@"Out of memory allocating index buffer."];
+            [NSException raise:NSMallocException format:@"Out of memory allocating index buffer."];
         }
 
         for(GLsizei i = 0; i < SHARED_INDEX_BUFFER_LEN; ++i)

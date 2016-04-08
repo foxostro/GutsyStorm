@@ -120,7 +120,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     GSTerrainVertex *vertsCopy = malloc(header->len);
     if(!vertsCopy) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating vertsCopy in -copyVertsToBuffer:."];
+        [NSException raise:NSMallocException format:@"Out of memory allocating vertsCopy in -copyVertsToBuffer:."];
     }
 
     memcpy(vertsCopy, vertsBuffer, header->len);
@@ -169,7 +169,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     const size_t capacity = sizeof(struct GSChunkGeometryHeader) + len;
     NSMutableData *data = [[NSMutableData alloc] initWithBytesNoCopy:malloc(capacity) length:capacity freeWhenDone:YES];
     if(!data) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating `data' in -dataWithSunlight:minP:."];
+        [NSException raise:NSMallocException format:@"Out of memory allocating `data' in -dataWithSunlight:minP:."];
     }
 
     struct GSChunkGeometryHeader * header = [data mutableBytes];

@@ -17,6 +17,9 @@
 
 @interface GSGrid<__covariant TYPE> : NSObject
 
+/* Name of the table. Mostly for debugging purposes. */
+@property (nonnull, readonly, nonatomic) NSString *name;
+
 /* Is the designated grid item factory permitted to fail by returning nil. */
 @property (nonatomic) BOOL factoryMayFail;
 

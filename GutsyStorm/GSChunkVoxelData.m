@@ -199,7 +199,7 @@
     GSVoxel *voxels = malloc(count * sizeof(GSVoxel));
 
     if (!voxels) {
-        [NSException raise:@"Out of Memory" format:@"Out of memory allocating voxels in -newTerrainBufferWithGenerator:."];
+        [NSException raise:NSMallocException format:@"Out of memory allocating voxels in -newTerrainBufferWithGenerator:."];
     }
 
     // Generate voxels for the region of the chunk, plus a 1 block wide border.
