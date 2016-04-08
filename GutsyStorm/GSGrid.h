@@ -20,6 +20,9 @@
 /* Name of the table. Mostly for debugging purposes. */
 @property (nonnull, readonly, nonatomic) NSString *name;
 
+/* Specify a desired cost limit for all items in the grid. */
+@property (nonatomic) NSInteger costLimit;
+
 /* Is the designated grid item factory permitted to fail by returning nil. */
 @property (nonatomic) BOOL factoryMayFail;
 
@@ -80,5 +83,7 @@
  */
 - (void)replaceItemAtPoint:(vector_float3)p
                  transform:(NSObject <GSGridItem> * _Nonnull (^ _Nonnull)(NSObject <GSGridItem> * _Nonnull))fn;
+
+- (nonnull NSString *)description;
 
 @end

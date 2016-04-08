@@ -656,4 +656,9 @@
     }
 }
 
+- (void)printInfo
+{
+    NSLog(@"Chunk Store:\n\t%@\n\t%@\n\t%@\n\t%@", _gridVoxelData, _gridSunlightData, _gridGeometryData, _gridVAO);
+}
+
 @end

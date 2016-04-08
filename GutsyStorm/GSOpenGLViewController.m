@@ -41,6 +41,7 @@
     BOOL _spaceBarDebounce;
     BOOL _bKeyDebounce;
     BOOL _uKeyDebounce;
+    BOOL _pKeyDebounce;
     NSMutableDictionary<NSNumber *, NSNumber *> *_keysDown;
     
     NSTimer *_updateTimer;
@@ -79,6 +80,7 @@
     _spaceBarDebounce = NO;
     _bKeyDebounce = NO;
     _uKeyDebounce = NO;
+    _pKeyDebounce = NO;
     _keysDown = [NSMutableDictionary<NSNumber *, NSNumber *> new];
     
     _camera = [GSCamera new];
@@ -193,6 +195,15 @@
         }
     } else {
         _uKeyDebounce = NO;
+    }
+    
+    if([_keysDown[@('p')] boolValue]) {
+        if(!_pKeyDebounce) {
+            _pKeyDebounce = YES;
+            [_terrain printInfo];
+        }
+    } else {
+        _pKeyDebounce = NO;
     }
     
     // Reset for the next update

@@ -53,6 +53,8 @@
 
 - (void)purge;
 
+- (void)printInfo;
+
 /* Clean-up in preparation for destroying the terrain object.
  * For example, synchronize with the disk one last time and resources.
  */

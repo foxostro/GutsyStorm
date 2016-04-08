@@ -47,7 +47,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _neighborhood = neighborhood;
         _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder];
-        cost = BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
+        cost = BUFFER_SIZE_IN_BYTES(sunlightDim);
     }
     return self;
 }

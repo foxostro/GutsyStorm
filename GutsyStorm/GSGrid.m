@@ -20,46 +20,48 @@
 
 @implementation GSGrid
 {
-    GSReaderWriterLock *_lockTheTableItself; // Lock protects the "buckets" array itself, but not its contents.
-
+    GSReaderWriterLock *_lockTheTableItself; // Lock protects _buckets and _numBuckets, but not bucket contents.
     NSUInteger _numBuckets;
     NSMutableArray<NSObject <GSGridItem> *> * __strong *_buckets;
 
+    // These locks are used for lock striping across the buckets. These protect bucket contents.
     NSUInteger _numLocks;
     NSLock * __strong *_locks;
 
-    NSLock *_lockTheCount;
+    NSLock *_lockTheCount; // Lock protects _count, _costTotal, and ivars associated with table limits.
     NSInteger _count;
     float _loadLevelToTriggerResize;
-    NSInteger _costCount;
+    NSInteger _costTotal;
     NSInteger _costLimit;
-    
+
+    // Keep a reference to a block which can make new grid items on demand.
     GSGridItemFactory _factory;
 
+    // The grid maintains relationships with other grids. Invalidating an item in this grid may invalidate items in
+    // the associated grids as well.
     NSMutableArray<GSGrid *> *_dependentGrids;
     NSMutableDictionary *_mappingToDependentGrids;
-}
-
-- (nonnull instancetype)init
-{
-    assert(!"call -initWithFactory: instead");
-    @throw nil;
 }
 
 + (NSMutableArray<NSObject <GSGridItem> *> * __strong *)newBuckets:(NSUInteger)count
 {
     NSMutableArray<NSObject <GSGridItem> *> * __strong *buckets = (NSMutableArray<NSObject <GSGridItem> *> * __strong *)calloc(count, sizeof(NSMutableArray<NSObject <GSGridItem> *> *));
-
+    
     if (!buckets) {
         [NSException raise:NSMallocException format:@"Out of memory allocating `_buckets'."];
     }
-
+    
     for(NSUInteger i=0; i<count; ++i)
     {
         buckets[i] = [NSMutableArray<NSObject <GSGridItem> *> new];
     }
-
+    
     return buckets;
+}
+
+- (nonnull instancetype)init
+{
+    @throw nil;
 }
 
 - (nonnull instancetype)initWithName:(nonnull NSString *)name
@@ -68,7 +70,7 @@
     if (self = [super init]) {
         _factory = [factory copy];
         _numLocks = [[NSProcessInfo processInfo] processorCount] * 2;
-        _numBuckets = 2;
+        _numBuckets = 1024;
         _buckets = [[self class] newBuckets:_numBuckets];
         _dependentGrids = [NSMutableArray<GSGrid *> new];
         _mappingToDependentGrids = [NSMutableDictionary new];
@@ -77,7 +79,7 @@
         _lockTheCount = [NSLock new];
         _lockTheCount.name = [NSString stringWithFormat:@"%@.lockTheCount", name];
         _count = 0;
-        _costLimit = 0; // XXX: need to allow this to be specified
+        _costLimit = 0;
         _loadLevelToTriggerResize = 0.80;
 
         _locks = (NSLock * __strong *)calloc(_numLocks, sizeof(NSLock *));
@@ -128,7 +130,7 @@
     }
 
     [_lockTheTableItself lockForWriting];
-    [_lockTheCount lock]; // Not strictly necessary since locking the table prevents reading too.
+    [_lockTheCount lock]; // We don't expect other threads to be here, but take the lock anyway.
 
     // Test again whether a resize is necessary. It's possible, for example, that someone evicted all items just now.
     NSAssert(_numBuckets>0, @"Cannot have zero buckets.");
@@ -211,7 +213,7 @@
             [_lockTheCount lock];
             [bucket addObject:anObject];
             _count++;
-            _costCount += anObject.cost;
+            _costTotal += anObject.cost;
             [_lockTheCount unlock];
             
             createdAnItem = YES;
@@ -233,7 +235,7 @@
                    createIfMissing:createIfMissing
                      didCreateItem:outDidCreateItem];
     } else {
-        // AFOX_TODO: This would be a great time to enforce grid cost limits.
+        [self _enforceGridCostLimits];
         [self resizeTableIfNecessary];
         
         if (result) {
@@ -391,7 +393,7 @@
         NSObject <GSGridItem> *item = newReplacementItem(_factory(minP));
         [_lockTheCount lock];
         [bucket addObject:item];
-        _costCount += item.cost;
+        _costTotal += item.cost;
         _count++;
         [_lockTheCount unlock];
     } else {
@@ -407,12 +409,37 @@
 
     [lock unlock];
     [_lockTheTableItself unlockForReading];
-    
-    // AFOX_TODO: This would be a great time to enforce grid cost limits.
-    
+
+    [self _enforceGridCostLimits];
+
     if (indexOfFoundItem == NSNotFound) {
         [self resizeTableIfNecessary];
     }
+}
+
+- (void)setCostLimit:(NSInteger)costLimit
+{
+    BOOL didChangeCostLimit = NO;
+
+    [_lockTheCount lock];
+    if (_costLimit != costLimit) {
+        _costLimit = costLimit;
+        didChangeCostLimit = YES;
+    }
+    [_lockTheCount unlock];
+    
+    if (didChangeCostLimit) {
+        [self _enforceGridCostLimits];
+    }
+}
+
+- (nonnull NSString *)description
+{
+    [_lockTheCount lock];
+    NSString *s = [NSString stringWithFormat:@"%@: costTotal=%.2fMB, costLimit=%.2fMB, count=%lu",
+                   self.name, _costTotal / 1024.0 / 1024.0, _costLimit / 1024.0 / 1024.0, _count];
+    [_lockTheCount unlock];
+    return s;
 }
 
 #pragma mark Private
@@ -425,7 +452,7 @@
     
     [_lockTheCount lock];
     _count--;
-    _costCount -= item.cost;
+    _costTotal -= item.cost;
     
     if([item respondsToSelector:@selector(itemWillBeEvicted)]) {
         [item itemWillBeEvicted];
@@ -452,7 +479,7 @@
     if(item) {
         [_lockTheCount lock];
         _count--;
-        _costCount -= item.cost;
+        _costTotal -= item.cost;
         [bucket removeObject:item];
         [_lockTheCount unlock];
     }
@@ -480,9 +507,11 @@
         [bucket removeAllObjects];
     }
     
+    // We don't expect there to be any other threads here right now because we took the grid's write lock before
+    // entering this method. Still, take the lock to be sure. (It's cheap since there's no contention.)
     [_lockTheCount lock];
     _count = 0;
-    _costCount = 0;
+    _costTotal = 0;
     [_lockTheCount unlock];
 }
 
@@ -503,16 +532,18 @@
     if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
         [item itemWillBeInvalidated];
     }
-    [bucket replaceObjectAtIndex:index withObject:change.modifiedObject];
 
+    // We can replace an item without taking the write lock on the whole table. We only need to enter this method
+    // while holding the lock on the relevant stripe. Take `_lockTheCount' to ensure consistent updates to the limits.
+    // We modify the bucket while holding the lock so that we can be certain that, inside the lock, the grid limits are
+    // always consistent. In any case, replacing an item in a bucket like this is fast. So, we expect it to be low cost.
     [_lockTheCount lock];
-    _costCount -= item.cost;
-    _costCount += replacement.cost;
+    [bucket replaceObjectAtIndex:index withObject:change.modifiedObject];
+    _costTotal -= item.cost;
+    _costTotal += replacement.cost;
     [_lockTheCount unlock];
 
     [self invalidateItemsInDependentGridsWithChange:change];
-
-    // AFOX_TODO: This would be a great time to enforce grid cost limits.
 }
 
 - (nullable NSObject <GSGridItem> *)_searchForItemAtPosition:(vector_float3)minP
@@ -528,6 +559,54 @@
     }
     
     return nil;
+}
+
+- (void)_enforceGridCostLimits
+{
+    // Perform a quick test to detect the grid is likely over the cost limit.
+    // Do not take the write lock unless we think there's a good chance we'll need to evict some items.
+    [_lockTheTableItself lockForReading];
+    [_lockTheCount lock];
+    BOOL overLimit = (_costLimit > 0) && (_costTotal > _costLimit);
+    [_lockTheCount unlock];
+    [_lockTheTableItself unlockForReading];
+
+    if(!overLimit) {
+        return;
+    }
+
+    [_lockTheTableItself lockForWriting];
+    
+    DEBUG_LOG(@"Grid \"%@\" -- enforcing grid limits", self.name);
+
+    while(true)
+    {
+        // Test again whether the grid is over the cost limit.
+        // It's possible, for example, that someone evicted all items just now.
+        [_lockTheCount lock];
+        BOOL acceptableGridCost = (_costLimit <= 0) || (_costTotal <= _costLimit);
+        [_lockTheCount unlock];
+
+        if (acceptableGridCost) {
+            break;
+        }
+
+        // XXX: use an LRU list here to select the least recently used item for eviction.
+        // For now, select a random bucket and a random item, and evict it.
+        NSUInteger chosenBucket = rand() % _numBuckets;
+        NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[chosenBucket];
+
+        if (bucket.count > 0) {
+            NSUInteger chosenItem = rand() % bucket.count;
+            NSObject <GSGridItem> *item = [bucket objectAtIndex:chosenItem];
+            DEBUG_LOG(@"Grid \"%@\" is over budget and will evict %lu cost item", self.name, (unsigned long)item.cost);
+            [self _unlockedEvictItem:item bucket:bucket];
+        }
+    }
+    
+    DEBUG_LOG(@"Grid \"%@\" -- done enforcing grid limits", self.name);
+
+    [_lockTheTableItself unlockForWriting];
 }
 
 @end

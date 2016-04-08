@@ -536,6 +536,11 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     [_chunkStore purge];
 }
 
+- (void)printInfo
+{
+    [_chunkStore printInfo];
+}
+
 - (void)placeBlockUnderCrosshairs
 {
     if(_cursor.cursorIsActive) {
