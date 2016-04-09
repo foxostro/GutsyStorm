@@ -33,7 +33,7 @@ typedef GLuint index_t;
 @implementation GSChunkVAO
 {
     GLsizei _numIndicesForDrawing;
-    GSVBOHolder *_vbo, *_ibo;
+    GSVBOHolder *_ibo;
     GSVAOHolder *_vao;
     NSOpenGLContext *_glContext;
 }
@@ -139,7 +139,8 @@ typedef GLuint index_t;
         glBindVertexArrayAPPLE(0);
 
         _vao = [[GSVAOHolder alloc] initWithHandle:vao context:context];
-        _vbo = [[GSVBOHolder alloc] initWithHandle:vbo context:context];
+
+        glDeleteBuffers(1, &vbo);
 
         assert(checkGLErrors() == 0);
         CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
