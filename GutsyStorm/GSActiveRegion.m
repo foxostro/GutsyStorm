@@ -102,7 +102,7 @@
 #if LOG_PERF
     uint64_t startAbs = stopwatchStart();
 #endif
-    
+
     BOOL didSkipSomeCreationTasks = NO;
     NSMutableArray<GSChunkVAO *> *vaosInCameraFrustum = [NSMutableArray<GSChunkVAO *> new];
     NSArray<GSBoxedVector *> *points = [self pointsInCameraFrustum];
@@ -127,10 +127,8 @@
             if (vao) {
                 vaoGenCount += vaoGenDidHappen ? 1 : 0;
                 [vaosInCameraFrustum addObject:vao];
-            }
-            
-            if (!createIfMissing) {
-                didSkipSomeCreationTasks = YES;
+            } else {
+                didSkipSomeCreationTasks = !createIfMissing;
             }
         }
     }
@@ -141,7 +139,7 @@
     [_lockVAOsInCameraFrustum lock];
     _vaosInCameraFrustum = vaosInCameraFrustum;
     [_lockVAOsInCameraFrustum unlock];
-    
+
     if (didSkipSomeCreationTasks) {
         [self notifyOfChangeInActiveRegionVAOs]; // Remember to pick up where we left off later.
     }
