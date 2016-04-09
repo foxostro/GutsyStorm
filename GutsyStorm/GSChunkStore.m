@@ -122,6 +122,14 @@
                                            return [[GSChunkVAO alloc] initWithChunkGeometry:geometry
                                                                                   glContext:_glContext];
                                        }];
+    
+    // Format all grid item costs as byte counts.
+    NSByteCountFormatter *formatter = [[NSByteCountFormatter alloc] init];
+    formatter.countStyle = NSByteCountFormatterCountStyleMemory;
+    _gridVoxelData.costFormatter = formatter;
+    _gridSunlightData.costFormatter = formatter;
+    _gridGeometryData.costFormatter = formatter;
+    _gridVAO.costFormatter = formatter;
 }
 
 - (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(nonnull GSGridEdit *)edit

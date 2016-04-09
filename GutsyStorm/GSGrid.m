@@ -436,10 +436,25 @@
 - (nonnull NSString *)description
 {
     [_lockTheCount lock];
-    NSString *s = [NSString stringWithFormat:@"%@: costTotal=%.2fMB, costLimit=%.2fMB, count=%lu",
-                   self.name, _costTotal / 1024.0 / 1024.0, _costLimit / 1024.0 / 1024.0, _count];
+    NSUInteger costTotal = _costTotal;
+    NSUInteger costLimit = _costLimit;
+    NSUInteger count = _count;
     [_lockTheCount unlock];
-    return s;
+    
+    NSFormatter *formatter = self.costFormatter;
+    NSString *strCostTotal;
+    NSString *strCostLimit;
+
+    if (formatter) {
+        strCostTotal = [formatter stringForObjectValue:@(costTotal)];
+        strCostLimit = [formatter stringForObjectValue:@(costLimit)];
+    } else {
+        strCostTotal = [NSString stringWithFormat:@"%lu", costTotal];
+        strCostLimit = [NSString stringWithFormat:@"%lu", costLimit];
+    }
+
+    return [NSString stringWithFormat:@"%@: costTotal=%@, costLimit=%@, count=%lu",
+            self.name, strCostTotal, strCostLimit, count];
 }
 
 #pragma mark Private

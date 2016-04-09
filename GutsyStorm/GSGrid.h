@@ -23,6 +23,9 @@
 /* Specify a desired cost limit for all items in the grid. */
 @property (nonatomic) NSInteger costLimit;
 
+/* Format costs for display. */
+@property (nonatomic, retain, nullable) NSFormatter *costFormatter;
+
 /* Is the designated grid item factory permitted to fail by returning nil. */
 @property (nonatomic) BOOL factoryMayFail;
 
