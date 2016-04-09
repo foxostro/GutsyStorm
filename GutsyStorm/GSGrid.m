@@ -12,6 +12,7 @@
 #import "GSGrid.h"
 #import "GSReaderWriterLock.h"
 #import "GSBoxedVector.h"
+#import "GSGridItemLRU.h"
 
 
 //#define DEBUG_LOG(...) NSLog(__VA_ARGS__)
@@ -28,11 +29,12 @@
     NSUInteger _numLocks;
     NSLock * __strong *_locks;
 
-    NSLock *_lockTheCount; // Lock protects _count, _costTotal, and ivars associated with table limits.
+    NSLock *_lockTheCount; // Lock protects _count, _costTotal, _lru, and other ivars associated with table limits.
     NSInteger _count;
     float _loadLevelToTriggerResize;
     NSInteger _costTotal;
     NSInteger _costLimit;
+    GSGridItemLRU *_lru;
 
     // Keep a reference to a block which can make new grid items on demand.
     GSGridItemFactory _factory;
@@ -72,6 +74,7 @@
         _numLocks = [[NSProcessInfo processInfo] processorCount] * 2;
         _numBuckets = 1024;
         _buckets = [[self class] newBuckets:_numBuckets];
+        _lru = [GSGridItemLRU new];
         _dependentGrids = [NSMutableArray<GSGrid *> new];
         _mappingToDependentGrids = [NSMutableDictionary new];
         _name = name;
@@ -212,6 +215,7 @@
         } else {
             [_lockTheCount lock];
             [bucket addObject:anObject];
+            [_lru referenceObject:anObject bucket:bucket];
             _count++;
             _costTotal += anObject.cost;
             [_lockTheCount unlock];
@@ -339,7 +343,7 @@
 
     for(GSGrid *grid in _dependentGrids)
     {
-        NSSet * (^mapping)(GSGridEdit *) = [_mappingToDependentGrids objectForKey:[grid description]];
+        NSSet * (^mapping)(GSGridEdit *) = [_mappingToDependentGrids objectForKey:[grid _key]];
         NSSet *correspondingPoints = mapping(change);
         for(GSBoxedVector *q in correspondingPoints)
         {
@@ -356,7 +360,7 @@
     NSParameterAssert(grid);
     NSParameterAssert(mapping);
     [_dependentGrids addObject:grid];
-    [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid description]];
+    [_mappingToDependentGrids setObject:[mapping copy] forKey:[grid _key]];
 }
 
 - (void)replaceItemAtPoint:(vector_float3)p
@@ -393,6 +397,7 @@
         NSObject <GSGridItem> *item = newReplacementItem(_factory(minP));
         [_lockTheCount lock];
         [bucket addObject:item];
+        [_lru referenceObject:item bucket:bucket];
         _costTotal += item.cost;
         _count++;
         [_lockTheCount unlock];
@@ -433,6 +438,22 @@
     }
 }
 
+- (void)capCosts
+{
+    BOOL didChangeCostLimit = NO;
+    
+    [_lockTheCount lock];
+    if (_costLimit != _costTotal) {
+        _costLimit = _costTotal;
+        didChangeCostLimit = YES;
+    }
+    [_lockTheCount unlock];
+    
+    if (didChangeCostLimit) {
+        [self _enforceGridCostLimits];
+    }
+}
+
 - (nonnull NSString *)description
 {
     [_lockTheCount lock];
@@ -459,6 +480,11 @@
 
 #pragma mark Private
 
+- (nonnull NSString *)_key
+{
+    return [super description];
+}
+
 - (void)_unlockedEvictItem:(nonnull NSObject <GSGridItem> *)item
                     bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket
 {
@@ -474,6 +500,7 @@
     }
     
     [bucket removeObject:item];
+    [_lru removeObject:item];
     [_lockTheCount unlock];
 }
 
@@ -496,6 +523,7 @@
         _count--;
         _costTotal -= item.cost;
         [bucket removeObject:item];
+        [_lru removeObject:item];
         [_lockTheCount unlock];
     }
     
@@ -527,6 +555,7 @@
     [_lockTheCount lock];
     _count = 0;
     _costTotal = 0;
+    [_lru removeAllObjects];
     [_lockTheCount unlock];
 }
 
@@ -553,7 +582,9 @@
     // We modify the bucket while holding the lock so that we can be certain that, inside the lock, the grid limits are
     // always consistent. In any case, replacing an item in a bucket like this is fast. So, we expect it to be low cost.
     [_lockTheCount lock];
-    [bucket replaceObjectAtIndex:index withObject:change.modifiedObject];
+    [_lru referenceObject:item bucket:bucket];
+    [_lru removeObject:replacement];
+    [bucket replaceObjectAtIndex:index withObject:replacement];
     _costTotal -= item.cost;
     _costTotal += replacement.cost;
     [_lockTheCount unlock];
@@ -606,15 +637,12 @@
             break;
         }
 
-        // XXX: use an LRU list here to select the least recently used item for eviction.
-        // For now, select a random bucket and a random item, and evict it.
-        NSUInteger chosenBucket = rand() % _numBuckets;
-        NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[chosenBucket];
-
-        if (bucket.count > 0) {
-            NSUInteger chosenItem = rand() % bucket.count;
-            NSObject <GSGridItem> *item = [bucket objectAtIndex:chosenItem];
-            DEBUG_LOG(@"Grid \"%@\" is over budget and will evict %lu cost item", self.name, (unsigned long)item.cost);
+        NSMutableArray<NSObject <GSGridItem> *> *bucket = nil;
+        NSObject <GSGridItem> *item = nil;
+        [_lru popAndReturnObject:&item bucket:&bucket];
+        if (item && bucket) {
+            DEBUG_LOG(@"Grid \"%@\" is over budget and will evict %@ cost item",
+                      self.name, [self.costFormatter stringForObjectValue:@(item.cost)]);
             [self _unlockedEvictItem:item bucket:bucket];
         }
     }

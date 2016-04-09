@@ -42,6 +42,7 @@
     BOOL _bKeyDebounce;
     BOOL _uKeyDebounce;
     BOOL _pKeyDebounce;
+    BOOL _yKeyDebounce;
     NSMutableDictionary<NSNumber *, NSNumber *> *_keysDown;
     
     NSTimer *_updateTimer;
@@ -191,10 +192,19 @@
     if([_keysDown[@('u')] boolValue]) {
         if(!_uKeyDebounce) {
             _uKeyDebounce = YES;
-            [_terrain testPurge];
+            [_terrain memoryPressure:DISPATCH_MEMORYPRESSURE_CRITICAL];
         }
     } else {
         _uKeyDebounce = NO;
+    }
+    
+    if([_keysDown[@('y')] boolValue]) {
+        if(!_yKeyDebounce) {
+            _yKeyDebounce = YES;
+            [_terrain memoryPressure:DISPATCH_MEMORYPRESSURE_WARN];
+        }
+    } else {
+        _yKeyDebounce = NO;
     }
     
     if([_keysDown[@('p')] boolValue]) {

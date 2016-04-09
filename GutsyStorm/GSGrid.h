@@ -87,6 +87,10 @@
 - (void)replaceItemAtPoint:(vector_float3)p
                  transform:(NSObject <GSGridItem> * _Nonnull (^ _Nonnull)(NSObject <GSGridItem> * _Nonnull))fn;
 
+/* Set the cost limit to the current cost of items in the grid. This prevents the grid cost from growing. */
+- (void)capCosts;
+
+/* Return a string description of the grid. */
 - (nonnull NSString *)description;
 
 @end

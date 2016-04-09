@@ -134,7 +134,8 @@
 
 - (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(nonnull GSGridEdit *)edit
 {
-    assert(edit);
+    NSParameterAssert(edit);
+
     vector_float3 p = edit.pos;
 
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
@@ -246,7 +247,7 @@
 - (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam
 {
     assert(!_chunkStoreHasBeenShutdown);
-    assert(cam);
+    NSParameterAssert(cam);
     assert(_gridVAO);
 
     // Active region is bounded at y>=0.
@@ -340,19 +341,7 @@
 
     [_terrainShader bind];
     [_terrainShader bindUniformWithMatrix4x4:mvp name:@"mvp"];
-
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-
     [_activeRegion draw];
-
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
-
     [_terrainShader unbind];
 }
 
@@ -542,7 +531,7 @@
                        neighborhood:(GSNeighborhood * _Nonnull * _Nonnull)outNeighborhood
 {
     assert(!_chunkStoreHasBeenShutdown);
-    assert(outNeighborhood);
+    NSParameterAssert(outNeighborhood);
 
     GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
 
@@ -577,7 +566,7 @@
 - (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
-    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
+    NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridSunlightData);
     return [_gridSunlightData objectAtPoint:p];
 }
@@ -585,7 +574,7 @@
 - (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
-    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
+    NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridVoxelData);
     return [_gridVoxelData objectAtPoint:p];
 }
@@ -593,8 +582,8 @@
 - (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData * _Nonnull * _Nonnull)chunk
 {
     assert(!_chunkStoreHasBeenShutdown);
-    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
-    assert(chunk);
+    NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
+    NSParameterAssert(chunk);
     assert(_gridVoxelData);
 
     GSChunkVoxelData *v = nil;
@@ -649,18 +638,39 @@
                                         generator:_generator];
 }
 
-- (void)purge
+- (void)memoryPressure:(unsigned long)status
 {
-    if (!_chunkStoreHasBeenShutdown) {
-        assert(_gridVoxelData);
-        assert(_gridGeometryData);
-        assert(_gridSunlightData);
-        assert(_gridVAO);
+    if (_chunkStoreHasBeenShutdown) {
+        return;
+    }
 
-        [_gridVoxelData evictAllItems];
-        [_gridGeometryData evictAllItems];
-        [_gridSunlightData evictAllItems];
-        [_gridVAO evictAllItems];
+    switch(status)
+    {
+        case DISPATCH_MEMORYPRESSURE_NORMAL:
+            _gridVoxelData.costLimit = 0;
+            _gridSunlightData.costLimit = 0;
+            _gridGeometryData.costLimit = 0;
+            _gridVAO.costLimit = 0;
+            break;
+            
+        case DISPATCH_MEMORYPRESSURE_WARN:
+            [_gridVoxelData capCosts];
+            [_gridSunlightData capCosts];
+            [_gridGeometryData capCosts];
+            [_gridVAO capCosts];
+            break;
+            
+        case DISPATCH_MEMORYPRESSURE_CRITICAL:
+            [_gridVoxelData capCosts];
+            [_gridSunlightData capCosts];
+            [_gridGeometryData capCosts];
+            [_gridVAO capCosts];
+
+            [_gridVoxelData evictAllItems];
+            [_gridSunlightData evictAllItems];
+            [_gridGeometryData evictAllItems];
+            [_gridVAO evictAllItems];
+            break;
     }
 }
 

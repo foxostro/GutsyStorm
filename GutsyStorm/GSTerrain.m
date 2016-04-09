@@ -531,9 +531,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     [_chunkStore updateWithCameraModifiedFlags:cameraModifiedFlags];
 }
 
-- (void)testPurge
+- (void)memoryPressure:(unsigned long)status
 {
-    [_chunkStore purge];
+    [_chunkStore memoryPressure:status];
 }
 
 - (void)printInfo

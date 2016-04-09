@@ -28,7 +28,10 @@
 
 - (void)removeBlockUnderCrosshairs;
 
-- (void)testPurge;
+/* Notify the terrain object that the system has come under memory pressure.
+ * status - DISPATCH_MEMORYPRESSURE_NORMAL, DISPATCH_MEMORYPRESSURE_WARN, DISPATCH_MEMORYPRESSURE_CRITICAL
+ */
+- (void)memoryPressure:(unsigned long)status;
 
 - (void)printInfo;
 

@@ -51,7 +51,10 @@
 
 - (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block;
 
-- (void)purge;
+/* Notify the chunk store object that the system has come under memory pressure.
+ * status - DISPATCH_MEMORYPRESSURE_NORMAL, DISPATCH_MEMORYPRESSURE_WARN, DISPATCH_MEMORYPRESSURE_CRITICAL
+ */
+- (void)memoryPressure:(unsigned long)status;
 
 - (void)printInfo;
 
