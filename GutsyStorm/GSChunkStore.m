@@ -638,7 +638,7 @@
                                         generator:_generator];
 }
 
-- (void)memoryPressure:(unsigned long)status
+- (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status
 {
     if (_chunkStoreHasBeenShutdown) {
         return;

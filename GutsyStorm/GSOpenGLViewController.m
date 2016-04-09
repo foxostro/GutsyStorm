@@ -34,6 +34,7 @@
     GSTerrain *_terrain;
     GSCamera *_camera;
     GSOpenGLView *_openGlView;
+    dispatch_source_t _memoryPressureSource;
 
     float _mouseSensitivity;
     int32_t _mouseDeltaX, _mouseDeltaY;
@@ -44,7 +45,7 @@
     BOOL _pKeyDebounce;
     BOOL _yKeyDebounce;
     NSMutableDictionary<NSNumber *, NSNumber *> *_keysDown;
-    
+
     NSTimer *_updateTimer;
     BOOL _timerShouldShutdown;
     dispatch_semaphore_t _semaTimerShutdown;
@@ -56,6 +57,7 @@
 
 - (void)applicationWillTerminate:(nonnull NSNotification *)notification
 {
+    dispatch_source_cancel(_memoryPressureSource);
     _timerShouldShutdown = YES;
     dispatch_semaphore_wait(_semaTimerShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/30.0));
     [_updateTimer invalidate];
@@ -100,6 +102,16 @@
 
     _timerShouldShutdown = NO;
     _semaTimerShutdown = dispatch_semaphore_create(0);
+    
+    // Listen for memory pressure notifications and forward them to the terrain object.
+    _memoryPressureSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_MEMORYPRESSURE, 0,
+                                                   DISPATCH_MEMORYPRESSURE_NORMAL | DISPATCH_MEMORYPRESSURE_WARN |
+                                                   DISPATCH_MEMORYPRESSURE_CRITICAL, dispatch_get_main_queue());
+    dispatch_source_set_event_handler(_memoryPressureSource, ^{
+        dispatch_source_memorypressure_flags_t status = dispatch_source_get_data(_memoryPressureSource);
+        [_terrain memoryPressure:status];
+    });
+    dispatch_resume(_memoryPressureSource);
     
     // Register a timer to drive the game loop.
     _updateTimer = [NSTimer timerWithTimeInterval:1.0 / 30.0
