@@ -28,7 +28,9 @@
                                folder:(nonnull NSURL *)folder
                              sunlight:(nonnull GSChunkSunlightData *)sunlight;
 
-/* Copy the chunk vertex buffer to a new buffer and return that in `dst'. Return the number of vertices in the buffer. */
-- (GLsizei)copyVertsToBuffer:(GSTerrainVertex * _Nonnull * _Nonnull)dst;
+/* Copy the chunk vertex buffer to a new buffer and return it.
+ * Return the number of vertices in the buffer in `count'
+ */
+- (nonnull GSTerrainVertexNoNormal *)copyVertsReturningCount:(nonnull GLsizei *)count;
 
 @end

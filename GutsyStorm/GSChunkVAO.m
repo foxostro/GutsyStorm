@@ -75,12 +75,10 @@ typedef GLuint index_t;
 - (nullable instancetype)initWithChunkGeometry:(nonnull GSChunkGeometryData *)geometry
                                      glContext:(nonnull NSOpenGLContext *)context
 {
-    assert(geometry);
-    assert(context);
+    NSParameterAssert(geometry);
+    NSParameterAssert(context);
 
     if(self = [super init]) {
-        GSTerrainVertex *vertsBuffer = NULL;
-        _numIndicesForDrawing = [geometry copyVertsToBuffer:&vertsBuffer];
         _glContext = context;
         minP = geometry.minP;
 
@@ -94,7 +92,6 @@ typedef GLuint index_t;
         glBindVertexArrayAPPLE(vao);
 
         glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
 
@@ -103,8 +100,13 @@ typedef GLuint index_t;
         GLuint vbo = 0;
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, _numIndicesForDrawing * sizeof(GSTerrainVertex), vertsBuffer, GL_STATIC_DRAW);
+
+        GSTerrainVertexNoNormal *vertsBuffer = [geometry copyVertsReturningCount:&_numIndicesForDrawing];
+        GLsizeiptr bufferSize = _numIndicesForDrawing * sizeof(GSTerrainVertexNoNormal);
+        cost = bufferSize;
+        glBufferData(GL_ARRAY_BUFFER, bufferSize, vertsBuffer, GL_STATIC_DRAW);
         free(vertsBuffer);
+
         if (glGetError() == GL_OUT_OF_MEMORY) {
             NSLog(@"GSChunkVAO failed to acquire GPU resources.");
             glDeleteBuffers(1, &vbo);
@@ -118,21 +120,18 @@ typedef GLuint index_t;
         static dispatch_once_t onceToken;
         dispatch_once(&onceToken, ^{
             // Verify that vertex attribute formats are consistent with in-memory storage.
-            assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, position));
-            assert(sizeof(GLbyte)  == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, normal));
-            assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, texCoord));
-            assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, color));
+            assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, position));
+            assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, texCoord));
+            assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, color));
         });
 #endif
 
-        const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertex, position);
-        const GLvoid *offsetNormal   = (const GLvoid *)offsetof(GSTerrainVertex, normal);
-        const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertex, texCoord);
-        const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertex, color);
+        const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, position);
+        const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, texCoord);
+        const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, color);
 
-        const GLsizei stride = sizeof(GSTerrainVertex);
+        const GLsizei stride = sizeof(GSTerrainVertexNoNormal);
         glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
-        glNormalPointer(     GL_BYTE,          stride, offsetNormal);
         glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
         glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
 
@@ -144,8 +143,6 @@ typedef GLuint index_t;
 
         assert(checkGLErrors() == 0);
         CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
-
-        cost = geometry.cost;
     }
 
     return self;

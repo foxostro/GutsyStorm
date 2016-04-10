@@ -105,12 +105,13 @@ static void applyLightToVertices(size_t numChunkVerts,
     return self; // all geometry objects are immutable, so return self instead of deep copying
 }
 
-- (GLsizei)copyVertsToBuffer:(GSTerrainVertex * _Nonnull * _Nonnull)dst
+- (nonnull GSTerrainVertexNoNormal *)copyVertsReturningCount:(nonnull GLsizei *)outCount
 {
-    assert(dst);
+    NSParameterAssert(outCount);
 
-    const struct GSChunkGeometryHeader *restrict header = [_data bytes];
+    const struct GSChunkGeometryHeader * restrict header = [_data bytes];
     const GSTerrainVertex * restrict vertsBuffer = ((void *)header) + sizeof(struct GSChunkGeometryHeader);
+    GLsizei count = header->numChunkVerts;
 
     // consistency checks
     assert(header->w == CHUNK_SIZE_X);
@@ -118,15 +119,19 @@ static void applyLightToVertices(size_t numChunkVerts,
     assert(header->d == CHUNK_SIZE_Z);
     assert(header->len == (header->numChunkVerts * sizeof(GSTerrainVertex)));
 
-    GSTerrainVertex *vertsCopy = malloc(header->len);
+    GSTerrainVertexNoNormal *vertsCopy = malloc(count * sizeof(GSTerrainVertexNoNormal));
     if(!vertsCopy) {
         [NSException raise:NSMallocException format:@"Out of memory allocating vertsCopy in -copyVertsToBuffer:."];
     }
+    
+    for(size_t i = 0; i < count; ++i)
+    {
+        // This works because we have ensured the memory layouts of the two structs are very similar.
+        memcpy(&vertsCopy[i], &vertsBuffer[i], sizeof(GSTerrainVertexNoNormal));
+    }
 
-    memcpy(vertsCopy, vertsBuffer, header->len);
-
-    *dst = vertsCopy;
-    return header->numChunkVerts;
+    *outCount = count;
+    return vertsCopy;
 }
 
 // Completely regenerate geometry for the chunk.
