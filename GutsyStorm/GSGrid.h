@@ -15,9 +15,15 @@
 @class GSBoxedVector;
 
 
+typedef enum {
+    GSGridItemFactoryFailureResponse_Abort = 0,
+    GSGridItemFactoryFailureResponse_Retry
+} GSGridItemFactoryFailureResponse;
+
+
 @interface GSGrid<__covariant TYPE> : NSObject
 
-/* Name of the table. Mostly for debugging purposes. */
+/* Name of the table for debugging purposes. */
 @property (nonnull, readonly, nonatomic) NSString *name;
 
 /* Specify a desired cost limit for all items in the grid. */
@@ -26,8 +32,12 @@
 /* Format costs for display. */
 @property (nonatomic, retain, nullable) NSFormatter *costFormatter;
 
-/* Is the designated grid item factory permitted to fail by returning nil. */
-@property (nonatomic) BOOL factoryMayFail;
+/* Set the desired behavior when the grid item factory fails and returns nil.
+ * The default behavior is GSGridItemFactoryFailureResponse_Abort which raises an exception on failure.
+ * GSGridItemFactoryFailureResponse_Retry is useful when the factory is permitted to fail in certain circumstances,
+ * such as when VRAM is exhausted, and the grid knows how to recover.
+ */
+@property (nonatomic) GSGridItemFactoryFailureResponse factoryFailureResponse;
 
 - (nonnull instancetype)init NS_UNAVAILABLE;
 

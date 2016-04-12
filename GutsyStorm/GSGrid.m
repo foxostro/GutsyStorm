@@ -209,7 +209,7 @@
         if (!anObject) {
             factoryDidFail = YES;
             
-            if (!self.factoryMayFail) {
+            if (GSGridItemFactoryFailureResponse_Abort == self.factoryFailureResponse) {
                 [NSException raise:NSMallocException format:@"Out of memory allocating `anObject' for GSGrid."];
             }
         } else {

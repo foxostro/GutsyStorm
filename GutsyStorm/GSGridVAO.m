@@ -18,7 +18,7 @@
 {
     if (self = [super initWithName:name factory:factory]) {
         self.invalidationNotification = ^{ /* do nothing */ };
-        self.factoryMayFail = YES;
+        self.factoryFailureResponse = GSGridItemFactoryFailureResponse_Retry;
     }
     return self;
 }
