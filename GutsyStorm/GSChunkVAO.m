@@ -36,6 +36,8 @@ typedef GLuint index_t;
     GSVBOHolder *_ibo;
     GSVAOHolder *_vao;
     NSOpenGLContext *_glContext;
+    GSChunkGeometryData *_geometry;
+    BOOL _initializedYet;
 }
 
 @synthesize cost;
@@ -72,7 +74,7 @@ typedef GLuint index_t;
     return iboHolder;
 }
 
-- (nullable instancetype)initWithChunkGeometry:(nonnull GSChunkGeometryData *)geometry
+- (nonnull instancetype)initWithChunkGeometry:(nonnull GSChunkGeometryData *)geometry
                                      glContext:(nonnull NSOpenGLContext *)context
 {
     NSParameterAssert(geometry);
@@ -81,68 +83,8 @@ typedef GLuint index_t;
     if(self = [super init]) {
         _glContext = context;
         minP = geometry.minP;
-
-        [context makeCurrentContext];
-        CGLLockContext((CGLContextObj)[context CGLContextObj]); // protect against display link thread
-
-        _ibo = [[self class] sharedIndexBufferObject];
-
-        GLuint vao = 0;
-        glGenVertexArraysAPPLE(1, &vao);
-        glBindVertexArrayAPPLE(vao);
-
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        glEnableClientState(GL_COLOR_ARRAY);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ibo.handle);
-
-        GLuint vbo = 0;
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-        GSTerrainVertexNoNormal *vertsBuffer = [geometry copyVertsReturningCount:&_numIndicesForDrawing];
-        GLsizeiptr bufferSize = _numIndicesForDrawing * sizeof(GSTerrainVertexNoNormal);
-        cost = bufferSize;
-        glBufferData(GL_ARRAY_BUFFER, bufferSize, vertsBuffer, GL_STATIC_DRAW);
-        free(vertsBuffer);
-
-        if (glGetError() == GL_OUT_OF_MEMORY) {
-            NSLog(@"GSChunkVAO failed to acquire GPU resources.");
-            glDeleteBuffers(1, &vbo);
-            glDeleteVertexArraysAPPLE(1, &vao);
-            assert(checkGLErrors() == 0);
-            CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
-            return nil;
-        }
-
-#ifndef NDEBUG
-        static dispatch_once_t onceToken;
-        dispatch_once(&onceToken, ^{
-            // Verify that vertex attribute formats are consistent with in-memory storage.
-            assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, position));
-            assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, texCoord));
-            assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, color));
-        });
-#endif
-
-        const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, position);
-        const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, texCoord);
-        const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, color);
-
-        const GLsizei stride = sizeof(GSTerrainVertexNoNormal);
-        glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
-        glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
-        glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
-
-        glBindVertexArrayAPPLE(0);
-
-        _vao = [[GSVAOHolder alloc] initWithHandle:vao context:context];
-
-        glDeleteBuffers(1, &vbo);
-
-        assert(checkGLErrors() == 0);
-        CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
+        _geometry = geometry;
+        _initializedYet = NO;
     }
 
     return self;
@@ -157,6 +99,67 @@ typedef GLuint index_t;
 {
     assert(checkGLErrors() == 0);
     assert(_numIndicesForDrawing < SHARED_INDEX_BUFFER_LEN);
+    
+    if (!_initializedYet) {
+        _ibo = [[self class] sharedIndexBufferObject];
+        
+        GLuint vao = 0;
+        glGenVertexArraysAPPLE(1, &vao);
+        glBindVertexArrayAPPLE(vao);
+        
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
+        
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ibo.handle);
+        
+        GLuint vbo = 0;
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        
+        GSTerrainVertexNoNormal *vertsBuffer = [_geometry copyVertsReturningCount:&_numIndicesForDrawing];
+        GLsizeiptr bufferSize = _numIndicesForDrawing * sizeof(GSTerrainVertexNoNormal);
+        cost = bufferSize;
+        glBufferData(GL_ARRAY_BUFFER, bufferSize, vertsBuffer, GL_STATIC_DRAW);
+        free(vertsBuffer);
+        
+        if (glGetError() == GL_OUT_OF_MEMORY) {
+            NSLog(@"GSChunkVAO failed to acquire GPU resources.");
+            glDeleteBuffers(1, &vbo);
+            glDeleteVertexArraysAPPLE(1, &vao);
+        } else {
+
+#ifndef NDEBUG
+            static dispatch_once_t onceToken;
+            dispatch_once(&onceToken, ^{
+                // Verify that vertex attribute formats are consistent with in-memory storage.
+                assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, position));
+                assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, texCoord));
+                assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, color));
+            });
+#endif
+            
+            const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, position);
+            const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, texCoord);
+            const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, color);
+            
+            const GLsizei stride = sizeof(GSTerrainVertexNoNormal);
+            glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
+            glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
+            glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
+            
+            glBindVertexArrayAPPLE(0);
+            
+            _vao = [[GSVAOHolder alloc] initWithHandle:vao context:_glContext];
+            
+            glDeleteBuffers(1, &vbo);
+            
+            assert(checkGLErrors() == 0);
+        }
+        
+        _initializedYet = YES;
+        _geometry = nil; // don't need this anymore
+    }
 
     GLenum indexEnum;
     if(2 == sizeof(index_t)) {

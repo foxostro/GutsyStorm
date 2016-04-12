@@ -19,6 +19,34 @@
 #import "Stopwatch.h"
 
 
+static const uint64_t GSChunkCreationBudget = 10 * NSEC_PER_MSEC; // chosen arbitrarily
+
+
+static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
+{
+    vector_float3 corners[8];
+    
+    corners[0] = GSMinCornerForChunkAtPoint(p);
+    corners[1] = corners[0] + (vector_float3){CHUNK_SIZE_X, 0,            0};
+    corners[2] = corners[0] + (vector_float3){CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z};
+    corners[3] = corners[0] + (vector_float3){0,            0,            CHUNK_SIZE_Z};
+    corners[4] = corners[0] + (vector_float3){0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z};
+    corners[5] = corners[0] + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
+    corners[6] = corners[0] + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y, 0};
+    corners[7] = corners[0] + (vector_float3){0,            CHUNK_SIZE_Y, 0};
+    
+    return [frustum boxInFrustumWithBoxVertices:corners];
+}
+
+
+@interface GSActiveRegion ()
+
+/* Flag indicates that the queue should shutdown. */
+@property (atomic, readwrite) BOOL shouldShutdown;
+
+@end
+
+
 @implementation GSActiveRegion
 {
     /* The camera at the center of the active region. */
@@ -29,45 +57,77 @@
      */
     vector_float3 _activeRegionExtent;
 
-    /* List of GSChunkVAO which are within the camera frustum. */
-    NSArray<GSChunkVAO *> *_vaosInCameraFrustum;
-    NSLock *_lockVAOsInCameraFrustum;
-
     /* Used to generate and retrieve Vertex Array Objects. */
     GSGridVAO *_gridVAO;
 
-    /* Dispatch queue for processing updates to _vaosInCameraFrustum. */
-    dispatch_queue_t _updateQueue;
-    dispatch_semaphore_t _semaQueueDepth;
-
-    /* Flag indicates that the queue should shutdown. */
-    BOOL _shouldShutdown;
+    /* Dispatch Queue used for generating chunks asynchronously. */
+    dispatch_queue_t _generationQueue;
+    
+    /* List of VAOs the display link thread will draw. */
+    NSMutableSet<GSChunkVAO *> *_drawList;
+    NSLock *_lockDrawList;
+    
+    /* The calculated set of chunk points in the camera frustum. */
+    NSArray<GSBoxedVector *> *_cachedPointsInCameraFrustum;
+    GSReaderWriterLock *_lockCachedPointsInCameraFrustum;
 }
 
 - (nonnull instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                              camera:(nonnull GSCamera *)camera
                                             vaoGrid:(nonnull GSGridVAO *)gridVAO
 {
-    self = [super init];
-    if (self) {
-        assert(camera);
-        assert(fmodf(_activeRegionExtent.x, CHUNK_SIZE_X) == 0);
-        assert(fmodf(_activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
-        assert(fmodf(_activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
+    NSParameterAssert(camera);
+    NSParameterAssert(gridVAO);
+    NSParameterAssert(fmodf(_activeRegionExtent.x, CHUNK_SIZE_X) == 0);
+    NSParameterAssert(fmodf(_activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
+    NSParameterAssert(fmodf(_activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
 
+    if (self = [super init]) {
+        _shouldShutdown = NO;
         _camera = camera;
         _activeRegionExtent = activeRegionExtent;
-        _vaosInCameraFrustum = nil;
-        _lockVAOsInCameraFrustum = [NSLock new];
         _gridVAO = gridVAO;
-        _updateQueue = dispatch_queue_create("GSActiveRegion._updateQueue", DISPATCH_QUEUE_SERIAL);
-        _semaQueueDepth = dispatch_semaphore_create(2);
-        _shouldShutdown = NO;
+        _generationQueue = dispatch_queue_create("GSActiveRegion.generationQueue", DISPATCH_QUEUE_CONCURRENT);
 
-        [self notifyOfChangeInActiveRegionVAOs];
+        _drawList = [NSMutableSet new];
+        _lockDrawList = [NSLock new];
+        _lockDrawList.name = @"GSActiveRegion.lockDrawList";
+        
+        _cachedPointsInCameraFrustum = nil;
+        _lockCachedPointsInCameraFrustum = [GSReaderWriterLock new];
+        _lockCachedPointsInCameraFrustum.name = @"GSActiveRegion.lockCachedPointsInCameraFrustum";
     }
     
     return self;
+}
+
+- (void)_unlockedConstructDrawList
+{
+    BOOL anyChunksMissing = NO;
+    
+    [_lockCachedPointsInCameraFrustum lockForReading];
+    NSObject<NSFastEnumeration> *points = [_cachedPointsInCameraFrustum copy];
+    [_lockCachedPointsInCameraFrustum unlockForReading];
+    
+    for(GSBoxedVector *boxedPosition in points)
+    {
+        GSChunkVAO *vao = nil;
+        
+        [_gridVAO objectAtPoint:[boxedPosition vectorValue]
+                       blocking:NO
+                         object:&vao
+                createIfMissing:NO];
+        
+        if (vao) {
+            [_drawList addObject:vao];
+        } else {
+            anyChunksMissing = YES;
+        }
+    }
+    
+    if (anyChunksMissing) {
+        [self needsChunkGeneration];
+    }
 }
 
 - (void)draw
@@ -76,92 +136,53 @@
     uint64_t startAbs = stopwatchStart();
 #endif
 
-    NSArray<GSChunkVAO *> *vaos;
-
-    if (!_shouldShutdown) {
-
-        [_lockVAOsInCameraFrustum lock];
-        vaos = _vaosInCameraFrustum;
-        [_lockVAOsInCameraFrustum unlock];
-
-        for(GSChunkVAO *vao in vaos)
-        {
-            [vao draw];
-        }
+    if (self.shouldShutdown) {
+        return;
     }
 
-#if LOG_PERF
-    uint64_t elapsedNs = stopwatchEnd(startAbs);
-    float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
-    NSLog(@"draw: %.3f ms (count=%lu)", elapsedMs, vaos.count);
-#endif
-}
+    [_lockDrawList lock];
 
-- (void)updateVAOsInCameraFrustum
-{
-#if LOG_PERF
-    uint64_t startAbs = stopwatchStart();
-#endif
-
-    BOOL didSkipSomeCreationTasks = NO;
-    NSMutableArray<GSChunkVAO *> *vaosInCameraFrustum = [NSMutableArray<GSChunkVAO *> new];
-    NSArray<GSBoxedVector *> *points = [self pointsInCameraFrustum];
-    
-    NSUInteger vaoGenLimit = 2;
-    NSUInteger vaoGenCount = 0;
-    
-    for(GSBoxedVector *boxedPosition in points)
+    // First, remove any chunks from the list which are no longer in the camera frustum.
     {
-        if (_shouldShutdown) {
-            return;
-        } else {
-            BOOL createIfMissing = vaoGenCount < vaoGenLimit;
-            BOOL vaoGenDidHappen = NO;
-            GSChunkVAO *vao = nil;
-            [_gridVAO objectAtPoint:[boxedPosition vectorValue]
-                            blocking:YES
-                              object:&vao
-                     createIfMissing:createIfMissing
-                       didCreateItem:&vaoGenDidHappen];
+        NSMutableArray *vaosToRemove = [[NSMutableArray alloc] initWithCapacity:_drawList.count];
 
-            if (vao) {
-                vaoGenCount += vaoGenDidHappen ? 1 : 0;
-                [vaosInCameraFrustum addObject:vao];
-            } else {
-                didSkipSomeCreationTasks = !createIfMissing;
+        for(GSChunkVAO *vao in _drawList)
+        {
+            if(GSFrustumOutside == chunkInFrustum(_camera.frustum, vao.minP)) {
+                [vaosToRemove addObject:vao];
             }
         }
+
+        for(GSChunkVAO *vao in vaosToRemove)
+        {
+            [_drawList removeObject:vao];
+        }
     }
 
-    /* Publish the list of chunk VAOs which are in the camera frustum.
-     * This is consumed on the rendering thread by -draw.
-     */
-    [_lockVAOsInCameraFrustum lock];
-    _vaosInCameraFrustum = vaosInCameraFrustum;
-    [_lockVAOsInCameraFrustum unlock];
+    // Second, add VAOs to the list where possible. Do not block. We'll miss a bunch, but that's OK because we'll pick
+    // those up eventually and will never let them go until the chunks exit the camera frustum.
+    [self _unlockedConstructDrawList];
 
-    if (didSkipSomeCreationTasks) {
-        [self notifyOfChangeInActiveRegionVAOs]; // Remember to pick up where we left off later.
+    // Third, draw them.
+    for(GSChunkVAO *vao in _drawList)
+    {
+        [vao draw];
     }
+    
+    [_lockDrawList unlock];
 
 #if LOG_PERF
-    uint64_t elapsedNs = stopwatchEnd(startAbs);
-    float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
-    NSLog(@"updateVAOsInCameraFrustum: %.3f ms (count=%lu)", elapsedMs, vaosInCameraFrustum.count);
+    uint64_t elapsedTotal = stopwatchEnd(startAbs);
+    NSLog(@"draw: %.3f ms (count=%lu)",
+          (float)elapsedTotal / (float)NSEC_PER_MSEC,
+          (unsigned long)_drawList.count);
 #endif
-}
-
-- (void)updateWithCameraModifiedFlags:(unsigned)flags
-{
-    if((flags & CAMERA_TURNED) || (flags & CAMERA_MOVED)) {
-        [self notifyOfChangeInActiveRegionVAOs];
-    }
 }
 
 - (nonnull NSArray<GSBoxedVector *> *)pointsInCameraFrustum
 {
     NSMutableArray<GSBoxedVector *> *points = [NSMutableArray<GSBoxedVector *> new];
-
+    
     GSFrustum *frustum = _camera.frustum;
     const vector_float3 center = _camera.cameraEye;
     const long activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
@@ -175,31 +196,12 @@
     
     FOR_BOX(p, minP, maxP)
     {
-        assert((p.x+activeRegionExtentX) >= 0);
-        assert(p.x < activeRegionExtentX);
-        assert((p.z+activeRegionExtentZ) >= 0);
-        assert(p.z < activeRegionExtentZ);
-        assert(p.y >= 0);
-        assert(p.y < activeRegionSizeY);
-        
         vector_float3 p1 = (vector_float3){center.x + p.x*CHUNK_SIZE_X, p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z};
-        
         vector_float3 centerP = (vector_float3){floorf(p1.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,
                                                 floorf(p1.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y + CHUNK_SIZE_Y/2,
                                                 floorf(p1.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z + CHUNK_SIZE_Z/2};
-        
-        vector_float3 corners[8];
-        
-        corners[0] = GSMinCornerForChunkAtPoint(centerP);
-        corners[1] = corners[0] + (vector_float3){CHUNK_SIZE_X, 0,            0};
-        corners[2] = corners[0] + (vector_float3){CHUNK_SIZE_X, 0,            CHUNK_SIZE_Z};
-        corners[3] = corners[0] + (vector_float3){0,            0,            CHUNK_SIZE_Z};
-        corners[4] = corners[0] + (vector_float3){0,            CHUNK_SIZE_Y, CHUNK_SIZE_Z};
-        corners[5] = corners[0] + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
-        corners[6] = corners[0] + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y, 0};
-        corners[7] = corners[0] + (vector_float3){0,            CHUNK_SIZE_Y, 0};
-
-        if(GSFrustumOutside != [frustum boxInFrustumWithBoxVertices:corners]) {
+        int result = chunkInFrustum(frustum, centerP);
+        if(GSFrustumOutside != result) {
             [points addObject:[GSBoxedVector boxedVectorWithVector:centerP]];
         }
     }
@@ -220,27 +222,88 @@
     return points;
 }
 
-- (void)notifyOfChangeInActiveRegionVAOs
+- (void)modifyWithGroup:(nonnull dispatch_group_t)group
+                  block:(NSArray<GSBoxedVector *> * _Nonnull (^ _Nonnull)(dispatch_group_t _Nonnull group))block
 {
-    if(0 == dispatch_semaphore_wait(_semaQueueDepth, DISPATCH_TIME_NOW)) {
-        dispatch_async(_updateQueue, ^{
-            if (!_shouldShutdown) {
-                [self updateVAOsInCameraFrustum];
-            }
-            dispatch_semaphore_signal(_semaQueueDepth);
+    [_lockDrawList lock];
+    [_drawList removeAllObjects];
+
+    // The block is expected to modify some part of the active region and return a list of points which had changes.
+    // Some activity such as chunk invalidation is performed asynchronously and each block is added to the specified
+    // dispatch group.
+    NSArray<GSBoxedVector *> *points = block(group);
+
+    // Wait for blocks in the group to complete. Once finished, all chunk invalidation will have been completed.
+    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+
+    // Do synchronous chunk generation for the chunks which were modified.
+    for(GSBoxedVector *boxedPosition in points)
+    {
+        dispatch_async(_generationQueue, ^{
+            [_gridVAO objectAtPoint:[boxedPosition vectorValue]
+                           blocking:YES
+                             object:nil
+                    createIfMissing:YES];
         });
     }
+    
+    dispatch_barrier_sync(_generationQueue, ^{});
+
+    // And then build a new draw list for the display link thread.
+    [self _unlockedConstructDrawList];
+    
+    [_lockDrawList unlock];
+}
+
+- (void)needsChunkGeneration
+{
+    if (self.shouldShutdown) {
+        return;
+    }
+
+    dispatch_async(_generationQueue, ^{
+        BOOL anyChunksMissing = NO;
+        uint64_t startAbs = stopwatchStart();
+
+        [_lockCachedPointsInCameraFrustum lockForReading];
+        NSObject<NSFastEnumeration> *points = [_cachedPointsInCameraFrustum copy];
+        [_lockCachedPointsInCameraFrustum unlockForReading];
+
+        for(GSBoxedVector *boxedPosition in points)
+        {
+            uint64_t elapsedNs = stopwatchEnd(startAbs);
+            BOOL createIfMissing = elapsedNs < GSChunkCreationBudget;
+            BOOL r = [_gridVAO objectAtPoint:[boxedPosition vectorValue]
+                                    blocking:YES
+                                      object:nil
+                             createIfMissing:createIfMissing];
+            
+            anyChunksMissing = anyChunksMissing && r;
+        }
+        
+        if (anyChunksMissing) {
+            [self needsChunkGeneration]; // Pick this up again later.
+        }
+    });
+}
+
+- (void)updateWithCameraModifiedFlags:(unsigned)flags
+{
+    NSArray<GSBoxedVector *> *points = [self pointsInCameraFrustum];
+    [_lockCachedPointsInCameraFrustum lockForWriting];
+    _cachedPointsInCameraFrustum = points;
+    [_lockCachedPointsInCameraFrustum unlockForWriting];
 }
 
 - (void)shutdown
 {
-    _shouldShutdown = YES;
+    self.shouldShutdown = YES;
 
-    dispatch_barrier_sync(_updateQueue, ^{
-        [_lockVAOsInCameraFrustum lock];
-        _vaosInCameraFrustum = nil;
-        [_lockVAOsInCameraFrustum unlock];
-    });
+    dispatch_barrier_sync(_generationQueue, ^{}); // flush
+
+    [_lockDrawList lock];
+    [_drawList removeAllObjects];
+    [_lockDrawList unlock];
 }
 
 @end

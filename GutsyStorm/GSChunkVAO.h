@@ -10,9 +10,8 @@
 
 @interface GSChunkVAO : NSObject <GSGridItem>
 
-/* May return nil if the necessary GPU resources could not be reserved. */
-- (nullable instancetype)initWithChunkGeometry:(nonnull GSChunkGeometryData *)geometry
-                                     glContext:(nonnull NSOpenGLContext *)glContext;
+- (nonnull instancetype)initWithChunkGeometry:(nonnull GSChunkGeometryData *)geometry
+                                    glContext:(nonnull NSOpenGLContext *)glContext;
 
 /* Assumes the caller has already locked the context on the current thread. */
 - (void)draw;

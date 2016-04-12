@@ -9,7 +9,6 @@
 #ifndef Stopwatch_h
 #define Stopwatch_h
 
-#if LOG_PERF
 #import <mach/mach.h>
 #import <mach/mach_time.h>
 
@@ -33,6 +32,5 @@ static inline uint64_t stopwatchEnd(uint64_t startAbs)
     uint64_t elapsedNs = elapsedAbs * sTimebaseInfo.numer / sTimebaseInfo.denom;
     return elapsedNs;
 }
-#endif
 
 #endif /* Stopwatch_h */

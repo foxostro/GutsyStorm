@@ -27,7 +27,7 @@
     return self;
 }
 
-- (void)willInvalidateItem:(nonnull NSObject <GSGridItem> * __unused)item atPoint:(vector_float3)p
+- (void)willInvalidateItemAtPoint:(vector_float3)p
 {
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSString *fileName = [GSChunkGeometryData fileNameForGeometryDataFromMinP:minP];

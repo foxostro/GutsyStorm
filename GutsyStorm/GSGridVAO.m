@@ -18,12 +18,11 @@
 {
     if (self = [super initWithName:name factory:factory]) {
         self.invalidationNotification = ^{ /* do nothing */ };
-        self.factoryFailureResponse = GSGridItemFactoryFailureResponse_Retry;
     }
     return self;
 }
 
-- (void)willInvalidateItem:(nonnull NSObject <GSGridItem> * __unused)item atPoint:(vector_float3)p
+- (void)willInvalidateItemAtPoint:(vector_float3)p
 {
     self.invalidationNotification();
 }

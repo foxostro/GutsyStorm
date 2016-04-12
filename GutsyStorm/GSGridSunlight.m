@@ -28,7 +28,7 @@
     return self;
 }
 
-- (void)willInvalidateItem:(nonnull NSObject <GSGridItem> * __unused)item atPoint:(vector_float3)p // AFOX_TODO: is item used ever?
+- (void)willInvalidateItemAtPoint:(vector_float3)p
 {
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:minP];

@@ -260,7 +260,7 @@
     // Whenever a VAO is invalidated, the active region must be invalidated.
     __weak GSActiveRegion *weakActiveRegion = _activeRegion;
     _gridVAO.invalidationNotification = ^{
-        [weakActiveRegion notifyOfChangeInActiveRegionVAOs];
+        [weakActiveRegion needsChunkGeneration];
     };
 }
 
@@ -358,14 +358,18 @@
     assert(_gridVoxelData);
     assert(_activeRegion);
 
-    [_gridVoxelData replaceItemAtPoint:pos transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
-        GSChunkVoxelData *modifiedItem = [((GSChunkVoxelData *)originalItem) copyWithEditAtPoint:pos block:block];
-        [modifiedItem saveToFile];
-        return modifiedItem;
+    [_activeRegion modifyWithGroup:dispatch_group_create()
+                             block:^ NSArray * _Nonnull (dispatch_group_t _Nonnull group) {
+        [_gridVoxelData replaceItemAtPoint:pos
+                                     group:group
+                                 transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
+                                     GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
+                                     GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
+                                     [voxels2 saveToFile];
+                                     return voxels2;
+                                 }];
+        return @[[GSBoxedVector boxedVectorWithVector:pos]];
     }];
-
-    // Must notify the active region so that the change will get picked up right away.
-    [_activeRegion updateVAOsInCameraFrustum];
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel
@@ -590,8 +594,7 @@
     BOOL success = [_gridVoxelData objectAtPoint:p
                                         blocking:NO
                                           object:&v
-                                 createIfMissing:YES
-                                   didCreateItem:nil];
+                                 createIfMissing:YES];
 
     if(success) {
         *chunk = v;

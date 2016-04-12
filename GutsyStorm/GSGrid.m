@@ -175,7 +175,6 @@
              blocking:(BOOL)blocking
                object:(id _Nonnull * _Nullable)item
       createIfMissing:(BOOL)createIfMissing
-        didCreateItem:(nullable BOOL *)outDidCreateItem
 {
     if(blocking) {
         [_lockTheTableItself lockForReading];
@@ -185,7 +184,6 @@
     
     BOOL result = NO;
     BOOL createdAnItem = NO;
-    BOOL factoryDidFail = NO;
     NSObject <GSGridItem> * anObject = nil;
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
@@ -207,21 +205,17 @@
         anObject = _factory(minP);
         
         if (!anObject) {
-            factoryDidFail = YES;
-            
-            if (GSGridItemFactoryFailureResponse_Abort == self.factoryFailureResponse) {
-                [NSException raise:NSMallocException format:@"Out of memory allocating `anObject' for GSGrid."];
-            }
-        } else {
-            [_lockTheCount lock];
-            [bucket addObject:anObject];
-            [_lru referenceObject:anObject bucket:bucket];
-            _count++;
-            _costTotal += anObject.cost;
-            [_lockTheCount unlock];
-            
-            createdAnItem = YES;
+            [NSException raise:NSMallocException format:@"Out of memory allocating `anObject' for GSGrid."];
         }
+
+        [_lockTheCount lock];
+        [bucket addObject:anObject];
+        [_lru referenceObject:anObject bucket:bucket];
+        _count++;
+        _costTotal += anObject.cost;
+        [_lockTheCount unlock];
+        
+        createdAnItem = YES;
     }
     
     if(anObject) {
@@ -230,30 +224,19 @@
     
     [lock unlock];
     [_lockTheTableItself unlockForReading];
-    
-    if (factoryDidFail) {
-        [self evictAllItems];
-        return [self objectAtPoint:p
-                          blocking:blocking
-                            object:item
-                   createIfMissing:createIfMissing
-                     didCreateItem:outDidCreateItem];
-    } else {
+
+    if (createdAnItem) {
         [self _enforceGridCostLimits];
         [self resizeTableIfNecessary];
-        
-        if (result) {
-            if (item) {
-                *item = anObject;
-            }
-            
-            if (outDidCreateItem) {
-                *outDidCreateItem = createdAnItem;
-            }
-        }
-        
-        return result;
     }
+
+    if (result) {
+        if (item) {
+            *item = anObject;
+        }
+    }
+    
+    return result;
 }
 
 - (nonnull id)objectAtPoint:(vector_float3)p
@@ -263,8 +246,7 @@
     [self objectAtPoint:p
                blocking:YES
                  object:&anItem
-        createIfMissing:YES
-          didCreateItem:nil];
+        createIfMissing:YES];
 
     if (!anItem) {
         [NSException raise:NSGenericException format:@"Failed to get the object, and failure is not an option."];
@@ -303,14 +285,16 @@
     [_lockTheTableItself unlockForWriting];
 }
 
-- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change
+- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change group:(nonnull dispatch_group_t)group
 {
     NSParameterAssert(change);
-
-    // Invalidate asynchronously to avoid deadlock.
-    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+    NSParameterAssert(group);
+    
+    dispatch_queue_t queue = dispatch_get_global_queue(0,0);
+    
+    dispatch_block_t block = ^{
         [_lockTheTableItself lockForReading];
-
+        
         vector_float3 pos = change.pos;
         vector_float3 minP = GSMinCornerForChunkAtPoint(pos);
         NSUInteger hash = vector_hash(minP);
@@ -318,41 +302,55 @@
         NSUInteger idxLock = hash % _numLocks;
         NSLock *lock = _locks[idxLock];
         NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[idxBucket];
-
+        
         [lock lock];
-
+        
         NSObject <GSGridItem> *foundItem = [self _searchForItemAtPosition:minP bucket:bucket];
-
+        
         if(foundItem) {
-            [self _unlockedInvalidateItem:foundItem bucket:bucket change:change];
+            [self _unlockedInvalidateItem:foundItem bucket:bucket change:change group:group];
         }
-
+        
         [lock unlock];
         [_lockTheTableItself unlockForReading];
-    });
+    };
+
+    // Invalidate asynchronously to avoid deadlock.
+    dispatch_group_async(group, queue, block);
 }
 
-- (void)willInvalidateItem:(nonnull NSObject <GSGridItem> *)item atPoint:(vector_float3)p
+- (void)willInvalidateItemAtPoint:(vector_float3)p
 {
     // do nothing
 }
 
 - (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change
+                                            group:(nonnull dispatch_group_t)group
 {
-    assert(change);
+    NSParameterAssert(change);
+    NSParameterAssert(group);
+    
+    dispatch_queue_t queue = dispatch_get_global_queue(0,0);
 
-    for(GSGrid *grid in _dependentGrids)
-    {
-        NSSet * (^mapping)(GSGridEdit *) = [_mappingToDependentGrids objectForKey:[grid _key]];
-        NSSet *correspondingPoints = mapping(change);
-        for(GSBoxedVector *q in correspondingPoints)
+    // Invalidate asynchronously to avoid deadlock.
+    dispatch_group_async(group, queue, ^{
+        for(GSGrid *grid in _dependentGrids)
         {
-            GSGridEdit *secondaryChange = [[GSGridEdit alloc] initWithOriginalItem:nil
-                                                                      modifiedItem:nil
-                                                                               pos:[q vectorValue]];
-            [grid invalidateItemWithChange:secondaryChange];
+            NSSet * (^mapping)(GSGridEdit *) = [_mappingToDependentGrids objectForKey:[grid _key]];
+            
+            // If we didn't do this section asynchronously then this mapping() call could deadlock due to
+            // the order that certain grid locks were taken.
+            NSSet *correspondingPoints = mapping(change);
+            
+            for(GSBoxedVector *q in correspondingPoints)
+            {
+                GSGridEdit *secondaryChange = [[GSGridEdit alloc] initWithOriginalItem:nil
+                                                                          modifiedItem:nil
+                                                                                   pos:[q vectorValue]];
+                [grid invalidateItemWithChange:secondaryChange group:group];
+            }
         }
-    }
+    });
 }
 
 - (void)registerDependentGrid:(GSGrid *)grid mapping:(nonnull NSSet<GSBoxedVector *> * (^)(GSGridEdit *))mapping
@@ -364,8 +362,10 @@
 }
 
 - (void)replaceItemAtPoint:(vector_float3)p
+                     group:(nonnull dispatch_group_t)group
                  transform:(nonnull NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *original))newReplacementItem
 {
+    NSParameterAssert(group);
     NSParameterAssert(newReplacementItem);
 
     [_lockTheTableItself lockForReading];
@@ -409,7 +409,10 @@
                                                          modifiedItem:replacement
                                                                   pos:p];
         
-        [self _unlockedReplaceItemAtIndex:indexOfFoundItem inBucket:bucket withChange:change];
+        [self _unlockedReplaceItemAtIndex:indexOfFoundItem
+                                 inBucket:bucket
+                               withChange:change
+                                    group:group];
     }
 
     [lock unlock];
@@ -507,16 +510,18 @@
 - (void)_unlockedInvalidateItem:(nonnull NSObject <GSGridItem> *)item
                          bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket
                          change:(nonnull GSGridEdit *)change
+                          group:(nonnull dispatch_group_t)group
 {
     NSParameterAssert(item);
     NSParameterAssert(bucket);
     NSParameterAssert(change);
+    NSParameterAssert(group);
     
     if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
         [item itemWillBeInvalidated];
     }
     
-    [self willInvalidateItem:item atPoint:change.pos];
+    [self willInvalidateItemAtPoint:change.pos];
     
     if(item) {
         [_lockTheCount lock];
@@ -526,8 +531,8 @@
         [_lru removeObject:item];
         [_lockTheCount unlock];
     }
-    
-    [self invalidateItemsInDependentGridsWithChange:change];
+
+    [self invalidateItemsInDependentGridsWithChange:change group:group];
 }
 
 - (void)_unlockedEvictAllItems
@@ -562,10 +567,12 @@
 - (void)_unlockedReplaceItemAtIndex:(NSUInteger)index
                            inBucket:(nonnull NSMutableArray *)bucket
                          withChange:(nonnull GSGridEdit *)change
+                              group:(nonnull dispatch_group_t)group
 {
     NSParameterAssert(bucket);
     NSParameterAssert(index < bucket.count);
     NSParameterAssert(change);
+    NSParameterAssert(group);
     
     NSObject <GSGridItem> *item = [bucket objectAtIndex:index];
     NSAssert(item == change.originalObject, @"`change' is inconsistent");
@@ -589,7 +596,7 @@
     _costTotal += replacement.cost;
     [_lockTheCount unlock];
 
-    [self invalidateItemsInDependentGridsWithChange:change];
+    [self invalidateItemsInDependentGridsWithChange:change group:group];
 }
 
 - (nullable NSObject <GSGridItem> *)_searchForItemAtPosition:(vector_float3)minP

@@ -15,12 +15,6 @@
 @class GSBoxedVector;
 
 
-typedef enum {
-    GSGridItemFactoryFailureResponse_Abort = 0,
-    GSGridItemFactoryFailureResponse_Retry
-} GSGridItemFactoryFailureResponse;
-
-
 @interface GSGrid<__covariant TYPE> : NSObject
 
 /* Name of the table for debugging purposes. */
@@ -31,13 +25,6 @@ typedef enum {
 
 /* Format costs for display. */
 @property (nonatomic, retain, nullable) NSFormatter *costFormatter;
-
-/* Set the desired behavior when the grid item factory fails and returns nil.
- * The default behavior is GSGridItemFactoryFailureResponse_Abort which raises an exception on failure.
- * GSGridItemFactoryFailureResponse_Retry is useful when the factory is permitted to fail in certain circumstances,
- * such as when VRAM is exhausted, and the grid knows how to recover.
- */
-@property (nonatomic) GSGridItemFactoryFailureResponse factoryFailureResponse;
 
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
@@ -61,8 +48,7 @@ typedef enum {
 - (BOOL)objectAtPoint:(vector_float3)p
              blocking:(BOOL)blocking
                object:(TYPE _Nonnull * _Nullable)object
-      createIfMissing:(BOOL)createIfMissing
-        didCreateItem:(nullable BOOL *)outDidCreateItem;
+      createIfMissing:(BOOL)createIfMissing;
 
 /* Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids. */
 - (void)evictItemAtPoint:(vector_float3)p;
@@ -73,17 +59,16 @@ typedef enum {
 /* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are
  * notified that the item has been invalidated.
  */
-- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change;
+- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change group:(nonnull dispatch_group_t)group;
 
 /* Method is called when the grid is just about to invalidate an item.
- * The item is passed in 'item' unless it is currently non-resident/evicted. In that case, 'item' will be nil.
  * Sub-classes should override this to get custom behavior on item invalidation.
  * For example, a sub-class may wish to delete on-disk caches for items which are currently evicted and are now invalid.
  */
-- (void)willInvalidateItem:(nonnull NSObject <GSGridItem> *)item atPoint:(vector_float3)p;
+- (void)willInvalidateItemAtPoint:(vector_float3)p;
 
 /* The specified change to the grid causes certain items to be invalidated in dependent grids. */
-- (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change;
+- (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change group:(nonnull dispatch_group_t)group;
 
 /* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns
  * the points in 'dependentGrid' which actually depend on that point.
@@ -95,6 +80,7 @@ typedef enum {
  * This function returns a new grid item which is then inserted into the grid at the same position.
  */
 - (void)replaceItemAtPoint:(vector_float3)p
+                     group:(nonnull dispatch_group_t)group
                  transform:(NSObject <GSGridItem> * _Nonnull (^ _Nonnull)(NSObject <GSGridItem> * _Nonnull))fn;
 
 /* Set the cost limit to the current cost of items in the grid. This prevents the grid cost from growing. */
