@@ -115,7 +115,7 @@
 		4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedTerrainVertex.m; sourceTree = "<group>"; };
 		6F6158061BD69C8E00243A61 /* GSOpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLViewController.h; sourceTree = "<group>"; };
 		6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLViewController.m; sourceTree = "<group>"; };
-		6F6AA69B1CB1BCA60039F8A4 /* Stopwatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Stopwatch.h; sourceTree = "<group>"; };
+		6F6AA69B1CB1BCA60039F8A4 /* GSStopwatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSStopwatch.h; sourceTree = "<group>"; };
 		6F6AA69C1CB1CAF20039F8A4 /* GSVAOHolder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSVAOHolder.m; sourceTree = "<group>"; };
 		6F6AA69D1CB1CAF20039F8A4 /* GSVAOHolder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVAOHolder.h; sourceTree = "<group>"; };
 		6F8A80B81CB982710063166C /* GSGridItemLRU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridItemLRU.h; sourceTree = "<group>"; };
@@ -278,7 +278,7 @@
 				4A95D39E154645920042C081 /* GSReaderWriterLock.m */,
 				AC319A3D16A52E1700F65F11 /* SyscallWrappers.h */,
 				AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */,
-				6F6AA69B1CB1BCA60039F8A4 /* Stopwatch.h */,
+				6F6AA69B1CB1BCA60039F8A4 /* GSStopwatch.h */,
 				4A2CD00B1513C3FD006C6551 /* MainMenu.xib */,
 				4A2310C8153E1BE000A4EBE6 /* Terrain */,
 				AC202CC7151E57BD00D91067 /* OpenGL */,

@@ -14,20 +14,19 @@
 #import "GSChunkStore.h"
 #import "GSBoxedVector.h"
 #import "GSNeighborhood.h"
-
 #import "GSChunkVAO.h"
 #import "GSChunkGeometryData.h"
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
-
 #import "GSGrid.h"
 #import "GSGridVAO.h"
 #import "GSGridGeometry.h"
 #import "GSGridSunlight.h"
-
 #import "GSMatrixUtils.h"
+#import "GSStopwatch.h"
 
 #import <OpenGL/gl.h>
+
 
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0])) // XXX: find a better home for ARRAY_LEN macro
 
@@ -60,7 +59,6 @@
     GSGrid<GSChunkVoxelData *> *_gridVoxelData;
 
     dispatch_group_t _groupForSaving;
-    dispatch_queue_t _chunkTaskQueue;
     dispatch_queue_t _queueForSaving;
 
     BOOL _chunkStoreHasBeenShutdown;
@@ -73,6 +71,9 @@
 
     GSActiveRegion *_activeRegion;
     vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
+    
+    // This queue is used for all dispatch-related work needed for placeBlockAtPoint
+    dispatch_queue_t _queuePlaceBlockAtPoint;
 }
 
 + (void)initialize
@@ -102,7 +103,6 @@
                                                                        folder:_folder
                                                                groupForSaving:_groupForSaving
                                                                queueForSaving:_queueForSaving
-                                                               chunkTaskQueue:_chunkTaskQueue
                                                                  neighborhood:neighborhood];
                          }];
 
@@ -110,10 +110,11 @@
                          initWithName:@"gridGeometryData"
                           cacheFolder:_folder
                               factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
-                                  GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
-                                  return [[GSChunkGeometryData alloc] initWithMinP:minCorner
-                                                                       folder:_folder
-                                                                     sunlight:sunlight];
+                                      GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
+                                      id r = [[GSChunkGeometryData alloc] initWithMinP:minCorner
+                                                                                folder:_folder
+                                                                              sunlight:sunlight];
+                                  return r;
                               }];
     
     _gridVAO = [[GSGridVAO alloc] initWithName:@"gridVAO"
@@ -279,9 +280,11 @@
         _terrainShader = shader;
         _glContext = context;
         _generator = [generator copy];
-        _chunkTaskQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
-        
+
+        dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT, QOS_CLASS_USER_INTERACTIVE, 0);
+        _queuePlaceBlockAtPoint = dispatch_queue_create("placeBlockAtPoint", attr);
+
         [self createGrids];
         [self setupGridDependencies];
         [self setupActiveRegionWithCamera:cam];
@@ -298,7 +301,6 @@
     assert(_gridGeometryData);
     assert(_gridVAO);
     assert(_groupForSaving);
-    assert(_chunkTaskQueue);
     assert(_queueForSaving);
     
     // Shutdown the active region, which maintains it's own queue of async updates.
@@ -326,8 +328,8 @@
     _gridVAO = nil;
 
     _groupForSaving = NULL;
-    _chunkTaskQueue = NULL;
     _queueForSaving = NULL;
+    _queuePlaceBlockAtPoint = NULL;
 }
 
 - (void)drawActiveChunks
@@ -358,9 +360,18 @@
     assert(_gridVoxelData);
     assert(_activeRegion);
 
-    [_activeRegion modifyWithGroup:dispatch_group_create()
-                             block:^ NSArray * _Nonnull (dispatch_group_t _Nonnull group) {
+    struct GSStopwatchBreadcrumb breadcrumb;
+    GSStopwatchTraceBegin(&breadcrumb, @"placeBlockAtPoint enter");
+
+    dispatch_group_t group = dispatch_group_create();
+    GSStopwatchTrace(&breadcrumb, @"placeBlockAtPoint created dispatch objects");
+
+    [_activeRegion modifyWithQueue:_queuePlaceBlockAtPoint
+                             group:group
+                        breadcrumb:&breadcrumb
+                             block:^ NSArray * _Nonnull {
         [_gridVoxelData replaceItemAtPoint:pos
+                                     queue:_queuePlaceBlockAtPoint
                                      group:group
                                  transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
                                      GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
@@ -370,6 +381,8 @@
                                  }];
         return @[[GSBoxedVector boxedVectorWithVector:pos]];
     }];
+
+    GSStopwatchTraceEnd(&breadcrumb, @"placeBlockAtPoint exit");
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel
@@ -594,7 +607,8 @@
     BOOL success = [_gridVoxelData objectAtPoint:p
                                         blocking:NO
                                           object:&v
-                                 createIfMissing:YES];
+                                 createIfMissing:YES
+                                      breadcrumb:NULL];
 
     if(success) {
         *chunk = v;
@@ -637,7 +651,6 @@
                                            folder:_folder
                                    groupForSaving:_groupForSaving
                                    queueForSaving:_queueForSaving
-                                   chunkTaskQueue:_chunkTaskQueue
                                         generator:_generator];
 }
 

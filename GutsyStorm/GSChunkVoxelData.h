@@ -28,14 +28,12 @@ typedef void (^GSTerrainProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
                                folder:(nonnull NSURL *)folder
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
                             generator:(nonnull GSTerrainProcessorBlock)generator;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minP
                                folder:(nonnull NSURL *)folder
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
                                  data:(nonnull GSTerrainBuffer *)data;
 
 - (GSVoxel)voxelAtLocalPosition:(vector_long3)chunkLocalP;

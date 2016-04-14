@@ -45,30 +45,35 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
 
 @property (nonatomic, readonly) vector_long3 dimensions;
 
-/* Creates a new GSTerrainBuffer and initializes it with data from file.
- * The dimensions of the buffer must be specified upfront in order to ensure the file contains the correct amount of
- * data. File I/O is performed asynchronously on the specified queue, and the new object is returned through the
- * completion handler block.
- * On error, the completion handler has aBuffer==nil and `error' provides details about the failure.
- */
-+ (void)newBufferFromFile:(nonnull NSURL *)url
-               dimensions:(vector_long3)dimensions
-                    queue:(nonnull dispatch_queue_t)queue
-        completionHandler:(nonnull GSBufferCompletionHandler)completionHandler;
-
 /* Creates a new buffer of dimensions (CHUNK_SIZE_X+2) x (CHUNK_SIZE_Y) x (CHUNK_SIZE_Z+2).
  * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are
  * discarded.
  */
 + (nonnull instancetype)newBufferFromLargerRawBuffer:(const GSTerrainBufferElement * _Nonnull)srcBuf
-                                              srcMinP:(vector_long3)srcMinP
-                                              srcMaxP:(vector_long3)srcMaxP;
+                                             srcMinP:(vector_long3)srcMinP
+                                             srcMaxP:(vector_long3)srcMaxP;
 
-/* Initialize a buffer of the specified dimensions */
+/* Initialize a buffer of the specified dimensions. Contents are undefined. */
 - (nonnull instancetype)initWithDimensions:(vector_long3)dim;
 
-/* Initialize a buffer of the specified dimensions. The specified backing data is copied into the internal buffer. */
-- (nonnull instancetype)initWithDimensions:(vector_long3)dim data:(const GSTerrainBufferElement * _Nonnull)data;
+/* Initialize a buffer of the specified dimensions.
+ * Unlike other initializers, there are no restrictions on the memory pointed to by `data'.
+ */
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim
+                         copyUnalignedData:(const GSTerrainBufferElement * _Nonnull)data;
+
+/* Initialize a buffer of the specified dimensions.
+ * The `data' pointer must point to appropriately allocated memory. This class takes direct ownership of that memory
+ * including assuming responsibility for freeing it later.
+ */
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim
+                takeOwnershipOfAlignedData:(GSTerrainBufferElement * _Nonnull)data;
+
+/* Initialize a buffer of the specified dimensions. Buffer contents will be identical to the buffer at `data'.
+ * The `data' pointer must point to appropriately allocated memory.
+ */
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim
+                          cloneAlignedData:(const GSTerrainBufferElement * _Nonnull)data;
 
 /* Returns the value for the specified point in chunk-local space.
  * Always returns 0 for points which have no corresponding mapping in the buffer.

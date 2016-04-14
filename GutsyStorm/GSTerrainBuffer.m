@@ -12,67 +12,38 @@
 #import "SyscallWrappers.h"
 #import "GSNeighborhood.h"
 #import "GSVoxel.h" // for INDEX_BOX
+#import "GSStopwatch.h"
 
 
+/* Allocate a chunk of memory of size `len' bytes in length for use as a terrain element buffer.
+ * The contents of the buffer are undefined.
+ * This function cannot fail.
+ */
+static GSTerrainBufferElement * _Nonnull bufferAllocate(NSUInteger len);
+
+/* Allocate a chunk of memory of size `len' bytes in length for use as a terrain element buffer.
+ * The contents of the buffer are identical to the specified `src' buffer, which must be a buffer allocated with
+ * either bufferAllocate, bufferClone, or bufferCloneUnaligned.
+ *
+ * The retrictions on `src' permit a very fast and inexpensive copy.
+ */
+static GSTerrainBufferElement * _Nonnull bufferClone(const GSTerrainBufferElement * _Nonnull src, NSUInteger len);
+
+/* Identical to bufferClone except that the restriction on `src' is relaxed and is permitted to be any memory. */
+static GSTerrainBufferElement * _Nonnull bufferCloneUnaligned(const GSTerrainBufferElement * _Nonnull src, NSUInteger len);
+
+/* Deallocate a bugger previosuly created by bufferAllocate, bufferClone, or bufferCloneUnaligned. */
+static void bufferDeallocate(GSTerrainBufferElement * _Nullable buffer, NSUInteger len);
+
+/* Get points to sample for voxel lighting. */
 static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector_long3 normal);
 
 
 @implementation GSTerrainBuffer
 
-+ (void)newBufferFromFile:(nonnull NSURL *)url
-               dimensions:(vector_long3)dimensions
-                    queue:(dispatch_queue_t)queue
-        completionHandler:(void (^)(GSTerrainBuffer * _Nullable aBuffer, NSError * _Nullable error))completionHandler
-{
-    // If the file does not exist then do nothing.
-    if(![url checkResourceIsReachableAndReturnError:NULL]) {
-        NSString *reason = [NSString stringWithFormat:@"File not found for buffer: %@", url];
-        completionHandler(nil, [NSError errorWithDomain:GSErrorDomain
-                                                   code:GSFileNotFoundError
-                                               userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
-        return;
-    }
-
-    const int fd = Open(url, O_RDONLY, 0);
-    const size_t len = BUFFER_SIZE_IN_BYTES(dimensions);
-
-    dispatch_read(fd, len, queue, ^(dispatch_data_t dd, int error) {
-        Close(fd);
-
-        if(error) {
-            char errorMsg[LINE_MAX];
-            strerror_r(-error, errorMsg, LINE_MAX);
-            NSString *reason = [NSString stringWithFormat:@"error with read(fd=%d): %s [%d]", fd, errorMsg, error];
-            completionHandler(nil, [NSError errorWithDomain:NSPOSIXErrorDomain
-                                                       code:error
-                                                   userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
-            return;
-        }
-
-        if(dispatch_data_get_size(dd) != len) {
-            NSString *reason = [NSString stringWithFormat:@"Read %zu bytes from file, but expected %zu bytes.",
-                                dispatch_data_get_size(dd), len];
-            completionHandler(nil, [NSError errorWithDomain:GSErrorDomain
-                                                       code:GSInvalidChunkDataOnDiskError
-                                                   userInfo:@{NSLocalizedFailureReasonErrorKey:reason}]);
-            return;
-        }
-
-        // Map the data object to a buffer in memory and use it to initialize a new GSTerrainBuffer object.
-        {
-            size_t size = 0;
-            const void *buffer = NULL;
-            NS_VALID_UNTIL_END_OF_SCOPE dispatch_data_t mappedData = dispatch_data_create_map(dd, &buffer, &size);
-            assert(len == size);
-            GSTerrainBuffer *aBuffer = [[self alloc] initWithDimensions:dimensions data:(const GSTerrainBufferElement *)buffer];
-            completionHandler(aBuffer, nil);
-        }
-    });
-}
-
 + (nonnull instancetype)newBufferFromLargerRawBuffer:(const GSTerrainBufferElement * _Nonnull)srcBuf
-                                              srcMinP:(vector_long3)GSCombinedMinP
-                                              srcMaxP:(vector_long3)GSCombinedMaxP
+                                             srcMinP:(vector_long3)GSCombinedMinP
+                                             srcMaxP:(vector_long3)GSCombinedMaxP
 {
     static const vector_long3 dimensions = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
 
@@ -83,11 +54,8 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     vector_long3 a = GSMakeIntegerVector3(-1, 0, -1);
     vector_long3 b = GSMakeIntegerVector3(CHUNK_SIZE_X+1, 0, CHUNK_SIZE_Z+1);
     vector_long3 p; // loop counter
-
-    GSTerrainBufferElement *dstBuf = malloc(BUFFER_SIZE_IN_BYTES(dimensions));
-    if(!dstBuf) {
-        [NSException raise:NSMallocException format:@"Out of memory allocating dstBuf."];
-    }
+    
+    GSTerrainBufferElement *dstBuf = bufferAllocate(BUFFER_SIZE_IN_BYTES(dimensions));
 
     FOR_Y_COLUMN_IN_BOX(p, a, b)
     {
@@ -96,9 +64,7 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
         memcpy(dstBuf + dstOffset, srcBuf + srcOffset, CHUNK_SIZE_Y * sizeof(GSTerrainBufferElement));
     }
 
-    id aBuffer = [[self alloc] initWithDimensions:dimensions data:dstBuf];
-
-    free(dstBuf);
+    id aBuffer = [[self alloc] initWithDimensions:dimensions takeOwnershipOfAlignedData:dstBuf];
 
     assert(aBuffer);
     return aBuffer;
@@ -106,40 +72,72 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
 
 - (nonnull instancetype)initWithDimensions:(vector_long3)dim
 {
-    self = [super init];
-    if (self) {
-        assert(dim.x >= CHUNK_SIZE_X);
-        assert(dim.y >= CHUNK_SIZE_Y);
-        assert(dim.z >= CHUNK_SIZE_Z);
-
+    NSParameterAssert(dim.x >= CHUNK_SIZE_X && dim.x >= 0);
+    NSParameterAssert(dim.y >= CHUNK_SIZE_Y && dim.y >= 0);
+    NSParameterAssert(dim.z >= CHUNK_SIZE_Z && dim.z >= 0);
+    
+    if (self = [super init]) {
         _dimensions = dim;
         _offsetFromChunkLocalSpace = (dim - GSChunkSizeIntVec3) / 2;
-        _data = malloc(BUFFER_SIZE_IN_BYTES(dim));
-
-        if(!_data) {
-            [NSException raise:NSMallocException format:@"Failed to allocate memory for lighting buffer."];
-        }
-
-        bzero(_data, BUFFER_SIZE_IN_BYTES(dim));
+        _data = bufferAllocate(BUFFER_SIZE_IN_BYTES(dim));
     }
     
     return self;
 }
 
-- (nonnull instancetype)initWithDimensions:(vector_long3)dim data:(nonnull const GSTerrainBufferElement *)data
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim
+                         copyUnalignedData:(nonnull const GSTerrainBufferElement *)data
 {
-    assert(data);
-    self = [self initWithDimensions:dim]; // NOTE: this call will allocate memory for _data
-    if (self) {
-        assert(_data);
-        memcpy(_data, data, BUFFER_SIZE_IN_BYTES(dim));
+    NSParameterAssert(dim.x >= CHUNK_SIZE_X && dim.x >= 0);
+    NSParameterAssert(dim.y >= CHUNK_SIZE_Y && dim.y >= 0);
+    NSParameterAssert(dim.z >= CHUNK_SIZE_Z && dim.z >= 0);
+
+    if (self = [super init]) {
+        _dimensions = dim;
+        _offsetFromChunkLocalSpace = (dim - GSChunkSizeIntVec3) / 2;
+        _data = bufferCloneUnaligned(data, BUFFER_SIZE_IN_BYTES(dim));
     }
+
+    return self;
+}
+
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim
+                takeOwnershipOfAlignedData:(nonnull GSTerrainBufferElement *)data
+{
+    NSParameterAssert(dim.x >= CHUNK_SIZE_X && dim.x >= 0);
+    NSParameterAssert(dim.y >= CHUNK_SIZE_Y && dim.y >= 0);
+    NSParameterAssert(dim.z >= CHUNK_SIZE_Z && dim.z >= 0);
+    NSParameterAssert(0 == (NSUInteger)data % NSPageSize());
+    
+    if (self = [super init]) {
+        _dimensions = dim;
+        _offsetFromChunkLocalSpace = (dim - GSChunkSizeIntVec3) / 2;
+        _data = data;
+    }
+    
+    return self;
+}
+
+- (nonnull instancetype)initWithDimensions:(vector_long3)dim
+                          cloneAlignedData:(const GSTerrainBufferElement * _Nonnull)data
+{
+    NSParameterAssert(dim.x >= CHUNK_SIZE_X && dim.x >= 0);
+    NSParameterAssert(dim.y >= CHUNK_SIZE_Y && dim.y >= 0);
+    NSParameterAssert(dim.z >= CHUNK_SIZE_Z && dim.z >= 0);
+    NSParameterAssert(0 == (NSUInteger)data % NSPageSize());
+
+    if (self = [super init]) {
+        _dimensions = dim;
+        _offsetFromChunkLocalSpace = (dim - GSChunkSizeIntVec3) / 2;
+        _data = bufferClone(data, BUFFER_SIZE_IN_BYTES(dim));
+    }
+    
     return self;
 }
 
 - (void)dealloc
 {
-    free(_data);
+    bufferDeallocate(_data, BUFFER_SIZE_IN_BYTES(_dimensions));
 }
 
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
@@ -179,8 +177,8 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     for(light = 0.0f, i = 0; i < count; ++i)
     {
         vector_long3 clp = GSMakeIntegerVector3(truncf(sample[i].x + vertexPosInWorldSpace.x - minP.x),
-                                                     truncf(sample[i].y + vertexPosInWorldSpace.y - minP.y),
-                                                     truncf(sample[i].z + vertexPosInWorldSpace.z - minP.z));
+                                                truncf(sample[i].y + vertexPosInWorldSpace.y - minP.y),
+                                                truncf(sample[i].z + vertexPosInWorldSpace.z - minP.z));
 
         assert(clp.x >= -1 && clp.x <= CHUNK_SIZE_X);
         assert(clp.y >= -1 && clp.y <= CHUNK_SIZE_Y);
@@ -261,18 +259,10 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     assert(chunkLocalPos.y >= 0 && chunkLocalPos.y < dim.y);
     assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < dim.z);
 
-    GSTerrainBufferElement *modifiedData = malloc(BUFFER_SIZE_IN_BYTES(dim));
-    
-    if(!modifiedData) {
-        [NSException raise:NSMallocException format:@"Out of memory allocating modifiedData."];
-    }
-
-    memcpy(modifiedData, _data, BUFFER_SIZE_IN_BYTES(dim));
+    GSTerrainBufferElement *modifiedData = bufferClone(_data, BUFFER_SIZE_IN_BYTES(dim));
     modifiedData[INDEX_INTO_LIGHTING_BUFFER(dim, p)] = newValue;
 
-    GSTerrainBuffer *buffer = [[GSTerrainBuffer alloc] initWithDimensions:dim data:modifiedData];
-
-    free(modifiedData);
+    GSTerrainBuffer *buffer = [[GSTerrainBuffer alloc] initWithDimensions:dim takeOwnershipOfAlignedData:modifiedData];
 
     return buffer;
 }
@@ -285,6 +275,35 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
 
 @end
 
+
+static GSTerrainBufferElement * _Nonnull bufferAllocate(NSUInteger len)
+{
+    GSTerrainBufferElement *buffer = NSAllocateMemoryPages(len);
+    if (!buffer) {
+        [NSException raise:NSMallocException format:@"Out of memory allocating buffer for GSTerrainBuffer."];
+    }
+    return buffer;
+}
+
+static GSTerrainBufferElement * _Nonnull bufferClone(const GSTerrainBufferElement * _Nonnull src, NSUInteger len)
+{
+    assert(0 == ((NSUInteger)src % NSPageSize()));
+    GSTerrainBufferElement *dst = bufferAllocate(len);
+    NSCopyMemoryPages(src, dst, len);
+    return dst;
+}
+
+static GSTerrainBufferElement * _Nonnull bufferCloneUnaligned(const GSTerrainBufferElement * _Nonnull src, NSUInteger len)
+{
+    GSTerrainBufferElement *dst = bufferAllocate(len);
+    memcpy(dst, src, len);
+    return dst;
+}
+
+static void bufferDeallocate(GSTerrainBufferElement * _Nullable buffer, NSUInteger len)
+{
+    NSDeallocateMemoryPages(buffer, len);
+}
 
 static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector_long3 n)
 {

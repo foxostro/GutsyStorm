@@ -15,10 +15,7 @@
 #import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
 #import "GSMutableBuffer.h"
-
-
-#define LOG_PERF 0
-#import "Stopwatch.h"
+#import "GSStopwatch.h"
 
 
 @interface GSChunkVoxelData ()
@@ -34,7 +31,6 @@
     NSURL *_folder;
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _queueForSaving;
-    dispatch_queue_t _chunkTaskQueue;
 }
 
 @synthesize cost;
@@ -49,7 +45,6 @@
                                folder:(nonnull NSURL *)folder
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
                             generator:(nonnull GSTerrainProcessorBlock)generator
 {
     assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
@@ -57,7 +52,6 @@
     if (self = [super init]) {
         minP = mp;
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
-        _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
 
@@ -75,10 +69,10 @@
             if (!goodSize) {
                 NSLog(@"ERROR: bad size for chunk data; assuming data corruption");
             }
+            
             const GSTerrainBufferElement * _Nullable bytes = [data bytes];
             assert(bytes);
-            buffer = [[GSTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3
-                                                            data:(const GSTerrainBufferElement * _Nonnull)bytes];
+            buffer = [[GSTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3 cloneAlignedData:bytes];
         } else {
             buffer = [self newTerrainBufferWithGenerator:generator];
             [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
@@ -97,14 +91,12 @@
                                folder:(nonnull NSURL *)folder
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
                                  data:(nonnull GSTerrainBuffer *)data
 {
     if (self = [super init]) {
         minP = mp;
 
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
-        _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
         GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
@@ -113,13 +105,6 @@
     }
 
     return self;
-}
-
-- (void)dealloc
-{
-    _groupForSaving = NULL;
-    _chunkTaskQueue = NULL;
-    _queueForSaving = NULL;
 }
 
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
@@ -209,10 +194,6 @@
     GSMutableBuffer *data;
     
     // Copy the voxels for the chunk to their final destination.
-#if LOG_PERF
-    uint64_t startAbs = stopwatchStart();
-#endif
-
     data = [[GSMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
     GSVoxel *buf = (GSVoxel *)[data mutableData];
 
@@ -222,12 +203,6 @@
                &voxels[INDEX_BOX(p, a, b)],
                GSChunkSizeIntVec3.y * sizeof(GSVoxel));
     }
-    
-#if LOG_PERF
-    uint64_t elapsedNs = stopwatchEnd(startAbs);
-    float elapsedMs = (float)elapsedNs / (float)NSEC_PER_MSEC;
-    NSLog(@"newTerrainBufferWithGenerator: %.3f ms", elapsedMs);
-#endif
 
     free(voxels);
 
@@ -252,7 +227,6 @@
                                                                           folder:_folder
                                                                   groupForSaving:_groupForSaving
                                                                   queueForSaving:_queueForSaving
-                                                                  chunkTaskQueue:_chunkTaskQueue
                                                                             data:modified];
     return modifiedVoxelData;
 }

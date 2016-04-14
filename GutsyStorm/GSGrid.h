@@ -13,6 +13,7 @@
 
 
 @class GSBoxedVector;
+struct GSStopwatchBreadcrumb;
 
 
 @interface GSGrid<__covariant TYPE> : NSObject
@@ -48,7 +49,8 @@
 - (BOOL)objectAtPoint:(vector_float3)p
              blocking:(BOOL)blocking
                object:(TYPE _Nonnull * _Nullable)object
-      createIfMissing:(BOOL)createIfMissing;
+      createIfMissing:(BOOL)createIfMissing
+           breadcrumb:(struct GSStopwatchBreadcrumb * _Nullable)breadcrumb;
 
 /* Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids. */
 - (void)evictItemAtPoint:(vector_float3)p;
@@ -59,7 +61,9 @@
 /* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are
  * notified that the item has been invalidated.
  */
-- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change group:(nonnull dispatch_group_t)group;
+- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change
+                           queue:(nonnull dispatch_queue_t)queue
+                           group:(nonnull dispatch_group_t)group;
 
 /* Method is called when the grid is just about to invalidate an item.
  * Sub-classes should override this to get custom behavior on item invalidation.
@@ -68,7 +72,9 @@
 - (void)willInvalidateItemAtPoint:(vector_float3)p;
 
 /* The specified change to the grid causes certain items to be invalidated in dependent grids. */
-- (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change group:(nonnull dispatch_group_t)group;
+- (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change
+                                            queue:(nonnull dispatch_queue_t)queue
+                                            group:(nonnull dispatch_group_t)group;
 
 /* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns
  * the points in 'dependentGrid' which actually depend on that point.
@@ -80,6 +86,7 @@
  * This function returns a new grid item which is then inserted into the grid at the same position.
  */
 - (void)replaceItemAtPoint:(vector_float3)p
+                     queue:(nonnull dispatch_queue_t)queue
                      group:(nonnull dispatch_group_t)group
                  transform:(NSObject <GSGridItem> * _Nonnull (^ _Nonnull)(NSObject <GSGridItem> * _Nonnull))fn;
 

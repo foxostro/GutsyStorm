@@ -14,9 +14,7 @@
 #import "GSGridItem.h"
 #import "GSGridVAO.h"
 #import "GSChunkVAO.h"
-
-#define LOG_PERF 0
-#import "Stopwatch.h"
+#import "GSStopwatch.h"
 
 
 static const uint64_t GSChunkCreationBudget = 10 * NSEC_PER_MSEC; // chosen arbitrarily
@@ -116,7 +114,8 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         [_gridVAO objectAtPoint:[boxedPosition vectorValue]
                        blocking:NO
                          object:&vao
-                createIfMissing:NO];
+                createIfMissing:NO
+                     breadcrumb:NULL];
         
         if (vao) {
             [_drawList addObject:vao];
@@ -132,10 +131,6 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 
 - (void)draw
 {
-#if LOG_PERF
-    uint64_t startAbs = stopwatchStart();
-#endif
-
     if (self.shouldShutdown) {
         return;
     }
@@ -170,13 +165,6 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     }
     
     [_lockDrawList unlock];
-
-#if LOG_PERF
-    uint64_t elapsedTotal = stopwatchEnd(startAbs);
-    NSLog(@"draw: %.3f ms (count=%lu)",
-          (float)elapsedTotal / (float)NSEC_PER_MSEC,
-          (unsigned long)_drawList.count);
-#endif
 }
 
 - (nonnull NSArray<GSBoxedVector *> *)pointsInCameraFrustum
@@ -222,37 +210,50 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     return points;
 }
 
-- (void)modifyWithGroup:(nonnull dispatch_group_t)group
-                  block:(NSArray<GSBoxedVector *> * _Nonnull (^ _Nonnull)(dispatch_group_t _Nonnull group))block
+- (void)modifyWithQueue:(nonnull dispatch_queue_t)queue
+                  group:(nonnull dispatch_group_t)group
+             breadcrumb:(struct GSStopwatchBreadcrumb * _Nullable)breadcrumb
+                  block:(NSArray<GSBoxedVector *> * _Nonnull (^ _Nonnull)(void))block
 {
+    GSStopwatchTrace(breadcrumb, @"modifyWithQueue enter");
+
     [_lockDrawList lock];
     [_drawList removeAllObjects];
+    
+    // Reduce contention on the grids by preventing the generation from queue from generating any blocks right now.
+    dispatch_suspend(_generationQueue);
+    GSStopwatchTrace(breadcrumb, @"dispatch_suspend");
 
     // The block is expected to modify some part of the active region and return a list of points which had changes.
     // Some activity such as chunk invalidation is performed asynchronously and each block is added to the specified
     // dispatch group.
-    NSArray<GSBoxedVector *> *points = block(group);
-
+    NSArray<GSBoxedVector *> *points = block();
+    GSStopwatchTrace(breadcrumb, @"block");
+    
     // Wait for blocks in the group to complete. Once finished, all chunk invalidation will have been completed.
     dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-
-    // Do synchronous chunk generation for the chunks which were modified.
+    GSStopwatchTrace(breadcrumb, @"dispatch_group_wait");
+    
+    // Generate VAOs for the chunks which were modified.
     for(GSBoxedVector *boxedPosition in points)
     {
-        dispatch_async(_generationQueue, ^{
-            [_gridVAO objectAtPoint:[boxedPosition vectorValue]
-                           blocking:YES
-                             object:nil
-                    createIfMissing:YES];
-        });
+        [_gridVAO objectAtPoint:[boxedPosition vectorValue]
+                       blocking:YES
+                         object:nil
+                createIfMissing:YES
+                     breadcrumb:breadcrumb];
     }
-    
-    dispatch_barrier_sync(_generationQueue, ^{});
 
+    GSStopwatchTrace(breadcrumb, @"regenerate relevant VAOs");
+    
     // And then build a new draw list for the display link thread.
     [self _unlockedConstructDrawList];
-    
     [_lockDrawList unlock];
+    
+    // Now that we're done, resume chunk generation.
+    dispatch_resume(_generationQueue);
+
+    GSStopwatchTrace(breadcrumb, @"modifyWithQueue exit");
 }
 
 - (void)needsChunkGeneration
@@ -263,7 +264,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 
     dispatch_async(_generationQueue, ^{
         BOOL anyChunksMissing = NO;
-        uint64_t startAbs = stopwatchStart();
+        uint64_t startAbs = GSStopwatchStart();
 
         [_lockCachedPointsInCameraFrustum lockForReading];
         NSObject<NSFastEnumeration> *points = [_cachedPointsInCameraFrustum copy];
@@ -271,12 +272,13 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 
         for(GSBoxedVector *boxedPosition in points)
         {
-            uint64_t elapsedNs = stopwatchEnd(startAbs);
+            uint64_t elapsedNs = GSStopwatchEnd(startAbs);
             BOOL createIfMissing = elapsedNs < GSChunkCreationBudget;
             BOOL r = [_gridVAO objectAtPoint:[boxedPosition vectorValue]
                                     blocking:NO
                                       object:nil
-                             createIfMissing:createIfMissing];
+                             createIfMissing:createIfMissing
+                                  breadcrumb:NULL];
             
             anyChunksMissing = anyChunksMissing && r;
         }

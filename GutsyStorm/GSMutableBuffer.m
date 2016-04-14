@@ -12,32 +12,14 @@
 
 + (nonnull instancetype)newMutableBufferWithBuffer:(nonnull GSTerrainBuffer *)buffer
 {
-    assert(buffer);
-    return [[GSMutableBuffer alloc] initWithDimensions:buffer.dimensions data:buffer->_data];
-}
-
-- (nonnull instancetype)initWithDimensions:(vector_long3)dim
-{
-    if (self = [super initWithDimensions:dim]) {
-        // initialize here
-    }
-
-    return self;
-}
-
-- (nonnull instancetype)initWithDimensions:(vector_long3)dim data:(nonnull const GSTerrainBufferElement *)data
-{
-    if (self = [super initWithDimensions:dim data:data]) {
-        // initialize here
-    }
-
-    return self;
+    NSParameterAssert(buffer);
+    return [[[self class] alloc] initWithDimensions:buffer.dimensions cloneAlignedData:buffer->_data];
 }
 
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     // Copies the underlying buffer to a new buffer.
-    return [[GSMutableBuffer allocWithZone:zone] initWithDimensions:self.dimensions data:_data];
+    return [[[self class] allocWithZone:zone] initWithDimensions:self.dimensions cloneAlignedData:_data];
 }
 
 - (nonnull GSTerrainBufferElement *)mutableData
@@ -47,7 +29,7 @@
 
 - (nonnull GSTerrainBufferElement *)pointerToValueAtPosition:(vector_long3)chunkLocalPos
 {
-    assert(_data);
+    NSParameterAssert(_data);
 
     vector_long3 dim = self.dimensions;
     vector_long3 p = chunkLocalPos + _offsetFromChunkLocalSpace;

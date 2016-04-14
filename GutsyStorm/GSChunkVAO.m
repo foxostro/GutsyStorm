@@ -36,7 +36,8 @@ typedef GLuint index_t;
     GSVBOHolder *_ibo;
     GSVAOHolder *_vao;
     NSOpenGLContext *_glContext;
-    GSChunkGeometryData *_geometry;
+    GSTerrainVertexNoNormal *_vertsBuffer;
+    GLsizeiptr _bufferSize;
     BOOL _initializedYet;
 }
 
@@ -81,10 +82,12 @@ typedef GLuint index_t;
     NSParameterAssert(context);
 
     if(self = [super init]) {
+        _initializedYet = NO;
         _glContext = context;
         minP = geometry.minP;
-        _geometry = geometry;
-        _initializedYet = NO;
+        _vertsBuffer = [geometry copyVertsReturningCount:&_numIndicesForDrawing];
+        _bufferSize = _numIndicesForDrawing * sizeof(GSTerrainVertexNoNormal);
+        cost = _bufferSize;
     }
 
     return self;
@@ -93,6 +96,12 @@ typedef GLuint index_t;
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // All GSChunkVAO objects are immutable, so return self instead of deep copying.
+}
+
+- (void)dealloc
+{
+    free(_vertsBuffer);
+    _vertsBuffer = NULL;
 }
 
 - (void)draw
@@ -116,12 +125,7 @@ typedef GLuint index_t;
         GLuint vbo = 0;
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        
-        GSTerrainVertexNoNormal *vertsBuffer = [_geometry copyVertsReturningCount:&_numIndicesForDrawing];
-        GLsizeiptr bufferSize = _numIndicesForDrawing * sizeof(GSTerrainVertexNoNormal);
-        cost = bufferSize;
-        glBufferData(GL_ARRAY_BUFFER, bufferSize, vertsBuffer, GL_STATIC_DRAW);
-        free(vertsBuffer);
+        glBufferData(GL_ARRAY_BUFFER, _bufferSize, _vertsBuffer, GL_STATIC_DRAW);
         
         if (glGetError() == GL_OUT_OF_MEMORY) {
             NSLog(@"GSChunkVAO failed to acquire GPU resources.");
@@ -158,7 +162,10 @@ typedef GLuint index_t;
         }
         
         _initializedYet = YES;
-        _geometry = nil; // don't need this anymore
+        
+        // don't need this anymore
+        free(_vertsBuffer);
+        _vertsBuffer = NULL;
     }
 
     GLenum indexEnum;

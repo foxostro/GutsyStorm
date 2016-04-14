@@ -10,6 +10,7 @@
 #import "GSChunkVoxelData.h"
 #import "GSNeighborhood.h"
 #import "GSMutableBuffer.h"
+#import "GSStopwatch.h"
 
 
 static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
@@ -19,7 +20,6 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 {
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _queueForSaving;
-    dispatch_queue_t _chunkTaskQueue;
 }
 
 @synthesize cost;
@@ -34,7 +34,6 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
                                folder:(nonnull NSURL *)folder
                        groupForSaving:(nonnull dispatch_group_t)groupForSaving
                        queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                       chunkTaskQueue:(nonnull dispatch_queue_t)chunkTaskQueue
                          neighborhood:(nonnull GSNeighborhood *)neighborhood
 {
     if(self = [super init]) {
@@ -43,20 +42,12 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         minP = minCorner;
 
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
-        _chunkTaskQueue = chunkTaskQueue; // dispatch queue used for chunk background work
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _neighborhood = neighborhood;
         _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder];
         cost = BUFFER_SIZE_IN_BYTES(sunlightDim);
     }
     return self;
-}
-
-- (void)dealloc
-{
-    _groupForSaving = NULL;
-    _chunkTaskQueue = NULL;
-    _queueForSaving = NULL;
 }
 
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
@@ -149,21 +140,26 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 /* Generate and return  sunlight data for this chunk from the specified voxel data buffer. The voxel data buffer must be
  * (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and should contain voxel data for the entire local
  * neighborhood.
- * The returned sunlight buffer is also this size and may also be indexed using the INDEX2 macro. Only the sunlight
+ * The returned sunlight buffer is also this size and may also be indexed using the INDEX_BOX macro. Only the sunlight
  * values for the region of the buffer corresponding to this chunk should be considered to be totally correct.
  * Assumes the caller has already locked the sunlight buffer for reading.
  */
 - (nonnull GSTerrainBuffer *)newSunlightBufferUsingCombinedVoxelData:(nonnull GSVoxel *)combinedVoxelData
 {
-    GSTerrainBufferElement *combinedSunlightData =
-        malloc((GSCombinedMaxP.x - GSCombinedMinP.x) *
-               (GSCombinedMaxP.y - GSCombinedMinP.y) *
-               (GSCombinedMaxP.z - GSCombinedMinP.z) * sizeof(GSTerrainBufferElement));
-    
+    size_t len = (GSCombinedMaxP.x - GSCombinedMinP.x) * (GSCombinedMaxP.y - GSCombinedMinP.y) * (GSCombinedMaxP.z - GSCombinedMinP.z) * sizeof(GSTerrainBufferElement);
+    GSTerrainBufferElement *combinedSunlightData = malloc(len);
     if(!combinedSunlightData) {
         [NSException raise:NSMallocException format:@"Out of memory allocating `combinedSunlightData'."];
     }
 
+    // Initially, set every element in the buffer to CHUNK_LIGHTING_MAX.
+    {
+        GSTerrainBufferElement pattern[2] = {CHUNK_LIGHTING_MAX, CHUNK_LIGHTING_MAX};
+        _Static_assert(sizeof(pattern)==4, "Assumes I can pack two elements into four bytes.");
+        memset_pattern4(combinedSunlightData, pattern, len);
+    }
+
+    long elevationOfHighestOpaqueBlock = GSCombinedMinP.y;
     vector_long3 p;
     FOR_BOX(p, GSCombinedMinP, GSCombinedMaxP)
     {
@@ -171,7 +167,16 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         GSVoxel voxel = combinedVoxelData[idx];
         BOOL directlyLit = (!voxel.opaque) && (voxel.outside);
         combinedSunlightData[idx] = directlyLit ? CHUNK_LIGHTING_MAX : 0;
+        
+        if (voxel.opaque) {
+            elevationOfHighestOpaqueBlock = MAX(elevationOfHighestOpaqueBlock, p.y);
+        }
     }
+    
+    // Every block above the elevation of the highest opaque block will be fully and directly lit.
+    // We can take advantage of this to avoid a lot of work.
+    vector_long3 maxBoxPoint = GSCombinedMaxP;
+    maxBoxPoint.y = elevationOfHighestOpaqueBlock;
 
     /* Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
      * Repeat for all light levels from CHUNK_LIGHTING_MAX down to 1.
@@ -179,7 +184,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
      */
     for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
     {
-        FOR_BOX(p, GSCombinedMinP, GSCombinedMaxP)
+        FOR_BOX(p, GSCombinedMinP, maxBoxPoint)
         {
             size_t idx = INDEX_BOX(p, GSCombinedMinP, GSCombinedMaxP);
             GSVoxel voxel = combinedVoxelData[idx];
@@ -197,10 +202,10 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         }
     }
 
-    // Copy the sunlight data we just calculated into _sunlight. Discard non-overlapping portions.
+    // Copy the sunlight data we just calculated into _sunlight. Discard portions that do not overlap with this chunk.
     GSTerrainBuffer *sunlight = [GSTerrainBuffer newBufferFromLargerRawBuffer:combinedSunlightData
-                                                                        srcMinP:GSCombinedMinP
-                                                                        srcMaxP:GSCombinedMaxP];
+                                                                      srcMinP:GSCombinedMinP
+                                                                      srcMaxP:GSCombinedMaxP];
 
     free(combinedSunlightData);
 
@@ -226,7 +231,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
                 NSLog(@"unexpected number of bytes in sunlight file \"%@\": found %lu but expected %zu bytes",
                       fileName, (unsigned long)[data length], BUFFER_SIZE_IN_BYTES(sunlightDim));
             } else {
-                buffer = [[GSTerrainBuffer alloc] initWithDimensions:sunlightDim data:[data bytes]];
+                buffer = [[GSTerrainBuffer alloc] initWithDimensions:sunlightDim cloneAlignedData:[data bytes]];
                 failedToLoadFromFile = NO;
             }
         }

@@ -13,7 +13,7 @@
 #define CHUNK_LIGHTING_MAX (8)
 
 #define CHUNK_SIZE_X (16)
-#define CHUNK_SIZE_Y (128)
+#define CHUNK_SIZE_Y (256)
 #define CHUNK_SIZE_Z (16)
 
 _Static_assert((CHUNK_LIGHTING_MAX <= (CHUNK_SIZE_X - 1)) && (CHUNK_LIGHTING_MAX <= (CHUNK_SIZE_Z - 1)),

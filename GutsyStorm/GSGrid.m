@@ -13,6 +13,7 @@
 #import "GSReaderWriterLock.h"
 #import "GSBoxedVector.h"
 #import "GSGridItemLRU.h"
+#import "GSStopwatch.h"
 
 
 //#define DEBUG_LOG(...) NSLog(__VA_ARGS__)
@@ -83,7 +84,7 @@
         _lockTheCount.name = [NSString stringWithFormat:@"%@.lockTheCount", name];
         _count = 0;
         _costLimit = 0;
-        _loadLevelToTriggerResize = 0.80;
+        _loadLevelToTriggerResize = 0.5;
 
         _locks = (NSLock * __strong *)calloc(_numLocks, sizeof(NSLock *));
         if (!_locks) {
@@ -175,7 +176,10 @@
              blocking:(BOOL)blocking
                object:(id _Nonnull * _Nullable)item
       createIfMissing:(BOOL)createIfMissing
+           breadcrumb:(struct GSStopwatchBreadcrumb * _Nullable)breadcrumb
 {
+    GSStopwatchTrace(breadcrumb, @"%@: entering objectAtPoint:blocking:...", self.name);
+
     if(blocking) {
         [_lockTheTableItself lockForReading];
     } else if(![_lockTheTableItself tryLockForReading]) {
@@ -198,11 +202,16 @@
         [_lockTheTableItself unlockForReading];
         return NO;
     }
+
+    GSStopwatchTrace(breadcrumb, @"%@: locks obtained", self.name);
     
     anObject = [self _searchForItemAtPosition:minP bucket:bucket];
-    
+
+    GSStopwatchTrace(breadcrumb, @"%@: search", self.name);
+
     if(!anObject && createIfMissing) {
         anObject = _factory(minP);
+        GSStopwatchTrace(breadcrumb, @"%@: factory", self.name);
         
         if (!anObject) {
             [NSException raise:NSMallocException format:@"Out of memory allocating `anObject' for GSGrid."];
@@ -214,7 +223,7 @@
         _count++;
         _costTotal += anObject.cost;
         [_lockTheCount unlock];
-        
+
         createdAnItem = YES;
     }
     
@@ -229,13 +238,15 @@
         [self _enforceGridCostLimits];
         [self resizeTableIfNecessary];
     }
-
+    
     if (result) {
         if (item) {
             *item = anObject;
         }
     }
-    
+
+    GSStopwatchTrace(breadcrumb, @"%@: exiting objectAtPoint:blocking:...", self.name);
+
     return result;
 }
 
@@ -246,7 +257,8 @@
     [self objectAtPoint:p
                blocking:YES
                  object:&anItem
-        createIfMissing:YES];
+        createIfMissing:YES
+             breadcrumb:NULL];
 
     if (!anItem) {
         [NSException raise:NSGenericException format:@"Failed to get the object, and failure is not an option."];
@@ -285,12 +297,13 @@
     [_lockTheTableItself unlockForWriting];
 }
 
-- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change group:(nonnull dispatch_group_t)group
+- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change
+                           queue:(nonnull dispatch_queue_t)queue
+                           group:(nonnull dispatch_group_t)group
 {
     NSParameterAssert(change);
+    NSParameterAssert(queue);
     NSParameterAssert(group);
-    
-    dispatch_queue_t queue = dispatch_get_global_queue(0,0);
     
     dispatch_block_t block = ^{
         [_lockTheTableItself lockForReading];
@@ -308,7 +321,7 @@
         NSObject <GSGridItem> *foundItem = [self _searchForItemAtPosition:minP bucket:bucket];
         
         if(foundItem) {
-            [self _unlockedInvalidateItem:foundItem bucket:bucket change:change group:group];
+            [self _unlockedInvalidateItem:foundItem bucket:bucket change:change queue:queue group:group];
         }
         
         [lock unlock];
@@ -325,12 +338,12 @@
 }
 
 - (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change
+                                            queue:(nonnull dispatch_queue_t)queue
                                             group:(nonnull dispatch_group_t)group
 {
     NSParameterAssert(change);
+    NSParameterAssert(queue);
     NSParameterAssert(group);
-    
-    dispatch_queue_t queue = dispatch_get_global_queue(0,0);
 
     // Invalidate asynchronously to avoid deadlock.
     dispatch_group_async(group, queue, ^{
@@ -347,7 +360,7 @@
                 GSGridEdit *secondaryChange = [[GSGridEdit alloc] initWithOriginalItem:nil
                                                                           modifiedItem:nil
                                                                                    pos:[q vectorValue]];
-                [grid invalidateItemWithChange:secondaryChange group:group];
+                [grid invalidateItemWithChange:secondaryChange queue:queue group:group];
             }
         }
     });
@@ -362,9 +375,11 @@
 }
 
 - (void)replaceItemAtPoint:(vector_float3)p
+                     queue:(nonnull dispatch_queue_t)queue
                      group:(nonnull dispatch_group_t)group
                  transform:(nonnull NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *original))newReplacementItem
 {
+    NSParameterAssert(queue);
     NSParameterAssert(group);
     NSParameterAssert(newReplacementItem);
 
@@ -412,6 +427,7 @@
         [self _unlockedReplaceItemAtIndex:indexOfFoundItem
                                  inBucket:bucket
                                withChange:change
+                                    queue:queue
                                     group:group];
     }
 
@@ -510,11 +526,13 @@
 - (void)_unlockedInvalidateItem:(nonnull NSObject <GSGridItem> *)item
                          bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket
                          change:(nonnull GSGridEdit *)change
+                          queue:(nonnull dispatch_queue_t)queue
                           group:(nonnull dispatch_group_t)group
 {
     NSParameterAssert(item);
     NSParameterAssert(bucket);
     NSParameterAssert(change);
+    NSParameterAssert(queue);
     NSParameterAssert(group);
     
     if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
@@ -532,7 +550,7 @@
         [_lockTheCount unlock];
     }
 
-    [self invalidateItemsInDependentGridsWithChange:change group:group];
+    [self invalidateItemsInDependentGridsWithChange:change queue:queue group:group];
 }
 
 - (void)_unlockedEvictAllItems
@@ -567,11 +585,13 @@
 - (void)_unlockedReplaceItemAtIndex:(NSUInteger)index
                            inBucket:(nonnull NSMutableArray *)bucket
                          withChange:(nonnull GSGridEdit *)change
+                              queue:(nonnull dispatch_queue_t)queue
                               group:(nonnull dispatch_group_t)group
 {
     NSParameterAssert(bucket);
     NSParameterAssert(index < bucket.count);
     NSParameterAssert(change);
+    NSParameterAssert(queue);
     NSParameterAssert(group);
     
     NSObject <GSGridItem> *item = [bucket objectAtIndex:index];
@@ -596,7 +616,7 @@
     _costTotal += replacement.cost;
     [_lockTheCount unlock];
 
-    [self invalidateItemsInDependentGridsWithChange:change group:group];
+    [self invalidateItemsInDependentGridsWithChange:change queue:queue group:group];
 }
 
 - (nullable NSObject <GSGridItem> *)_searchForItemAtPosition:(vector_float3)minP

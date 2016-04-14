@@ -21,11 +21,12 @@
 #import "GSBlockMeshInsideCorner.h"
 #import "GSBlockMeshOutsideCorner.h"
 #import "SyscallWrappers.h"
+#import "GSStopwatch.h"
 
 
 struct GSChunkGeometryHeader
 {
-    uint8_t w, h, d;
+    uint32_t w, h, d;
     GLsizei numChunkVerts;
     uint32_t len;
 };
@@ -151,20 +152,17 @@ static void applyLightToVertices(size_t numChunkVerts,
     // Iterate over all voxels in the chunk and generate geometry.
     FOR_BOX(pos, minCorner, maxCorner)
     {
-        @autoreleasepool
-        {
-            vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minCorner.x, pos.y-minCorner.y, pos.z-minCorner.z);
-            GSVoxel voxel = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
-            GSVoxelType type = voxel.type;
-            assert(type < NUM_VOXEL_TYPES);
+        vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minCorner.x, pos.y-minCorner.y, pos.z-minCorner.z);
+        GSVoxel voxel = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
+        GSVoxelType type = voxel.type;
+        assert(type < NUM_VOXEL_TYPES);
 
-            if(type != VOXEL_TYPE_EMPTY) {
-                GSBlockMesh *factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
-                [factory generateGeometryForSingleBlockAtPosition:pos
-                                                       vertexList:vertices
-                                                        voxelData:neighborhood
-                                                             minP:minCorner];
-            }
+        if(type != VOXEL_TYPE_EMPTY) {
+            GSBlockMesh *factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
+            [factory generateGeometryForSingleBlockAtPosition:pos
+                                                   vertexList:vertices
+                                                    voxelData:neighborhood
+                                                         minP:minCorner];
         }
     }
 
@@ -195,7 +193,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     // Iterate over all vertices and calculate lighting.
     applyLightToVertices(numChunkVerts, vertsBuffer, sunlight.sunlight, minCorner);
-
+    
     return data;
 }
 
