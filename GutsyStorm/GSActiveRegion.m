@@ -274,7 +274,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
             uint64_t elapsedNs = stopwatchEnd(startAbs);
             BOOL createIfMissing = elapsedNs < GSChunkCreationBudget;
             BOOL r = [_gridVAO objectAtPoint:[boxedPosition vectorValue]
-                                    blocking:YES
+                                    blocking:NO
                                       object:nil
                              createIfMissing:createIfMissing];
             
