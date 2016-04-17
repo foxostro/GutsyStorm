@@ -28,6 +28,8 @@
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
 		4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */; };
 		6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */; };
+		6F6812C61CC33107006839C9 /* GSTerrainJournal.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6812C51CC33107006839C9 /* GSTerrainJournal.m */; };
+		6F6812C91CC33119006839C9 /* GSTerrainJournalEntry.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6812C81CC33119006839C9 /* GSTerrainJournalEntry.m */; };
 		6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6AA69C1CB1CAF20039F8A4 /* GSVAOHolder.m */; };
 		6F8A80BA1CB982710063166C /* GSGridItemLRU.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F8A80B91CB982710063166C /* GSGridItemLRU.m */; };
 		6F9018491BD31EE300CD21FB /* crosshairs.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018471BD31EE300CD21FB /* crosshairs.frag.txt */; };
@@ -115,6 +117,10 @@
 		4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedTerrainVertex.m; sourceTree = "<group>"; };
 		6F6158061BD69C8E00243A61 /* GSOpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLViewController.h; sourceTree = "<group>"; };
 		6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLViewController.m; sourceTree = "<group>"; };
+		6F6812C41CC33107006839C9 /* GSTerrainJournal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GSTerrainJournal.h; path = ../GSTerrainJournal.h; sourceTree = "<group>"; };
+		6F6812C51CC33107006839C9 /* GSTerrainJournal.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GSTerrainJournal.m; path = ../GSTerrainJournal.m; sourceTree = "<group>"; };
+		6F6812C71CC33119006839C9 /* GSTerrainJournalEntry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GSTerrainJournalEntry.h; path = ../GSTerrainJournalEntry.h; sourceTree = "<group>"; };
+		6F6812C81CC33119006839C9 /* GSTerrainJournalEntry.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GSTerrainJournalEntry.m; path = ../GSTerrainJournalEntry.m; sourceTree = "<group>"; };
 		6F6AA69B1CB1BCA60039F8A4 /* GSStopwatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSStopwatch.h; sourceTree = "<group>"; };
 		6F6AA69C1CB1CAF20039F8A4 /* GSVAOHolder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSVAOHolder.m; sourceTree = "<group>"; };
 		6F6AA69D1CB1CAF20039F8A4 /* GSVAOHolder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVAOHolder.h; sourceTree = "<group>"; };
@@ -215,6 +221,10 @@
 				13C8BE181602854300403815 /* GSVoxel.h */,
 				AC3767A4163DFD4100BAE03F /* GSTerrain.h */,
 				AC3767A5163DFD4200BAE03F /* GSTerrain.m */,
+				6F6812C41CC33107006839C9 /* GSTerrainJournal.h */,
+				6F6812C51CC33107006839C9 /* GSTerrainJournal.m */,
+				6F6812C71CC33119006839C9 /* GSTerrainJournalEntry.h */,
+				6F6812C81CC33119006839C9 /* GSTerrainJournalEntry.m */,
 				AC3767A7163E04E100BAE03F /* Terrain Internals */,
 			);
 			name = Terrain;
@@ -526,6 +536,7 @@
 				4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */,
 				4A9A3BA61517200E00607B1A /* GSCamera.m in Sources */,
 				4A9A3BAD1517252E00607B1A /* GLString.m in Sources */,
+				6F6812C61CC33107006839C9 /* GSTerrainJournal.m in Sources */,
 				AC9CCD701519A90E0081964D /* GSShader.m in Sources */,
 				ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */,
 				AC5B2800151DC7BB0045B6E4 /* GSNoise.m in Sources */,
@@ -541,6 +552,7 @@
 				4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */,
 				4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */,
 				4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */,
+				6F6812C91CC33119006839C9 /* GSTerrainJournalEntry.m in Sources */,
 				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
 				6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */,
 				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,

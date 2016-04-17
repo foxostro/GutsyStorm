@@ -9,6 +9,7 @@
 #import "GSOpenGLViewController.h"
 #import "GSTextLabel.h"
 #import "GSTerrain.h"
+#import "GSTerrainJournal.h"
 #import "GSCamera.h"
 #import "GSOpenGLView.h"
 #import "GSMatrixUtils.h"
@@ -55,6 +56,30 @@
     size_t _numFramesSinceLastFpsLabelUpdate;
 }
 
++ (nonnull NSURL *)newTerrainJournalURL
+{
+    NSArray<NSString *> *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
+    NSString *path = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
+    NSString *bundleIdentifier = [[NSRunningApplication currentApplication] bundleIdentifier];
+    
+    path = [path stringByAppendingPathComponent:bundleIdentifier];
+    
+    [[NSFileManager defaultManager] createDirectoryAtPath:path
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:NULL];
+
+    path = [path stringByAppendingPathComponent:@"terrain-journal.plist"];
+
+    NSURL *url = [[NSURL alloc] initFileURLWithPath:path isDirectory:NO];
+    
+    if(![url checkResourceIsReachableAndReturnError:NULL]) {
+        NSLog(@"Terrain journal file is not accessible at %@", url);
+    }
+    
+    return url;
+}
+
 - (void)applicationWillTerminate:(nonnull NSNotification *)notification
 {
     dispatch_source_cancel(_memoryPressureSource);
@@ -93,8 +118,20 @@
     [self resetMouseInputSettings];
     
     _frameRateLabel = [GSTextLabel new];
-    
-    _terrain = [[GSTerrain alloc] initWithSeed:0 camera:_camera glContext:_openGlView.openGLContext];
+
+    // Terrain edits are recorded in a journal file.
+    NSURL *journalUrl = [[self class] newTerrainJournalURL];
+    NSLog(@"Terrain edit journal stored at %@", journalUrl);
+    GSTerrainJournal *journal = [NSKeyedUnarchiver unarchiveObjectWithFile:[journalUrl path]];
+    if (!journal) {
+        NSLog(@"Creating new journal.");
+        journal = [[GSTerrainJournal alloc] init];
+    }
+    journal.url = journalUrl;
+
+    _terrain = [[GSTerrain alloc] initWithJournal:journal
+                                           camera:_camera
+                                        glContext:_openGlView.openGLContext];
 
     _prevFrameTime = _lastRenderTime = _lastFpsLabelUpdateTime = CFAbsoluteTimeGetCurrent();
     _fpsLabelUpdateInterval = 0.3;

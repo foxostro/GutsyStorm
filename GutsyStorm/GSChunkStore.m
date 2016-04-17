@@ -24,6 +24,8 @@
 #import "GSGridSunlight.h"
 #import "GSMatrixUtils.h"
 #import "GSStopwatch.h"
+#import "GSTerrainJournal.h"
+#import "GSTerrainJournalEntry.h"
 
 #import <OpenGL/gl.h>
 
@@ -265,29 +267,30 @@
     };
 }
 
-- (nonnull instancetype)initWithSeed:(NSUInteger)seed
-                               camera:(nonnull GSCamera *)cam
-                        terrainShader:(nonnull GSShader *)shader
-                            glContext:(nonnull NSOpenGLContext *)context
-                            generator:(nonnull GSTerrainProcessorBlock)generator
+- (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
+                                 camera:(nonnull GSCamera *)camera
+                          terrainShader:(nonnull GSShader *)terrainShader
+                              glContext:(nonnull NSOpenGLContext *)glContext
+                              generator:(nonnull GSTerrainProcessorBlock)generator
 {
-    self = [super init];
-    if (self) {
+    if (self = [super init]) {
         _folder = [GSChunkStore newTerrainCacheFolderURL];
         _groupForSaving = dispatch_group_create();
         _chunkStoreHasBeenShutdown = NO;
-        _camera = cam;
-        _terrainShader = shader;
-        _glContext = context;
+        _camera = camera;
+        _terrainShader = terrainShader;
+        _glContext = glContext;
         _generator = [generator copy];
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
 
-        dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT, QOS_CLASS_USER_INTERACTIVE, 0);
+        dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT,
+                                                                             QOS_CLASS_USER_INTERACTIVE, 0);
         _queuePlaceBlockAtPoint = dispatch_queue_create("placeBlockAtPoint", attr);
 
         [self createGrids];
         [self setupGridDependencies];
-        [self setupActiveRegionWithCamera:cam];
+        [self setupActiveRegionWithCamera:camera];
+        [self applyJournal:journal];
     }
     
     return self;
@@ -354,17 +357,67 @@
     [_activeRegion updateWithCameraModifiedFlags:flags];
 }
 
-- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block
+- (void)applyJournal:(nonnull GSTerrainJournal *)journal
+{
+    NSParameterAssert(journal);
+
+    assert(!_chunkStoreHasBeenShutdown);
+    assert(_gridVoxelData);
+    assert(_activeRegion);
+    
+    struct GSStopwatchBreadcrumb breadcrumb;
+    GSStopwatchTraceBegin(&breadcrumb, @"applyJournal enter");
+    
+    dispatch_group_t group = dispatch_group_create();
+    
+    NSArray * _Nonnull (^block)(void) = ^ NSArray * _Nonnull {
+        NSMutableSet *points = [[NSMutableSet alloc] initWithCapacity:journal.journalEntries.count];
+        for(GSTerrainJournalEntry *entry in journal.journalEntries)
+        {
+            vector_float3 pos = [entry.position vectorValue];
+            [_gridVoxelData replaceItemAtPoint:pos
+                                         queue:_queuePlaceBlockAtPoint
+                                         group:group
+                                     transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
+                                         GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
+                                         GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos block:entry.value];
+                                         [voxels2 saveToFile];
+                                         return voxels2;
+                                     }];
+            [points addObject:entry.position];
+        }
+        return [points allObjects];
+    };
+    
+    [_activeRegion modifyWithQueue:_queuePlaceBlockAtPoint
+                             group:group
+                        breadcrumb:&breadcrumb
+                             block:block];
+    
+    GSStopwatchTraceEnd(&breadcrumb, @"applyJournal exit");
+}
+
+- (void)placeBlockAtPoint:(vector_float3)pos
+                    block:(GSVoxel)block
+                  journal:(nullable GSTerrainJournal *)journal
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(_gridVoxelData);
     assert(_activeRegion);
+    
+    if (journal) {
+        dispatch_group_async(_groupForSaving, _queueForSaving, ^{
+            GSTerrainJournalEntry *entry = [[GSTerrainJournalEntry alloc] init];
+            entry.value = block;
+            entry.position = [GSBoxedVector boxedVectorWithVector:pos];
+            [journal addEntry:entry];
+        });
+    }
 
     struct GSStopwatchBreadcrumb breadcrumb;
     GSStopwatchTraceBegin(&breadcrumb, @"placeBlockAtPoint enter");
 
     dispatch_group_t group = dispatch_group_create();
-    GSStopwatchTrace(&breadcrumb, @"placeBlockAtPoint created dispatch objects");
 
     [_activeRegion modifyWithQueue:_queuePlaceBlockAtPoint
                              group:group

@@ -11,14 +11,15 @@
 
 @class GSCamera;
 @class GSShader;
+@class GSTerrainJournal;
 
 @interface GSChunkStore : NSObject
 
-- (nonnull instancetype)initWithSeed:(NSUInteger)seed
-                               camera:(nonnull GSCamera *)camera
-                        terrainShader:(nonnull GSShader *)terrainShader
-                            glContext:(nonnull NSOpenGLContext *)glContext
-                            generator:(nonnull GSTerrainProcessorBlock)generator;
+- (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
+                                 camera:(nonnull GSCamera *)camera
+                          terrainShader:(nonnull GSShader *)terrainShader
+                              glContext:(nonnull NSOpenGLContext *)glContext
+                              generator:(nonnull GSTerrainProcessorBlock)generator;
 
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.
@@ -49,7 +50,9 @@
 
 - (GSTerrainBufferElement)sunlightAtPoint:(vector_float3)pos;
 
-- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block;
+- (void)placeBlockAtPoint:(vector_float3)pos
+                    block:(GSVoxel)block
+                  journal:(nullable GSTerrainJournal *)journal;
 
 /* Notify the chunk store object that the system has come under memory pressure. */
 - (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status;

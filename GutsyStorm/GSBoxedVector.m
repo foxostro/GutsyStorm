@@ -33,11 +33,20 @@
     return [[GSBoxedVector alloc] initWithIntegerVector:vector];
 }
 
+- (nonnull instancetype)init
+{
+    return self = [super init];
+}
+
+- (nonnull instancetype)initWithCoder:(nonnull NSCoder *)decoder
+{
+    NSParameterAssert(decoder);
+    return [self initWithString:[decoder decodeObjectForKey:@"vector"]];
+}
+
 - (nonnull instancetype)initWithVector:(vector_float3)v
 {
-    self = [super init];
-    if (self) {
-        // Initialization code here.
+    if (self = [self init]) {
         _vector = v;
         _cachedHash = [self computeHash];
     }
@@ -47,13 +56,31 @@
 
 - (nonnull instancetype)initWithIntegerVector:(vector_long3)v
 {
-    self = [super init];
-    if (self) {
+    if (self = [self init]) {
         _vector = (vector_float3){v.x, v.y, v.z};
         _cachedHash = [self computeHash];
     }
     
     return self;
+}
+
+- (nonnull instancetype)initWithString:(NSString *)string
+{
+    if (self = [self init]) {
+        NSArray<NSString *> *components = [string componentsSeparatedByString:@"_"];
+        _vector.x = [components[0] floatValue];
+        _vector.y = [components[1] floatValue];
+        _vector.z = [components[2] floatValue];
+        _cachedHash = [self computeHash];
+    }
+    
+    return self;
+}
+
+- (void)encodeWithCoder:(nonnull NSCoder *)encoder
+{
+    NSParameterAssert(encoder);
+    [encoder encodeObject:[self toString] forKey:@"vector"];
 }
 
 - (vector_float3)vectorValue

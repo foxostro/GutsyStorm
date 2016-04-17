@@ -17,6 +17,7 @@
 #import "GSTerrain.h"
 #import "GSRay.h"
 #import "GSMatrixUtils.h"
+#import "GSTerrainJournal.h"
 
 #import <OpenGL/gl.h>
 
@@ -393,8 +394,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (nonnull GSShader *)newCursorShader
 {
-    NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"cursor.vert" ofType:@"txt"];
-    NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"cursor.frag" ofType:@"txt"];
+    NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"];
+    NSString *vertFn = [bundle pathForResource:@"cursor.vert" ofType:@"txt"];
+    NSString *fragFn = [bundle pathForResource:@"cursor.frag" ofType:@"txt"];
     
     NSString *vertSrc = [self newShaderSourceStringFromFileAt:vertFn];
     NSString *fragSrc = [self newShaderSourceStringFromFileAt:fragFn];
@@ -412,8 +414,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (nonnull GSShader *)newTerrainShader
 {
-    NSString *vertFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"terrain.vert" ofType:@"txt"];
-    NSString *fragFn = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"] pathForResource:@"terrain.frag" ofType:@"txt"];
+    NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"];
+    NSString *vertFn = [bundle pathForResource:@"terrain.vert" ofType:@"txt"];
+    NSString *fragFn = [bundle pathForResource:@"terrain.frag" ofType:@"txt"];
     
     NSString *vertSrc = [self newShaderSourceStringFromFileAt:vertFn];
     NSString *fragSrc = [self newShaderSourceStringFromFileAt:fragFn];
@@ -430,11 +433,12 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     return terrainShader;
 }
 
-- (nonnull instancetype)initWithSeed:(NSUInteger)seed
-                              camera:(nonnull GSCamera *)cam
-                           glContext:(nonnull NSOpenGLContext *)context
+- (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
+                                 camera:(nonnull GSCamera *)cam
+                              glContext:(nonnull NSOpenGLContext *)context
 {
     if (self = [super init]) {
+        _journal = journal;
         _camera = cam;
 
         assert(checkGLErrors() == 0);
@@ -442,13 +446,13 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         GSShader *cursorShader = [self newCursorShader];
         GSShader *terrainShader = [self newTerrainShader];
 
-        _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
-                                                                                  pathForResource:@"terrain"
-                                                                                           ofType:@"png"]
-                                                     numTextures:4];
+        NSString *path = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
+                                         pathForResource:@"terrain"
+                                                  ofType:@"png"];
+        _textureArray = [[GSTextureArray alloc] initWithImagePath:path numTextures:4];
 
-        GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:seed];
-        GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:seed+1];
+        GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:journal.randomSeed];
+        GSNoise *noiseSource1 = [[GSNoise alloc] initWithSeed:journal.randomSeed+1];
 
         GSTerrainProcessorBlock generator = ^(size_t count, GSVoxel * _Nonnull voxels,
                                               vector_long3 minP, vector_long3 maxP, vector_float3 offsetToWorld) {
@@ -464,7 +468,6 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             }
 
             // Second, post-process the voxels to add ramps and slopes.
-            // XXX: can marching cubes teach me a better way to do this?
 
             _Static_assert(ARRAY_LEN(replacementRuleSets)>0, "Must have at least one set of rules in replacementRuleSets.");
             
@@ -492,14 +495,14 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             free(temp2);
         };
 
-        _chunkStore = [[GSChunkStore alloc] initWithSeed:seed
-                                                 camera:cam
-                                            terrainShader:terrainShader
-                                                glContext:context
-                                                generator:generator];
-        
+        _chunkStore = [[GSChunkStore alloc] initWithJournal:journal
+                                                     camera:cam
+                                              terrainShader:terrainShader
+                                                  glContext:context
+                                                  generator:generator];
+
         _cursor = [[GSTerrainCursor alloc] initWithContext:context shader:cursorShader];
-        
+
         _maxPlaceDistance = 6.0; // XXX: make this configurable
     }
     return self;
@@ -551,7 +554,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_CUBE;
         
-        [_chunkStore placeBlockAtPoint:_cursor.cursorPlacePos block:block];
+        [_chunkStore placeBlockAtPoint:_cursor.cursorPlacePos
+                                 block:block
+                               journal:self.journal];
         [self recalcCursorPosition];
     }
 }
@@ -565,7 +570,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_EMPTY;
         
-        [_chunkStore placeBlockAtPoint:_cursor.cursorPos block:block];
+        [_chunkStore placeBlockAtPoint:_cursor.cursorPos
+                                 block:block
+                               journal:self.journal];
         [self recalcCursorPosition];
     }
 }

@@ -10,12 +10,15 @@
 @class GSChunkStore;
 @class GSTerrainCursor;
 @class GSTextureArray;
+@class GSTerrainJournal;
 
 @interface GSTerrain : NSObject
 
-- (nonnull instancetype)initWithSeed:(NSUInteger)seed
-                               camera:(nonnull GSCamera *)camera
-                            glContext:(nonnull NSOpenGLContext *)glContext;
+@property (nonatomic, nonnull, readonly) GSTerrainJournal *journal;
+
+- (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
+                                 camera:(nonnull GSCamera *)cam
+                              glContext:(nonnull NSOpenGLContext *)context;
 
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.
