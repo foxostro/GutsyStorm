@@ -290,7 +290,13 @@
         [self createGrids];
         [self setupGridDependencies];
         [self setupActiveRegionWithCamera:camera];
-        [self applyJournal:journal];
+        
+        // If the cache folder is empty then apply the journal to rebuild it.
+        // XXX: What if I added a sequence number to the chunk's data files on disk and compared to the journal?
+        NSArray *cacheContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[_folder path] error:nil];
+        if (!cacheContents || cacheContents.count == 0) {
+            [self applyJournal:journal];
+        }
     }
     
     return self;
