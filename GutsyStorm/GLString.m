@@ -441,7 +441,7 @@
     }
 
     if (!_shader) {
-        NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"];
+        NSBundle *bundle = [NSBundle bundleWithIdentifier:[[NSRunningApplication currentApplication] bundleIdentifier]];
         NSString *vertFn = [bundle pathForResource:@"text.vert" ofType:@"txt"];
         NSString *fragFn = [bundle pathForResource:@"text.frag" ofType:@"txt"];
         NSString *vertSrc = [[NSString alloc] initWithContentsOfFile:vertFn encoding:NSMacOSRomanStringEncoding error:nil];

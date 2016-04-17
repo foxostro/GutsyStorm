@@ -47,6 +47,9 @@ static inline uint64_t GSStopwatchEnd(uint64_t startAbs)
 }
 
 #if LOG_PERF
+
+#define GSBreadcrumb struct GSStopwatchBreadcrumb breadcrumb
+
 static inline void GSStopwatchTraceBegin(struct GSStopwatchBreadcrumb * _Nullable breadcrumb,
                                          NSString * _Nonnull format, ...)
 {
@@ -126,10 +129,14 @@ static inline void GSStopwatchTrace(struct GSStopwatchBreadcrumb * _Nullable bre
     
     OSSpinLockUnlock(&breadcrumb->lock);
 }
+
 #else
+
+#define GSBreadcrumb
 #define GSStopwatchTrace(...)
 #define GSStopwatchTraceBegin(...)
 #define GSStopwatchTraceEnd(...)
+
 #endif // LOG_PERF
 
 #endif /* GSStopwatch_h */

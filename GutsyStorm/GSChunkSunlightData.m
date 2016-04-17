@@ -217,34 +217,32 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 {
     GSTerrainBuffer *buffer = nil;
 
-    @autoreleasepool {
-        BOOL failedToLoadFromFile = YES;
-        NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:self.minP];
-        NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
-        NSError *error = nil;
-        NSData *data = [NSData dataWithContentsOfFile:[url path]
-                                              options:NSDataReadingMapped
-                                                error:&error];
+    BOOL failedToLoadFromFile = YES;
+    NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:self.minP];
+    NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
+    NSError *error = nil;
+    NSData *data = [NSData dataWithContentsOfFile:[url path]
+                                          options:NSDataReadingMapped
+                                            error:&error];
 
-        if(data) {
-            if ([data length] != BUFFER_SIZE_IN_BYTES(sunlightDim)) {
-                NSLog(@"unexpected number of bytes in sunlight file \"%@\": found %lu but expected %zu bytes",
-                      fileName, (unsigned long)[data length], BUFFER_SIZE_IN_BYTES(sunlightDim));
-            } else {
-                buffer = [[GSTerrainBuffer alloc] initWithDimensions:sunlightDim cloneAlignedData:[data bytes]];
-                failedToLoadFromFile = NO;
-            }
+    if(data) {
+        if ([data length] != BUFFER_SIZE_IN_BYTES(sunlightDim)) {
+            //NSLog(@"unexpected number of bytes in sunlight file \"%@\": found %lu but expected %zu bytes",
+            //      fileName, (unsigned long)[data length], BUFFER_SIZE_IN_BYTES(sunlightDim));
+        } else {
+            buffer = [[GSTerrainBuffer alloc] initWithDimensions:sunlightDim cloneAlignedData:[data bytes]];
+            failedToLoadFromFile = NO;
         }
-        
-        if (failedToLoadFromFile) {
-            GSVoxel *data = [self newVoxelBufferWithNeighborhood:neighborhood];
-            buffer = [self newSunlightBufferUsingCombinedVoxelData:data];
-            free(data);
-            [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
-        }
-
-        assert(buffer);
     }
+    
+    if (failedToLoadFromFile) {
+        GSVoxel *data = [self newVoxelBufferWithNeighborhood:neighborhood];
+        buffer = [self newSunlightBufferUsingCombinedVoxelData:data];
+        free(data);
+        [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
+    }
+
+    assert(buffer);
 
     return buffer;
 }

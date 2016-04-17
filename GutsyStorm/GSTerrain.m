@@ -394,7 +394,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (nonnull GSShader *)newCursorShader
 {
-    NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"];
+    NSBundle *bundle = [NSBundle bundleWithIdentifier:[[NSRunningApplication currentApplication] bundleIdentifier]];
     NSString *vertFn = [bundle pathForResource:@"cursor.vert" ofType:@"txt"];
     NSString *fragFn = [bundle pathForResource:@"cursor.frag" ofType:@"txt"];
     
@@ -414,7 +414,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (nonnull GSShader *)newTerrainShader
 {
-    NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"];
+    NSBundle *bundle = [NSBundle bundleWithIdentifier:[[NSRunningApplication currentApplication] bundleIdentifier]];
     NSString *vertFn = [bundle pathForResource:@"terrain.vert" ofType:@"txt"];
     NSString *fragFn = [bundle pathForResource:@"terrain.frag" ofType:@"txt"];
     
@@ -446,7 +446,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         GSShader *cursorShader = [self newCursorShader];
         GSShader *terrainShader = [self newTerrainShader];
 
-        NSString *path = [[NSBundle bundleWithIdentifier:@"com.foxostro.GutsyStorm"]
+        NSString *path = [[NSBundle bundleWithIdentifier:[[NSRunningApplication currentApplication] bundleIdentifier]]
                                          pathForResource:@"terrain"
                                                   ofType:@"png"];
         _textureArray = [[GSTextureArray alloc] initWithImagePath:path numTextures:4];

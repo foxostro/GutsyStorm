@@ -363,37 +363,29 @@
 
     assert(!_chunkStoreHasBeenShutdown);
     assert(_gridVoxelData);
-    assert(_activeRegion);
     
-    struct GSStopwatchBreadcrumb breadcrumb;
+    GSBreadcrumb;
     GSStopwatchTraceBegin(&breadcrumb, @"applyJournal enter");
     
     dispatch_group_t group = dispatch_group_create();
     
-    NSArray * _Nonnull (^block)(void) = ^ NSArray * _Nonnull {
-        NSMutableSet *points = [[NSMutableSet alloc] initWithCapacity:journal.journalEntries.count];
-        for(GSTerrainJournalEntry *entry in journal.journalEntries)
-        {
-            vector_float3 pos = [entry.position vectorValue];
-            [_gridVoxelData replaceItemAtPoint:pos
-                                         queue:_queuePlaceBlockAtPoint
-                                         group:group
-                                     transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
-                                         GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
-                                         GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos block:entry.value];
-                                         [voxels2 saveToFile];
-                                         return voxels2;
-                                     }];
-            [points addObject:entry.position];
-        }
-        return [points allObjects];
-    };
-    
-    [_activeRegion modifyWithQueue:_queuePlaceBlockAtPoint
-                             group:group
-                        breadcrumb:&breadcrumb
-                             block:block];
-    
+    for(GSTerrainJournalEntry *entry in journal.journalEntries)
+    {
+        vector_float3 pos = [entry.position vectorValue];
+        [_gridVoxelData replaceItemAtPoint:pos
+                                     queue:_queuePlaceBlockAtPoint
+                                     group:group
+                                 transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
+                                     GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
+                                     GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos block:entry.value];
+                                     [voxels2 saveToFile];
+                                     return voxels2;
+                                 }];
+    }
+
+    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
+
     GSStopwatchTraceEnd(&breadcrumb, @"applyJournal exit");
 }
 
