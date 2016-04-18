@@ -13,7 +13,7 @@
 #import "GSReaderWriterLock.h"
 #import "GSBoxedVector.h"
 #import "GSGridItemLRU.h"
-#import "GSStopwatch.h"
+#import "GSActivity.h"
 
 
 //#define DEBUG_LOG(...) NSLog(__VA_ARGS__)

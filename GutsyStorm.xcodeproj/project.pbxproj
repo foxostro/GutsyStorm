@@ -31,6 +31,7 @@
 		6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6AA69C1CB1CAF20039F8A4 /* GSVAOHolder.m */; };
 		6F7ACC0B1CC46FAF0084BAC5 /* GSTerrainJournalEntry.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F7ACC071CC46FAF0084BAC5 /* GSTerrainJournalEntry.m */; };
 		6F7ACC0C1CC46FAF0084BAC5 /* GSTerrainJournal.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F7ACC091CC46FAF0084BAC5 /* GSTerrainJournal.m */; };
+		6F7ACC101CC4700A0084BAC5 /* GSActivity.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F7ACC0F1CC4700A0084BAC5 /* GSActivity.m */; };
 		6F8A80BA1CB982710063166C /* GSGridItemLRU.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F8A80B91CB982710063166C /* GSGridItemLRU.m */; };
 		6F9018491BD31EE300CD21FB /* crosshairs.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018471BD31EE300CD21FB /* crosshairs.frag.txt */; };
 		6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */; };
@@ -124,6 +125,8 @@
 		6F7ACC081CC46FAF0084BAC5 /* GSTerrainJournalEntry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainJournalEntry.h; sourceTree = "<group>"; };
 		6F7ACC091CC46FAF0084BAC5 /* GSTerrainJournal.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainJournal.m; sourceTree = "<group>"; };
 		6F7ACC0A1CC46FAF0084BAC5 /* GSTerrainJournal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainJournal.h; sourceTree = "<group>"; };
+		6F7ACC0E1CC4700A0084BAC5 /* GSActivity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSActivity.h; sourceTree = "<group>"; };
+		6F7ACC0F1CC4700A0084BAC5 /* GSActivity.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSActivity.m; sourceTree = "<group>"; };
 		6F8A80B81CB982710063166C /* GSGridItemLRU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridItemLRU.h; sourceTree = "<group>"; };
 		6F8A80B91CB982710063166C /* GSGridItemLRU.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridItemLRU.m; sourceTree = "<group>"; };
 		6F9018471BD31EE300CD21FB /* crosshairs.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = crosshairs.frag.txt; sourceTree = "<group>"; };
@@ -289,6 +292,8 @@
 				4A95D39E154645920042C081 /* GSReaderWriterLock.m */,
 				AC319A3D16A52E1700F65F11 /* SyscallWrappers.h */,
 				AC319A3E16A52E1700F65F11 /* SyscallWrappers.m */,
+				6F7ACC0E1CC4700A0084BAC5 /* GSActivity.h */,
+				6F7ACC0F1CC4700A0084BAC5 /* GSActivity.m */,
 				6F6AA69B1CB1BCA60039F8A4 /* GSStopwatch.h */,
 				4A2CD00B1513C3FD006C6551 /* MainMenu.xib */,
 				4A2310C8153E1BE000A4EBE6 /* Terrain */,
@@ -553,6 +558,7 @@
 				4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */,
 				6F7ACC0B1CC46FAF0084BAC5 /* GSTerrainJournalEntry.m in Sources */,
 				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
+				6F7ACC101CC4700A0084BAC5 /* GSActivity.m in Sources */,
 				6F7ACC0C1CC46FAF0084BAC5 /* GSTerrainJournal.m in Sources */,
 				6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */,
 				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,

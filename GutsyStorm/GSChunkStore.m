@@ -23,7 +23,7 @@
 #import "GSGridGeometry.h"
 #import "GSGridSunlight.h"
 #import "GSMatrixUtils.h"
-#import "GSStopwatch.h"
+#import "GSActivity.h"
 #import "GSTerrainJournal.h"
 #import "GSTerrainJournalEntry.h"
 
@@ -370,7 +370,7 @@
     assert(!_chunkStoreHasBeenShutdown);
     assert(_gridVoxelData);
     
-    GSBreadcrumb;
+    struct GSStopwatchBreadcrumb breadcrumb;
     GSStopwatchTraceBegin(&breadcrumb, @"applyJournal enter");
     
     dispatch_group_t group = dispatch_group_create();

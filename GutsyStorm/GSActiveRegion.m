@@ -14,7 +14,7 @@
 #import "GSGridItem.h"
 #import "GSGridVAO.h"
 #import "GSChunkVAO.h"
-#import "GSStopwatch.h"
+#import "GSActivity.h"
 
 
 static const uint64_t GSChunkCreationBudget = 10 * NSEC_PER_MSEC; // chosen arbitrarily
