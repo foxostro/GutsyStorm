@@ -15,6 +15,7 @@ struct GSStopwatchTraceState
 {
     uint64_t startTime;
     uint64_t intermediateTime;
+    BOOL enabled;
 };
 
 void GSStopwatchTraceBegin(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...);

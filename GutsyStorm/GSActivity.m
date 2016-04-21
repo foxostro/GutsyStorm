@@ -15,20 +15,26 @@ void GSStopwatchTraceBegin(struct GSStopwatchTraceState * _Nullable trace, NSStr
     }
 
     assert(format);
-    
+
+    trace->enabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"StopwatchTraceEnabled"];
     trace->startTime = trace->intermediateTime = GSStopwatchStart();
-    
-    va_list args;
-    va_start(args, format);
-    va_end(args);
-    NSString *label = [[NSString alloc] initWithFormat:format arguments:args];
-    
-    NSLog(@"Trace %p: Begin %@", (void *)trace, label);
+
+    if (trace->enabled) {
+        va_list args;
+        va_start(args, format);
+        va_end(args);
+        NSString *label = [[NSString alloc] initWithFormat:format arguments:args];
+        NSLog(@"Trace %p: Begin %@", (void *)trace, label);
+    }
 }
 
 void GSStopwatchTraceEnd(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...)
 {
     if (!trace) {
+        return;
+    }
+    
+    if (!trace->enabled) {
         return;
     }
     
@@ -52,6 +58,10 @@ void GSStopwatchTraceEnd(struct GSStopwatchTraceState * _Nullable trace, NSStrin
 void GSStopwatchTraceStep(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...)
 {
     if (!trace) {
+        return;
+    }
+    
+    if (!trace->enabled) {
         return;
     }
     
