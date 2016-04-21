@@ -37,4 +37,4 @@ struct GSStopwatchTraceState;
 @end
 
 /* This block defines a factory to generate new grid item objects given only the unique minP of the item. */
-typedef NSObject<GSGridItem> * (^GSGridItemFactory)(vector_float3 minP, struct GSStopwatchTraceState *trace);
+typedef NSObject<GSGridItem> * (^GSGridItemFactory)(vector_float3 minP);

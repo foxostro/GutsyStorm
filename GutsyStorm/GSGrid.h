@@ -13,7 +13,6 @@
 
 
 @class GSBoxedVector;
-struct GSStopwatchTraceState;
 typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem> * _Nonnull original);
 
 
@@ -50,8 +49,7 @@ typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem
 - (BOOL)objectAtPoint:(vector_float3)p
              blocking:(BOOL)blocking
                object:(TYPE _Nonnull * _Nullable)object
-      createIfMissing:(BOOL)createIfMissing
-                trace:(struct GSStopwatchTraceState * _Nullable)trace;
+      createIfMissing:(BOOL)createIfMissing;
 
 /* Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids. */
 - (void)evictItemAtPoint:(vector_float3)p;
@@ -89,7 +87,6 @@ typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem
 - (void)replaceItemAtPoint:(vector_float3)p
                      queue:(nonnull dispatch_queue_t)queue
                      group:(nonnull dispatch_group_t)group
-                     trace:(nullable struct GSStopwatchTraceState *)trace
                  transform:(nonnull GSGridTransform)fn;
 
 /* Set the cost limit to the current cost of items in the grid. This prevents the grid cost from growing. */

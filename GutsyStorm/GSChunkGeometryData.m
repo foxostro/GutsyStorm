@@ -86,7 +86,6 @@ static void applyLightToVertices(size_t numChunkVerts,
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                               trace:(nullable struct GSStopwatchTraceState *)trace
 {
     NSParameterAssert(folder);
     NSParameterAssert(sunlight);
@@ -95,7 +94,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     if (self = [super init]) {
         GSBoxedVector *bmp = [GSBoxedVector boxedVectorWithVector:minCorner];
-        GSStopwatchTraceStep(trace, @"Initializing geometry chunk %@", bmp);
+        GSStopwatchTraceStep(@"Initializing geometry chunk %@", bmp);
 
         minP = minCorner;
         
@@ -117,13 +116,13 @@ static void applyLightToVertices(size_t numChunkVerts,
             NSLog(@"ERROR: Failed to validate the geometry data file at \"%@\": %@", fileName, error);
         } else {
             failedToLoadFromFile = NO; // success!
-            GSStopwatchTraceStep(trace, @"Loaded geometry for chunk from file.");
+            GSStopwatchTraceStep(@"Loaded geometry for chunk from file.");
         }
 
         if (failedToLoadFromFile) {
-            _data = [GSChunkGeometryData dataWithSunlight:sunlight minP:minP trace:trace];
+            _data = [GSChunkGeometryData dataWithSunlight:sunlight minP:minP];
             [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
-            GSStopwatchTraceStep(trace, @"Generated geometry for chunk.");
+            GSStopwatchTraceStep(@"Generated geometry for chunk.");
         }
         
         if (!_data) {
@@ -133,7 +132,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
         cost = _data.length;
 
-        GSStopwatchTraceStep(trace, @"Done initializing geometry chunk %@", bmp);
+        GSStopwatchTraceStep(@"Done initializing geometry chunk %@", bmp);
     }
     
     return self;
@@ -243,9 +242,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 // Completely regenerate geometry for the chunk.
-+ (nonnull NSData *)dataWithSunlight:(nonnull GSChunkSunlightData *)sunlight
-                                minP:(vector_float3)minCorner
-                               trace:(nullable struct GSStopwatchTraceState *)trace
++ (nonnull NSData *)dataWithSunlight:(nonnull GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner
 {
     vector_float3 pos;
     NSMutableArray<GSBoxedTerrainVertex *> *vertices;
@@ -274,7 +271,7 @@ static void applyLightToVertices(size_t numChunkVerts,
                                                          minP:minCorner];
         }
     }
-    GSStopwatchTraceStep(trace, @"done generating triangles");
+    GSStopwatchTraceStep(@"done generating triangles");
 
     const GLsizei numChunkVerts = (GLsizei)[vertices count];
 
@@ -304,7 +301,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     }
 
     // Iterate over all vertices and calculate lighting.
-    GSStopwatchTraceStep(trace, @"ready to apply light");
+    GSStopwatchTraceStep(@"ready to apply light");
     applyLightToVertices(numChunkVerts, vertsBuffer, sunlight.sunlight, minCorner);
     
     return data;

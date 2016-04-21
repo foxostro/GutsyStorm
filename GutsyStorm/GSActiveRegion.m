@@ -143,8 +143,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         [_gridVAO objectAtPoint:pos
                        blocking:NO
                          object:&vao
-                createIfMissing:NO
-                          trace:NULL];
+                createIfMissing:NO];
         
         if (vao) {
             if (oldVao != vao) {
@@ -223,10 +222,9 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 
 - (void)modifyWithQueue:(nonnull dispatch_queue_t)queue
                   group:(nonnull dispatch_group_t)group
-                  trace:(struct GSStopwatchTraceState * _Nullable)trace
                   block:(void (^ _Nonnull)(void))block
 {
-    GSStopwatchTraceStep(trace, @"modifyWithQueue enter");
+    GSStopwatchTraceStep(@"modifyWithQueue enter");
 
     [_lockDrawList lock];
     
@@ -237,7 +235,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     // performed asynchronously and each block is added to the specified dispatch group.
     block();
     dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    GSStopwatchTraceStep(trace, @"Finished waiting for `block' to modify the active region.");
+    GSStopwatchTraceStep(@"Finished waiting for `block' to modify the active region.");
     
     // Rebuild the draw list.
     [_lockCachedPointsInCameraFrustum lockForReading];
@@ -247,18 +245,12 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     [_drawList removeAllObjects];
     for(GSBoxedVector *boxedPosition in pointsInCamera)
     {
-        GSChunkVAO *vao = nil;
-        [_gridVAO objectAtPoint:[boxedPosition vectorValue]
-                       blocking:YES
-                         object:&vao
-                createIfMissing:YES
-                          trace:trace];
-        assert(vao);
+        GSChunkVAO *vao = [_gridVAO objectAtPoint:[boxedPosition vectorValue]];
         [_drawList addObject:vao];
     }
 
     // We're done. Release locks last to avoid interleaved trace messages.
-    GSStopwatchTraceStep(trace, @"modifyWithQueue exit");
+    GSStopwatchTraceStep(@"modifyWithQueue exit");
     [_lockDrawList unlock];
     dispatch_resume(_generationQueue);
 }
@@ -284,8 +276,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
             BOOL r = [_gridVAO objectAtPoint:[boxedPosition vectorValue]
                                     blocking:NO
                                       object:nil
-                             createIfMissing:createIfMissing
-                                       trace:NULL];
+                             createIfMissing:createIfMissing];
             
             anyChunksMissing = anyChunksMissing && r;
         }

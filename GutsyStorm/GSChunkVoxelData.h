@@ -32,22 +32,18 @@ typedef void (^GSTerrainProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                              journal:(nonnull GSTerrainJournal *)journal
-                           generator:(nonnull GSTerrainProcessorBlock)generator
-                               trace:(nullable struct GSStopwatchTraceState *)trace;
+                           generator:(nonnull GSTerrainProcessorBlock)generator;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minP
                               folder:(nonnull NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                                data:(nonnull GSTerrainBuffer *)data
-                               trace:(nullable struct GSStopwatchTraceState *)trace;
+                                data:(nonnull GSTerrainBuffer *)data;
 
 - (GSVoxel)voxelAtLocalPosition:(vector_long3)chunkLocalP;
 
 - (void)saveToFile;
 
-- (nonnull GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos
-                                            block:(GSVoxel)newBlock
-                                            trace:(nullable struct GSStopwatchTraceState *)trace;
+- (nonnull GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock;
 
 @end

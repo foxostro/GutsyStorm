@@ -25,7 +25,6 @@
                               folder:(nonnull NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                        neighborhood:(nonnull GSNeighborhood *)neighborhood
-                               trace:(nullable struct GSStopwatchTraceState *)trace;
+                        neighborhood:(nonnull GSNeighborhood *)neighborhood;
 
 @end

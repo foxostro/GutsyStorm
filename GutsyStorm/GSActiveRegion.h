@@ -12,7 +12,6 @@
 @class GSChunkVAO;
 @class GSGridVAO;
 @class GSBoxedVector;
-struct GSStopwatchTraceState;
 
 
 @interface GSActiveRegion : NSObject
@@ -42,7 +41,6 @@ struct GSStopwatchTraceState;
  */
 - (void)modifyWithQueue:(nonnull dispatch_queue_t)queue
                   group:(nonnull dispatch_group_t)group
-                  trace:(struct GSStopwatchTraceState * _Nullable)trace
                   block:(void (^ _Nonnull)(void))block;
 
 /* Call this to notify the active region that a VAO in the active region needs to be generated or regenerated.

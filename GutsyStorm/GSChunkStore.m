@@ -43,8 +43,7 @@
 - (nonnull GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
 - (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p neighborhood:(GSNeighborhood * _Nonnull * _Nonnull)neighborhood;
 
-- (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
-                                                trace:(struct GSStopwatchTraceState * _Nullable)trace;
+- (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
 - (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
 - (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
@@ -87,50 +86,46 @@
     assert(!_gridVAO);
 
     _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"
-                                          factory:^NSObject <GSGridItem> * (vector_float3 minCorner, struct GSStopwatchTraceState * _Nullable trace) {
+                                          factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
                                               return [[GSChunkVoxelData alloc] initWithMinP:minCorner
                                                                                      folder:_folder
                                                                              groupForSaving:_groupForSaving
                                                                              queueForSaving:_queueForSaving
                                                                                     journal:_journal
-                                                                                  generator:_generator
-                                                                                      trace:trace];
+                                                                                  generator:_generator];
                                           }];
 
     _gridSunlightData = [[GSGridSunlight alloc]
                          initWithName:@"gridSunlightData"
                           cacheFolder:_folder
-                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner, struct GSStopwatchTraceState * _Nullable trace) {
-                             GSStopwatchTraceStep(trace, @"Fetching neighborhood");
+                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
+                             GSStopwatchTraceStep(@"Fetching neighborhood");
                              GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
                              return [[GSChunkSunlightData alloc] initWithMinP:minCorner
                                                                        folder:_folder
                                                                groupForSaving:_groupForSaving
                                                                queueForSaving:_queueForSaving
-                                                                 neighborhood:neighborhood
-                                                                        trace:trace];
+                                                                 neighborhood:neighborhood];
                          }];
 
     _gridGeometryData = [[GSGridGeometry alloc]
                          initWithName:@"gridGeometryData"
                           cacheFolder:_folder
-                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner, struct GSStopwatchTraceState * _Nullable trace) {
-                                      GSStopwatchTraceStep(trace, @"Fetching sunlight");
+                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
+                                      GSStopwatchTraceStep(@"Fetching sunlight");
                                       GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
                                       id r = [[GSChunkGeometryData alloc] initWithMinP:minCorner
                                                                                 folder:_folder
                                                                               sunlight:sunlight
                                                                         groupForSaving:_groupForSaving
-                                                                        queueForSaving:_queueForSaving
-                                                                                 trace:trace];
+                                                                        queueForSaving:_queueForSaving];
                                   return r;
                               }];
     
     _gridVAO = [[GSGridVAO alloc] initWithName:@"gridVAO"
-                                       factory:^NSObject <GSGridItem> * (vector_float3 minCorner, struct GSStopwatchTraceState * _Nullable trace) {
-                                           GSStopwatchTraceStep(trace, @"Fetching geometry");
-                                           GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner
-                                                                                                trace:trace];
+                                       factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
+                                           GSStopwatchTraceStep(@"Fetching geometry");
+                                           GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
                                            return [[GSChunkVAO alloc] initWithChunkGeometry:geometry
                                                                                   glContext:_glContext];
                                        }];
@@ -381,7 +376,7 @@
     assert(!_chunkStoreHasBeenShutdown);
     assert(_gridVoxelData);
     
-    struct GSStopwatchTraceState *trace = GSStopwatchTraceBegin(@"applyJournal");
+    GSStopwatchTraceBegin(@"applyJournal");
     
     dispatch_group_t group = dispatch_group_create();
     
@@ -391,25 +386,23 @@
         [_gridVoxelData replaceItemAtPoint:pos
                                      queue:_queuePlaceBlockAtPoint
                                      group:group
-                                     trace:trace
                                  transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
                                      GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
                                      GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos
-                                                                                        block:entry.value
-                                                                                        trace:trace];
+                                                                                        block:entry.value];
                                      [voxels2 saveToFile];
                                      return voxels2;
                                  }];
-        GSStopwatchTraceStep(trace, @"Placed block at %@.", entry.position);
+        GSStopwatchTraceStep(@"Placed block at %@.", entry.position);
     }
 
     dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    GSStopwatchTraceStep(trace, @"Done waiting for asynchronous invalidation steps to finish.");
+    GSStopwatchTraceStep(@"Done waiting for asynchronous invalidation steps to finish.");
 
     dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
-    GSStopwatchTraceStep(trace, @"Done waiting for chunk to finish saving to disk.");
+    GSStopwatchTraceStep(@"Done waiting for chunk to finish saving to disk.");
 
-    GSStopwatchTraceEnd(trace, @"applyJournal");
+    GSStopwatchTraceEnd(@"applyJournal");
 }
 
 - (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block
@@ -426,30 +419,26 @@
         [_journal addEntry:entry];
     });
 
-    struct GSStopwatchTraceState *trace;
-    trace = GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", [GSBoxedVector boxedVectorWithVector:pos]);
+    GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", [GSBoxedVector boxedVectorWithVector:pos]);
 
     dispatch_group_t group = dispatch_group_create();
 
     [_activeRegion modifyWithQueue:_queuePlaceBlockAtPoint
                              group:group
-                             trace:trace
                              block:^{
         [_gridVoxelData replaceItemAtPoint:pos
                                      queue:_queuePlaceBlockAtPoint
                                      group:group
-                                     trace:trace
                                  transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
                                      GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
                                      GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos
-                                                                                        block:block
-                                                                                        trace:trace];
+                                                                                        block:block];
                                      [voxels2 saveToFile];
                                      return voxels2;
                                  }];
     }];
 
-    GSStopwatchTraceEnd(trace, @"placeBlockAtPoint exit %@", [GSBoxedVector boxedVectorWithVector:pos]);
+    GSStopwatchTraceEnd(@"placeBlockAtPoint exit %@", [GSBoxedVector boxedVectorWithVector:pos]);
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel
@@ -638,16 +627,13 @@
 }
 
 - (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
-                                                trace:(struct GSStopwatchTraceState * _Nullable)trace
 {
     if (_chunkStoreHasBeenShutdown) {
         @throw nil;
     }
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridGeometryData);
-    GSChunkGeometryData *geo = nil;
-    [_gridGeometryData objectAtPoint:p blocking:YES object:&geo createIfMissing:YES trace:trace];
-    assert(geo);
+    GSChunkGeometryData *geo = [_gridGeometryData objectAtPoint:p];
     return geo;
 }
 
@@ -678,8 +664,7 @@
     BOOL success = [_gridVoxelData objectAtPoint:p
                                         blocking:NO
                                           object:&v
-                                 createIfMissing:YES
-                                           trace:NULL];
+                                 createIfMissing:YES];
 
     if(success) {
         *chunk = v;

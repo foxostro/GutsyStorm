@@ -176,7 +176,6 @@
              blocking:(BOOL)blocking
                object:(id _Nonnull * _Nullable)item
       createIfMissing:(BOOL)createIfMissing
-                trace:(struct GSStopwatchTraceState * _Nullable)trace
 {
     if(blocking) {
         [_lockTheTableItself lockForReading];
@@ -204,9 +203,9 @@
     anObject = [self _searchForItemAtPosition:minP bucket:bucket];
 
     if(!anObject && createIfMissing) {
-        GSStopwatchTraceStep(trace, @"%@: calling factory", self.name);
-        anObject = _factory(minP, trace);
-        GSStopwatchTraceStep(trace, @"%@: factory finished", self.name);
+        GSStopwatchTraceStep(@"%@: calling factory", self.name);
+        anObject = _factory(minP);
+        GSStopwatchTraceStep(@"%@: factory finished", self.name);
         
         if (!anObject) {
             [NSException raise:NSMallocException format:@"Out of memory allocating `anObject' for GSGrid."];
@@ -250,8 +249,7 @@
     [self objectAtPoint:p
                blocking:YES
                  object:&anItem
-        createIfMissing:YES
-                  trace:NULL];
+        createIfMissing:YES];
 
     if (!anItem) {
         [NSException raise:NSGenericException format:@"Failed to get the object, and failure is not an option."];
@@ -370,7 +368,6 @@
 - (void)replaceItemAtPoint:(vector_float3)p
                      queue:(nonnull dispatch_queue_t)queue
                      group:(nonnull dispatch_group_t)group
-                     trace:(nullable struct GSStopwatchTraceState *)trace
                  transform:(nonnull GSGridTransform)newReplacementItem
 {
     NSParameterAssert(queue);
@@ -403,7 +400,7 @@
     // If the item does not already exist in the cache then have the factory retrieve/create it, transform, and add to
     // the cache.
     if (indexOfFoundItem == NSNotFound) {
-        NSObject <GSGridItem> *item = newReplacementItem(_factory(minP, trace));
+        NSObject <GSGridItem> *item = newReplacementItem(_factory(minP));
         [_lockTheCount lock];
         [bucket addObject:item];
         [_lru referenceObject:item bucket:bucket];
