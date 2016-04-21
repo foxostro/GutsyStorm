@@ -524,8 +524,8 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 - (void)updateWithDeltaTime:(float)dt
         cameraModifiedFlags:(unsigned)cameraModifiedFlags
 {
-    //Calculate the cursor position.
-    if(cameraModifiedFlags) {
+    // Calculate the cursor position.
+    if (!_cursor.cursorIsActive || cameraModifiedFlags) {
         [self recalcCursorPosition];
     }
     
@@ -574,12 +574,14 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 - (void)recalcCursorPosition
 {
     vector_float3 rotated = quaternion_rotate_vector(_camera.cameraRot, vector_make(0, 0, -1));
-    GSRay ray = GSRayMake(_camera.cameraEye, vector_make(rotated.x, rotated.y, rotated.z));
+    GSRay ray = GSRayMake(_camera.cameraEye, rotated);
     __block BOOL cursorIsActive = NO;
     __block vector_float3 prev = ray.origin;
     __block vector_float3 cursorPos;
     
-    [_chunkStore enumerateVoxelsOnRay:ray maxDepth:_maxPlaceDistance withBlock:^(vector_float3 p, BOOL *stop, BOOL *fail) {
+    [_chunkStore enumerateVoxelsOnRay:ray
+                             maxDepth:_maxPlaceDistance
+                            withBlock:^(vector_float3 p, BOOL *stop, BOOL *fail) {
         GSVoxel voxel;
 
         if(![_chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {

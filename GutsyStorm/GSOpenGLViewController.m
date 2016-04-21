@@ -289,17 +289,17 @@
         dispatch_semaphore_signal(_semaTimerShutdown);
         return;
     }
-    
+
     CFAbsoluteTime frameTime = CFAbsoluteTimeGetCurrent();
     float dt = (float)(frameTime - _prevFrameTime);
     unsigned cameraModifiedFlags = 0;
-    
+
     // Handle user input and update the camera if it was modified.
     cameraModifiedFlags = [self handleUserInput:dt];
-    
+
     // Allow the chunkStore to update every frame.
     [_terrain updateWithDeltaTime:dt cameraModifiedFlags:cameraModifiedFlags];
-    
+
     _prevFrameTime = frameTime;
 }
 
