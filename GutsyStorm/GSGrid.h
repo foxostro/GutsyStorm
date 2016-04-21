@@ -89,6 +89,7 @@ typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem
 - (void)replaceItemAtPoint:(vector_float3)p
                      queue:(nonnull dispatch_queue_t)queue
                      group:(nonnull dispatch_group_t)group
+                     trace:(nullable struct GSStopwatchTraceState *)trace
                  transform:(nonnull GSGridTransform)fn;
 
 /* Set the cost limit to the current cost of items in the grid. This prevents the grid cost from growing. */

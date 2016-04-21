@@ -14,7 +14,7 @@
 #import "GSNeighborhood.h"
 #import "GSErrorCodes.h"
 #import "GSMutableBuffer.h"
-#import "GSStopwatch.h"
+#import "GSActivity.h"
 #import "GSTerrainJournal.h"
 #import "GSTerrainJournalEntry.h"
 
@@ -62,10 +62,13 @@ struct GSChunkVoxelHeader
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                              journal:(nonnull GSTerrainJournal *)journal
                            generator:(nonnull GSTerrainProcessorBlock)generator
+                               trace:(nullable struct GSStopwatchTraceState *)trace
 {
     NSParameterAssert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
     if (self = [super init]) {
+        GSStopwatchTraceStep(trace, @"Initializing voxel chunk %@", [GSBoxedVector boxedVectorWithVector:mp]);
+
         GSTerrainJournal *effectiveJournal = journal;
 
         minP = mp;
@@ -102,6 +105,7 @@ struct GSChunkVoxelHeader
             const void * restrict voxelBytes = ((void *)header) + sizeof(struct GSChunkVoxelHeader);
             buffer = [[GSTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3 copyUnalignedData:voxelBytes];
             failedToLoadFromFile = NO; // success!
+            GSStopwatchTraceStep(trace, @"Loaded voxel chunk contents from file.");
         }
 
         if (failedToLoadFromFile) {
@@ -118,6 +122,7 @@ struct GSChunkVoxelHeader
                          queue:_queueForSaving
                          group:_groupForSaving
                         header:[NSData dataWithBytes:&header length:sizeof(header)]];
+            GSStopwatchTraceStep(trace, @"Generated voxel chunk contents.");
         }
         
         if (!buffer) {
@@ -125,16 +130,19 @@ struct GSChunkVoxelHeader
         }
 
         _voxels = buffer;
+
+        GSStopwatchTraceStep(trace, @"Done initializing voxel chunk %@", [GSBoxedVector boxedVectorWithVector:mp]);
     }
 
     return self;
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)mp
-                               folder:(nonnull NSURL *)folder
-                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
-                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                                 data:(nonnull GSTerrainBuffer *)data
+                              folder:(nonnull NSURL *)folder
+                      groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                                data:(nonnull GSTerrainBuffer *)data
+                               trace:(nullable struct GSStopwatchTraceState *)trace
 {
     if (self = [super init]) {
         minP = mp;
@@ -354,7 +362,9 @@ struct GSChunkVoxelHeader
                      header:[NSData dataWithBytes:&header length:sizeof(header)]];
 }
 
-- (nonnull GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
+- (nonnull GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos
+                                            block:(GSVoxel)newBlock
+                                            trace:(nullable struct GSStopwatchTraceState *)trace
 {
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSTerrainBufferElement newValue = *((GSTerrainBufferElement *)&newBlock);
@@ -363,7 +373,8 @@ struct GSChunkVoxelHeader
                                                                           folder:_folder
                                                                   groupForSaving:_groupForSaving
                                                                   queueForSaving:_queueForSaving
-                                                                            data:modified];
+                                                                            data:modified
+                                                                           trace:trace];
     return modifiedVoxelData;
 }
 

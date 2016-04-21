@@ -178,8 +178,6 @@
       createIfMissing:(BOOL)createIfMissing
                 trace:(struct GSStopwatchTraceState * _Nullable)trace
 {
-    GSStopwatchTraceStep(trace, @"%@: entering objectAtPoint:blocking:...", self.name);
-
     if(blocking) {
         [_lockTheTableItself lockForReading];
     } else if(![_lockTheTableItself tryLockForReading]) {
@@ -202,16 +200,13 @@
         [_lockTheTableItself unlockForReading];
         return NO;
     }
-
-    GSStopwatchTraceStep(trace, @"%@: locks obtained", self.name);
     
     anObject = [self _searchForItemAtPosition:minP bucket:bucket];
 
-    GSStopwatchTraceStep(trace, @"%@: search", self.name);
-
     if(!anObject && createIfMissing) {
-        anObject = _factory(minP);
-        GSStopwatchTraceStep(trace, @"%@: factory", self.name);
+        GSStopwatchTraceStep(trace, @"%@: calling factory", self.name);
+        anObject = _factory(minP, trace);
+        GSStopwatchTraceStep(trace, @"%@: factory finished", self.name);
         
         if (!anObject) {
             [NSException raise:NSMallocException format:@"Out of memory allocating `anObject' for GSGrid."];
@@ -244,8 +239,6 @@
             *item = anObject;
         }
     }
-
-    GSStopwatchTraceStep(trace, @"%@: exiting objectAtPoint:blocking:...", self.name);
 
     return result;
 }
@@ -377,6 +370,7 @@
 - (void)replaceItemAtPoint:(vector_float3)p
                      queue:(nonnull dispatch_queue_t)queue
                      group:(nonnull dispatch_group_t)group
+                     trace:(nullable struct GSStopwatchTraceState *)trace
                  transform:(nonnull GSGridTransform)newReplacementItem
 {
     NSParameterAssert(queue);
@@ -409,7 +403,7 @@
     // If the item does not already exist in the cache then have the factory retrieve/create it, transform, and add to
     // the cache.
     if (indexOfFoundItem == NSNotFound) {
-        NSObject <GSGridItem> *item = newReplacementItem(_factory(minP));
+        NSObject <GSGridItem> *item = newReplacementItem(_factory(minP, trace));
         [_lockTheCount lock];
         [bucket addObject:item];
         [_lru referenceObject:item bucket:bucket];

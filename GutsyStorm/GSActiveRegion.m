@@ -247,9 +247,14 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     [_drawList removeAllObjects];
     for(GSBoxedVector *boxedPosition in pointsInCamera)
     {
-        GSChunkVAO *vao = [_gridVAO objectAtPoint:[boxedPosition vectorValue]];
+        GSChunkVAO *vao = nil;
+        [_gridVAO objectAtPoint:[boxedPosition vectorValue]
+                       blocking:YES
+                         object:&vao
+                createIfMissing:YES
+                          trace:trace];
+        assert(vao);
         [_drawList addObject:vao];
-        GSStopwatchTraceStep(trace, @"Regenerated VAO at %@.", boxedPosition);
     }
 
     // We're done. Release locks last to avoid interleaved trace messages.

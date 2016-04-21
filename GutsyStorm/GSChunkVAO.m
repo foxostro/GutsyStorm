@@ -16,6 +16,8 @@
 #import "GSBoxedTerrainVertex.h"
 #import "GSVBOHolder.h"
 #import "GSVAOHolder.h"
+#import "GSActivity.h"
+#import "GSBoxedVector.h"
 
 
 #define SIZEOF_STRUCT_ARRAY_ELEMENT(t, m) sizeof(((t*)0)->m[0])
@@ -76,7 +78,7 @@ typedef GLuint index_t;
 }
 
 - (nonnull instancetype)initWithChunkGeometry:(nonnull GSChunkGeometryData *)geometry
-                                     glContext:(nonnull NSOpenGLContext *)context
+                                    glContext:(nonnull NSOpenGLContext *)context
 {
     NSParameterAssert(geometry);
     NSParameterAssert(context);

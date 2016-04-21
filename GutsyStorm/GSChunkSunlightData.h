@@ -22,9 +22,10 @@
 + (nonnull NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                               folder:(nonnull NSURL *)folder
-                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
-                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                         neighborhood:(nonnull GSNeighborhood *)neighborhood;
+                              folder:(nonnull NSURL *)folder
+                      groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                        neighborhood:(nonnull GSNeighborhood *)neighborhood
+                               trace:(nullable struct GSStopwatchTraceState *)trace;
 
 @end

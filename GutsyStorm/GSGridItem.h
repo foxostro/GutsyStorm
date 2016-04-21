@@ -8,6 +8,10 @@
 
 #import <simd/vector.h>
 
+
+struct GSStopwatchTraceState;
+
+
 @protocol GSGridItem <NSCopying>
 
 @required
@@ -33,4 +37,4 @@
 @end
 
 /* This block defines a factory to generate new grid item objects given only the unique minP of the item. */
-typedef NSObject<GSGridItem> * (^GSGridItemFactory)(vector_float3 minP);
+typedef NSObject<GSGridItem> * (^GSGridItemFactory)(vector_float3 minP, struct GSStopwatchTraceState *trace);

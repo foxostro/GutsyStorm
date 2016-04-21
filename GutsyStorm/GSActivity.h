@@ -11,15 +11,13 @@
 
 #import "GSStopwatch.h"
 
-struct GSStopwatchTraceState
-{
-    uint64_t startTime;
-    uint64_t intermediateTime;
-    BOOL enabled;
-};
+struct GSStopwatchTraceState;
 
-void GSStopwatchTraceBegin(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...);
-void GSStopwatchTraceEnd(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...);
+struct GSStopwatchTraceState * _Nullable GSStopwatchTraceBegin(NSString * _Nonnull format, ...);
+uint64_t GSStopwatchTraceEnd(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...);
+void GSStopwatchTraceJoin(struct GSStopwatchTraceState * _Nullable mainTrace,
+                          struct GSStopwatchTraceState * _Nullable subTrace,
+                          NSString * _Nonnull format, ...);
 void GSStopwatchTraceStep(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...);
 
 #endif /* GSActivity_h */

@@ -10,7 +10,7 @@
 #import "GSChunkVoxelData.h"
 #import "GSNeighborhood.h"
 #import "GSMutableBuffer.h"
-#import "GSStopwatch.h"
+#import "GSActivity.h"
 #import "GSErrorCodes.h"
 
 
@@ -46,10 +46,11 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                               folder:(nonnull NSURL *)folder
-                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
-                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                         neighborhood:(nonnull GSNeighborhood *)neighborhood
+                              folder:(nonnull NSURL *)folder
+                      groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                        neighborhood:(nonnull GSNeighborhood *)neighborhood
+                               trace:(nullable struct GSStopwatchTraceState *)trace
 {
     if(self = [super init]) {
         assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
@@ -59,7 +60,9 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _neighborhood = neighborhood;
-        _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder];
+        _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood
+                                                     folder:folder
+                                                      trace:trace];
         cost = BUFFER_SIZE_IN_BYTES(sunlightDim);
     }
     return self;
@@ -229,7 +232,13 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
 - (nonnull GSTerrainBuffer *)newSunlightBufferWithNeighborhood:(nonnull GSNeighborhood *)neighborhood
                                                         folder:(nonnull NSURL *)folder
+                                                         trace:(nullable struct GSStopwatchTraceState *)trace
 {
+    NSParameterAssert(neighborhood);
+    NSParameterAssert(folder);
+
+    GSStopwatchTraceStep(trace, @"newSunlightBufferWithNeighborhood enter");
+
     GSTerrainBuffer *buffer = nil;
 
     BOOL failedToLoadFromFile = YES;
@@ -248,6 +257,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
             const void * restrict sunlightBytes = ((void *)header) + sizeof(struct GSChunkSunlightHeader);
             buffer = [[GSTerrainBuffer alloc] initWithDimensions:sunlightDim copyUnalignedData:sunlightBytes];
             failedToLoadFromFile = NO;
+            GSStopwatchTraceStep(trace, @"Loaded sunlight data for chunk from file.");
         }
     } else if ([error.domain isEqualToString:NSCocoaErrorDomain] && (error.code == 260)) {
         // File not found. We don't have to log this one because it's common and we know how to recover.
@@ -274,13 +284,16 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
                      queue:_queueForSaving
                      group:_groupForSaving
                     header:[NSData dataWithBytes:&header length:sizeof(header)]];
+        
+        GSStopwatchTraceStep(trace, @"Generated sunlight data for chunk.");
     }
     
     if (!buffer) {
         [NSException raise:NSGenericException
                     format:@"Failed to fetch or generate the sunlight chunk \"%@\"", fileName];
     }
-
+    
+    GSStopwatchTraceStep(trace, @"newSunlightBufferWithNeighborhood exit");
     return buffer;
 }
 

@@ -8,37 +8,58 @@
 
 #import "GSActivity.h"
 
-void GSStopwatchTraceBegin(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...)
+
+struct GSStopwatchTraceState
 {
-    if (!trace) {
-        return;
-    }
+    uint64_t startTime;
+    uint64_t intermediateTime;
+    OSSpinLock lock;
+};
 
+
+static BOOL gStopwatchTracingEnabled = NO;
+
+
+struct GSStopwatchTraceState * _Nullable GSStopwatchTraceBegin(NSString * _Nonnull format, ...)
+{
     assert(format);
-
-    trace->enabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"StopwatchTraceEnabled"];
-    trace->startTime = trace->intermediateTime = GSStopwatchStart();
-
-    if (trace->enabled) {
-        va_list args;
-        va_start(args, format);
-        va_end(args);
-        NSString *label = [[NSString alloc] initWithFormat:format arguments:args];
-        NSLog(@"Trace %p: Begin %@", (void *)trace, label);
+    
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        gStopwatchTracingEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"StopwatchTraceEnabled"];
+    });
+    
+    if (!gStopwatchTracingEnabled) {
+        return NULL;
     }
+    
+    struct GSStopwatchTraceState *trace = calloc(1, sizeof(struct GSStopwatchTraceState));
+
+    trace->startTime = trace->intermediateTime = GSStopwatchStart();
+    trace->lock = OS_SPINLOCK_INIT;
+
+    va_list args;
+    va_start(args, format);
+    va_end(args);
+    NSString *label = [[NSString alloc] initWithFormat:format arguments:args];
+    NSLog(@"Trace %p: Begin %@", (void *)trace, label);
+    
+    return trace;
 }
 
-void GSStopwatchTraceEnd(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...)
+uint64_t GSStopwatchTraceEnd(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...)
 {
-    if (!trace) {
-        return;
-    }
-    
-    if (!trace->enabled) {
-        return;
-    }
-    
     assert(format);
+
+    if (!trace) {
+        return 0;
+    }
+    
+    if (!gStopwatchTracingEnabled) {
+        return 0;
+    }
+    
+    OSSpinLockLock(&trace->lock);
     
     va_list args;
     va_start(args, format);
@@ -53,19 +74,46 @@ void GSStopwatchTraceEnd(struct GSStopwatchTraceState * _Nullable trace, NSStrin
           elapsedTimeIntermediateNs / (float)NSEC_PER_MSEC,
           label,
           elapsedTimeTotalNs / (float)NSEC_PER_MSEC);
+    
+    free(trace);
+    
+    return elapsedTimeTotalNs;
+}
+
+void GSStopwatchTraceJoin(struct GSStopwatchTraceState * _Nullable mainTrace,
+                          struct GSStopwatchTraceState * _Nullable subTrace,
+                          NSString * _Nonnull format, ...)
+{
+    assert(format);
+    
+    if (!mainTrace || !subTrace) {
+        return;
+    }
+    
+    if (!gStopwatchTracingEnabled) {
+        return;
+    }
+
+    va_list args;
+    va_start(args, format);
+    va_end(args);
+    NSString *label = [[NSString alloc] initWithFormat:format arguments:args];
+    
+    uint64_t elapsedTimeTotalNs = GSStopwatchTraceEnd(subTrace, label);
+
+    GSStopwatchTraceStep(mainTrace, @"Join %p ; Total elapsed time of sub-trace is %.3f ms",
+                         subTrace, elapsedTimeTotalNs / (float)NSEC_PER_MSEC);
 }
 
 void GSStopwatchTraceStep(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...)
 {
+    assert(format);
+
     if (!trace) {
         return;
     }
     
-    if (!trace->enabled) {
-        return;
-    }
-    
-    assert(format);
+    OSSpinLockLock(&trace->lock);
     
     va_list args;
     va_start(args, format);
@@ -76,4 +124,6 @@ void GSStopwatchTraceStep(struct GSStopwatchTraceState * _Nullable trace, NSStri
     NSLog(@"Trace %p: (+%.3f ms) %@",
           (void *)trace, elapsedTimeNs / (float)NSEC_PER_MSEC, label);
     trace->intermediateTime = GSStopwatchStart();
+    
+    OSSpinLockUnlock(&trace->lock);
 }
