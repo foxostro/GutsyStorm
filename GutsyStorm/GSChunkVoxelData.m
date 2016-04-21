@@ -13,15 +13,30 @@
 #import "GSChunkStore.h"
 #import "GSNeighborhood.h"
 #import "GSErrorCodes.h"
-#import "SyscallWrappers.h"
 #import "GSMutableBuffer.h"
 #import "GSStopwatch.h"
+#import "GSTerrainJournal.h"
+#import "GSTerrainJournalEntry.h"
+
+
+#define VOXEL_MAGIC ('lxov')
+#define VOXEL_VERSION (0)
+
+
+struct GSChunkVoxelHeader
+{
+    uint32_t magic;
+    uint32_t version;
+    uint32_t w, h, d;
+    uint64_t len;
+};
 
 
 @interface GSChunkVoxelData ()
 
 - (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data;
-- (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainProcessorBlock)generator;
+- (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainProcessorBlock)generator
+                                                   journal:(nonnull GSTerrainJournal *)journal;
 
 @end
 
@@ -42,20 +57,26 @@
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)mp
-                               folder:(nonnull NSURL *)folder
-                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
-                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                            generator:(nonnull GSTerrainProcessorBlock)generator
+                              folder:(nonnull NSURL *)folder
+                      groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                             journal:(nonnull GSTerrainJournal *)journal
+                           generator:(nonnull GSTerrainProcessorBlock)generator
 {
-    assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
+    NSParameterAssert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
     if (self = [super init]) {
+        GSTerrainJournal *effectiveJournal = journal;
+
         minP = mp;
+        cost = BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
+
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
 
-        // Load the terrain from disk if possible, else generate it form scratch.
+        // Load the terrain from disk if possible, else generate it from scratch.
+        BOOL failedToLoadFromFile = YES;
         GSTerrainBuffer *buffer = nil;
         NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:minP];
         NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
@@ -63,24 +84,46 @@
         NSData *data = [NSData dataWithContentsOfFile:[url path]
                                               options:NSDataReadingMapped
                                                 error:&error];
-        BOOL goodSize = [data length] == BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
-
-        if (data && goodSize) {
-            if (!goodSize) {
-                NSLog(@"ERROR: bad size for chunk data; assuming data corruption");
+        
+        if (!data) {
+            if ([error.domain isEqualToString:NSCocoaErrorDomain] && (error.code == 260)) {
+                // File not found. We don't have to log this one because it's common and we know how to recover.
+                // Since this is a common error simply meaning that the voxel have not yet been generated, don't
+                // bother trying to reconstruct the chunk from the journal, i.e. we only use the journal to recover
+                // from errors.
+                effectiveJournal = nil;
+            } else {
+                NSLog(@"ERROR: Failed to load voxel data for chunk at \"%@\": %@", fileName, error);
             }
-            
-            const GSTerrainBufferElement * _Nullable bytes = [data bytes];
-            assert(bytes);
-            buffer = [[GSTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3 cloneAlignedData:bytes];
+        } else if (![self validateVoxelData:data error:&error]) {
+             NSLog(@"ERROR: Failed to validate the voxel data file at \"%@\": %@", fileName, error);
         } else {
-            buffer = [self newTerrainBufferWithGenerator:generator];
-            [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
+            const struct GSChunkVoxelHeader * restrict header = [data bytes];
+            const void * restrict voxelBytes = ((void *)header) + sizeof(struct GSChunkVoxelHeader);
+            buffer = [[GSTerrainBuffer alloc] initWithDimensions:GSChunkSizeIntVec3 copyUnalignedData:voxelBytes];
+            failedToLoadFromFile = NO; // success!
         }
 
-        cost = BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
+        if (failedToLoadFromFile) {
+            buffer = [self newTerrainBufferWithGenerator:generator journal:effectiveJournal];
+            struct GSChunkVoxelHeader header = {
+                .magic = VOXEL_MAGIC,
+                .version = VOXEL_VERSION,
+                .w = CHUNK_SIZE_X,
+                .h = CHUNK_SIZE_Y,
+                .d = CHUNK_SIZE_Z,
+                .len = (uint64_t)BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)
+            };
+            [buffer saveToFile:url
+                         queue:_queueForSaving
+                         group:_groupForSaving
+                        header:[NSData dataWithBytes:&header length:sizeof(header)]];
+        }
+        
+        if (!buffer) {
+            [NSException raise:NSGenericException format:@"Failed to fetch or generate voxel data at %@", fileName];
+        }
 
-        assert(buffer);
         _voxels = buffer;
     }
 
@@ -95,6 +138,7 @@
 {
     if (self = [super init]) {
         minP = mp;
+        cost = BUFFER_SIZE_IN_BYTES(data.dimensions);
 
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
@@ -110,6 +154,71 @@
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // all voxel data objects are immutable, so return self instead of deep copying
+}
+
+- (BOOL)validateVoxelData:(nonnull NSData *)data error:(NSError **)error
+{
+    NSParameterAssert(data);
+
+    const struct GSChunkVoxelHeader *header = [data bytes];
+    
+    if (!header) {
+        if (error) {
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnexpectedDataSizeError
+                                     userInfo:@{NSLocalizedDescriptionKey : @"Cannot get pointer to header."}];
+        }
+        return NO;
+    }
+    
+    if (header->magic != VOXEL_MAGIC) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected magic number in voxel data file: found %d " \
+                              @"but expected %d", header->magic, VOXEL_MAGIC];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSBadMagicNumberError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    if (header->version != VOXEL_VERSION) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected version number in voxel data file: found %d " \
+                              @"but expected %d", header->version, VOXEL_VERSION];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnsupportedVersionError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+
+    if ((header->w!=CHUNK_SIZE_X) || (header->h!=CHUNK_SIZE_Y) || (header->d!=CHUNK_SIZE_Z)) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected chunk size used in voxels data: found " \
+                              @"(%d,%d,%d) but expected (%d,%d,%d)",
+                              header->w, header->h, header->d,
+                              CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnexpectedChunkDimensionsError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    if (header->len != BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected number of bytes in voxel data: found %lu " \
+                              @"but expected %zu bytes", (unsigned long)[data length],
+                              BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnexpectedDataSizeError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+
+    return YES;
 }
 
 - (GSVoxel)voxelAtLocalPosition:(vector_long3)p
@@ -169,11 +278,12 @@
     }
 }
 
-/* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is translated so
- * that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that, for example, the width of
- * the chunk is equal to maxP-minP. Ditto for the other major axii.
+/* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is
+ * translated so that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that,
+ * for example, the width of the chunk is equal to maxP-minP. Ditto for the other major axii.
  */
 - (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainProcessorBlock)generator
+                                                   journal:(nonnull GSTerrainJournal *)journal
 {
     vector_float3 thisMinP = self.minP;
     vector_long3 p, a, b;
@@ -205,6 +315,21 @@
     }
 
     free(voxels);
+    
+    // Scan the journal and apply any changes found which affect this chunk.
+    if (journal) {
+        for(GSTerrainJournalEntry *entry in journal.journalEntries)
+        {
+            vector_long3 worldPos = [entry.position integerVectorValue];
+            vector_long3 localPos = worldPos - GSMakeIntegerVector3(thisMinP.x, thisMinP.y, thisMinP.z);
+
+            if (localPos.x >= 0 && localPos.x < GSChunkSizeIntVec3.x &&
+                localPos.y >= 0 && localPos.y < GSChunkSizeIntVec3.y &&
+                localPos.z >= 0 && localPos.z < GSChunkSizeIntVec3.z) {
+                buf[INDEX_BOX(localPos, GSZeroIntVec3, GSChunkSizeIntVec3)] = entry.value;
+            }
+        }
+    }
 
     [self markOutsideVoxels:data];
 
@@ -215,7 +340,18 @@
 {
     NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
     NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
-    [self.voxels saveToFile:url queue:_queueForSaving group:_groupForSaving];
+    struct GSChunkVoxelHeader header = {
+        .magic = VOXEL_MAGIC,
+        .version = VOXEL_VERSION,
+        .w = CHUNK_SIZE_X,
+        .h = CHUNK_SIZE_Y,
+        .d = CHUNK_SIZE_Z,
+        .len = (uint64_t)BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)
+    };
+    [self.voxels saveToFile:url
+                      queue:_queueForSaving
+                      group:_groupForSaving
+                     header:[NSData dataWithBytes:&header length:sizeof(header)]];
 }
 
 - (nonnull GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock

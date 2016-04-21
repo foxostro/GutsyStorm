@@ -56,11 +56,16 @@
     size_t _numFramesSinceLastFpsLabelUpdate;
 }
 
++ (void)initialize
+{
+    [[NSUserDefaults standardUserDefaults] registerDefaults:[NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"Defaults" ofType:@"plist"]]];
+}
+
 + (nonnull NSURL *)newTerrainJournalURL
 {
     NSArray<NSString *> *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
     NSString *path = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
-    NSString *bundleIdentifier = [[NSRunningApplication currentApplication] bundleIdentifier];
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
     
     path = [path stringByAppendingPathComponent:bundleIdentifier];
     
@@ -95,6 +100,22 @@
     _openGlView = nil;
 }
 
+- (GSTerrainJournal *)fetchJournal
+{
+    NSURL *journalUrl = [[self class] newTerrainJournalURL];
+    NSLog(@"Terrain edit journal stored at %@", journalUrl);
+    GSTerrainJournal *journal = [NSKeyedUnarchiver unarchiveObjectWithFile:[journalUrl path]];
+
+    if (!journal) {
+        NSLog(@"Creating new journal.");
+        journal = [[GSTerrainJournal alloc] init];
+    }
+
+    journal.url = journalUrl;
+
+    return journal;
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -119,17 +140,7 @@
     
     _frameRateLabel = [GSTextLabel new];
 
-    // Terrain edits are recorded in a journal file.
-    NSURL *journalUrl = [[self class] newTerrainJournalURL];
-    NSLog(@"Terrain edit journal stored at %@", journalUrl);
-    GSTerrainJournal *journal = [NSKeyedUnarchiver unarchiveObjectWithFile:[journalUrl path]];
-    if (!journal) {
-        NSLog(@"Creating new journal.");
-        journal = [[GSTerrainJournal alloc] init];
-    }
-    journal.url = journalUrl;
-
-    _terrain = [[GSTerrain alloc] initWithJournal:journal
+    _terrain = [[GSTerrain alloc] initWithJournal:[self fetchJournal]
                                            camera:_camera
                                         glContext:_openGlView.openGLContext];
 

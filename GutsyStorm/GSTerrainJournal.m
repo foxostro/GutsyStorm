@@ -7,6 +7,7 @@
 //
 
 #import "GSTerrainJournal.h"
+#import "GSTerrainJournalEntry.h"
 
 @implementation GSTerrainJournal
 
@@ -40,6 +41,21 @@
 - (void)addEntry:(GSTerrainJournalEntry *)entry
 {
     NSParameterAssert(entry);
+    
+    // XXX: would NSMutableOrderedSet help here if I made an "interesting" definition of Equality for GSTerrainJournalEntry?
+    
+    // First, delete all previous journal entries which reference the modified block position. These are redundant and
+    // a little bit of house keeping work spent now can drastically reduce the time spent applying the journal later.
+    // Counter-argument: Rebuilding from the journal is expected to be expensive and expected to be rare.
+    NSMutableArray<GSTerrainJournalEntry *> *entriesToDelete = [[NSMutableArray alloc] initWithCapacity:self.journalEntries.count];
+    for(GSTerrainJournalEntry *thatEntry in self.journalEntries)
+    {
+        if ([entry.position isEqualTo:thatEntry.position]) {
+            [entriesToDelete addObject:thatEntry];
+        }
+    }
+    [self.journalEntries removeObjectsInArray:entriesToDelete];
+    
     [self.journalEntries addObject:entry];
     BOOL success = [NSKeyedArchiver archiveRootObject:self toFile:[self.url path]];
     if (!success) {

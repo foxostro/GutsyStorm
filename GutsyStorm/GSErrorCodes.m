@@ -9,5 +9,8 @@
 #import "GSErrorCodes.h"
 
 NSString * const GSErrorDomain = @"GutsyStorm";
-const NSUInteger GSInvalidChunkDataOnDiskError = 1;
-const NSUInteger GSFileNotFoundError = 2;
+const NSInteger GSUnexpectedDataSizeError = 1000;
+const NSInteger GSUnexpectedChunkDimensionsError = 1001;
+const NSInteger GSBadMagicNumberError = 1002;
+const NSInteger GSUnsupportedVersionError = 1003;
+const NSInteger GSBadValueError = 1004;

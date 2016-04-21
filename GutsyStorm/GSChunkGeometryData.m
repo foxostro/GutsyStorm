@@ -22,10 +22,17 @@
 #import "GSBlockMeshOutsideCorner.h"
 #import "SyscallWrappers.h"
 #import "GSStopwatch.h"
+#import "GSErrorCodes.h"
+
+
+#define GEO_MAGIC ('moeg')
+#define GEO_VERSION (0)
 
 
 struct GSChunkGeometryHeader
 {
+    uint32_t magic;
+    uint32_t version;
     uint32_t w, h, d;
     GLsizei numChunkVerts;
     uint32_t len;
@@ -76,26 +83,48 @@ static void applyLightToVertices(size_t numChunkVerts,
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
                               folder:(nonnull NSURL *)folder
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
+                      groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving
 {
-    self = [super init];
-    if (self) {
+    NSParameterAssert(folder);
+    NSParameterAssert(sunlight);
+    NSParameterAssert(queueForSaving);
+    NSParameterAssert(groupForSaving);
+
+    if (self = [super init]) {
         minP = minCorner;
         
-        NSURL *url = [NSURL URLWithString:[GSChunkGeometryData fileNameForGeometryDataFromMinP:self.minP]
-                            relativeToURL:folder];
+        BOOL failedToLoadFromFile = YES;
+        NSString *fileName = [GSChunkGeometryData fileNameForGeometryDataFromMinP:minCorner];
+        NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
         NSError *error = nil;
         _data = [NSData dataWithContentsOfFile:[url path]
                                        options:NSDataReadingMapped
                                          error:&error];
 
         if(!_data) {
-            //NSLog(@"failed to map the geometry data file at \"%@\": %@", url, error);
+            if ([error.domain isEqualToString:NSCocoaErrorDomain] && (error.code == 260)) {
+                // File not found. We don't have to log this one because it's common and we know how to recover.
+            } else {
+                NSLog(@"ERROR: Failed to map the geometry data file at \"%@\": %@", fileName, error);
+            }
+        } else if (![self validateGeometryData:_data error:&error]) {
+            NSLog(@"ERROR: Failed to validate the geometry data file at \"%@\": %@", fileName, error);
+        } else {
+            failedToLoadFromFile = NO; // success!
+        }
+
+        if (failedToLoadFromFile) {
             _data = [GSChunkGeometryData dataWithSunlight:sunlight minP:minP];
-            [_data writeToURL:url atomically:YES];
+            [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
+        }
+        
+        if (!_data) {
+            [NSException raise:NSGenericException
+                        format:@"Failed to fetch or generate the geometry chunk at \"%@\"", fileName];
         }
 
         cost = _data.length;
-        assert(_data);
     }
     
     return self;
@@ -106,6 +135,71 @@ static void applyLightToVertices(size_t numChunkVerts,
     return self; // all geometry objects are immutable, so return self instead of deep copying
 }
 
+- (BOOL)validateGeometryData:(nonnull NSData *)data error:(NSError **)error
+{
+    NSParameterAssert(data);
+    
+    const struct GSChunkGeometryHeader *header = [data bytes];
+
+    if (!header) {
+        if (error) {
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnexpectedDataSizeError
+                                     userInfo:@{NSLocalizedDescriptionKey : @"Cannot get pointer to header."}];
+        }
+        return NO;
+    }
+
+    if (header->magic != GEO_MAGIC) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected magic number in geometry data file: found %d " \
+                              @"but expected %d", header->magic, GEO_MAGIC];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSBadMagicNumberError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    if (header->version != GEO_VERSION) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected version number in geometry data file: found %d " \
+                              @"but expected %d", header->version, GEO_VERSION];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnsupportedVersionError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    BOOL acceptableChunkSize = (header->w==CHUNK_SIZE_X) && (header->h==CHUNK_SIZE_Y) && (header->d==CHUNK_SIZE_Z);
+
+    if (!acceptableChunkSize) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected chunk size used in geometry data: found " \
+                              @"(%d,%d,%d) but expected (%d,%d,%d)",
+                              header->w, header->h, header->d,
+                              CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnexpectedChunkDimensionsError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    if (header->len != (header->numChunkVerts * sizeof(GSTerrainVertex))) {
+        if (error) {
+            NSString *desc = @"Unexpected number of bytes used in geometry data file";
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnexpectedDataSizeError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    return YES;
+}
+
 - (nonnull GSTerrainVertexNoNormal *)copyVertsReturningCount:(nonnull GLsizei *)outCount
 {
     NSParameterAssert(outCount);
@@ -114,11 +208,15 @@ static void applyLightToVertices(size_t numChunkVerts,
     const GSTerrainVertex * restrict vertsBuffer = ((void *)header) + sizeof(struct GSChunkGeometryHeader);
     GLsizei count = header->numChunkVerts;
 
-    // consistency checks
-    assert(header->w == CHUNK_SIZE_X);
-    assert(header->h == CHUNK_SIZE_Y);
-    assert(header->d == CHUNK_SIZE_Z);
-    assert(header->len == (header->numChunkVerts * sizeof(GSTerrainVertex)));
+    BOOL acceptableChunkSize = (header->w==CHUNK_SIZE_X) && (header->h==CHUNK_SIZE_Y) && (header->d==CHUNK_SIZE_Z);
+    
+    if (!acceptableChunkSize) {
+        [NSException raise:NSGenericException format:@"Unacceptable chunk size for geometry chunk."];
+    }
+
+    if (header->len != (header->numChunkVerts * sizeof(GSTerrainVertex))) {
+        [NSException raise:NSGenericException format:@"Unexpected length for geometry data."];
+    }
 
     GSTerrainVertexNoNormal *vertsCopy = malloc(count * sizeof(GSTerrainVertexNoNormal));
     if(!vertsCopy) {
@@ -178,6 +276,8 @@ static void applyLightToVertices(size_t numChunkVerts,
     struct GSChunkGeometryHeader * header = [data mutableBytes];
     GSTerrainVertex * vertsBuffer = (void *)header + sizeof(struct GSChunkGeometryHeader);
 
+    header->magic = GEO_MAGIC;
+    header->version = GEO_VERSION;
     header->w = CHUNK_SIZE_X;
     header->h = CHUNK_SIZE_Y;
     header->d = CHUNK_SIZE_Z;
@@ -195,6 +295,32 @@ static void applyLightToVertices(size_t numChunkVerts,
     applyLightToVertices(numChunkVerts, vertsBuffer, sunlight.sunlight, minCorner);
     
     return data;
+}
+
+- (void)saveData:(nonnull NSData *)data
+             url:(nonnull NSURL *)url
+           queue:(nonnull dispatch_queue_t)queue
+           group:(nonnull dispatch_group_t)group
+{
+    dispatch_group_enter(group);
+    
+    dispatch_data_t dd = dispatch_data_create([data bytes], [data length],
+                                              dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                                              DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+
+    dispatch_async(queue, ^{
+        int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+        
+        dispatch_write(fd, dd, queue, ^(dispatch_data_t data, int error) {
+            Close(fd);
+            
+            if(error) {
+                raiseExceptionForPOSIXError(error, [NSString stringWithFormat:@"error with write(fd=%u)", fd]);
+            }
+            
+            dispatch_group_leave(group);
+        });
+    });
 }
 
 @end

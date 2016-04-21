@@ -37,6 +37,7 @@
 		6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */; };
 		6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184B1BD33F8400CD21FB /* text.frag.txt */; };
 		6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184C1BD33F8400CD21FB /* text.vert.txt */; };
+		6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6FAE2A371CC6F42D000D2E9A /* Defaults.plist */; };
 		6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */; };
 		6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */; };
 		6FEE3F4E1BCF92800076E5B9 /* cursor.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */; };
@@ -133,6 +134,7 @@
 		6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = crosshairs.vert.txt; sourceTree = "<group>"; };
 		6F90184B1BD33F8400CD21FB /* text.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.frag.txt; sourceTree = "<group>"; };
 		6F90184C1BD33F8400CD21FB /* text.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.vert.txt; sourceTree = "<group>"; };
+		6FAE2A371CC6F42D000D2E9A /* Defaults.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Defaults.plist; sourceTree = "<group>"; };
 		6FE184FE1BD7E9E7009A076D /* GSTextLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextLabel.h; sourceTree = "<group>"; };
 		6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTextLabel.m; sourceTree = "<group>"; };
 		6FE2F2AE1BD171F0009A83DC /* GSQuaternion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSQuaternion.h; sourceTree = "<group>"; };
@@ -315,6 +317,7 @@
 				4A2CD0021513C3FC006C6551 /* main.m */,
 				4A2CD0041513C3FC006C6551 /* GutsyStorm-Prefix.pch */,
 				4A2CD0051513C3FC006C6551 /* Credits.rtf */,
+				6FAE2A371CC6F42D000D2E9A /* Defaults.plist */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -523,6 +526,7 @@
 				AC9CCD751519B8AA0081964D /* terrain.vert.txt in Resources */,
 				6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */,
 				ACF27B03151AE486009FCAB9 /* terrain.png in Resources */,
+				6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */,
 				6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

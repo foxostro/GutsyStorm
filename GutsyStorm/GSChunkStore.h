@@ -8,10 +8,13 @@
 
 #import "GSChunkVoxelData.h"
 #import "GSRay.h"
+#import "GSTerrainBuffer.h"
+
 
 @class GSCamera;
 @class GSShader;
 @class GSTerrainJournal;
+
 
 @interface GSChunkStore : NSObject
 
@@ -50,9 +53,7 @@
 
 - (GSTerrainBufferElement)sunlightAtPoint:(vector_float3)pos;
 
-- (void)placeBlockAtPoint:(vector_float3)pos
-                    block:(GSVoxel)block
-                  journal:(nullable GSTerrainJournal *)journal;
+- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block;
 
 /* Notify the chunk store object that the system has come under memory pressure. */
 - (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status;

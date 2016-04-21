@@ -10,7 +10,7 @@
 #import "GSIntegerVector3.h"
 #import "GSQuaternion.h"
 
-#define CHUNK_LIGHTING_MAX (8)
+#define CHUNK_LIGHTING_MAX (12)
 
 #define CHUNK_SIZE_X (16)
 #define CHUNK_SIZE_Y (256)

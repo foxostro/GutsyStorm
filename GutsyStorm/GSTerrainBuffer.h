@@ -93,10 +93,13 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
                                      withNormal:(vector_long3)normal
                                            minP:(vector_float3)minP;
 
-/* Saves the buffer contents to file asynchronously on the specified dispatch */
+/* Saves the buffer contents to file asynchronously on the specified dispatch queue abd group.
+ * Sticks the header to the front of the file, if one is provided.
+ */
 - (void)saveToFile:(nonnull NSURL *)url
              queue:(nonnull dispatch_queue_t)queue
-             group:(nonnull dispatch_group_t)group;
+             group:(nonnull dispatch_group_t)group
+            header:(nullable NSData *)header;
 
 /* Copies this buffer into a sub-range of another buffer of dimensions defined by GSCombinedMinP and GSCombinedMaxP. */
 - (void)copyToCombinedNeighborhoodBuffer:(nonnull GSTerrainBufferElement *)dstBuf

@@ -11,14 +11,14 @@
 
 #import "GSStopwatch.h"
 
-struct GSStopwatchBreadcrumb
+struct GSStopwatchTraceState
 {
     uint64_t startTime;
     uint64_t intermediateTime;
 };
 
-void GSStopwatchTraceBegin(struct GSStopwatchBreadcrumb * _Nullable breadcrumb, NSString * _Nonnull format, ...);
-void GSStopwatchTraceEnd(struct GSStopwatchBreadcrumb * _Nullable breadcrumb, NSString * _Nonnull format, ...);
-void GSStopwatchTrace(struct GSStopwatchBreadcrumb * _Nullable breadcrumb, NSString * _Nonnull format, ...);
+void GSStopwatchTraceBegin(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...);
+void GSStopwatchTraceEnd(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...);
+void GSStopwatchTraceStep(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...);
 
 #endif /* GSActivity_h */

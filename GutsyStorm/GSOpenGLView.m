@@ -48,7 +48,7 @@ int checkGLErrors(void);
 
 + (nonnull GSShader *)newCrosshairShader
 {
-    NSBundle *bundle = [NSBundle bundleWithIdentifier:[[NSRunningApplication currentApplication] bundleIdentifier]];
+    NSBundle *bundle = [NSBundle mainBundle];
     NSString *vertFn = [bundle pathForResource:@"crosshairs.vert" ofType:@"txt"];
     NSString *fragFn = [bundle pathForResource:@"crosshairs.frag" ofType:@"txt"];
     NSString *vertSrc = [[NSString alloc] initWithContentsOfFile:vertFn

@@ -68,6 +68,7 @@
     NSURL *_folder;
     GSShader *_terrainShader;
     NSOpenGLContext *_glContext;
+    GSTerrainJournal *_journal;
 
     GSTerrainProcessorBlock _generator;
 
@@ -76,12 +77,6 @@
     
     // This queue is used for all dispatch-related work needed for placeBlockAtPoint
     dispatch_queue_t _queuePlaceBlockAtPoint;
-}
-
-+ (void)initialize
-{
-    NSDictionary<NSString *, id> *values = @{ @"ActiveRegionExtent": @"256" };
-    [[NSUserDefaults standardUserDefaults] registerDefaults:values];
 }
 
 - (void)createGrids
@@ -115,7 +110,9 @@
                                       GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
                                       id r = [[GSChunkGeometryData alloc] initWithMinP:minCorner
                                                                                 folder:_folder
-                                                                              sunlight:sunlight];
+                                                                              sunlight:sunlight
+                                                                        groupForSaving:_groupForSaving
+                                                                        queueForSaving:_queueForSaving];
                                   return r;
                               }];
     
@@ -281,6 +278,7 @@
         _terrainShader = terrainShader;
         _glContext = glContext;
         _generator = [generator copy];
+        _journal = journal;
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
 
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT,
@@ -292,7 +290,8 @@
         [self setupActiveRegionWithCamera:camera];
         
         // If the cache folder is empty then apply the journal to rebuild it.
-        // XXX: What if I added a sequence number to the chunk's data files on disk and compared to the journal?
+        // Since rebuilding from the journal is expensive, we avoid doing unless we have no choice.
+        // Also, this provides a pretty easy way for the user to force a rebuild when they need it.
         NSArray *cacheContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[_folder path] error:nil];
         if (!cacheContents || cacheContents.count == 0) {
             [self applyJournal:journal];
@@ -370,8 +369,8 @@
     assert(!_chunkStoreHasBeenShutdown);
     assert(_gridVoxelData);
     
-    struct GSStopwatchBreadcrumb breadcrumb;
-    GSStopwatchTraceBegin(&breadcrumb, @"applyJournal enter");
+    struct GSStopwatchTraceState trace;
+    GSStopwatchTraceBegin(&trace, @"applyJournal");
     
     dispatch_group_t group = dispatch_group_create();
     
@@ -387,40 +386,41 @@
                                      [voxels2 saveToFile];
                                      return voxels2;
                                  }];
+        GSStopwatchTraceStep(&trace, @"Placed block at %@.", entry.position);
     }
 
     dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
+    GSStopwatchTraceStep(&trace, @"Done waiting for asynchronous invalidation steps to finish.");
 
-    GSStopwatchTraceEnd(&breadcrumb, @"applyJournal exit");
+    dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
+    GSStopwatchTraceStep(&trace, @"Done waiting for chunk to finish saving to disk.");
+
+    GSStopwatchTraceEnd(&trace, @"applyJournal");
 }
 
-- (void)placeBlockAtPoint:(vector_float3)pos
-                    block:(GSVoxel)block
-                  journal:(nullable GSTerrainJournal *)journal
+- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(_gridVoxelData);
     assert(_activeRegion);
+    assert(_journal);
     
-    if (journal) {
-        dispatch_group_async(_groupForSaving, _queueForSaving, ^{
-            GSTerrainJournalEntry *entry = [[GSTerrainJournalEntry alloc] init];
-            entry.value = block;
-            entry.position = [GSBoxedVector boxedVectorWithVector:pos];
-            [journal addEntry:entry];
-        });
-    }
+    dispatch_group_async(_groupForSaving, _queueForSaving, ^{
+        GSTerrainJournalEntry *entry = [[GSTerrainJournalEntry alloc] init];
+        entry.value = block;
+        entry.position = [GSBoxedVector boxedVectorWithVector:pos];
+        [_journal addEntry:entry];
+    });
 
-    struct GSStopwatchBreadcrumb breadcrumb;
-    GSStopwatchTraceBegin(&breadcrumb, @"placeBlockAtPoint enter");
+    struct GSStopwatchTraceState trace;
+    GSStopwatchTraceBegin(&trace, @"placeBlockAtPoint enter %@", [GSBoxedVector boxedVectorWithVector:pos]);
 
     dispatch_group_t group = dispatch_group_create();
 
     [_activeRegion modifyWithQueue:_queuePlaceBlockAtPoint
                              group:group
-                        breadcrumb:&breadcrumb
-                             block:^ NSArray * _Nonnull {
+                             trace:&trace
+                             block:^{
         [_gridVoxelData replaceItemAtPoint:pos
                                      queue:_queuePlaceBlockAtPoint
                                      group:group
@@ -430,10 +430,9 @@
                                      [voxels2 saveToFile];
                                      return voxels2;
                                  }];
-        return @[[GSBoxedVector boxedVectorWithVector:pos]];
     }];
 
-    GSStopwatchTraceEnd(&breadcrumb, @"placeBlockAtPoint exit");
+    GSStopwatchTraceEnd(&trace, @"placeBlockAtPoint exit %@", [GSBoxedVector boxedVectorWithVector:pos]);
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel
@@ -659,7 +658,7 @@
                                         blocking:NO
                                           object:&v
                                  createIfMissing:YES
-                                      breadcrumb:NULL];
+                                           trace:NULL];
 
     if(success) {
         *chunk = v;
@@ -672,7 +671,7 @@
 {
     NSArray<NSString *> *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *folder = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
-    NSString *bundleIdentifier = [[NSRunningApplication currentApplication] bundleIdentifier];
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
 
     folder = [folder stringByAppendingPathComponent:bundleIdentifier];
     folder = [folder stringByAppendingPathComponent:@"terrain-cache"];
@@ -702,6 +701,7 @@
                                            folder:_folder
                                    groupForSaving:_groupForSaving
                                    queueForSaving:_queueForSaving
+                                          journal:_journal
                                         generator:_generator];
 }
 

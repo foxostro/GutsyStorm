@@ -176,9 +176,9 @@
              blocking:(BOOL)blocking
                object:(id _Nonnull * _Nullable)item
       createIfMissing:(BOOL)createIfMissing
-           breadcrumb:(struct GSStopwatchBreadcrumb * _Nullable)breadcrumb
+                trace:(struct GSStopwatchTraceState * _Nullable)trace
 {
-    GSStopwatchTrace(breadcrumb, @"%@: entering objectAtPoint:blocking:...", self.name);
+    GSStopwatchTraceStep(trace, @"%@: entering objectAtPoint:blocking:...", self.name);
 
     if(blocking) {
         [_lockTheTableItself lockForReading];
@@ -203,15 +203,15 @@
         return NO;
     }
 
-    GSStopwatchTrace(breadcrumb, @"%@: locks obtained", self.name);
+    GSStopwatchTraceStep(trace, @"%@: locks obtained", self.name);
     
     anObject = [self _searchForItemAtPosition:minP bucket:bucket];
 
-    GSStopwatchTrace(breadcrumb, @"%@: search", self.name);
+    GSStopwatchTraceStep(trace, @"%@: search", self.name);
 
     if(!anObject && createIfMissing) {
         anObject = _factory(minP);
-        GSStopwatchTrace(breadcrumb, @"%@: factory", self.name);
+        GSStopwatchTraceStep(trace, @"%@: factory", self.name);
         
         if (!anObject) {
             [NSException raise:NSMallocException format:@"Out of memory allocating `anObject' for GSGrid."];
@@ -245,7 +245,7 @@
         }
     }
 
-    GSStopwatchTrace(breadcrumb, @"%@: exiting objectAtPoint:blocking:...", self.name);
+    GSStopwatchTraceStep(trace, @"%@: exiting objectAtPoint:blocking:...", self.name);
 
     return result;
 }
@@ -258,7 +258,7 @@
                blocking:YES
                  object:&anItem
         createIfMissing:YES
-             breadcrumb:NULL];
+                  trace:NULL];
 
     if (!anItem) {
         [NSException raise:NSGenericException format:@"Failed to get the object, and failure is not an option."];
@@ -349,11 +349,11 @@
     dispatch_group_async(group, queue, ^{
         for(GSGrid *grid in _dependentGrids)
         {
-            NSSet * (^mapping)(GSGridEdit *) = [_mappingToDependentGrids objectForKey:[grid _key]];
+            NSSet<GSBoxedVector *> * (^mapping)(GSGridEdit *) = [_mappingToDependentGrids objectForKey:[grid _key]];
             
             // If we didn't do this section asynchronously then this mapping() call could deadlock due to
             // the order that certain grid locks were taken.
-            NSSet *correspondingPoints = mapping(change);
+            NSSet<GSBoxedVector *> *correspondingPoints = mapping(change);
             
             for(GSBoxedVector *q in correspondingPoints)
             {
@@ -377,7 +377,7 @@
 - (void)replaceItemAtPoint:(vector_float3)p
                      queue:(nonnull dispatch_queue_t)queue
                      group:(nonnull dispatch_group_t)group
-                 transform:(nonnull NSObject <GSGridItem> * (^)(NSObject <GSGridItem> *original))newReplacementItem
+                 transform:(nonnull GSGridTransform)newReplacementItem
 {
     NSParameterAssert(queue);
     NSParameterAssert(group);

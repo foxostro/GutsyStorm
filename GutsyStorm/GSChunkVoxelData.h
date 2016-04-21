@@ -10,7 +10,10 @@
 #import "GSGridItem.h"
 #import "GSIntegerVector3.h"
 #import "GSVoxel.h"
-#import "GSTerrainBuffer.h"
+
+
+@class GSTerrainJournal;
+@class GSTerrainBuffer;
 
 
 typedef void (^GSTerrainProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
@@ -25,10 +28,11 @@ typedef void (^GSTerrainProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
 + (nonnull NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minP
-                               folder:(nonnull NSURL *)folder
-                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
-                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                            generator:(nonnull GSTerrainProcessorBlock)generator;
+                              folder:(nonnull NSURL *)folder
+                      groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                             journal:(nonnull GSTerrainJournal *)journal
+                           generator:(nonnull GSTerrainProcessorBlock)generator;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minP
                                folder:(nonnull NSURL *)folder

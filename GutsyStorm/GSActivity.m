@@ -8,27 +8,27 @@
 
 #import "GSActivity.h"
 
-void GSStopwatchTraceBegin(struct GSStopwatchBreadcrumb * _Nullable breadcrumb, NSString * _Nonnull format, ...)
+void GSStopwatchTraceBegin(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...)
 {
-    if (!breadcrumb) {
+    if (!trace) {
         return;
     }
 
     assert(format);
     
-    breadcrumb->startTime = breadcrumb->intermediateTime = GSStopwatchStart();
+    trace->startTime = trace->intermediateTime = GSStopwatchStart();
     
     va_list args;
     va_start(args, format);
     va_end(args);
     NSString *label = [[NSString alloc] initWithFormat:format arguments:args];
     
-    NSLog(@"Stopwatch Breadcrumb %p: Begin ; Label = \"%@\"", (void *)breadcrumb, label);
+    NSLog(@"Trace %p: Begin %@", (void *)trace, label);
 }
 
-void GSStopwatchTraceEnd(struct GSStopwatchBreadcrumb * _Nullable breadcrumb, NSString * _Nonnull format, ...)
+void GSStopwatchTraceEnd(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...)
 {
-    if (!breadcrumb) {
+    if (!trace) {
         return;
     }
     
@@ -39,19 +39,19 @@ void GSStopwatchTraceEnd(struct GSStopwatchBreadcrumb * _Nullable breadcrumb, NS
     va_end(args);
     NSString *label = [[NSString alloc] initWithFormat:format arguments:args];
     
-    uint64_t elapsedTimeIntermediateNs = GSStopwatchEnd(breadcrumb->intermediateTime);
-    uint64_t elapsedTimeTotalNs = GSStopwatchEnd(breadcrumb->startTime);
+    uint64_t elapsedTimeIntermediateNs = GSStopwatchEnd(trace->intermediateTime);
+    uint64_t elapsedTimeTotalNs = GSStopwatchEnd(trace->startTime);
     
-    NSLog(@"Stopwatch Breadcrumb %p: End = %.3f ms ; Total Time = %.3f\tms ; Label = \"%@\"",
-          (void *)breadcrumb,
+    NSLog(@"Trace %p: (+%.3f ms) End %@ ; Total elapsed time is %.3f ms",
+          (void *)trace,
           elapsedTimeIntermediateNs / (float)NSEC_PER_MSEC,
-          elapsedTimeTotalNs / (float)NSEC_PER_MSEC,
-          label);
+          label,
+          elapsedTimeTotalNs / (float)NSEC_PER_MSEC);
 }
 
-void GSStopwatchTrace(struct GSStopwatchBreadcrumb * _Nullable breadcrumb, NSString * _Nonnull format, ...)
+void GSStopwatchTraceStep(struct GSStopwatchTraceState * _Nullable trace, NSString * _Nonnull format, ...)
 {
-    if (!breadcrumb) {
+    if (!trace) {
         return;
     }
     
@@ -62,8 +62,8 @@ void GSStopwatchTrace(struct GSStopwatchBreadcrumb * _Nullable breadcrumb, NSStr
     va_end(args);
     NSString *label = [[NSString alloc] initWithFormat:format arguments:args];
     
-    uint64_t elapsedTimeNs = GSStopwatchEnd(breadcrumb->intermediateTime);
-    NSLog(@"Stopwatch Breadcrumb %p: Elapsed = %.3f\tms ; Label = \"%@\"",
-          (void *)breadcrumb, elapsedTimeNs / (float)NSEC_PER_MSEC, label);
-    breadcrumb->intermediateTime = GSStopwatchStart();
+    uint64_t elapsedTimeNs = GSStopwatchEnd(trace->intermediateTime);
+    NSLog(@"Trace %p: (+%.3f ms) %@",
+          (void *)trace, elapsedTimeNs / (float)NSEC_PER_MSEC, label);
+    trace->intermediateTime = GSStopwatchStart();
 }

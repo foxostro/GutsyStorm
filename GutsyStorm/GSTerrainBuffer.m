@@ -190,13 +190,28 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     return light;
 }
 
-- (void)saveToFile:(nonnull NSURL *)url queue:(nonnull dispatch_queue_t)queue group:(nonnull dispatch_group_t)group
+- (void)saveToFile:(nonnull NSURL *)url
+             queue:(nonnull dispatch_queue_t)queue
+             group:(nonnull dispatch_group_t)group
+            header:(nullable NSData *)headerData
 {
     dispatch_group_enter(group);
 
-    dispatch_data_t dd = dispatch_data_create(_data, BUFFER_SIZE_IN_BYTES(self.dimensions),
-                                                    dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
-                                                    DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+    dispatch_data_t dd;
+    
+    if ([headerData length] == 0) {
+        dd = dispatch_data_create(_data, BUFFER_SIZE_IN_BYTES(self.dimensions),
+                                  dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                                  DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+    } else {
+        dispatch_data_t header = dispatch_data_create([headerData bytes], [headerData length],
+                                      dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                                      DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+        dispatch_data_t terrain = dispatch_data_create(_data, BUFFER_SIZE_IN_BYTES(self.dimensions),
+                                                       dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                                                       DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+        dd = dispatch_data_create_concat(header, terrain);
+    }
 
     dispatch_async(queue, ^{
         int fd = Open(url, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);

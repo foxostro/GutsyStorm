@@ -394,7 +394,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (nonnull GSShader *)newCursorShader
 {
-    NSBundle *bundle = [NSBundle bundleWithIdentifier:[[NSRunningApplication currentApplication] bundleIdentifier]];
+    NSBundle *bundle = [NSBundle mainBundle];
     NSString *vertFn = [bundle pathForResource:@"cursor.vert" ofType:@"txt"];
     NSString *fragFn = [bundle pathForResource:@"cursor.frag" ofType:@"txt"];
     
@@ -414,7 +414,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (nonnull GSShader *)newTerrainShader
 {
-    NSBundle *bundle = [NSBundle bundleWithIdentifier:[[NSRunningApplication currentApplication] bundleIdentifier]];
+    NSBundle *bundle = [NSBundle mainBundle];
     NSString *vertFn = [bundle pathForResource:@"terrain.vert" ofType:@"txt"];
     NSString *fragFn = [bundle pathForResource:@"terrain.frag" ofType:@"txt"];
     
@@ -446,9 +446,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         GSShader *cursorShader = [self newCursorShader];
         GSShader *terrainShader = [self newTerrainShader];
 
-        NSString *path = [[NSBundle bundleWithIdentifier:[[NSRunningApplication currentApplication] bundleIdentifier]]
-                                         pathForResource:@"terrain"
-                                                  ofType:@"png"];
+        NSString *path = [[NSBundle mainBundle] pathForResource:@"terrain" ofType:@"png"];
         _textureArray = [[GSTextureArray alloc] initWithImagePath:path numTextures:4];
 
         GSNoise *noiseSource0 = [[GSNoise alloc] initWithSeed:journal.randomSeed];
@@ -554,9 +552,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_CUBE;
         
-        [_chunkStore placeBlockAtPoint:_cursor.cursorPlacePos
-                                 block:block
-                               journal:self.journal];
+        [_chunkStore placeBlockAtPoint:_cursor.cursorPlacePos block:block];
         [self recalcCursorPosition];
     }
 }
@@ -570,9 +566,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_EMPTY;
         
-        [_chunkStore placeBlockAtPoint:_cursor.cursorPos
-                                 block:block
-                               journal:self.journal];
+        [_chunkStore placeBlockAtPoint:_cursor.cursorPos block:block];
         [self recalcCursorPosition];
     }
 }

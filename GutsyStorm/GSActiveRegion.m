@@ -99,72 +99,83 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     return self;
 }
 
-- (void)_unlockedConstructDrawList
-{
-    BOOL anyChunksMissing = NO;
-    
-    [_lockCachedPointsInCameraFrustum lockForReading];
-    NSObject<NSFastEnumeration> *points = [_cachedPointsInCameraFrustum copy];
-    [_lockCachedPointsInCameraFrustum unlockForReading];
-    
-    for(GSBoxedVector *boxedPosition in points)
-    {
-        GSChunkVAO *vao = nil;
-        
-        [_gridVAO objectAtPoint:[boxedPosition vectorValue]
-                       blocking:NO
-                         object:&vao
-                createIfMissing:NO
-                     breadcrumb:NULL];
-        
-        if (vao) {
-            [_drawList addObject:vao];
-        } else {
-            anyChunksMissing = YES;
-        }
-    }
-    
-    if (anyChunksMissing) {
-        [self needsChunkGeneration];
-    }
-}
-
 - (void)draw
 {
+    BOOL chunkGenerationNeeded = NO;
+
     if (self.shouldShutdown) {
         return;
     }
 
     [_lockDrawList lock];
 
-    // First, remove any chunks from the list which are no longer in the camera frustum.
+    NSMutableArray<GSChunkVAO *> *vaosToRemove = [NSMutableArray new];
+
+    // Mark the VAOs which are no longer in the camera frustum for removal.
+    for(GSChunkVAO *vao in _drawList)
     {
-        NSMutableArray *vaosToRemove = [[NSMutableArray alloc] initWithCapacity:_drawList.count];
-
-        for(GSChunkVAO *vao in _drawList)
-        {
-            if(GSFrustumOutside == chunkInFrustum(_camera.frustum, vao.minP)) {
-                [vaosToRemove addObject:vao];
-            }
-        }
-
-        for(GSChunkVAO *vao in vaosToRemove)
-        {
-            [_drawList removeObject:vao];
+        if(GSFrustumOutside == chunkInFrustum(_camera.frustum, vao.minP)) {
+            [vaosToRemove addObject:vao];
         }
     }
+    
+    // Keep a dictionary to map from minP to VAO in constant-time.
+    NSMutableDictionary *pointToChunk = [NSMutableDictionary new];
+    for(GSChunkVAO *vao in _drawList)
+    {
+        GSBoxedVector *point = [GSBoxedVector boxedVectorWithVector:vao.minP];
+        pointToChunk[point] = vao;
+    }
+    
+    // Iterate over points in the camera frustum. If we can get a new VAO for a point then use the new VAO and remove
+    // the reference to the old VAO. If we can't get a new one then keep using the old VAO.
+    [_lockCachedPointsInCameraFrustum lockForReading];
+    NSObject<NSFastEnumeration> *points = [_cachedPointsInCameraFrustum copy];
+    [_lockCachedPointsInCameraFrustum unlockForReading];
 
-    // Second, add VAOs to the list where possible. Do not block. We'll miss a bunch, but that's OK because we'll pick
-    // those up eventually and will never let them go until the chunks exit the camera frustum.
-    [self _unlockedConstructDrawList];
+    for(GSBoxedVector *boxedPosition in points)
+    {
+        vector_float3 pos = [boxedPosition vectorValue];
+        GSBoxedVector *corner = [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(pos)];
+        GSChunkVAO *oldVao = [pointToChunk objectForKey:corner];
+        GSChunkVAO *vao = nil;
 
-    // Third, draw them.
+        [_gridVAO objectAtPoint:pos
+                       blocking:NO
+                         object:&vao
+                createIfMissing:NO
+                          trace:NULL];
+        
+        if (vao) {
+            if (oldVao != vao) {
+                [_drawList addObject:vao];
+                
+                if (oldVao) {
+                    [vaosToRemove addObject:oldVao];
+                }
+            }
+        } else {
+            chunkGenerationNeeded = YES;
+        }
+    }
+    
+    // Now remove those chunks which were marked for removal earlier.
+    for(GSChunkVAO *vao in vaosToRemove)
+    {
+        [_drawList removeObject:vao];
+    }
+
+    // Draw them all.
     for(GSChunkVAO *vao in _drawList)
     {
         [vao draw];
     }
     
     [_lockDrawList unlock];
+    
+    if (chunkGenerationNeeded) {
+        [self needsChunkGeneration];
+    }
 }
 
 - (nonnull NSArray<GSBoxedVector *> *)pointsInCameraFrustum
@@ -212,48 +223,39 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 
 - (void)modifyWithQueue:(nonnull dispatch_queue_t)queue
                   group:(nonnull dispatch_group_t)group
-             breadcrumb:(struct GSStopwatchBreadcrumb * _Nullable)breadcrumb
-                  block:(NSArray<GSBoxedVector *> * _Nonnull (^ _Nonnull)(void))block
+                  trace:(struct GSStopwatchTraceState * _Nullable)trace
+                  block:(void (^ _Nonnull)(void))block
 {
-    GSStopwatchTrace(breadcrumb, @"modifyWithQueue enter");
+    GSStopwatchTraceStep(trace, @"modifyWithQueue enter");
 
     [_lockDrawList lock];
-    [_drawList removeAllObjects];
     
     // Reduce contention on the grids by preventing the generation from queue from generating any blocks right now.
     dispatch_suspend(_generationQueue);
-    GSStopwatchTrace(breadcrumb, @"dispatch_suspend");
 
-    // The block is expected to modify some part of the active region and return a list of points which had changes.
-    // Some activity such as chunk invalidation is performed asynchronously and each block is added to the specified
-    // dispatch group.
-    NSArray<GSBoxedVector *> *points = block();
-    GSStopwatchTrace(breadcrumb, @"block");
-    
-    // Wait for blocks in the group to complete. Once finished, all chunk invalidation will have been completed.
+    // The block is expected to modify some part of the active region. Some activity such as chunk invalidation is
+    // performed asynchronously and each block is added to the specified dispatch group.
+    block();
     dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    GSStopwatchTrace(breadcrumb, @"dispatch_group_wait");
+    GSStopwatchTraceStep(trace, @"Finished waiting for `block' to modify the active region.");
     
-    // Generate VAOs for the chunks which were modified.
-    for(GSBoxedVector *boxedPosition in points)
+    // Rebuild the draw list.
+    [_lockCachedPointsInCameraFrustum lockForReading];
+    NSArray<GSBoxedVector *> *pointsInCamera = [_cachedPointsInCameraFrustum copy];
+    [_lockCachedPointsInCameraFrustum unlockForReading];
+
+    [_drawList removeAllObjects];
+    for(GSBoxedVector *boxedPosition in pointsInCamera)
     {
-        [_gridVAO objectAtPoint:[boxedPosition vectorValue]
-                       blocking:YES
-                         object:nil
-                createIfMissing:YES
-                     breadcrumb:breadcrumb];
+        GSChunkVAO *vao = [_gridVAO objectAtPoint:[boxedPosition vectorValue]];
+        [_drawList addObject:vao];
+        GSStopwatchTraceStep(trace, @"Regenerated VAO at %@.", boxedPosition);
     }
 
-    GSStopwatchTrace(breadcrumb, @"regenerate relevant VAOs");
-    
-    // And then build a new draw list for the display link thread.
-    [self _unlockedConstructDrawList];
+    // We're done. Release locks last to avoid interleaved trace messages.
+    GSStopwatchTraceStep(trace, @"modifyWithQueue exit");
     [_lockDrawList unlock];
-    
-    // Now that we're done, resume chunk generation.
     dispatch_resume(_generationQueue);
-
-    GSStopwatchTrace(breadcrumb, @"modifyWithQueue exit");
 }
 
 - (void)needsChunkGeneration
@@ -278,7 +280,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
                                     blocking:NO
                                       object:nil
                              createIfMissing:createIfMissing
-                                  breadcrumb:NULL];
+                                       trace:NULL];
             
             anyChunksMissing = anyChunksMissing && r;
         }

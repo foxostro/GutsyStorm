@@ -11,6 +11,21 @@
 #import "GSNeighborhood.h"
 #import "GSMutableBuffer.h"
 #import "GSStopwatch.h"
+#import "GSErrorCodes.h"
+
+
+#define SUNLIGHT_MAGIC ('etil')
+#define SUNLIGHT_VERSION (0)
+
+
+struct GSChunkSunlightHeader
+{
+    uint32_t magic;
+    uint32_t version;
+    uint32_t w, h, d;
+    uint64_t lightMax;
+    uint64_t len;
+};
 
 
 static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZE_Z+2};
@@ -226,25 +241,122 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
                                             error:&error];
 
     if(data) {
-        if ([data length] != BUFFER_SIZE_IN_BYTES(sunlightDim)) {
-            //NSLog(@"unexpected number of bytes in sunlight file \"%@\": found %lu but expected %zu bytes",
-            //      fileName, (unsigned long)[data length], BUFFER_SIZE_IN_BYTES(sunlightDim));
+        if (![self validateSunlightData:data error:&error]) {
+            NSLog(@"ERROR: Failed to validate the sunlight data file at \"%@\": %@", fileName, error);
         } else {
-            buffer = [[GSTerrainBuffer alloc] initWithDimensions:sunlightDim cloneAlignedData:[data bytes]];
+            const struct GSChunkSunlightHeader * restrict header = [data bytes];
+            const void * restrict sunlightBytes = ((void *)header) + sizeof(struct GSChunkSunlightHeader);
+            buffer = [[GSTerrainBuffer alloc] initWithDimensions:sunlightDim copyUnalignedData:sunlightBytes];
             failedToLoadFromFile = NO;
         }
+    } else if ([error.domain isEqualToString:NSCocoaErrorDomain] && (error.code == 260)) {
+        // File not found. We don't have to log this one because it's common and we know how to recover.
+    } else {
+        NSLog(@"ERROR: Failed to load sunlight data for chunk at \"%@\": %@", fileName, error);
     }
     
     if (failedToLoadFromFile) {
         GSVoxel *data = [self newVoxelBufferWithNeighborhood:neighborhood];
         buffer = [self newSunlightBufferUsingCombinedVoxelData:data];
         free(data);
-        [buffer saveToFile:url queue:_queueForSaving group:_groupForSaving];
+
+        struct GSChunkSunlightHeader header = {
+            .magic = SUNLIGHT_MAGIC,
+            .version = SUNLIGHT_VERSION,
+            .w = (uint32_t)sunlightDim.x,
+            .h = (uint32_t)sunlightDim.y,
+            .d = (uint32_t)sunlightDim.z,
+            .lightMax = CHUNK_LIGHTING_MAX,
+            .len = (uint64_t)BUFFER_SIZE_IN_BYTES(sunlightDim)
+        };
+
+        [buffer saveToFile:url
+                     queue:_queueForSaving
+                     group:_groupForSaving
+                    header:[NSData dataWithBytes:&header length:sizeof(header)]];
+    }
+    
+    if (!buffer) {
+        [NSException raise:NSGenericException
+                    format:@"Failed to fetch or generate the sunlight chunk \"%@\"", fileName];
     }
 
-    assert(buffer);
-
     return buffer;
+}
+
+- (BOOL)validateSunlightData:(nonnull NSData *)data error:(NSError **)error
+{
+    NSParameterAssert(data);
+    
+    const struct GSChunkSunlightHeader *header = [data bytes];
+    
+    if (!header) {
+        if (error) {
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnexpectedDataSizeError
+                                     userInfo:@{NSLocalizedDescriptionKey : @"Cannot get pointer to header."}];
+        }
+        return NO;
+    }
+    
+    if (header->magic != SUNLIGHT_MAGIC) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected magic number in sunlight data file: found %d " \
+                              @"but expected %d", header->magic, SUNLIGHT_MAGIC];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSBadMagicNumberError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    if (header->version != SUNLIGHT_VERSION) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected version number in sunlight data file: found %d " \
+                              @"but expected %d", header->version, SUNLIGHT_VERSION];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnsupportedVersionError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    if (header->lightMax != CHUNK_LIGHTING_MAX) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected number of light levels found in sunlight data" \
+                              @"file: found %llu but expected %d", header->lightMax, CHUNK_LIGHTING_MAX];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSBadValueError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    if ((header->w!=sunlightDim.x) || (header->h!=sunlightDim.y) || (header->d!=sunlightDim.z)) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected chunk size used in sunlight data: found " \
+                              @"(%d,%d,%d) but expected (%ld,%ld,%ld)",
+                              header->w, header->h, header->d,
+                              sunlightDim.x, sunlightDim.y, sunlightDim.z];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnexpectedChunkDimensionsError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    if (header->len != BUFFER_SIZE_IN_BYTES(sunlightDim)) {
+        if (error) {
+            NSString *desc = [NSString stringWithFormat:@"Unexpected number of bytes in sunlight data: found %llu " \
+                              @"but expected %zu bytes", header->len, BUFFER_SIZE_IN_BYTES(sunlightDim)];
+            *error = [NSError errorWithDomain:GSErrorDomain
+                                         code:GSUnexpectedDataSizeError
+                                     userInfo:@{NSLocalizedDescriptionKey : desc}];
+        }
+        return NO;
+    }
+    
+    return YES;
 }
 
 @end
