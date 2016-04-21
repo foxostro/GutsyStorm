@@ -501,7 +501,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
         _cursor = [[GSTerrainCursor alloc] initWithContext:context shader:cursorShader];
 
-        _maxPlaceDistance = 6.0; // XXX: make this configurable
+        _maxPlaceDistance = [[NSUserDefaults standardUserDefaults] floatForKey:@"MaxPlaceDistance"];
     }
     return self;
 }
