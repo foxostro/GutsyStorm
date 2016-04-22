@@ -93,8 +93,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     NSParameterAssert(groupForSaving);
 
     if (self = [super init]) {
-        GSBoxedVector *bmp = [GSBoxedVector boxedVectorWithVector:minCorner];
-        GSStopwatchTraceStep(@"Initializing geometry chunk %@", bmp);
+        GSStopwatchTraceStep(@"Initializing geometry chunk %@", [GSBoxedVector boxedVectorWithVector:minCorner]);
 
         minP = minCorner;
         
@@ -132,7 +131,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
         cost = _data.length;
 
-        GSStopwatchTraceStep(@"Done initializing geometry chunk %@", bmp);
+        GSStopwatchTraceStep(@"Done initializing geometry chunk %@", [GSBoxedVector boxedVectorWithVector:minCorner]);
     }
     
     return self;

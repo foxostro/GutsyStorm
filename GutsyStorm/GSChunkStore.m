@@ -236,7 +236,9 @@
 
     // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
     [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet<GSBoxedVector *> * (GSGridEdit *edit) {
-        return [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
+        NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
+        NSLog(@"Invalidated Sunlight Chunks: %@", points);
+        return points;
     }];
 
     NSSet<GSBoxedVector *> * (^oneToOne)(GSGridEdit *) = ^NSSet<GSBoxedVector *> * (GSGridEdit *edit) {

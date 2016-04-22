@@ -26,6 +26,15 @@ struct GSStopwatchTraceState
 void GSStopwatchTraceBegin(NSString * _Nonnull format, ...);
 struct GSStopwatchTraceState GSStopwatchTraceEnd(NSString * _Nonnull format, ...);
 void GSStopwatchTraceJoin(struct GSStopwatchTraceState * _Nullable completedSubtrace);
+
+// Uncomment to enable detailed stepping through the traces. This has some overhead but is helpful in determining where
+// time is being spent during a trace.
+//#define GS_STOPWATCH_TRACE_STEP_ENABLED
+
+#ifdef GS_STOPWATCH_TRACE_STEP_ENABLED
 void GSStopwatchTraceStep(NSString * _Nonnull format, ...);
+#else
+#define GSStopwatchTraceStep(...)
+#endif
 
 #endif /* GSActivity_h */
