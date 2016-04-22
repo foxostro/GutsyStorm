@@ -173,7 +173,24 @@
     // If the original block was opaque, and the new block is not-opaque, then the change cannot propagate a further
     // distance than the difference between the the maximum and minimum adjacent light levels. Noting, however, that
     // light levels of opaque blocks must be ignored.
-    if (originalIsOpaque && !modifiedIsOpaque) {
+    //
+    // If the original block was not-opaque and the new block is opaque then the change probably needs be resolved
+    // by actually computing the sunlight propagation first. We have a few options here: We could assume the
+    // propagation will continue for the maximum distance. We could perform a flood-fill throughout the chunk to
+    // determine whether it would touch the neighboring chunks. Or, we could optimize for the special case where we
+    // place an opaque block on top of an opaque block. In this particular case, which we expect to be common,
+    // the max-min difference technique will work correctly.
+    BOOL removingBlock = originalIsOpaque && !modifiedIsOpaque;
+    
+    BOOL bottomBlockIsOpaque;
+    if (clpOfEdit.y >= 1) {
+        GSVoxel bottomVoxel = [edit.modifiedObject voxelAtLocalPosition:(clpOfEdit + GSMakeIntegerVector3(0, -1, 0))];
+        bottomBlockIsOpaque = bottomVoxel.opaque;
+    } else {
+        bottomBlockIsOpaque = NO;
+    }
+
+    if (removingBlock || bottomBlockIsOpaque) {
         GSTerrainBufferElement maxSunlight = 0, minSunlight = CHUNK_LIGHTING_MAX;
         
         // Is the edit on the border of the chunk? If so then testing the adjacent chunks would involve taking a lock on
@@ -211,10 +228,6 @@
             
             m = maxSunlight - minSunlight;
         }
-    } else {
-        // If the original block was not-opaque and the new block is opaque then the change CANNOT be resolved by taking
-        // a difference as above. In this case, light must be propagated through first in order for the max - min calc
-        // to work. So: in this case, assume the change propagates the maximum distance.
     }
 
     NSArray *points = @[[GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p)],
@@ -237,7 +250,6 @@
     // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
     [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet<GSBoxedVector *> * (GSGridEdit *edit) {
         NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
-        NSLog(@"Invalidated Sunlight Chunks: %@", points);
         return points;
     }];
 
