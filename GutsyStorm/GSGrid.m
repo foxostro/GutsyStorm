@@ -600,9 +600,9 @@
     // We modify the bucket while holding the lock so that we can be certain that, inside the lock, the grid limits are
     // always consistent. In any case, replacing an item in a bucket like this is fast. So, we expect it to be low cost.
     [_lockTheCount lock];
-    [_lru referenceObject:item bucket:bucket];
-    [_lru removeObject:replacement];
+    [_lru removeObject:item];
     [bucket replaceObjectAtIndex:index withObject:replacement];
+    [_lru referenceObject:replacement bucket:bucket];
     _costTotal -= item.cost;
     _costTotal += replacement.cost;
     [_lockTheCount unlock];

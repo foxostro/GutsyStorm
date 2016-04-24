@@ -106,6 +106,8 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     if (self.shouldShutdown) {
         return;
     }
+    
+    //GSStopwatchTraceBegin(@"GSActiveRegion.draw");
 
     [_lockDrawList lock];
 
@@ -118,6 +120,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
             [vaosToRemove addObject:vao];
         }
     }
+    GSStopwatchTraceStep(@"Finished checking VAOs against camera frustum.");
     
     // Keep a dictionary to map from minP to VAO in constant-time.
     NSMutableDictionary *pointToChunk = [NSMutableDictionary new];
@@ -163,18 +166,22 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     {
         [_drawList removeObject:vao];
     }
+    GSStopwatchTraceStep(@"Finished building draw list.");
 
     // Draw them all.
     for(GSChunkVAO *vao in _drawList)
     {
         [vao draw];
     }
+    GSStopwatchTraceStep(@"Finished drawing VAOs.");
     
     [_lockDrawList unlock];
     
     if (chunkGenerationNeeded) {
         [self needsChunkGeneration];
     }
+    
+    //GSStopwatchTraceEnd(@"GSActiveRegion.draw");
 }
 
 - (nonnull NSArray<GSBoxedVector *> *)pointsInCameraFrustum
