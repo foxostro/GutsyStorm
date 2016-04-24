@@ -60,34 +60,19 @@ typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem
 /* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are
  * notified that the item has been invalidated.
  */
-- (void)invalidateItemWithChange:(nonnull GSGridEdit *)change
-                           queue:(nonnull dispatch_queue_t)queue
-                           group:(nonnull dispatch_group_t)group;
+- (void)invalidateItemAtPoint:(vector_float3)p;
 
 /* Method is called when the grid is just about to invalidate an item.
  * Sub-classes should override this to get custom behavior on item invalidation.
- * For example, a sub-class may wish to delete on-disk caches for items which are currently evicted and are now invalid.
+ * For example, a sub-class may wish to delete on-disk caches for items which are now invalid.
  */
 - (void)willInvalidateItemAtPoint:(vector_float3)p;
 
-/* The specified change to the grid causes certain items to be invalidated in dependent grids. */
-- (void)invalidateItemsInDependentGridsWithChange:(nonnull GSGridEdit *)change
-                                            queue:(nonnull dispatch_queue_t)queue
-                                            group:(nonnull dispatch_group_t)group;
-
-/* Registers a grid which depends on this grid. The specified mapping function takes a point in this grid and returns
- * the points in 'dependentGrid' which actually depend on that point.
+/* Replaces an item in the grid with a different item at the same location.
+ * The function `fn' accepts the old item and returns the replacement item.
+ * Returns a description of the final edit.
  */
-- (void)registerDependentGrid:(nonnull GSGrid *)dependentGrid
-                      mapping:(NSSet<GSBoxedVector *> * _Nonnull (^ _Nonnull)(GSGridEdit * _Nonnull))mapping;
-
-/* Applies the given transformation function to the item at the specified point.
- * This function returns a new grid item which is then inserted into the grid at the same position.
- */
-- (void)replaceItemAtPoint:(vector_float3)p
-                     queue:(nonnull dispatch_queue_t)queue
-                     group:(nonnull dispatch_group_t)group
-                 transform:(nonnull GSGridTransform)fn;
+- (nonnull GSGridEdit *)replaceItemAtPoint:(vector_float3)p transform:(nonnull GSGridTransform)fn;
 
 /* Set the cost limit to the current cost of items in the grid. This prevents the grid cost from growing. */
 - (void)capCosts;

@@ -51,8 +51,6 @@
 
 - (GSVoxel)voxelAtPoint:(vector_float3)pos;
 
-- (GSTerrainBufferElement)sunlightAtPoint:(vector_float3)pos;
-
 - (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block;
 
 /* Notify the chunk store object that the system has come under memory pressure. */

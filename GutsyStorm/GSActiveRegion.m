@@ -227,11 +227,9 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     return points;
 }
 
-- (void)modifyWithQueue:(nonnull dispatch_queue_t)queue
-                  group:(nonnull dispatch_group_t)group
-                  block:(void (^ _Nonnull)(void))block
+- (void)modifyWithBlock:(void (^ _Nonnull)(void))block
 {
-    GSStopwatchTraceStep(@"modifyWithQueue enter");
+    GSStopwatchTraceStep(@"modifyWithBlock enter");
 
     [_lockDrawList lock];
     
@@ -241,8 +239,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     // The block is expected to modify some part of the active region. Some activity such as chunk invalidation is
     // performed asynchronously and each block is added to the specified dispatch group.
     block();
-    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    GSStopwatchTraceStep(@"Finished waiting for `block' to modify the active region.");
+    GSStopwatchTraceStep(@"Applied the block.");
     
     // Rebuild the draw list.
     [_lockCachedPointsInCameraFrustum lockForReading];
@@ -257,7 +254,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     }
 
     // We're done. Release locks last to avoid interleaved trace messages.
-    GSStopwatchTraceStep(@"modifyWithQueue exit");
+    GSStopwatchTraceStep(@"modifyWithBlock exit");
     [_lockDrawList unlock];
     dispatch_resume(_generationQueue);
 }

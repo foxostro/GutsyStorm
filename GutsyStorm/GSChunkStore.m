@@ -26,6 +26,7 @@
 #import "GSActivity.h"
 #import "GSTerrainJournal.h"
 #import "GSTerrainJournalEntry.h"
+#import "GSReaderWriterLock.h"
 
 #import <OpenGL/gl.h>
 
@@ -36,7 +37,6 @@
 @interface GSChunkStore ()
 
 - (void)createGrids;
-- (void)setupGridDependencies;
 - (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam;
 
 + (nonnull NSURL *)newTerrainCacheFolderURL;
@@ -58,32 +58,22 @@
     GSGridGeometry *_gridGeometryData;
     GSGridSunlight *_gridSunlightData;
     GSGrid<GSChunkVoxelData *> *_gridVoxelData;
-
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _queueForSaving;
-
     BOOL _chunkStoreHasBeenShutdown;
     GSCamera *_camera;
     NSURL *_folder;
     GSShader *_terrainShader;
     NSOpenGLContext *_glContext;
     GSTerrainJournal *_journal;
-
     GSTerrainProcessorBlock _generator;
-
     GSActiveRegion *_activeRegion;
     vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
-    
-    // This queue is used for all dispatch-related work needed for placeBlockAtPoint
-    dispatch_queue_t _queuePlaceBlockAtPoint;
 }
 
 - (void)createGrids
 {
     assert(!_chunkStoreHasBeenShutdown);
-    assert(!_gridVoxelData);
-    assert(!_gridSunlightData);
-    assert(!_gridVAO);
 
     _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"
                                           factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
@@ -142,6 +132,8 @@
 - (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(nonnull GSGridEdit *)edit
 {
     NSParameterAssert(edit);
+    NSParameterAssert(edit.originalObject);
+    NSParameterAssert(edit.modifiedObject);
 
     vector_float3 p = edit.pos;
 
@@ -219,7 +211,12 @@
                         vector_float3 worldPos = vector_make(adjacentPoint.x + minP.x,
                                                              adjacentPoint.y + minP.y,
                                                              adjacentPoint.z + minP.z);
-                        GSTerrainBufferElement sunlightLevel = [self sunlightAtPoint:worldPos];
+                        
+                        // XXX: Threading hazard! What if the sunlight changes between iterations of this loop?
+                        // XXX: Probably shouldn't call -objectAtPoint: repeatedly here since we've already made sure all accesses are to one chunk.
+                        GSChunkSunlightData *sunChunk = [_gridSunlightData objectAtPoint:worldPos];
+                        GSTerrainBufferElement sunlightLevel = [sunChunk.sunlight valueAtPosition:adjacentPoint];
+
                         maxSunlight = MAX(maxSunlight, sunlightLevel);
                         minSunlight = MIN(minSunlight, sunlightLevel);
                     }
@@ -238,31 +235,6 @@
                         ];
     NSSet *set = [NSSet setWithArray:points];
     return set;
-}
-
-- (void)setupGridDependencies
-{
-    assert(!_chunkStoreHasBeenShutdown);
-    assert(_gridVoxelData);
-    assert(_gridSunlightData);
-    assert(_gridGeometryData);
-
-    // Each chunk sunlight object depends on the corresponding neighborhood of voxel data objects.
-    [_gridVoxelData registerDependentGrid:_gridSunlightData mapping:^NSSet<GSBoxedVector *> * (GSGridEdit *edit) {
-        NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
-        return points;
-    }];
-
-    NSSet<GSBoxedVector *> * (^oneToOne)(GSGridEdit *) = ^NSSet<GSBoxedVector *> * (GSGridEdit *edit) {
-        GSBoxedVector *p = [GSBoxedVector boxedVectorWithVector:edit.pos];
-        return [NSSet<GSBoxedVector *> setWithObject:p];
-    };
-
-    // Each chunk geometry object depends on the single, corresponding chunk sunlight object.
-    [_gridSunlightData registerDependentGrid:_gridGeometryData mapping:oneToOne];
-
-    // Each chunk VAO object depends on the single, corresponding chunk geometry object.
-    [_gridGeometryData registerDependentGrid:_gridVAO mapping:oneToOne];
 }
 
 - (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam
@@ -302,12 +274,7 @@
         _journal = journal;
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
 
-        dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT,
-                                                                             QOS_CLASS_USER_INTERACTIVE, 0);
-        _queuePlaceBlockAtPoint = dispatch_queue_create("placeBlockAtPoint", attr);
-
         [self createGrids];
-        [self setupGridDependencies];
         [self setupActiveRegionWithCamera:camera];
         
         // If the cache folder is empty then apply the journal to rebuild it.
@@ -331,7 +298,7 @@
     assert(_gridVAO);
     assert(_groupForSaving);
     assert(_queueForSaving);
-    
+
     // Shutdown the active region, which maintains it's own queue of async updates.
     [_activeRegion shutdown];
     _activeRegion = nil;
@@ -358,7 +325,6 @@
 
     _groupForSaving = NULL;
     _queueForSaving = NULL;
-    _queuePlaceBlockAtPoint = NULL;
 }
 
 - (void)drawActiveChunks
@@ -388,34 +354,15 @@
     NSParameterAssert(journal);
 
     assert(!_chunkStoreHasBeenShutdown);
-    assert(_gridVoxelData);
     
     GSStopwatchTraceBegin(@"applyJournal");
     
-    dispatch_group_t group = dispatch_group_create();
-    
     for(GSTerrainJournalEntry *entry in journal.journalEntries)
     {
-        vector_float3 pos = [entry.position vectorValue];
-        [_gridVoxelData replaceItemAtPoint:pos
-                                     queue:_queuePlaceBlockAtPoint
-                                     group:group
-                                 transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
-                                     GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
-                                     GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos
-                                                                                        block:entry.value];
-                                     [voxels2 saveToFile];
-                                     return voxels2;
-                                 }];
-        GSStopwatchTraceStep(@"Placed block at %@.", entry.position);
+        [self placeBlockAtPoint:[entry.position vectorValue] block:entry.value];
     }
 
-    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    GSStopwatchTraceStep(@"Done waiting for asynchronous invalidation steps to finish.");
-
     dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
-    GSStopwatchTraceStep(@"Done waiting for chunk to finish saving to disk.");
-
     GSStopwatchTraceEnd(@"applyJournal");
 }
 
@@ -426,33 +373,51 @@
     assert(_activeRegion);
     assert(_journal);
     
+    /* XXX: I think there's a threading hazard here that needs to be addressed with better synchronization.
+     * What if a grid access is iterleaved with the call to -placeBlockAtPoint:block:? Couldn't this cause an incorrect
+     * chunk to be generated and inserted into grids?
+     */
+    
+    GSBoxedVector *boxedPos = [GSBoxedVector boxedVectorWithVector:pos];
+    
     dispatch_group_async(_groupForSaving, _queueForSaving, ^{
         GSTerrainJournalEntry *entry = [[GSTerrainJournalEntry alloc] init];
         entry.value = block;
-        entry.position = [GSBoxedVector boxedVectorWithVector:pos];
+        entry.position = boxedPos;
         [_journal addEntry:entry];
     });
 
-    GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", [GSBoxedVector boxedVectorWithVector:pos]);
+    GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
 
-    dispatch_group_t group = dispatch_group_create();
+    [_activeRegion modifyWithBlock:^{
+        GSGridTransform fn = ^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
+            GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
+            GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
+            [voxels2 saveToFile];
+            return voxels2;
+        };
 
-    [_activeRegion modifyWithQueue:_queuePlaceBlockAtPoint
-                             group:group
-                             block:^{
-        [_gridVoxelData replaceItemAtPoint:pos
-                                     queue:_queuePlaceBlockAtPoint
-                                     group:group
-                                 transform:^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
-                                     GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
-                                     GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos
-                                                                                        block:block];
-                                     [voxels2 saveToFile];
-                                     return voxels2;
-                                 }];
+        GSGridEdit *edit = [_gridVoxelData replaceItemAtPoint:pos transform:fn];
+        
+        NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
+        
+        for(GSBoxedVector *p in points)
+        {
+            [_gridSunlightData invalidateItemAtPoint:[p vectorValue]];
+        }
+        
+        for(GSBoxedVector *p in points)
+        {
+            [_gridGeometryData invalidateItemAtPoint:[p vectorValue]];
+        }
+        
+        for(GSBoxedVector *p in points)
+        {
+            [_gridVAO invalidateItemAtPoint:[p vectorValue]];
+        }
     }];
 
-    GSStopwatchTraceEnd(@"placeBlockAtPoint exit %@", [GSBoxedVector boxedVectorWithVector:pos]);
+    GSStopwatchTraceEnd(@"placeBlockAtPoint exit %@", boxedPos);
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel
@@ -486,16 +451,6 @@
     return [chunk voxelAtLocalPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
                                                              pos.y-chunk.minP.y,
                                                              pos.z-chunk.minP.z)];
-}
-
-- (GSTerrainBufferElement)sunlightAtPoint:(vector_float3)pos
-{
-    assert(!_chunkStoreHasBeenShutdown);
-    GSChunkSunlightData *chunk = [self chunkSunlightAtPoint:pos];
-    assert(chunk);
-    return [chunk.sunlight valueAtPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
-                                                                pos.y-chunk.minP.y,
-                                                                pos.z-chunk.minP.z)];
 }
 
 - (BOOL)enumerateVoxelsOnRay:(GSRay)ray
@@ -642,9 +597,7 @@
 
 - (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
 {
-    if (_chunkStoreHasBeenShutdown) {
-        @throw nil;
-    }
+    assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridGeometryData);
     GSChunkGeometryData *geo = [_gridGeometryData objectAtPoint:p];
@@ -656,7 +609,8 @@
     assert(!_chunkStoreHasBeenShutdown);
     NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridSunlightData);
-    return [_gridSunlightData objectAtPoint:p];
+    GSChunkSunlightData *sun = [_gridSunlightData objectAtPoint:p];
+    return sun;
 }
 
 - (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p
@@ -664,7 +618,8 @@
     assert(!_chunkStoreHasBeenShutdown);
     NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridVoxelData);
-    return [_gridVoxelData objectAtPoint:p];
+    GSChunkVoxelData *vox = [_gridVoxelData objectAtPoint:p];
+    return vox;
 }
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData * _Nonnull * _Nonnull)chunk
@@ -683,7 +638,7 @@
     if(success) {
         *chunk = v;
     }
-
+    
     return success;
 }
 

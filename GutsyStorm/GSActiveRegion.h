@@ -36,12 +36,8 @@
 
 /* Accepts a block which modifies part of the active region. Ensures that the changes appear "instantly" from the
  * perspective of the display link thread.
- * The block is expected to return a list of points corresponding to the chunks which were modified.
- * If asynchronous chunk invalidation is going to happen then those blocks should be added to the specified group.
  */
-- (void)modifyWithQueue:(nonnull dispatch_queue_t)queue
-                  group:(nonnull dispatch_group_t)group
-                  block:(void (^ _Nonnull)(void))block;
+- (void)modifyWithBlock:(void (^ _Nonnull)(void))block;
 
 /* Call this to notify the active region that a VAO in the active region needs to be generated or regenerated.
  * To ensure that updates to the world will are made visible in a timely manner, call this immediately when a VAO, or

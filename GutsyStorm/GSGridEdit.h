@@ -7,8 +7,9 @@
 //
 
 #import <Foundation/Foundation.h>
-#include <simd/simd.h>
+#import <simd/simd.h>
 
+// XXX: not much uses GSGridEdit. Can the class be removed?
 @interface GSGridEdit : NSObject
 
 @property (nonatomic, strong, nullable) id originalObject;
