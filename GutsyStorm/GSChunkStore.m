@@ -131,6 +131,8 @@
 
 - (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(nonnull GSGridEdit *)edit
 {
+    // The caller must ensure that the grids stay consistent with one another during the call to this method.
+
     NSParameterAssert(edit);
     NSParameterAssert(edit.originalObject);
     NSParameterAssert(edit.modifiedObject);
@@ -200,6 +202,9 @@
                 clpOfEdit + GSMakeIntegerVector3( 0,  0, +1),
                 clpOfEdit + GSMakeIntegerVector3( 0,  0, -1)
             };
+
+            GSChunkSunlightData *sunChunk = [_gridSunlightData objectAtPoint:p];
+
             for(size_t i = 0; i < ARRAY_LEN(adjacentPoints); ++i)
             {
                 vector_long3 adjacentPoint = adjacentPoints[i];
@@ -208,15 +213,7 @@
                     GSVoxel voxel = [edit.originalObject voxelAtLocalPosition:adjacentPoint];
                     
                     if (!voxel.opaque) {
-                        vector_float3 worldPos = vector_make(adjacentPoint.x + minP.x,
-                                                             adjacentPoint.y + minP.y,
-                                                             adjacentPoint.z + minP.z);
-                        
-                        // XXX: Threading hazard! What if the sunlight changes between iterations of this loop?
-                        // XXX: Probably shouldn't call -objectAtPoint: repeatedly here since we've already made sure all accesses are to one chunk.
-                        GSChunkSunlightData *sunChunk = [_gridSunlightData objectAtPoint:worldPos];
                         GSTerrainBufferElement sunlightLevel = [sunChunk.sunlight valueAtPosition:adjacentPoint];
-
                         maxSunlight = MAX(maxSunlight, sunlightLevel);
                         minSunlight = MIN(minSunlight, sunlightLevel);
                     }
