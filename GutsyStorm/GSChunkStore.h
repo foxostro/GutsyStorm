@@ -51,7 +51,7 @@
 
 - (GSVoxel)voxelAtPoint:(vector_float3)pos;
 
-- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block;
+- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block addToJournal:(BOOL)addToJournal;
 
 /* Notify the chunk store object that the system has come under memory pressure. */
 - (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status;

@@ -74,6 +74,7 @@
 
     dispatch_semaphore_wait(_mutex, DISPATCH_TIME_FOREVER);
 
+    NSAssert(![_readers containsObject:[NSValue valueWithPointer:pthread_self()]], @"already holding read lock");
     [_readers addObject:[NSValue valueWithPointer:pthread_self()]];
     _readcount++;
 
@@ -88,7 +89,7 @@
 {
     dispatch_semaphore_wait(_mutex, DISPATCH_TIME_FOREVER);
 
-    [_readers removeObjectAtIndex:[_readers indexOfObject:[NSValue valueWithPointer:pthread_self()]]];
+    [_readers removeObject:[NSValue valueWithPointer:pthread_self()]];
     _readcount--;
 
     if(0 == _readcount) {
@@ -107,6 +108,9 @@
     
     if (success) {
         _writer = pthread_self();
+        
+        NSAssert(![_readers containsObject:[NSValue valueWithPointer:pthread_self()]], @"already holding read lock");
+        [_readers addObject:[NSValue valueWithPointer:pthread_self()]];
     }
     
     return success;
@@ -117,10 +121,14 @@
     DEBUG_LOG(@"lockForWriting (%@)", self.name);
     dispatch_semaphore_wait(_writing, DISPATCH_TIME_FOREVER);
     _writer = pthread_self();
+    
+    NSAssert(![_readers containsObject:[NSValue valueWithPointer:pthread_self()]], @"already holding read lock");
+    [_readers addObject:[NSValue valueWithPointer:pthread_self()]];
 }
 
 - (void)unlockForWriting
 {
+    [_readers removeObjectAtIndex:[_readers indexOfObject:[NSValue valueWithPointer:pthread_self()]]];
     _writer = NULL;
     dispatch_semaphore_signal(_writing);
     DEBUG_LOG(@"unlockForWriting (%@)", self.name);

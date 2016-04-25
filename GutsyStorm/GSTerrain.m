@@ -552,7 +552,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_CUBE;
         
-        [_chunkStore placeBlockAtPoint:_cursor.cursorPlacePos block:block];
+        [_chunkStore placeBlockAtPoint:_cursor.cursorPlacePos block:block addToJournal:YES];
         [self recalcCursorPosition];
     }
 }
@@ -566,7 +566,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_EMPTY;
         
-        [_chunkStore placeBlockAtPoint:_cursor.cursorPos block:block];
+        [_chunkStore placeBlockAtPoint:_cursor.cursorPos block:block addToJournal:YES];
         [self recalcCursorPosition];
     }
 }

@@ -358,14 +358,14 @@
     
     for(GSTerrainJournalEntry *entry in journal.journalEntries)
     {
-        [self placeBlockAtPoint:[entry.position vectorValue] block:entry.value];
+        [self placeBlockAtPoint:[entry.position vectorValue] block:entry.value addToJournal:NO];
     }
 
     dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
     GSStopwatchTraceEnd(@"applyJournal");
 }
 
-- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block
+- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block addToJournal:(BOOL)addToJournal
 {
     assert(!_chunkStoreHasBeenShutdown);
     assert(_gridVoxelData);
@@ -379,12 +379,14 @@
     
     GSBoxedVector *boxedPos = [GSBoxedVector boxedVectorWithVector:pos];
     
-    dispatch_group_async(_groupForSaving, _queueForSaving, ^{
-        GSTerrainJournalEntry *entry = [[GSTerrainJournalEntry alloc] init];
-        entry.value = block;
-        entry.position = boxedPos;
-        [_journal addEntry:entry];
-    });
+    if (addToJournal) {
+        dispatch_group_async(_groupForSaving, _queueForSaving, ^{
+            GSTerrainJournalEntry *entry = [[GSTerrainJournalEntry alloc] init];
+            entry.value = block;
+            entry.position = boxedPos;
+            [_journal addEntry:entry];
+        });
+    }
 
     GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
 
@@ -401,7 +403,9 @@
         [_gridVoxelData replaceItemAtPoint:pos transform:fn];
         GSStopwatchTraceStep(@"Updated voxels.");
 
+#if 0
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
+#endif
 
         /* XXX: Consider replacing sunlightChunksInvalidatedByVoxelChangeAtPoint with a flood-fill constrained to the
          * local neighborhood. If the flood-fill would exit the center chunk then take note of which chunk because that
@@ -414,6 +418,7 @@
         {
             vector_float3 p = [bp vectorValue];
             
+#if 0
             __block GSChunkSunlightData *sunlight2;
             __block GSChunkGeometryData *geo2;
 
@@ -441,6 +446,11 @@
             };
             [_gridVAO replaceItemAtPoint:p transform:vaoFn];
             GSStopwatchTraceStep(@"Updated VAO at %@", bp);
+#else
+            [_gridSunlightData invalidateItemAtPoint:p];
+            [_gridGeometryData invalidateItemAtPoint:p];
+            [_gridVAO invalidateItemAtPoint:p];
+#endif
         }
     }];
 

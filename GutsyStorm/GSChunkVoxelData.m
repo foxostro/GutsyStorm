@@ -141,6 +141,7 @@ struct GSChunkVoxelHeader
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                                 data:(nonnull GSTerrainBuffer *)data
+                             editPos:(vector_float3)editPos
 {
     if (self = [super init]) {
         minP = mp;
@@ -150,7 +151,7 @@ struct GSChunkVoxelHeader
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
         GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
-        [self markOutsideVoxels:dataWithUpdatedOutside];
+        [self markOutsideVoxels:dataWithUpdatedOutside editPos:editPos];
         _voxels = dataWithUpdatedOutside;
     }
 
@@ -239,6 +240,8 @@ struct GSChunkVoxelHeader
 
 - (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
 {
+    NSParameterAssert(data);
+
     vector_long3 p;
 
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
@@ -279,6 +282,58 @@ struct GSChunkVoxelHeader
                                        (voxel->type==VOXEL_TYPE_CORNER_INSIDE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
                                        (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_RAMP);
 
+            prevType = voxel->type;
+        }
+    }
+}
+
+- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data editPos:(vector_float3)editPos
+{
+    NSParameterAssert(data);
+    vector_long3 p;
+    vector_long3 editPosLocal = GSMakeIntegerVector3(editPos.x - minP.x, editPos.y - minP.y, editPos.z - minP.z);
+    
+    // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
+    // We assume here that the chunk is the height of the world.
+    {
+        p = editPosLocal;
+        p.y = 0;
+        
+        // Get the y value of the highest non-empty voxel in the chunk.
+        long heightOfHighestVoxel;
+        for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
+        {
+            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z)];
+            
+            if(voxel->opaque) {
+                break;
+            }
+        }
+        
+        for(p.y = 0; p.y < GSChunkSizeIntVec3.y; ++p.y)
+        {
+            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+            voxel->outside = (p.y >= heightOfHighestVoxel);
+        }
+    }
+
+    // Determine voxels in the chunk which are exposed to air on top.
+    {
+        p = editPosLocal;
+
+        // Find a voxel which is empty and is directly above a cube voxel.
+        p.y = CHUNK_SIZE_Y-1;
+        GSVoxelType prevType = ((GSVoxel *)[data pointerToValueAtPosition:p])->type;
+        for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
+        {
+            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+            
+            // XXX: It would be better to store the relationships between voxel types in some other way. Not here.
+            voxel->exposedToAirOnTop = (voxel->type!=VOXEL_TYPE_EMPTY && prevType==VOXEL_TYPE_EMPTY) ||
+            (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
+            (voxel->type==VOXEL_TYPE_CORNER_INSIDE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
+            (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_RAMP);
+            
             prevType = voxel->type;
         }
     }
@@ -370,7 +425,8 @@ struct GSChunkVoxelHeader
                                                                       folder:_folder
                                                               groupForSaving:_groupForSaving
                                                               queueForSaving:_queueForSaving
-                                                                        data:modified];
+                                                                        data:modified
+                                                                     editPos:pos];
     return modifiedVoxelData;
 }
 

@@ -38,7 +38,8 @@ typedef void (^GSTerrainProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
                               folder:(nonnull NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                                data:(nonnull GSTerrainBuffer *)data;
+                                data:(nonnull GSTerrainBuffer *)data
+                             editPos:(vector_float3)pos;
 
 - (GSVoxel)voxelAtLocalPosition:(vector_long3)chunkLocalP;
 

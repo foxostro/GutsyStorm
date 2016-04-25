@@ -282,6 +282,36 @@
     [_lockTheTableItself unlockForWriting];
 }
 
+- (void)invalidateItemAtPoint:(vector_float3)pos
+{
+    [_lockTheTableItself lockForReading];
+    
+    vector_float3 minP = GSMinCornerForChunkAtPoint(pos);
+    NSUInteger hash = vector_hash(minP);
+    NSUInteger idxBucket = hash % _numBuckets;
+    NSUInteger idxLock = hash % _numLocks;
+    NSLock *lock = _locks[idxLock];
+    NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[idxBucket];
+    
+    [lock lock];
+    
+    NSObject <GSGridItem> *foundItem = [self _searchForItemAtPosition:minP bucket:bucket];
+    
+    if(foundItem) {
+        [self willInvalidateItemAtPoint:foundItem.minP];
+
+        [_lockTheCount lock];
+        _count--;
+        _costTotal -= foundItem.cost;
+        [bucket removeObject:foundItem];
+        [_lru removeObject:foundItem];
+        [_lockTheCount unlock];
+    }
+    
+    [lock unlock];
+    [_lockTheTableItself unlockForReading];
+}
+
 - (void)willInvalidateItemAtPoint:(vector_float3)p
 {
     // do nothing
