@@ -7,15 +7,21 @@
 //
 
 #import "GSReaderWriterLock.h"
+#import <pthread.h>
+
 
 //#define DEBUG_LOG(...) NSLog(__VA_ARGS__)
 #define DEBUG_LOG(...)
+
 
 @implementation GSReaderWriterLock
 {
     dispatch_semaphore_t _mutex;
     dispatch_semaphore_t _writing;
     unsigned _readcount;
+    
+    NSMutableArray<NSValue *> *_readers;
+    pthread_t _writer;
 }
 
 - (nonnull instancetype)init
@@ -26,6 +32,8 @@
         _mutex = dispatch_semaphore_create(1);
         _writing = dispatch_semaphore_create(1);
         _readcount = 0;
+        _readers = [NSMutableArray new];
+        _writer = NULL;
         self.name = [super description];
     }
     return self;
@@ -49,6 +57,10 @@
             success = NO;
         }
     }
+    
+    if (success) {
+        [_readers addObject:[NSValue valueWithPointer:pthread_self()]];
+    }
 
     dispatch_semaphore_signal(_mutex);
 
@@ -62,6 +74,7 @@
 
     dispatch_semaphore_wait(_mutex, DISPATCH_TIME_FOREVER);
 
+    [_readers addObject:[NSValue valueWithPointer:pthread_self()]];
     _readcount++;
 
     if(1 == _readcount) {
@@ -75,6 +88,7 @@
 {
     dispatch_semaphore_wait(_mutex, DISPATCH_TIME_FOREVER);
 
+    [_readers removeObjectAtIndex:[_readers indexOfObject:[NSValue valueWithPointer:pthread_self()]]];
     _readcount--;
 
     if(0 == _readcount) {
@@ -89,19 +103,45 @@
 - (BOOL)tryLockForWriting
 {
     DEBUG_LOG(@"tryLockForWriting (%@)", self.name);
-    return 0 == dispatch_semaphore_wait(_writing, DISPATCH_TIME_NOW);
+    BOOL success = !dispatch_semaphore_wait(_writing, DISPATCH_TIME_NOW);
+    
+    if (success) {
+        _writer = pthread_self();
+    }
+    
+    return success;
 }
 
 - (void)lockForWriting
 {
     DEBUG_LOG(@"lockForWriting (%@)", self.name);
     dispatch_semaphore_wait(_writing, DISPATCH_TIME_FOREVER);
+    _writer = pthread_self();
 }
 
 - (void)unlockForWriting
 {
+    _writer = NULL;
     dispatch_semaphore_signal(_writing);
     DEBUG_LOG(@"unlockForWriting (%@)", self.name);
+}
+
+- (void)checkWriteScope
+{
+    if (_writer != pthread_self()) {
+        [NSException raise:NSInternalInconsistencyException format:@"No write scope"];
+    }
+}
+
+- (void)checkReadScope
+{
+    dispatch_semaphore_wait(_mutex, DISPATCH_TIME_FOREVER);
+    
+    if (![_readers containsObject:[NSValue valueWithPointer:pthread_self()]]) {
+        [NSException raise:NSInternalInconsistencyException format:@"No read scope"];
+    }
+    
+    dispatch_semaphore_signal(_mutex);
 }
 
 @end
