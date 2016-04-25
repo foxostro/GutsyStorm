@@ -55,6 +55,9 @@ static void applyLightToVertices(size_t numChunkVerts,
 @implementation GSChunkGeometryData
 {
     NSData *_data;
+    NSURL *_folder;
+    dispatch_group_t _groupForSaving;
+    dispatch_queue_t _queueForSaving;
 }
 
 @synthesize minP;
@@ -86,6 +89,7 @@ static void applyLightToVertices(size_t numChunkVerts,
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                        allowLoading:(BOOL)allowLoading
 {
     NSParameterAssert(folder);
     NSParameterAssert(sunlight);
@@ -96,16 +100,25 @@ static void applyLightToVertices(size_t numChunkVerts,
         GSStopwatchTraceStep(@"Initializing geometry chunk %@", [GSBoxedVector boxedVectorWithVector:minCorner]);
 
         minP = minCorner;
+
+        _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
+        _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
+        _folder = folder;
         
         BOOL failedToLoadFromFile = YES;
-        NSString *fileName = [GSChunkGeometryData fileNameForGeometryDataFromMinP:minCorner];
+        NSString *fileName = [[self class] fileNameForGeometryDataFromMinP:minCorner];
         NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
         NSError *error = nil;
-        _data = [NSData dataWithContentsOfFile:[url path]
-                                       options:NSDataReadingMapped
-                                         error:&error];
+        
+        if (allowLoading) {
+            _data = [NSData dataWithContentsOfFile:[url path]
+                                           options:NSDataReadingMapped
+                                             error:&error];
+        }
 
-        if(!_data) {
+        if (!allowLoading) {
+            // do nothing
+        } else if(!_data) {
             if ([error.domain isEqualToString:NSCocoaErrorDomain] && (error.code == 260)) {
                 // File not found. We don't have to log this one because it's common and we know how to recover.
             } else {
@@ -119,7 +132,7 @@ static void applyLightToVertices(size_t numChunkVerts,
         }
 
         if (failedToLoadFromFile) {
-            _data = [GSChunkGeometryData dataWithSunlight:sunlight minP:minP];
+            _data = [[self class] dataWithSunlight:sunlight minP:minP];
             [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
             GSStopwatchTraceStep(@"Generated geometry for chunk.");
         }
@@ -140,6 +153,17 @@ static void applyLightToVertices(size_t numChunkVerts,
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // all geometry objects are immutable, so return self instead of deep copying
+}
+
+- (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight
+{
+    NSParameterAssert(sunlight);
+    return [[[self class] alloc] initWithMinP:self.minP
+                                       folder:_folder
+                                     sunlight:sunlight
+                               groupForSaving:_groupForSaving
+                               queueForSaving:_queueForSaving
+                                 allowLoading:NO];
 }
 
 - (BOOL)validateGeometryData:(nonnull NSData *)data error:(NSError **)error
@@ -263,7 +287,7 @@ static void applyLightToVertices(size_t numChunkVerts,
         assert(type < NUM_VOXEL_TYPES);
 
         if(type != VOXEL_TYPE_EMPTY) {
-            GSBlockMesh *factory = [GSChunkGeometryData sharedMeshFactoryWithBlockType:type];
+            GSBlockMesh *factory = [[self class] sharedMeshFactoryWithBlockType:type];
             [factory generateGeometryForSingleBlockAtPosition:pos
                                                    vertexList:vertices
                                                     voxelData:neighborhood

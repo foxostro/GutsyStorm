@@ -27,4 +27,6 @@
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                         neighborhood:(nonnull GSNeighborhood *)neighborhood;
 
+- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)p neighborhood:(nonnull GSNeighborhood *)neighborhood;
+
 @end

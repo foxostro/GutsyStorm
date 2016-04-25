@@ -27,6 +27,7 @@
 #import "GSTerrainJournal.h"
 #import "GSTerrainJournalEntry.h"
 #import "GSReaderWriterLock.h"
+#import "GSGridEdit.h"
 
 #import <OpenGL/gl.h>
 
@@ -108,7 +109,8 @@
                                                                                 folder:_folder
                                                                               sunlight:sunlight
                                                                         groupForSaving:_groupForSaving
-                                                                        queueForSaving:_queueForSaving];
+                                                                        queueForSaving:_queueForSaving
+                                                                          allowLoading:YES];
                                   return r;
                               }];
     
@@ -370,9 +372,9 @@
     assert(_activeRegion);
     assert(_journal);
     
-    /* XXX: I think there's a threading hazard here that needs to be addressed with better synchronization.
-     * What if a grid access is iterleaved with the call to -placeBlockAtPoint:block:? Couldn't this cause an incorrect
-     * chunk to be generated and inserted into grids?
+    /* XXX: There's definitely a threading hazard here that needs to be addressed with better synchronization.
+     * What if a grid access is interleaved with the call to -placeBlockAtPoint:block:? Couldn't this cause an incorrect
+     * chunk to be generated and inserted into grids? What if two calls to -placeBlockAtPoint:block: overlap?
      */
     
     GSBoxedVector *boxedPos = [GSBoxedVector boxedVectorWithVector:pos];
@@ -387,30 +389,58 @@
     GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
 
     [_activeRegion modifyWithBlock:^{
+        __block GSChunkVoxelData *voxels1;
+        __block GSChunkVoxelData *voxels2;
+        
         GSGridTransform fn = ^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
-            GSChunkVoxelData *voxels1 = (GSChunkVoxelData *)originalItem;
-            GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
+            voxels1 = (GSChunkVoxelData *)originalItem;
+            voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
             [voxels2 saveToFile];
             return voxels2;
         };
+        [_gridVoxelData replaceItemAtPoint:pos transform:fn];
+        GSStopwatchTraceStep(@"Updated voxels.");
 
-        GSGridEdit *edit = [_gridVoxelData replaceItemAtPoint:pos transform:fn];
-        
-        NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByVoxelChangeAtPoint:edit];
-        
-        for(GSBoxedVector *p in points)
+        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
+
+        /* XXX: Consider replacing sunlightChunksInvalidatedByVoxelChangeAtPoint with a flood-fill constrained to the
+         * local neighborhood. If the flood-fill would exit the center chunk then take note of which chunk because that
+         * one needs invalidation too.
+         */
+        NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByVoxelChangeAtPoint:[[GSGridEdit alloc] initWithOriginalItem:voxels1 modifiedItem:voxels2 pos:pos]];
+        GSStopwatchTraceStep(@"Estimated affected sunlight chunks: %@", points);
+
+        for(GSBoxedVector *bp in points)
         {
-            [_gridSunlightData invalidateItemAtPoint:[p vectorValue]];
-        }
-        
-        for(GSBoxedVector *p in points)
-        {
-            [_gridGeometryData invalidateItemAtPoint:[p vectorValue]];
-        }
-        
-        for(GSBoxedVector *p in points)
-        {
-            [_gridVAO invalidateItemAtPoint:[p vectorValue]];
+            vector_float3 p = [bp vectorValue];
+            
+            __block GSChunkSunlightData *sunlight2;
+            __block GSChunkGeometryData *geo2;
+
+            GSGridTransform sunFn = ^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
+                GSChunkSunlightData *sunlight1 = (GSChunkSunlightData *)originalItem;
+                sunlight2 = [sunlight1 copyWithEditAtPoint:pos neighborhood:neighborhood];
+                // XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only re-propagating sunlight in the region affected by the edit; not across the entire chunk.
+                return sunlight2;
+            };
+            [_gridSunlightData replaceItemAtPoint:p transform:sunFn];
+            GSStopwatchTraceStep(@"Updated sunlight at %@", bp);
+
+            GSGridTransform geoFn = ^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
+                GSChunkGeometryData *geo1 = (GSChunkGeometryData *)originalItem;
+                geo2 = [geo1 copyWithSunlight:sunlight2];
+                // XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only updating faces for blocks which were modified.
+                return geo2;
+            };
+            [_gridGeometryData replaceItemAtPoint:p transform:geoFn];
+            GSStopwatchTraceStep(@"Updated geometry at %@", bp);
+
+            GSGridTransform vaoFn = ^NSObject<GSGridItem> *(NSObject<GSGridItem> * __unused originalItem) {
+                GSChunkVAO *vao2 = [[GSChunkVAO alloc] initWithChunkGeometry:geo2 glContext:_glContext];
+                return vao2;
+            };
+            [_gridVAO replaceItemAtPoint:p transform:vaoFn];
+            GSStopwatchTraceStep(@"Updated VAO at %@", bp);
         }
     }];
 

@@ -16,6 +16,7 @@ static BOOL gStopwatchTracingEnabled = NO;
 void GSStopwatchTraceBegin(NSString * _Nonnull format, ...)
 {
     assert(format);
+    assert(!gTrace.active);
     
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{

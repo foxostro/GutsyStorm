@@ -14,6 +14,7 @@
 #import "GSBoxedVector.h"
 #import "GSGridItemLRU.h"
 #import "GSActivity.h"
+#import "GSGridEdit.h"
 
 
 //#define DEBUG_LOG(...) NSLog(__VA_ARGS__)
@@ -281,29 +282,6 @@
     [_lockTheTableItself unlockForWriting];
 }
 
-- (void)invalidateItemAtPoint:(vector_float3)pos
-{
-    [_lockTheTableItself lockForReading];
-    
-    vector_float3 minP = GSMinCornerForChunkAtPoint(pos);
-    NSUInteger hash = vector_hash(minP);
-    NSUInteger idxBucket = hash % _numBuckets;
-    NSUInteger idxLock = hash % _numLocks;
-    NSLock *lock = _locks[idxLock];
-    NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[idxBucket];
-    
-    [lock lock];
-    
-    NSObject <GSGridItem> *foundItem = [self _searchForItemAtPosition:minP bucket:bucket];
-    
-    if(foundItem) {
-        [self _unlockedInvalidateItem:foundItem bucket:bucket];
-    }
-    
-    [lock unlock];
-    [_lockTheTableItself unlockForReading];
-}
-
 - (void)willInvalidateItemAtPoint:(vector_float3)p
 {
     // do nothing
@@ -441,30 +419,6 @@
     _count--;
     _costTotal -= item.cost;
     
-    if([item respondsToSelector:@selector(itemWillBeEvicted)]) {
-        [item itemWillBeEvicted];
-    }
-    
-    [bucket removeObject:item];
-    [_lru removeObject:item];
-    [_lockTheCount unlock];
-}
-
-- (void)_unlockedInvalidateItem:(nonnull NSObject <GSGridItem> *)item
-                         bucket:(nonnull NSMutableArray<NSObject <GSGridItem> *> *)bucket
-{
-    NSParameterAssert(item);
-    NSParameterAssert(bucket);
-    
-    if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
-        [item itemWillBeInvalidated];
-    }
-    
-    [self willInvalidateItemAtPoint:item.minP];
-    
-    [_lockTheCount lock];
-    _count--;
-    _costTotal -= item.cost;
     [bucket removeObject:item];
     [_lru removeObject:item];
     [_lockTheCount unlock];
@@ -472,18 +426,6 @@
 
 - (void)_unlockedEvictAllItems
 {
-    for(NSUInteger i=0; i<_numBuckets; ++i)
-    {
-        NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[i];
-        
-        for(NSObject <GSGridItem> *item in bucket)
-        {
-            if([item respondsToSelector:@selector(itemWillBeEvicted)]) {
-                [item itemWillBeEvicted];
-            }
-        }
-    }
-    
     for(NSUInteger i=0; i<_numBuckets; ++i)
     {
         NSMutableArray<NSObject <GSGridItem> *> *bucket = _buckets[i];
@@ -513,9 +455,7 @@
     NSObject <GSGridItem> *replacement = change.modifiedObject;
     NSAssert(replacement, @"`change.modifiedObject' must not be nil");
 
-    if([item respondsToSelector:@selector(itemWillBeInvalidated)]) {
-        [item itemWillBeInvalidated];
-    }
+    [self willInvalidateItemAtPoint:change.pos];
 
     // We can replace an item without taking the write lock on the whole table. We only need to enter this method
     // while holding the lock on the relevant stripe. Take `_lockTheCount' to ensure consistent updates to the limits.

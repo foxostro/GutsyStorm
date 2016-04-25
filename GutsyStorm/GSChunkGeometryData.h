@@ -28,7 +28,10 @@
                               folder:(nonnull NSURL *)folder
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
-                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving;
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                        allowLoading:(BOOL)allowLoading;
+
+- (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight;
 
 /* Copy the chunk vertex buffer to a new buffer and return it.
  * Return the number of vertices in the buffer in `count'

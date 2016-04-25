@@ -360,16 +360,17 @@ struct GSChunkVoxelHeader
                      header:[NSData dataWithBytes:&header length:sizeof(header)]];
 }
 
-- (nonnull GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
+- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
 {
+    NSParameterAssert(vector_equal(GSMinCornerForChunkAtPoint(pos), minP));
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSTerrainBufferElement newValue = *((GSTerrainBufferElement *)&newBlock);
     GSTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue];
-    GSChunkVoxelData *modifiedVoxelData = [[GSChunkVoxelData alloc] initWithMinP:minP
-                                                                          folder:_folder
-                                                                  groupForSaving:_groupForSaving
-                                                                  queueForSaving:_queueForSaving
-                                                                            data:modified];
+    GSChunkVoxelData *modifiedVoxelData = [[[self class] alloc] initWithMinP:minP
+                                                                      folder:_folder
+                                                              groupForSaving:_groupForSaving
+                                                              queueForSaving:_queueForSaving
+                                                                        data:modified];
     return modifiedVoxelData;
 }
 

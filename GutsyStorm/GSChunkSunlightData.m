@@ -33,6 +33,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
 @implementation GSChunkSunlightData
 {
+    NSURL *_folder;
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _queueForSaving;
 }
@@ -55,7 +56,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
         assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
         minP = minCorner;
-
+        _folder = folder;
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _neighborhood = neighborhood;
@@ -68,6 +69,16 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // GSChunkSunlightData is immutable, so return self instead of deep copying
+}
+
+- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)p neighborhood:(nonnull GSNeighborhood *)neighborhood
+{
+    NSParameterAssert(neighborhood);
+    return [[[self class] alloc] initWithMinP:self.minP
+                                       folder:_folder
+                               groupForSaving:_groupForSaving
+                               queueForSaving:_queueForSaving
+                                 neighborhood:neighborhood];
 }
 
 /* Copy the voxel data for the neighborhood into a new buffer and return the buffer. If the method would block when taking the

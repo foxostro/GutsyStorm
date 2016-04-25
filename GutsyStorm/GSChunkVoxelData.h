@@ -44,6 +44,6 @@ typedef void (^GSTerrainProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
 
 - (void)saveToFile;
 
-- (nonnull GSChunkVoxelData *)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock;
+- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock;
 
 @end

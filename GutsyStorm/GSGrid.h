@@ -8,11 +8,11 @@
 
 #import <Foundation/Foundation.h>
 #import "GSGridItem.h"
-#import "GSGridEdit.h"
 #import "GSReaderWriterLock.h"
 
 
 @class GSBoxedVector;
+@class GSGridEdit;
 typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem> * _Nonnull original);
 
 
@@ -56,11 +56,6 @@ typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem
 
 /* Evicts all items in the grid. (For example, to evict all items when the system comes under memory pressure.) */
 - (void)evictAllItems;
-
-/* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are
- * notified that the item has been invalidated.
- */
-- (void)invalidateItemAtPoint:(vector_float3)p;
 
 /* Method is called when the grid is just about to invalidate an item.
  * Sub-classes should override this to get custom behavior on item invalidation.
