@@ -21,7 +21,7 @@
 - (void)lockForWriting;
 - (void)unlockForWriting;
 
-- (void)checkWriteScope;
-- (void)checkReadScope;
+- (void)holdingWriteLock;
+- (void)holdingReadLock;
 
 @end
