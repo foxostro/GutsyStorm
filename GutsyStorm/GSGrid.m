@@ -24,9 +24,8 @@
 
 @implementation GSGrid
 {
-    GSReaderWriterLock *_lockBucketsArray; // Lock protects _buckets and _numBuckets, but not bucket contents.
-    NSUInteger _numBuckets;
-    GSGridBucket * __strong *_buckets;
+    GSReaderWriterLock *_lockBuckets; // Lock protects _buckets, but not bucket contents.
+    NSMutableArray<GSGridBucket *> *_buckets;
 
     NSLock *_lockTheCount; // Lock protects _count, _costTotal, _lru, and other ivars associated with table limits.
     NSInteger _count;
@@ -39,20 +38,20 @@
     GSGridItemFactory _factory;
 }
 
-+ (GSGridBucket * __strong *)newBuckets:(NSUInteger)count gridName:(nonnull NSString *)gridName
++ (NSMutableArray<GSGridBucket *> *)newBuckets:(NSUInteger)capacity gridName:(nonnull NSString *)gridName
 {
-    GSGridBucket * __strong * buckets = (GSGridBucket * __strong *)calloc(count, sizeof(GSGridBucket *));
-    
+    NSMutableArray<GSGridBucket *> *buckets = [[NSMutableArray alloc] initWithCapacity:capacity];
+
     if (!buckets) {
         [NSException raise:NSMallocException format:@"Out of memory allocating `_buckets'."];
     }
-    
-    for(NSUInteger i=0; i<count; ++i)
+
+    for(NSUInteger i=0; i<capacity; ++i)
     {
         NSString *name = [NSString stringWithFormat:@"%@.bucket[%lu]", gridName, (unsigned long)i];
         buckets[i] = [[GSGridBucket alloc] initWithName:name];
     }
-    
+
     return buckets;
 }
 
@@ -66,8 +65,7 @@
 {
     if (self = [super init]) {
         _factory = [factory copy];
-        _numBuckets = 1024;
-        _buckets = [[self class] newBuckets:_numBuckets gridName:name];
+        _buckets = [[self class] newBuckets:128 gridName:name];
         _lru = [GSGridItemLRU new];
         _name = name;
 
@@ -77,53 +75,42 @@
         _costLimit = 0;
         _loadLevelToTriggerResize = 0.5;
 
-        _lockBucketsArray = [GSReaderWriterLock new];
-        _lockBucketsArray.name = [NSString stringWithFormat:@"%@.lockBucketsArray", name];
+        _lockBuckets = [GSReaderWriterLock new];
+        _lockBuckets.name = [NSString stringWithFormat:@"%@.lockBucketsArray", name];
     }
 
     return self;
-}
-
-- (void)dealloc
-{
-    for(NSUInteger i=0; i<_numBuckets; ++i)
-    {
-        _buckets[i] = nil;
-    }
-    free(_buckets);
 }
 
 - (void)resizeTableIfNecessary
 {
     // Perform a quick test to detect whether a resize is likely necessary.
     // Do not take the write lock unless we think there's a good chance we'll need to resize.
-    [_lockBucketsArray lockForReading];
+    [_lockBuckets lockForReading];
     [_lockTheCount lock];
-    NSAssert(_numBuckets>0, @"Cannot have zero buckets.");
-    BOOL resizeIsNeeded = ((float)_count / _numBuckets) > _loadLevelToTriggerResize;
+    BOOL resizeIsNeeded = ((float)_count / _buckets.count) > _loadLevelToTriggerResize;
     [_lockTheCount unlock];
-    [_lockBucketsArray unlockForReading];
+    [_lockBuckets unlockForReading];
 
     if(!resizeIsNeeded) {
         return;
     }
 
-    [_lockBucketsArray lockForWriting];
+    [_lockBuckets lockForWriting];
     [_lockTheCount lock]; // We don't expect other threads to be here, but take the lock anyway.
 
     // Test again whether a resize is necessary. It's possible, for example, that someone evicted all items just now.
-    NSAssert(_numBuckets>0, @"Cannot have zero buckets.");
-    if(((float)_count / _numBuckets) > _loadLevelToTriggerResize) {
-        NSUInteger oldNumBuckets = _numBuckets;
+    if(((float)_count / _buckets.count) > _loadLevelToTriggerResize) {
+        NSUInteger oldNumBuckets = _buckets.count;
+        NSUInteger newNumBuckets = 2 * _buckets.count;
 
-        _numBuckets *= 2;
         DEBUG_LOG(@"Resizing table \"%@\": buckets %lu -> %lu ; count=%lu",
                   self.name, oldNumBuckets, _numBuckets, _count);
 
-        GSGridBucket * __strong *oldBuckets = _buckets;
+        NSMutableArray<GSGridBucket *> *oldBuckets = _buckets;
 
         // Allocate a new, and larger, set of buckets.
-        _buckets = [[self class] newBuckets:_numBuckets gridName:self.name];
+        _buckets = [[self class] newBuckets:newNumBuckets gridName:self.name];
 
         // Insert each object into the new hash table.
         for(NSUInteger i=0; i<oldNumBuckets; ++i)
@@ -135,24 +122,17 @@
             for(NSObject <GSGridItem> *item in oldBuckets[i].items)
             {
                 NSUInteger hash = vector_hash(item.minP);
-                [_buckets[hash % _numBuckets].items addObject:item];
+                [_buckets[hash % newNumBuckets].items addObject:item];
             }
         }
         for(NSUInteger i=0; i<oldNumBuckets; ++i)
         {
             [oldBuckets[i].lock unlock];
         }
-        
-        // Free the old set of buckets.
-        for(NSUInteger i=0; i<oldNumBuckets; ++i)
-        {
-            oldBuckets[i] = nil;
-        }
-        free(oldBuckets);
     }
     
     [_lockTheCount unlock];
-    [_lockBucketsArray unlockForWriting];
+    [_lockBuckets unlockForWriting];
 }
 
 - (BOOL)objectAtPoint:(vector_float3)p
@@ -161,8 +141,8 @@
       createIfMissing:(BOOL)createIfMissing
 {
     if(blocking) {
-        [_lockBucketsArray lockForReading];
-    } else if(![_lockBucketsArray tryLockForReading]) {
+        [_lockBuckets lockForReading];
+    } else if(![_lockBuckets tryLockForReading]) {
         return NO;
     }
     
@@ -171,13 +151,13 @@
     NSObject <GSGridItem> * anObject = nil;
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
-    NSUInteger idxBucket = hash % _numBuckets;
+    NSUInteger idxBucket = hash % _buckets.count;
     GSGridBucket *bucket = _buckets[idxBucket];
     
     if(blocking) {
         [bucket.lock lock];
     } else if(![bucket.lock tryLock]) {
-        [_lockBucketsArray unlockForReading];
+        [_lockBuckets unlockForReading];
         return NO;
     }
     
@@ -207,7 +187,7 @@
     }
     
     [bucket.lock unlock];
-    [_lockBucketsArray unlockForReading];
+    [_lockBuckets unlockForReading];
 
     if (createdAnItem) {
         [self _enforceGridCostLimits];
@@ -241,11 +221,11 @@
 
 - (void)evictItemAtPoint:(vector_float3)p
 {
-    [_lockBucketsArray lockForReading];
+    [_lockBuckets lockForReading];
 
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
-    NSUInteger idxBucket = hash % _numBuckets;
+    NSUInteger idxBucket = hash % _buckets.count;
     GSGridBucket *bucket = _buckets[idxBucket];
 
     [bucket.lock lock];
@@ -257,23 +237,23 @@
     }
 
     [bucket.lock unlock];
-    [_lockBucketsArray unlockForReading];
+    [_lockBuckets unlockForReading];
 }
 
 - (void)evictAllItems
 {
-    [_lockBucketsArray lockForWriting]; // Take the global lock to prevent reading from any stripe.
+    [_lockBuckets lockForWriting]; // Take the global lock to prevent reading from any stripe.
     [self _unlockedEvictAllItems];
-    [_lockBucketsArray unlockForWriting];
+    [_lockBuckets unlockForWriting];
 }
 
 - (void)invalidateItemAtPoint:(vector_float3)pos
 {
-    [_lockBucketsArray lockForReading];
+    [_lockBuckets lockForReading];
     
     vector_float3 minP = GSMinCornerForChunkAtPoint(pos);
     NSUInteger hash = vector_hash(minP);
-    NSUInteger idxBucket = hash % _numBuckets;
+    NSUInteger idxBucket = hash % _buckets.count;
     GSGridBucket *bucket = _buckets[idxBucket];
     
     [bucket.lock lock];
@@ -292,7 +272,7 @@
     }
     
     [bucket.lock unlock];
-    [_lockBucketsArray unlockForReading];
+    [_lockBuckets unlockForReading];
 }
 
 - (void)willInvalidateItemAtPoint:(vector_float3)p
@@ -306,11 +286,11 @@
 
     NSParameterAssert(newReplacementItem);
 
-    [_lockBucketsArray lockForReading];
+    [_lockBuckets lockForReading];
 
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
-    NSUInteger idxBucket = hash % _numBuckets;
+    NSUInteger idxBucket = hash % _buckets.count;
     GSGridBucket *bucket = _buckets[idxBucket];
     NSUInteger indexOfFoundItem = NSNotFound;
 
@@ -346,7 +326,7 @@
     }
 
     [bucket.lock unlock];
-    [_lockBucketsArray unlockForReading];
+    [_lockBuckets unlockForReading];
 
     [self _enforceGridCostLimits];
 
@@ -436,7 +416,7 @@
 
 - (void)_unlockedEvictAllItems
 {
-    for(NSUInteger i=0; i<_numBuckets; ++i)
+    for(NSUInteger i=0, n=_buckets.count; i<n; ++i)
     {
         GSGridBucket *bucket = _buckets[i];
         [bucket.items removeAllObjects];
@@ -499,17 +479,17 @@
 {
     // Perform a quick test to detect the grid is likely over the cost limit.
     // Do not take the write lock unless we think there's a good chance we'll need to evict some items.
-    [_lockBucketsArray lockForReading];
+    [_lockBuckets lockForReading];
     [_lockTheCount lock];
     BOOL overLimit = (_costLimit > 0) && (_costTotal > _costLimit);
     [_lockTheCount unlock];
-    [_lockBucketsArray unlockForReading];
+    [_lockBuckets unlockForReading];
 
     if(!overLimit) {
         return;
     }
 
-    [_lockBucketsArray lockForWriting];
+    [_lockBuckets lockForWriting];
     
     DEBUG_LOG(@"Grid \"%@\" -- enforcing grid limits", self.name);
 
@@ -537,7 +517,7 @@
     
     DEBUG_LOG(@"Grid \"%@\" -- done enforcing grid limits", self.name);
 
-    [_lockBucketsArray unlockForWriting];
+    [_lockBuckets unlockForWriting];
 }
 
 @end
