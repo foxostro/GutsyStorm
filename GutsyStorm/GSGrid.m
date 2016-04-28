@@ -322,11 +322,6 @@
     GSGridEdit *change = nil;
 
     NSParameterAssert(newReplacementItem);
-    
-    [_lockTheTableItself lockForWriting];
-    [_lockTheTableItself lockForReading];
-    [_lockTheTableItself unlockForReading];
-    [_lockTheTableItself unlockForWriting];
 
     [_lockTheTableItself lockForReading];
 
