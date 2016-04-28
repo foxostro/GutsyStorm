@@ -123,12 +123,23 @@
 
 - (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByChangeAtPoint:(vector_float3)p
                                                               originalVoxels:(nonnull GSChunkVoxelData *)voxels1
-                                                              modifiedVoxels:(nonnull GSChunkVoxelData *)voxels2
+                                                              modifiedVoxels:(nullable GSChunkVoxelData *)voxels2
 {
     // The caller must ensure that the grids stay consistent with one another during the call to this method.
 
     NSParameterAssert(voxels1);
-    NSParameterAssert(voxels2);
+
+    if (!voxels2) {
+        GSTerrainBufferElement m = CHUNK_LIGHTING_MAX;
+        NSArray *points = @[[GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p)],
+                            [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p + vector_make(+m,  0,  0))],
+                            [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p + vector_make(-m,  0,  0))],
+                            [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p + vector_make( 0,  0, +m))],
+                            [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(p + vector_make( 0,  0, -m))],
+                            ];
+        NSSet *set = [NSSet setWithArray:points];
+        return set;
+    }
 
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     vector_long3 clpOfEdit = GSMakeIntegerVector3(p.x - minP.x, p.y - minP.y, p.z - minP.z);
@@ -382,7 +393,9 @@
         });
     }
 
-    GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
+    if (addToJournal) {
+        GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
+    }
 
     GSChunkVoxelData *voxels1 = nil;
     GSChunkVoxelData *voxels2 = nil;
@@ -476,7 +489,9 @@
         GSStopwatchTraceStep(@"Updated VAO at %@", bp);
     }
 
-    GSStopwatchTraceEnd(@"placeBlockAtPoint exit %@", boxedPos);
+    if (addToJournal) {
+        GSStopwatchTraceEnd(@"placeBlockAtPoint exit %@", boxedPos);
+    }
 }
 
 - (nullable GSChunkVAO *)tryToGetVaoAtPoint:(vector_float3)pos
