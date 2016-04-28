@@ -32,9 +32,25 @@ struct GSChunkVoxelHeader
 };
 
 
+static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOfBlockAbove)
+{
+    return (voxelType!=VOXEL_TYPE_EMPTY         && typeOfBlockAbove==VOXEL_TYPE_EMPTY)          ||
+           (voxelType==VOXEL_TYPE_CUBE          && typeOfBlockAbove==VOXEL_TYPE_CORNER_OUTSIDE) ||
+           (voxelType==VOXEL_TYPE_CORNER_INSIDE && typeOfBlockAbove==VOXEL_TYPE_CORNER_OUTSIDE) ||
+           (voxelType==VOXEL_TYPE_CUBE          && typeOfBlockAbove==VOXEL_TYPE_RAMP);
+}
+
+
 @interface GSChunkVoxelData ()
 
+- (BOOL)validateVoxelData:(nonnull NSData *)data error:(NSError **)error;
+
 - (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data;
+
+- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
+                  editPos:(vector_float3)editPos
+                 oldBlock:(GSVoxel)oldBlock;
+
 - (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainProcessorBlock)generator
                                                    journal:(nonnull GSTerrainJournal *)journal;
 
@@ -142,19 +158,24 @@ struct GSChunkVoxelHeader
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                                 data:(nonnull GSTerrainBuffer *)data
                              editPos:(vector_float3)editPos
+                            oldBlock:(GSVoxel)oldBlock
 {
     if (self = [super init]) {
         minP = mp;
         cost = BUFFER_SIZE_IN_BYTES(data.dimensions);
-
+        
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
         GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
-        [self markOutsideVoxels:dataWithUpdatedOutside editPos:editPos];
+        GSStopwatchTraceStep(@"markOutsideVoxels enter");
+        [self markOutsideVoxels:dataWithUpdatedOutside
+                        editPos:editPos
+                       oldBlock:oldBlock];
+        GSStopwatchTraceStep(@"markOutsideVoxels leave");
         _voxels = dataWithUpdatedOutside;
     }
-
+    
     return self;
 }
 
@@ -241,9 +262,9 @@ struct GSChunkVoxelHeader
 - (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
 {
     NSParameterAssert(data);
-
+    
     vector_long3 p;
-
+    
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
     FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
@@ -265,7 +286,7 @@ struct GSChunkVoxelHeader
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
-
+    
     // Determine voxels in the chunk which are exposed to air on top.
     FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
     {
@@ -275,27 +296,25 @@ struct GSChunkVoxelHeader
         for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
         {
             GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
-
-            // XXX: It would be better to store the relationships between voxel types in some other way. Not here.
-            voxel->exposedToAirOnTop = (voxel->type!=VOXEL_TYPE_EMPTY && prevType==VOXEL_TYPE_EMPTY) ||
-                                       (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
-                                       (voxel->type==VOXEL_TYPE_CORNER_INSIDE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
-                                       (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_RAMP);
-
+            voxel->exposedToAirOnTop = isExposedToAirOnTop(voxel->type, prevType);
             prevType = voxel->type;
         }
     }
 }
 
-- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data editPos:(vector_float3)editPos
+- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
+                  editPos:(vector_float3)editPos
+                 oldBlock:(GSVoxel)oldBlock
 {
     NSParameterAssert(data);
     vector_long3 p;
     vector_long3 editPosLocal = GSMakeIntegerVector3(editPos.x - minP.x, editPos.y - minP.y, editPos.z - minP.z);
     
-    // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
-    // We assume here that the chunk is the height of the world.
-    {
+    // If the old block was inside then changing it cannot change the outside-ness of the block or any blocks below it.
+    // Outside-ness only changes when there is a change to a block which is outside. For example, adding or removing a
+    // block in a cave has no effect on outside-ness of blocks. Adding a block outside can make the blocks below it
+    // become inside blocks. Removing a block outside can make blocks beneath it become outside blocks.
+    if (!oldBlock.outside) {
         p = editPosLocal;
         p.y = 0;
         
@@ -316,26 +335,22 @@ struct GSChunkVoxelHeader
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
-
+    
     // Determine voxels in the chunk which are exposed to air on top.
+    // We need only updpate the modified block and the block below it.
+    for(p = editPosLocal; p.y >= editPosLocal.y - 1; --p.y)
     {
-        p = editPosLocal;
-
-        // Find a voxel which is empty and is directly above a cube voxel.
-        p.y = CHUNK_SIZE_Y-1;
-        GSVoxelType prevType = ((GSVoxel *)[data pointerToValueAtPosition:p])->type;
-        for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
-        {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
-            
-            // XXX: It would be better to store the relationships between voxel types in some other way. Not here.
-            voxel->exposedToAirOnTop = (voxel->type!=VOXEL_TYPE_EMPTY && prevType==VOXEL_TYPE_EMPTY) ||
-            (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
-            (voxel->type==VOXEL_TYPE_CORNER_INSIDE && prevType==VOXEL_TYPE_CORNER_OUTSIDE) ||
-            (voxel->type==VOXEL_TYPE_CUBE && prevType==VOXEL_TYPE_RAMP);
-            
-            prevType = voxel->type;
+        BOOL exposedToAirOnTop = YES;
+        GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+        
+        if (p.y < CHUNK_SIZE_Y-1) {
+            vector_long3 aboveP = p;
+            aboveP.y = p.y + 1;
+            GSVoxelType typeOfBlockAbove = ((GSVoxel *)[data pointerToValueAtPosition:aboveP])->type;
+            exposedToAirOnTop = isExposedToAirOnTop(voxel->type, typeOfBlockAbove);
         }
+        
+        voxel->exposedToAirOnTop = exposedToAirOnTop;
     }
 }
 
@@ -417,16 +432,19 @@ struct GSChunkVoxelHeader
 
 - (nonnull instancetype)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
 {
+    GSStopwatchTraceStep(@"copyWithEditAtPoint enter");
     NSParameterAssert(vector_equal(GSMinCornerForChunkAtPoint(pos), minP));
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSTerrainBufferElement newValue = *((GSTerrainBufferElement *)&newBlock);
+    GSVoxel oldBlock = [self voxelAtLocalPosition:chunkLocalPos];
     GSTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue];
     GSChunkVoxelData *modifiedVoxelData = [[[self class] alloc] initWithMinP:minP
                                                                       folder:_folder
                                                               groupForSaving:_groupForSaving
                                                               queueForSaving:_queueForSaving
                                                                         data:modified
-                                                                     editPos:pos];
+                                                                     editPos:pos
+                                                                    oldBlock:oldBlock];
     return modifiedVoxelData;
 }
 
