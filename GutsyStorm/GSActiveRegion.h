@@ -31,6 +31,9 @@
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
 
+/* Instructs the active region to drop all items in the draw list in order to free up memory. */
+- (void)clearDrawList;
+
 - (void)draw;
 
 - (nonnull NSArray<GSBoxedVector *> *)pointsInCameraFrustum;

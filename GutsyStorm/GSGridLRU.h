@@ -13,18 +13,19 @@
 @class GSGridBucket;
 
 
-@interface GSGridLRU<__covariant TYPE> : NSObject
+@interface GSGridLRU : NSObject
 
 - (nonnull instancetype)init NS_DESIGNATED_INITIALIZER;
 
 /* Mark the object as being recently used. */
-- (void)referenceObject:(TYPE _Nonnull)object bucket:(nonnull GSGridBucket *)bucket;
+- (void)referenceObject:(nonnull NSObject<NSCopying> *)object bucket:(nonnull GSGridBucket *)bucket;
 
 /* Get the least recently used object and remove it from the LRU list. */
-- (void)popAndReturnObject:(TYPE _Nullable * _Nonnull)outObject bucket:(GSGridBucket * _Nonnull * _Nonnull)outBucket;
+- (void)popAndReturnObject:(NSObject<NSCopying> * _Nonnull * _Nullable)outObject
+                    bucket:(GSGridBucket * _Nonnull * _Nullable)outBucket;
 
 /* Remove the object from the LRU list. */
-- (void)removeObject:(TYPE _Nonnull)object;
+- (void)removeObject:(nonnull NSObject<NSCopying> *)object;
 
 /* Remove all objects from the LRU list. */
 - (void)removeAllObjects;

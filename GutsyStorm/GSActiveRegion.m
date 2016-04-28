@@ -105,6 +105,13 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     return self;
 }
 
+- (void)clearDrawList
+{
+    [_lockDrawList lock];
+    [_drawList removeAllObjects];
+    [_lockDrawList unlock];
+}
+
 - (void)draw
 {
     BOOL chunkGenerationNeeded = NO;

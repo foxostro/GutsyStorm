@@ -29,7 +29,7 @@
 #import <OpenGL/gl.h>
 
 
-#define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0])) // XXX: find a better home for ARRAY_LEN macro
+#define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
 
 
 @interface GSChunkStore ()
@@ -819,35 +819,34 @@
     if (_chunkStoreHasBeenShutdown) {
         return;
     }
-    
-    // XXX: Need to reimplement grid cost limits, which have been temporarily removed.
 
     switch(status)
     {
         case DISPATCH_MEMORYPRESSURE_NORMAL:
-//            _gridVoxelData.costLimit = 0;
-//            _gridSunlightData.costLimit = 0;
-//            _gridGeometryData.costLimit = 0;
-//            _gridVAO.costLimit = 0;
+            _gridVoxelData.countLimit = 0;
+            _gridSunlightData.countLimit = 0;
+            _gridGeometryData.countLimit = 0;
+            _gridVAO.countLimit = 0;
             break;
             
         case DISPATCH_MEMORYPRESSURE_WARN:
-//            [_gridVoxelData capCosts];
-//            [_gridSunlightData capCosts];
-//            [_gridGeometryData capCosts];
-//            [_gridVAO capCosts];
+            _gridVoxelData.countLimit = _gridVoxelData.count;
+            _gridSunlightData.countLimit = _gridSunlightData.count;
+            _gridGeometryData.countLimit = _gridGeometryData.count;
+            _gridVAO.countLimit = _gridVAO.count;
             break;
             
         case DISPATCH_MEMORYPRESSURE_CRITICAL:
-//            [_gridVoxelData capCosts];
-//            [_gridSunlightData capCosts];
-//            [_gridGeometryData capCosts];
-//            [_gridVAO capCosts];
-
+            _gridVoxelData.countLimit = _gridVoxelData.count;
+            _gridSunlightData.countLimit = _gridSunlightData.count;
+            _gridGeometryData.countLimit = _gridGeometryData.count;
+            _gridVAO.countLimit = _gridVAO.count;
+            
             [_gridVoxelData evictAllItems];
             [_gridSunlightData evictAllItems];
             [_gridGeometryData evictAllItems];
             [_gridVAO evictAllItems];
+            [_activeRegion clearDrawList];
             break;
     }
 }

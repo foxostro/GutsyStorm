@@ -22,6 +22,15 @@ typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem
 /* Name of the table for debugging purposes. */
 @property (nonnull, readonly, nonatomic) NSString *name;
 
+/* The number of slots in the grid. Pays no attention to the number of slots which actually have assigned items. */
+@property (nonatomic, readonly) NSInteger count;
+
+/* The maximum number of slots allowed in the grid. Once this limit has been exceeded, the grid may choose to evict
+ * items from the grid until the count is below the limit.
+ * Set to a value less than or equal to zero to disable the limit.
+ */
+@property (nonatomic, readwrite) NSInteger countLimit;
+
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
 - (nonnull instancetype)initWithName:(nonnull NSString *)name NS_DESIGNATED_INITIALIZER;

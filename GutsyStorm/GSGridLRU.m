@@ -10,9 +10,9 @@
 
 @implementation GSGridLRU
 {
-    NSMutableArray<NSObject<GSGridItem> *> *_list;
-    NSMutableDictionary<NSObject<GSGridItem> *, NSNumber *> *_dictIndex;
-    NSMutableDictionary<NSObject<GSGridItem> *, GSGridBucket *> *_dictBucket;
+    NSMutableArray<NSObject<NSCopying> *> *_list;
+    NSMutableDictionary<NSObject<NSCopying> *, NSNumber *> *_dictIndex;
+    NSMutableDictionary<NSObject<NSCopying> *, GSGridBucket *> *_dictBucket;
 }
 
 - (nonnull instancetype)init
@@ -25,7 +25,7 @@
     return self;
 }
 
-- (void)referenceObject:(nonnull NSObject<GSGridItem> *)object bucket:(nonnull GSGridBucket *)bucket
+- (void)referenceObject:(nonnull NSObject<NSCopying> *)object bucket:(nonnull GSGridBucket *)bucket
 {
     NSParameterAssert(object);
     NSParameterAssert(bucket);
@@ -41,12 +41,13 @@
     [_dictBucket setObject:bucket forKey:object];
 }
 
-- (void)popAndReturnObject:(id _Nonnull * _Nonnull)outObject bucket:(GSGridBucket * _Nonnull * _Nonnull)outBucket
+- (void)popAndReturnObject:(NSObject<NSCopying> * _Nonnull * _Nullable)outObject
+                    bucket:(GSGridBucket * _Nonnull * _Nullable)outBucket
 {
     NSParameterAssert(outObject);
     NSParameterAssert(outBucket);
     
-    NSObject<GSGridItem> *object = [_list lastObject];
+    NSObject<NSCopying> *object = [_list lastObject];
     
     if (!object) {
         return;
@@ -62,7 +63,7 @@
     *outBucket = bucket;
 }
 
-- (void)removeObject:(nonnull NSObject<GSGridItem> *)object
+- (void)removeObject:(nonnull NSObject<NSCopying> *)object
 {
     NSParameterAssert(object);
     
