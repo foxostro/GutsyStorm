@@ -12,6 +12,7 @@
 @class GSChunkVAO;
 @class GSGridVAO;
 @class GSBoxedVector;
+@class GSChunkStore;
 
 
 @interface GSActiveRegion : NSObject
@@ -22,11 +23,11 @@
  * activeRegionExtent -- Vector specifies the AABB of the active region. The camera position plus/minus this vector
  *                       equals the max/min corners of the AABB.
  * camera -- The camera at the center of the active region.
- * gridVAO -- Used to generate and retrieve VAOs.
+ * chunkStore -- Used to generate and retrieve VAOs.
  */
 - (nonnull instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                              camera:(nonnull GSCamera *)camera
-                                            vaoGrid:(nonnull GSGridVAO *)gridVAO;
+                                        chunkStore:(nonnull GSChunkStore *)chunkStore;
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
 

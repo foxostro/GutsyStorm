@@ -28,6 +28,7 @@
 #import "GSTerrainJournalEntry.h"
 #import "GSReaderWriterLock.h"
 #import "GSGridEdit.h"
+#import "GSGridSlot.h"
 
 #import <OpenGL/gl.h>
 
@@ -58,7 +59,7 @@
     GSGridVAO *_gridVAO;
     GSGridGeometry *_gridGeometryData;
     GSGridSunlight *_gridSunlightData;
-    GSGrid<GSChunkVoxelData *> *_gridVoxelData;
+    GSGrid *_gridVoxelData;
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _queueForSaving;
     BOOL _chunkStoreHasBeenShutdown;
@@ -72,56 +73,57 @@
     vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
 }
 
+- (nonnull GSChunkVoxelData *)newVoxelChunkAtPoint:(vector_float3)pos
+{
+    vector_float3 minCorner = GSMinCornerForChunkAtPoint(pos);
+    return [[GSChunkVoxelData alloc] initWithMinP:minCorner
+                                           folder:_folder
+                                   groupForSaving:_groupForSaving
+                                   queueForSaving:_queueForSaving
+                                          journal:_journal
+                                        generator:_generator];
+}
+
+- (nonnull GSChunkSunlightData *)newSunlightChunkAtPoint:(vector_float3)pos
+{
+    vector_float3 minCorner = GSMinCornerForChunkAtPoint(pos);
+    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
+    return [[GSChunkSunlightData alloc] initWithMinP:minCorner
+                                              folder:_folder
+                                      groupForSaving:_groupForSaving
+                                      queueForSaving:_queueForSaving
+                                        neighborhood:neighborhood];
+}
+
+- (nonnull GSChunkGeometryData *)newGeometryChunkAtPoint:(vector_float3)pos
+{
+    vector_float3 minCorner = GSMinCornerForChunkAtPoint(pos);
+    GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
+    return [[GSChunkGeometryData alloc] initWithMinP:minCorner
+                                              folder:_folder
+                                            sunlight:sunlight
+                                      groupForSaving:_groupForSaving
+                                      queueForSaving:_queueForSaving
+                                        allowLoading:YES];
+}
+
+- (nonnull GSChunkVAO *)newVAOChunkAtPoint:(vector_float3)pos
+{
+    vector_float3 minCorner = GSMinCornerForChunkAtPoint(pos);
+    GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
+    return [[GSChunkVAO alloc] initWithChunkGeometry:geometry
+                                           glContext:_glContext];
+}
+
 - (void)createGrids
 {
     assert(!_chunkStoreHasBeenShutdown);
 
-    _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"
-                                          factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
-                                              return [[GSChunkVoxelData alloc] initWithMinP:minCorner
-                                                                                     folder:_folder
-                                                                             groupForSaving:_groupForSaving
-                                                                             queueForSaving:_queueForSaving
-                                                                                    journal:_journal
-                                                                                  generator:_generator];
-                                          }];
+    _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"];
+    _gridSunlightData = [[GSGridSunlight alloc] initWithName:@"gridSunlightData" cacheFolder:_folder];
+    _gridGeometryData = [[GSGridGeometry alloc] initWithName:@"gridGeometryData" cacheFolder:_folder];
+    _gridVAO = [[GSGridVAO alloc] initWithName:@"gridVAO"];
 
-    _gridSunlightData = [[GSGridSunlight alloc]
-                         initWithName:@"gridSunlightData"
-                          cacheFolder:_folder
-                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
-                             GSStopwatchTraceStep(@"Fetching neighborhood");
-                             GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
-                             return [[GSChunkSunlightData alloc] initWithMinP:minCorner
-                                                                       folder:_folder
-                                                               groupForSaving:_groupForSaving
-                                                               queueForSaving:_queueForSaving
-                                                                 neighborhood:neighborhood];
-                         }];
-
-    _gridGeometryData = [[GSGridGeometry alloc]
-                         initWithName:@"gridGeometryData"
-                          cacheFolder:_folder
-                              factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
-                                      GSStopwatchTraceStep(@"Fetching sunlight");
-                                      GSChunkSunlightData *sunlight = [self chunkSunlightAtPoint:minCorner];
-                                      id r = [[GSChunkGeometryData alloc] initWithMinP:minCorner
-                                                                                folder:_folder
-                                                                              sunlight:sunlight
-                                                                        groupForSaving:_groupForSaving
-                                                                        queueForSaving:_queueForSaving
-                                                                          allowLoading:YES];
-                                  return r;
-                              }];
-    
-    _gridVAO = [[GSGridVAO alloc] initWithName:@"gridVAO"
-                                       factory:^NSObject <GSGridItem> * (vector_float3 minCorner) {
-                                           GSStopwatchTraceStep(@"Fetching geometry");
-                                           GSChunkGeometryData *geometry = [self chunkGeometryAtPoint:minCorner];
-                                           return [[GSChunkVAO alloc] initWithChunkGeometry:geometry
-                                                                                  glContext:_glContext];
-                                       }];
-    
     // Format all grid item costs as byte counts.
     NSByteCountFormatter *formatter = [[NSByteCountFormatter alloc] init];
     formatter.countStyle = NSByteCountFormatterCountStyleMemory;
@@ -205,7 +207,15 @@
                 clpOfEdit + GSMakeIntegerVector3( 0,  0, -1)
             };
 
-            GSChunkSunlightData *sunChunk = [_gridSunlightData objectAtPoint:p];
+            GSChunkSunlightData *sunChunk = nil;
+            GSGridSlot *slot = [_gridSunlightData slotAtPoint:p];
+            [slot.lock lockForWriting];
+            if (!slot.item) {
+                // TODO: create the sunlight chunk if it's not present
+                sunChunk = nil;
+                abort();
+            }
+            [slot.lock unlockForWriting];
 
             for(size_t i = 0; i < ARRAY_LEN(adjacentPoints); ++i)
             {
@@ -245,15 +255,7 @@
     // Active region is bounded at y>=0.
     const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
     _activeRegionExtent = vector_make(w, CHUNK_SIZE_Y, w);
-    _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
-                                                                camera:cam
-                                                               vaoGrid:_gridVAO];
-
-    // Whenever a VAO is invalidated, the active region must be invalidated.
-    __weak GSActiveRegion *weakActiveRegion = _activeRegion;
-    _gridVAO.invalidationNotification = ^{
-        [weakActiveRegion needsChunkGeneration];
-    };
+    _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent camera:cam chunkStore:self];
 }
 
 - (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
@@ -377,6 +379,10 @@
      * chunk to be generated and inserted into grids? What if two calls to -placeBlockAtPoint:block: overlap?
      */
     
+    /* XXX: This will probably go better if we fetch all the slots we need, lock all the slots we need, and then
+     * update the items within, before finally releasing all the slots at the end.
+     */
+    
     GSBoxedVector *boxedPos = [GSBoxedVector boxedVectorWithVector:pos];
     
     if (addToJournal) {
@@ -391,21 +397,22 @@
     GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
 
     [_activeRegion modifyWithBlock:^{
-        __block GSChunkVoxelData *voxels1;
-        __block GSChunkVoxelData *voxels2;
+        GSChunkVoxelData *voxels1 = nil;
+        GSChunkVoxelData *voxels2 = nil;
+
+        GSGridSlot *voxelSlot = [_gridVoxelData slotAtPoint:pos];
+        [voxelSlot.lock lockForWriting];
+        voxels1 = (GSChunkVoxelData *)voxelSlot.item;
+        if (!voxels1) {
+            voxels1 = [self newVoxelChunkAtPoint:pos];
+        }
+        voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
+        [voxels2 saveToFile];
+        [voxelSlot.lock unlockForWriting];
         
-        GSGridTransform fn = ^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
-            voxels1 = (GSChunkVoxelData *)originalItem;
-            voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
-            [voxels2 saveToFile];
-            return voxels2;
-        };
-        [_gridVoxelData replaceItemAtPoint:pos transform:fn];
         GSStopwatchTraceStep(@"Updated voxels.");
 
-#if 0
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
-#endif
 
         /* XXX: Consider replacing sunlightChunksInvalidatedByVoxelChangeAtPoint with a flood-fill constrained to the
          * local neighborhood. If the flood-fill would exit the center chunk then take note of which chunk because that
@@ -418,43 +425,97 @@
         {
             vector_float3 p = [bp vectorValue];
             
-#if 0
-            __block GSChunkSunlightData *sunlight2;
-            __block GSChunkGeometryData *geo2;
+            GSChunkSunlightData *sunlight2 = nil;
+            GSChunkGeometryData *geo2 = nil;
 
-            GSGridTransform sunFn = ^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
-                GSChunkSunlightData *sunlight1 = (GSChunkSunlightData *)originalItem;
-                sunlight2 = [sunlight1 copyWithEditAtPoint:pos neighborhood:neighborhood];
-                // XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only re-propagating sunlight in the region affected by the edit; not across the entire chunk.
-                return sunlight2;
-            };
-            [_gridSunlightData replaceItemAtPoint:p transform:sunFn];
+            // Update sunlight.
+            {
+                GSGridSlot *sunSlot = [_gridSunlightData slotAtPoint:p];
+                [sunSlot.lock lockForWriting];
+                GSChunkSunlightData *sunlight1 = (GSChunkSunlightData *)sunSlot.item;
+                if (sunlight1) {
+                    /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
+                     * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
+                     */
+                    sunlight2 = [sunlight1 copyWithEditAtPoint:pos neighborhood:neighborhood];
+                } else {
+                    sunlight2 = [self newSunlightChunkAtPoint:pos];
+                }
+                sunSlot.item = sunlight2;
+                [sunSlot.lock unlockForWriting];
+            }
             GSStopwatchTraceStep(@"Updated sunlight at %@", bp);
 
-            GSGridTransform geoFn = ^NSObject<GSGridItem> *(NSObject<GSGridItem> *originalItem) {
-                GSChunkGeometryData *geo1 = (GSChunkGeometryData *)originalItem;
-                geo2 = [geo1 copyWithSunlight:sunlight2];
-                // XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only updating faces for blocks which were modified.
-                return geo2;
-            };
-            [_gridGeometryData replaceItemAtPoint:p transform:geoFn];
+            // Update geometry.
+            {
+                GSGridSlot *geoSlot = [_gridGeometryData slotAtPoint:p];
+                [geoSlot.lock lockForWriting];
+                GSChunkGeometryData *geo1 = (GSChunkGeometryData *)geoSlot.item;
+                if (geo1) {
+                    /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
+                     * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
+                     */
+                    geo2 = [geo1 copyWithSunlight:sunlight2];
+                } else {
+                    geo2 = [self newGeometryChunkAtPoint:pos];
+                }
+                geoSlot.item = geo2;
+                [geoSlot.lock unlockForWriting];
+            }
             GSStopwatchTraceStep(@"Updated geometry at %@", bp);
 
-            GSGridTransform vaoFn = ^NSObject<GSGridItem> *(NSObject<GSGridItem> * __unused originalItem) {
+            // Update the Vertex Array Object.
+            {
+                GSGridSlot *vaoSlot = [_gridVAO slotAtPoint:p];
+                [vaoSlot.lock lockForWriting];
                 GSChunkVAO *vao2 = [[GSChunkVAO alloc] initWithChunkGeometry:geo2 glContext:_glContext];
-                return vao2;
-            };
-            [_gridVAO replaceItemAtPoint:p transform:vaoFn];
+                vaoSlot.item = vao2;
+                [vaoSlot.lock unlockForWriting];
+            }
             GSStopwatchTraceStep(@"Updated VAO at %@", bp);
-#else
-            [_gridSunlightData invalidateItemAtPoint:p];
-            [_gridGeometryData invalidateItemAtPoint:p];
-            [_gridVAO invalidateItemAtPoint:p];
-#endif
         }
     }];
 
     GSStopwatchTraceEnd(@"placeBlockAtPoint exit %@", boxedPos);
+}
+
+- (nullable GSChunkVAO *)tryToGetVaoAtPoint:(vector_float3)pos
+{
+    if (_chunkStoreHasBeenShutdown) {
+        return nil;
+    }
+
+    GSGridSlot *slot = [_gridVAO slotAtPoint:pos blocking:NO];
+    
+    if (!(slot && [slot.lock tryLockForReading])) {
+        return nil;
+    }
+    
+    GSChunkVAO *vao = (GSChunkVAO *)slot.item;
+    
+    [slot.lock unlockForReading];
+    
+    return vao;
+}
+
+- (nonnull GSChunkVAO *)vaoAtPoint:(vector_float3)pos
+{
+    assert(!_chunkStoreHasBeenShutdown);
+    
+    GSGridSlot *slot = [_gridVAO slotAtPoint:pos];
+    
+    [slot.lock lockForWriting];
+    
+    GSChunkVAO *vao = (GSChunkVAO *)slot.item;
+    
+    if (!vao) {
+        vao = [self newVAOChunkAtPoint:pos];
+        slot.item = vao;
+    }
+    
+    [slot.lock unlockForWriting];
+    
+    return vao;
 }
 
 - (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel
@@ -637,7 +698,19 @@
     assert(!_chunkStoreHasBeenShutdown);
     assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridGeometryData);
-    GSChunkGeometryData *geo = [_gridGeometryData objectAtPoint:p];
+
+    GSChunkGeometryData *geo = nil;
+    GSGridSlot *slot = [_gridGeometryData slotAtPoint:p];
+
+    [slot.lock lockForWriting];
+    if (slot.item) {
+        geo = (GSChunkGeometryData *)slot.item;
+    } else {
+        geo = [self newGeometryChunkAtPoint:p];
+        slot.item = geo;
+    }
+    [slot.lock unlockForWriting];
+
     return geo;
 }
 
@@ -646,8 +719,20 @@
     assert(!_chunkStoreHasBeenShutdown);
     NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridSunlightData);
-    GSChunkSunlightData *sun = [_gridSunlightData objectAtPoint:p];
-    return sun;
+    
+    GSChunkSunlightData *sunlight = nil;
+    GSGridSlot *slot = [_gridSunlightData slotAtPoint:p];
+    
+    [slot.lock lockForWriting];
+    if (slot.item) {
+        sunlight = (GSChunkSunlightData *)slot.item;
+    } else {
+        sunlight = [self newSunlightChunkAtPoint:p];
+        slot.item = sunlight;
+    }
+    [slot.lock unlockForWriting];
+    
+    return sunlight;
 }
 
 - (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p
@@ -655,8 +740,20 @@
     assert(!_chunkStoreHasBeenShutdown);
     NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridVoxelData);
-    GSChunkVoxelData *vox = [_gridVoxelData objectAtPoint:p];
-    return vox;
+    
+    GSChunkVoxelData *voxels = nil;
+    GSGridSlot *slot = [_gridVoxelData slotAtPoint:p];
+    
+    [slot.lock lockForWriting];
+    if (slot.item) {
+        voxels = (GSChunkVoxelData *)slot.item;
+    } else {
+        voxels = [self newVoxelChunkAtPoint:p];
+        slot.item = voxels;
+    }
+    [slot.lock unlockForWriting];
+    
+    return voxels;
 }
 
 - (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData * _Nonnull * _Nonnull)chunk
@@ -666,17 +763,23 @@
     NSParameterAssert(chunk);
     assert(_gridVoxelData);
 
-    GSChunkVoxelData *v = nil;
-    BOOL success = [_gridVoxelData objectAtPoint:p
-                                        blocking:NO
-                                          object:&v
-                                 createIfMissing:YES];
-
-    if(success) {
-        *chunk = v;
+    GSGridSlot *slot = [_gridVoxelData slotAtPoint:p blocking:NO];
+    
+    if (!slot) {
+        return NO;
     }
     
-    return success;
+    if(![slot.lock tryLockForReading]) {
+        return NO;
+    }
+
+    if (slot.item) {
+        *chunk = (GSChunkVoxelData *)slot.item;
+    }
+
+    [slot.lock unlockForReading];
+    
+    return YES;
 }
 
 + (nonnull NSURL *)newTerrainCacheFolderURL
@@ -710,28 +813,30 @@
     if (_chunkStoreHasBeenShutdown) {
         return;
     }
+    
+    // XXX: Need to reimplement grid cost limits, which have been temporarily removed.
 
     switch(status)
     {
         case DISPATCH_MEMORYPRESSURE_NORMAL:
-            _gridVoxelData.costLimit = 0;
-            _gridSunlightData.costLimit = 0;
-            _gridGeometryData.costLimit = 0;
-            _gridVAO.costLimit = 0;
+//            _gridVoxelData.costLimit = 0;
+//            _gridSunlightData.costLimit = 0;
+//            _gridGeometryData.costLimit = 0;
+//            _gridVAO.costLimit = 0;
             break;
             
         case DISPATCH_MEMORYPRESSURE_WARN:
-            [_gridVoxelData capCosts];
-            [_gridSunlightData capCosts];
-            [_gridGeometryData capCosts];
-            [_gridVAO capCosts];
+//            [_gridVoxelData capCosts];
+//            [_gridSunlightData capCosts];
+//            [_gridGeometryData capCosts];
+//            [_gridVAO capCosts];
             break;
             
         case DISPATCH_MEMORYPRESSURE_CRITICAL:
-            [_gridVoxelData capCosts];
-            [_gridSunlightData capCosts];
-            [_gridGeometryData capCosts];
-            [_gridVAO capCosts];
+//            [_gridVoxelData capCosts];
+//            [_gridSunlightData capCosts];
+//            [_gridGeometryData capCosts];
+//            [_gridVAO capCosts];
 
             [_gridVoxelData evictAllItems];
             [_gridSunlightData evictAllItems];

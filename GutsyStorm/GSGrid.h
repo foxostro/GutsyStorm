@@ -13,10 +13,11 @@
 
 @class GSBoxedVector;
 @class GSGridEdit;
+@class GSGridSlot;
 typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem> * _Nonnull original);
 
 
-@interface GSGrid<__covariant TYPE> : NSObject
+@interface GSGrid : NSObject
 
 /* Name of the table for debugging purposes. */
 @property (nonnull, readonly, nonatomic) NSString *name;
@@ -29,53 +30,23 @@ typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem
 
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
-- (nonnull instancetype)initWithName:(nonnull NSString *)name
-                             factory:(nonnull GSGridItemFactory)factory NS_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)initWithName:(nonnull NSString *)name NS_DESIGNATED_INITIALIZER;
 
-/* Returns the object corresponding to the given point on the grid. Creates the object from the factory, if necessary. */
-- (TYPE _Nonnull)objectAtPoint:(vector_float3)p;
+/* Returns the grid slot corresponding to the given point on the grid. Creating it, if necessary. */
+- (nonnull GSGridSlot *)slotAtPoint:(vector_float3)p;
 
-/* Tries to get the object corresponding to the given point on the grid, returning it in "object".
+/* Tries to get the grid slot corresponding to the given point on the grid.
  *
- * On success, "object" points to the desired object and this method returns YES.
- * On failure, this method returns NO and "object" is not modified.
- *
- * If the object is not present in the grid cache and "createIfMissing" is YES then the factory will create the object.
- * However, if the object is not present and "createIfMissing" is NO then the method will fail.
+ * On success, returns the slot object.
+ * On failure, returns nil.
  *
  * The method may fail if getting the object would require blocking to take a lock. This behavior is specified via
- * "blocking".
+ * the "blocking" flag.
  */
-- (BOOL)objectAtPoint:(vector_float3)p
-             blocking:(BOOL)blocking
-               object:(TYPE _Nonnull * _Nullable)object
-      createIfMissing:(BOOL)createIfMissing;
-
-/* Evicts the cached item at the given point on the grid, but does not invalidate the item or affect dependent grids. */
-- (void)evictItemAtPoint:(vector_float3)p;
+- (nullable GSGridSlot *)slotAtPoint:(vector_float3)p blocking:(BOOL)blocking;
 
 /* Evicts all items in the grid. (For example, to evict all items when the system comes under memory pressure.) */
 - (void)evictAllItems;
-
-/* Invalidates the item at the given point on the grid. This causes it to be evicted from the cache. Dependent grids are
- * notified that the item has been invalidated.
- */
-- (void)invalidateItemAtPoint:(vector_float3)p;
-
-/* Method is called when the grid is just about to invalidate an item.
- * Sub-classes should override this to get custom behavior on item invalidation.
- * For example, a sub-class may wish to delete on-disk caches for items which are now invalid.
- */
-- (void)willInvalidateItemAtPoint:(vector_float3)p;
-
-/* Replaces an item in the grid with a different item at the same location.
- * The function `fn' accepts the old item and returns the replacement item.
- * Returns a description of the final edit.
- */
-- (nonnull GSGridEdit *)replaceItemAtPoint:(vector_float3)p transform:(nonnull GSGridTransform)fn;
-
-/* Set the cost limit to the current cost of items in the grid. This prevents the grid cost from growing. */
-- (void)capCosts;
 
 /* Return a string description of the grid. */
 - (nonnull NSString *)description;

@@ -9,10 +9,6 @@
 #import <Foundation/Foundation.h>
 #import "GSGrid.h"
 
-typedef void (^GSVAOInvalidationNotificationBlock)(void);
-
-@interface GSGridVAO : GSGrid<GSChunkVAO *>
-
-@property (nonatomic, copy, nonnull) GSVAOInvalidationNotificationBlock invalidationNotification;
+@interface GSGridVAO : GSGrid
 
 @end

@@ -7,13 +7,13 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSGridItem.h"
+#import "GSGridSlot.h"
 #import "GSReaderWriterLock.h"
 
 @interface GSGridBucket : NSObject
 
 @property (nonnull, readonly, nonatomic) NSString *name;
-@property (nonnull, readonly, nonatomic) NSMutableArray<NSObject <GSGridItem> *> *items;
+@property (nonnull, readonly, nonatomic) NSMutableArray<GSGridSlot *> *slots;
 @property (nonnull, readonly, nonatomic) NSLock *lock;
 
 - (nonnull instancetype)init NS_UNAVAILABLE;

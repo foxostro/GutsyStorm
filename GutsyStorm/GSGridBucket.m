@@ -20,7 +20,7 @@
 {
     if (self = [super init]) {
         _name = [name copy];
-        _items = [[NSMutableArray alloc] init];
+        _slots = [[NSMutableArray alloc] init];
         _lock = [[NSLock alloc] init];
         _lock.name = [NSString stringWithFormat:@"%@.lock", name];
     }

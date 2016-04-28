@@ -11,10 +11,10 @@
 #import "GSVoxel.h"
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
-#import "GSGridItem.h"
-#import "GSGridVAO.h"
+#import "GSChunkStore.h"
 #import "GSChunkVAO.h"
 #import "GSActivity.h"
+#import "GSReaderWriterLock.h"
 
 
 static const uint64_t GSChunkCreationBudget = 10 * NSEC_PER_MSEC; // chosen arbitrarily
@@ -56,7 +56,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     vector_float3 _activeRegionExtent;
 
     /* Used to generate and retrieve Vertex Array Objects. */
-    GSGridVAO *_gridVAO;
+    __weak GSChunkStore *_chunkStore;
 
     /* Dispatch Queue used for generating chunks asynchronously. */
     dispatch_queue_t _generationQueue;
@@ -71,11 +71,11 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 }
 
 - (nonnull instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
-                                             camera:(nonnull GSCamera *)camera
-                                            vaoGrid:(nonnull GSGridVAO *)gridVAO
+                                            camera:(nonnull GSCamera *)camera
+                                        chunkStore:(nonnull GSChunkStore *)chunkStore
 {
     NSParameterAssert(camera);
-    NSParameterAssert(gridVAO);
+    NSParameterAssert(chunkStore);
     NSParameterAssert(fmodf(_activeRegionExtent.x, CHUNK_SIZE_X) == 0);
     NSParameterAssert(fmodf(_activeRegionExtent.y, CHUNK_SIZE_Y) == 0);
     NSParameterAssert(fmodf(_activeRegionExtent.z, CHUNK_SIZE_Z) == 0);
@@ -84,7 +84,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         _shouldShutdown = NO;
         _camera = camera;
         _activeRegionExtent = activeRegionExtent;
-        _gridVAO = gridVAO;
+        _chunkStore = chunkStore;
         _generationQueue = dispatch_queue_create("GSActiveRegion.generationQueue", DISPATCH_QUEUE_CONCURRENT);
 
         _drawList = [NSMutableSet new];
@@ -141,13 +141,8 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         vector_float3 pos = [boxedPosition vectorValue];
         GSBoxedVector *corner = [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(pos)];
         GSChunkVAO *oldVao = [pointToChunk objectForKey:corner];
-        GSChunkVAO *vao = nil;
+        GSChunkVAO *vao = [_chunkStore tryToGetVaoAtPoint:pos];
 
-        [_gridVAO objectAtPoint:pos
-                       blocking:NO
-                         object:&vao
-                createIfMissing:NO];
-        
         if (vao) {
             if (oldVao != vao) {
                 [_drawList addObject:vao];
@@ -249,8 +244,10 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     [_drawList removeAllObjects];
     for(GSBoxedVector *boxedPosition in pointsInCamera)
     {
-        GSChunkVAO *vao = [_gridVAO objectAtPoint:[boxedPosition vectorValue]];
-        [_drawList addObject:vao];
+        GSChunkVAO *vao = [_chunkStore vaoAtPoint:[boxedPosition vectorValue]];
+        if (vao) {
+            [_drawList addObject:vao];
+        }
     }
 
     // We're done. Release locks last to avoid interleaved trace messages.
@@ -275,16 +272,15 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 
         for(GSBoxedVector *boxedPosition in points)
         {
+            (void)[_chunkStore vaoAtPoint:[boxedPosition vectorValue]]; // Ensure VAO gets created, if it was missing. 
             uint64_t elapsedNs = GSStopwatchEnd(startAbs);
-            BOOL createIfMissing = elapsedNs < GSChunkCreationBudget;
-            BOOL r = [_gridVAO objectAtPoint:[boxedPosition vectorValue]
-                                    blocking:NO
-                                      object:nil
-                             createIfMissing:createIfMissing];
             
-            anyChunksMissing = anyChunksMissing && r;
+            if (elapsedNs > GSChunkCreationBudget) {
+                anyChunksMissing = YES;
+                break;
+            }
         }
-        
+
         if (anyChunksMissing) {
             [self needsChunkGeneration]; // Pick this up again later.
         }

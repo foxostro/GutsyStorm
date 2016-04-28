@@ -6,10 +6,8 @@
 //  Copyright © 2013-2016 Andrew Fox. All rights reserved.
 //
 
-@interface GSGridGeometry : GSGrid<GSChunkGeometryData *>
+@interface GSGridGeometry : GSGrid
 
-- (nonnull instancetype)initWithName:(nonnull NSString *)name
-                         cacheFolder:(nonnull NSURL *)folder
-                             factory:(nonnull GSGridItemFactory)factory;
+- (nonnull instancetype)initWithName:(nonnull NSString *)name cacheFolder:(nonnull NSURL *)folder;
 
 @end

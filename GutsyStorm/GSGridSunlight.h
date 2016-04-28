@@ -9,10 +9,8 @@
 #import <Foundation/Foundation.h>
 #import "GSGrid.h"
 
-@interface GSGridSunlight : GSGrid<GSChunkSunlightData *>
+@interface GSGridSunlight : GSGrid
 
-- (nonnull instancetype)initWithName:(nonnull NSString *)name
-                          cacheFolder:(nonnull NSURL *)folder
-                              factory:(nonnull GSGridItemFactory)factory;
+- (nonnull instancetype)initWithName:(nonnull NSString *)name cacheFolder:(nonnull NSURL *)folder;
 
 @end
