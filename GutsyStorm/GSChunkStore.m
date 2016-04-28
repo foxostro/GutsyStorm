@@ -39,7 +39,6 @@
 
 + (nonnull NSURL *)newTerrainCacheFolderURL;
 - (nonnull GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
-- (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p neighborhood:(GSNeighborhood * _Nonnull * _Nonnull)neighborhood;
 
 - (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
 - (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
@@ -685,32 +684,6 @@
     }
     
     return neighborhood;
-}
-
-- (BOOL)tryToGetNeighborhoodAtPoint:(vector_float3)p
-                       neighborhood:(GSNeighborhood * _Nonnull * _Nonnull)outNeighborhood
-{
-    assert(!_chunkStoreHasBeenShutdown);
-    NSParameterAssert(outNeighborhood);
-
-    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
-
-    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        vector_float3 a = p + [GSNeighborhood offsetForNeighborIndex:i];
-        GSChunkVoxelData *voxels = nil;
-
-        if(![self tryToGetChunkVoxelsAtPoint:a chunk:&voxels]) {
-            return NO;
-        }
-
-        assert(voxels);
-
-        [neighborhood setNeighborAtIndex:i neighbor:voxels];
-    }
-
-    *outNeighborhood = neighborhood;
-    return YES;
 }
 
 - (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
