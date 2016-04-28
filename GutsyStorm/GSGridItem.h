@@ -9,9 +9,7 @@
 #import <simd/vector.h>
 
 
-struct GSStopwatchTraceState;
-
-
+/* Grid Items are objects which are inserted into a grid slot. These are all intended to be immutable objects. */
 @protocol GSGridItem <NSCopying>
 
 @required
