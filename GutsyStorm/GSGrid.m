@@ -180,21 +180,21 @@
 - (void)evictAllItems
 {
     [_lockBuckets lockForReading];
+    [_lockTheCount lock];
 
     for(NSUInteger i=0, n=_buckets.count; i<n; ++i)
     {
         GSGridBucket *bucket = _buckets[i];
 
         [bucket.lock lock];
-        {
-            [_lockTheCount lock];
-            _count -= bucket.slots.count;
-            [_lockTheCount unlock];
-            [bucket.slots removeAllObjects];
-        }
+        _count -= bucket.slots.count;
+        [bucket.slots removeAllObjects];
         [bucket.lock unlock];
     }
 
+    assert(_count == 0);
+
+    [_lockTheCount unlock];
     [_lockBuckets unlockForReading];
 }
 

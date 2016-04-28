@@ -61,6 +61,9 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     /* Dispatch Queue used for generating chunks asynchronously. */
     dispatch_queue_t _generationQueue;
     
+    /* Semaphore used to prevent the generation queue from having too many outstanding chunks. */
+    dispatch_semaphore_t _generationSema;
+    
     /* List of VAOs the display link thread will draw. */
     NSMutableSet<GSChunkVAO *> *_drawList;
     NSLock *_lockDrawList;
@@ -86,6 +89,9 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         _activeRegionExtent = activeRegionExtent;
         _chunkStore = chunkStore;
         _generationQueue = dispatch_queue_create("GSActiveRegion.generationQueue", DISPATCH_QUEUE_CONCURRENT);
+        
+        long n = [[NSProcessInfo processInfo] processorCount];
+        _generationSema = dispatch_semaphore_create(n);
 
         _drawList = [NSMutableSet new];
         _lockDrawList = [NSLock new];
@@ -242,9 +248,9 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     [_lockCachedPointsInCameraFrustum unlockForReading];
 
     [_drawList removeAllObjects];
-    for(GSBoxedVector *boxedPosition in pointsInCamera)
+    for(GSBoxedVector *position in pointsInCamera)
     {
-        GSChunkVAO *vao = [_chunkStore vaoAtPoint:[boxedPosition vectorValue]];
+        GSChunkVAO *vao = [_chunkStore nonBlockingVaoAtPoint:position createIfMissing:NO];
         if (vao) {
             [_drawList addObject:vao];
         }
@@ -261,6 +267,11 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     if (self.shouldShutdown) {
         return;
     }
+    
+    if (dispatch_semaphore_wait(_generationSema, DISPATCH_TIME_NOW)) {
+        // Drop the request on the floor because we don't want the queue to have too many outstanding chunks.
+        return;
+    }
 
     dispatch_async(_generationQueue, ^{
         BOOL anyChunksMissing = NO;
@@ -270,9 +281,11 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         NSObject<NSFastEnumeration> *points = [_cachedPointsInCameraFrustum copy];
         [_lockCachedPointsInCameraFrustum unlockForReading];
 
-        for(GSBoxedVector *boxedPosition in points)
+        for(GSBoxedVector *position in points)
         {
-            (void)[_chunkStore vaoAtPoint:[boxedPosition vectorValue]]; // Ensure VAO gets created, if it was missing. 
+            // Ensure VAO gets created, if it was missing.
+            (void)[_chunkStore nonBlockingVaoAtPoint:position createIfMissing:YES];
+
             uint64_t elapsedNs = GSStopwatchEnd(startAbs);
             
             if (elapsedNs > GSChunkCreationBudget) {
@@ -284,6 +297,8 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         if (anyChunksMissing) {
             [self needsChunkGeneration]; // Pick this up again later.
         }
+        
+        dispatch_semaphore_signal(_generationSema);
     });
 }
 

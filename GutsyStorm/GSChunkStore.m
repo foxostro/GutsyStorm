@@ -391,6 +391,7 @@
         GSGridSlot *voxelSlot = [_gridVoxelData slotAtPoint:pos];
         [voxelSlot.lock lockForWriting];
         voxels1 = (GSChunkVoxelData *)voxelSlot.item;
+        [voxels1 invalidate];
         if (!voxels1) {
             voxels1 = [self newVoxelChunkAtPoint:pos];
         }
@@ -427,6 +428,7 @@
                     /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
                      * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
                      */
+                    [sunlight1 invalidate];
                     sunlight2 = [sunlight1 copyWithEditAtPoint:pos neighborhood:neighborhood];
                 } else {
                     sunlight2 = [self newSunlightChunkAtPoint:pos];
@@ -445,9 +447,16 @@
                     /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
                      * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
                      */
+                    [geo1 invalidate];
                     geo2 = [geo1 copyWithSunlight:sunlight2];
                 } else {
-                    geo2 = [self newGeometryChunkAtPoint:pos];
+                    vector_float3 minCorner = GSMinCornerForChunkAtPoint(p);
+                    geo2 = [[GSChunkGeometryData alloc] initWithMinP:minCorner
+                                                              folder:_folder
+                                                            sunlight:sunlight2
+                                                      groupForSaving:_groupForSaving
+                                                      queueForSaving:_queueForSaving
+                                                        allowLoading:NO];
                 }
                 geoSlot.item = geo2;
                 [geoSlot.lock unlockForWriting];
@@ -458,6 +467,7 @@
             {
                 GSGridSlot *vaoSlot = [_gridVAO slotAtPoint:p];
                 [vaoSlot.lock lockForWriting];
+                [vaoSlot.item invalidate];
                 GSChunkVAO *vao2 = [[GSChunkVAO alloc] initWithChunkGeometry:geo2 glContext:_glContext];
                 vaoSlot.item = vao2;
                 [vaoSlot.lock unlockForWriting];
@@ -488,18 +498,23 @@
     return vao;
 }
 
-- (nonnull GSChunkVAO *)vaoAtPoint:(vector_float3)pos
+- (nullable GSChunkVAO *)nonBlockingVaoAtPoint:(GSBoxedVector *)pos createIfMissing:(BOOL)createIfMissing
 {
-    assert(!_chunkStoreHasBeenShutdown);
+    if (_chunkStoreHasBeenShutdown) {
+        return nil;
+    }
     
-    GSGridSlot *slot = [_gridVAO slotAtPoint:pos];
+    vector_float3 p = [pos vectorValue];
+    GSGridSlot *slot = [_gridVAO slotAtPoint:p blocking:NO];
     
-    [slot.lock lockForWriting];
+    if (!(slot && [slot.lock tryLockForWriting])) {
+        return nil;
+    }
     
     GSChunkVAO *vao = (GSChunkVAO *)slot.item;
     
     if (!vao) {
-        vao = [self newVAOChunkAtPoint:pos];
+        vao = [self newVAOChunkAtPoint:p];
         slot.item = vao;
     }
     
@@ -763,13 +778,14 @@
         return NO;
     }
 
-    if (slot.item) {
-        *chunk = (GSChunkVoxelData *)slot.item;
+    GSChunkVoxelData *voxels = (GSChunkVoxelData *)slot.item;
+    if (voxels) {
+        *chunk = voxels;
     }
 
     [slot.lock unlockForReading];
     
-    return YES;
+    return (voxels != nil);
 }
 
 + (nonnull NSURL *)newTerrainCacheFolderURL

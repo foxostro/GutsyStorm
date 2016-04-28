@@ -15,6 +15,7 @@
 @class GSShader;
 @class GSTerrainJournal;
 @class GSChunkVAO;
+@class GSBoxedVector;
 
 
 @interface GSChunkStore : NSObject
@@ -49,8 +50,11 @@
  */
 - (nullable GSChunkVAO *)tryToGetVaoAtPoint:(vector_float3)pos;
 
-/* Get the Vertex Array Object for the specified point in space, creating it if necessary. */
-- (nonnull GSChunkVAO *)vaoAtPoint:(vector_float3)pos;
+/* Try to get the Vertex Array Object for the specified point in space.
+ * Returns nil when it's not possible to get the VAO without blocking on a lock.
+ * If the `createIfMissing' flag is set then the VAO is created if the slot was empty. This can take time.
+ */
+- (nullable GSChunkVAO *)nonBlockingVaoAtPoint:(nonnull GSBoxedVector *)p createIfMissing:(BOOL)createIfMissing;
 
 /* Try to get the voxel at the specified position. If successful then store it in 'voxel' and return YES. If
  * unsuccessful then this returns NO without modifying the voxel pointed to by 'voxel'. This method may fail in this way
