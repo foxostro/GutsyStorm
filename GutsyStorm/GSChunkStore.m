@@ -119,14 +119,6 @@
     _gridSunlightData = [[GSGrid alloc] initWithName:@"gridSunlightData"];
     _gridGeometryData = [[GSGrid alloc] initWithName:@"gridGeometryData"];
     _gridVAO = [[GSGrid alloc] initWithName:@"gridVAO"];
-
-    // Format all grid item costs as byte counts.
-    NSByteCountFormatter *formatter = [[NSByteCountFormatter alloc] init];
-    formatter.countStyle = NSByteCountFormatterCountStyleMemory;
-    _gridVoxelData.costFormatter = formatter;
-    _gridSunlightData.costFormatter = formatter;
-    _gridGeometryData.costFormatter = formatter;
-    _gridVAO.costFormatter = formatter;
 }
 
 - (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByChangeAtPoint:(vector_float3)p

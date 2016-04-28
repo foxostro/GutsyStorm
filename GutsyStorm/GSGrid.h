@@ -22,12 +22,6 @@ typedef NSObject <GSGridItem> * _Nonnull (^GSGridTransform)(NSObject <GSGridItem
 /* Name of the table for debugging purposes. */
 @property (nonnull, readonly, nonatomic) NSString *name;
 
-/* Specify a desired cost limit for all items in the grid. */
-@property (nonatomic) NSInteger costLimit;
-
-/* Format costs for display. */
-@property (nonatomic, retain, nullable) NSFormatter *costFormatter;
-
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
 - (nonnull instancetype)initWithName:(nonnull NSString *)name NS_DESIGNATED_INITIALIZER;
