@@ -84,55 +84,56 @@
 
 - (void)resizeTableIfNecessary
 {
+    dispatch_block_t resizeBlock = ^{
+        [_lockBuckets lockForWriting];
+        [_lockTheCount lock]; // We don't expect other threads to be here, but take the lock anyway.
+        
+        // Test again whether a resize is necessary. It's possible, for example, that someone evicted all items just now.
+        if(((float)_count / _buckets.count) > _loadLevelToTriggerResize) {
+            NSUInteger oldNumBuckets = _buckets.count;
+            NSUInteger newNumBuckets = 2 * _buckets.count;
+            
+            DEBUG_LOG(@"Resizing table \"%@\": buckets %lu -> %lu ; count=%lu",
+                      self.name, oldNumBuckets, _numBuckets, _count);
+            
+            NSMutableArray<GSGridBucket *> *oldBuckets = _buckets;
+            
+            // Allocate a new, and larger, set of buckets.
+            _buckets = [[self class] newBuckets:newNumBuckets gridName:self.name];
+            
+            // Insert each object into the new hash table.
+            for(NSUInteger i=0; i<oldNumBuckets; ++i)
+            {
+                [oldBuckets[i].lock lock];
+            }
+            for(NSUInteger i=0; i<oldNumBuckets; ++i)
+            {
+                for(NSObject <GSGridItem> *item in oldBuckets[i].items)
+                {
+                    NSUInteger hash = vector_hash(item.minP);
+                    [_buckets[hash % newNumBuckets].items addObject:item];
+                }
+            }
+            for(NSUInteger i=0; i<oldNumBuckets; ++i)
+            {
+                [oldBuckets[i].lock unlock];
+            }
+        }
+        
+        [_lockTheCount unlock];
+        [_lockBuckets unlockForWriting];
+    };
+
     // Perform a quick test to detect whether a resize is likely necessary.
     // Do not take the write lock unless we think there's a good chance we'll need to resize.
     [_lockBuckets lockForReading];
     [_lockTheCount lock];
     BOOL resizeIsNeeded = ((float)_count / _buckets.count) > _loadLevelToTriggerResize;
+    if(resizeIsNeeded) {
+        dispatch_async(dispatch_get_global_queue(0, 0), resizeBlock);
+    }
     [_lockTheCount unlock];
     [_lockBuckets unlockForReading];
-
-    if(!resizeIsNeeded) {
-        return;
-    }
-
-    [_lockBuckets lockForWriting];
-    [_lockTheCount lock]; // We don't expect other threads to be here, but take the lock anyway.
-
-    // Test again whether a resize is necessary. It's possible, for example, that someone evicted all items just now.
-    if(((float)_count / _buckets.count) > _loadLevelToTriggerResize) {
-        NSUInteger oldNumBuckets = _buckets.count;
-        NSUInteger newNumBuckets = 2 * _buckets.count;
-
-        DEBUG_LOG(@"Resizing table \"%@\": buckets %lu -> %lu ; count=%lu",
-                  self.name, oldNumBuckets, _numBuckets, _count);
-
-        NSMutableArray<GSGridBucket *> *oldBuckets = _buckets;
-
-        // Allocate a new, and larger, set of buckets.
-        _buckets = [[self class] newBuckets:newNumBuckets gridName:self.name];
-
-        // Insert each object into the new hash table.
-        for(NSUInteger i=0; i<oldNumBuckets; ++i)
-        {
-            [oldBuckets[i].lock lock];
-        }
-        for(NSUInteger i=0; i<oldNumBuckets; ++i)
-        {
-            for(NSObject <GSGridItem> *item in oldBuckets[i].items)
-            {
-                NSUInteger hash = vector_hash(item.minP);
-                [_buckets[hash % newNumBuckets].items addObject:item];
-            }
-        }
-        for(NSUInteger i=0; i<oldNumBuckets; ++i)
-        {
-            [oldBuckets[i].lock unlock];
-        }
-    }
-    
-    [_lockTheCount unlock];
-    [_lockBuckets unlockForWriting];
 }
 
 - (BOOL)objectAtPoint:(vector_float3)p
@@ -477,47 +478,48 @@
 
 - (void)_enforceGridCostLimits
 {
+    dispatch_block_t enforceLimits = ^{
+        [_lockBuckets lockForWriting];
+        
+        DEBUG_LOG(@"Grid \"%@\" -- enforcing grid limits", self.name);
+        
+        while(true)
+        {
+            // Test again whether the grid is over the cost limit.
+            // It's possible, for example, that someone evicted all items just now.
+            [_lockTheCount lock];
+            BOOL acceptableGridCost = (_costLimit <= 0) || (_costTotal <= _costLimit);
+            [_lockTheCount unlock];
+            
+            if (acceptableGridCost) {
+                break;
+            }
+            
+            GSGridBucket *bucket = nil;
+            NSObject <GSGridItem> *item = nil;
+            [_lru popAndReturnObject:&item bucket:&bucket];
+            if (item && bucket) {
+                DEBUG_LOG(@"Grid \"%@\" is over budget and will evict %@ cost item",
+                          self.name, [self.costFormatter stringForObjectValue:@(item.cost)]);
+                [self _unlockedEvictItem:item bucket:bucket];
+            }
+        }
+        
+        DEBUG_LOG(@"Grid \"%@\" -- done enforcing grid limits", self.name);
+        
+        [_lockBuckets unlockForWriting];
+    };
+
     // Perform a quick test to detect the grid is likely over the cost limit.
     // Do not take the write lock unless we think there's a good chance we'll need to evict some items.
     [_lockBuckets lockForReading];
     [_lockTheCount lock];
     BOOL overLimit = (_costLimit > 0) && (_costTotal > _costLimit);
+    if (overLimit) {
+        dispatch_async(dispatch_get_global_queue(0, 0), enforceLimits);
+    }
     [_lockTheCount unlock];
     [_lockBuckets unlockForReading];
-
-    if(!overLimit) {
-        return;
-    }
-
-    [_lockBuckets lockForWriting];
-    
-    DEBUG_LOG(@"Grid \"%@\" -- enforcing grid limits", self.name);
-
-    while(true)
-    {
-        // Test again whether the grid is over the cost limit.
-        // It's possible, for example, that someone evicted all items just now.
-        [_lockTheCount lock];
-        BOOL acceptableGridCost = (_costLimit <= 0) || (_costTotal <= _costLimit);
-        [_lockTheCount unlock];
-
-        if (acceptableGridCost) {
-            break;
-        }
-
-        GSGridBucket *bucket = nil;
-        NSObject <GSGridItem> *item = nil;
-        [_lru popAndReturnObject:&item bucket:&bucket];
-        if (item && bucket) {
-            DEBUG_LOG(@"Grid \"%@\" is over budget and will evict %@ cost item",
-                      self.name, [self.costFormatter stringForObjectValue:@(item.cost)]);
-            [self _unlockedEvictItem:item bucket:bucket];
-        }
-    }
-    
-    DEBUG_LOG(@"Grid \"%@\" -- done enforcing grid limits", self.name);
-
-    [_lockBuckets unlockForWriting];
 }
 
 @end
