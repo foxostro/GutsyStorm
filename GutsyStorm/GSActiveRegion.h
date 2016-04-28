@@ -35,11 +35,6 @@
 
 - (nonnull NSArray<GSBoxedVector *> *)pointsInCameraFrustum;
 
-/* Accepts a block which modifies part of the active region. Ensures that the changes appear "instantly" from the
- * perspective of the display link thread.
- */
-- (void)modifyWithBlock:(void (^ _Nonnull)(void))block;
-
 /* Call this to notify the active region that a VAO in the active region needs to be generated or regenerated.
  * To ensure that updates to the world will are made visible in a timely manner, call this immediately when a VAO, or
  * it's underlying terrain data, changes.

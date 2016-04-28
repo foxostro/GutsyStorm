@@ -228,40 +228,6 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     return points;
 }
 
-- (void)modifyWithBlock:(void (^ _Nonnull)(void))block
-{
-    GSStopwatchTraceStep(@"modifyWithBlock enter");
-
-    [_lockDrawList lock];
-    
-    // Reduce contention on the grids by preventing the generation from queue from generating any blocks right now.
-    dispatch_suspend(_generationQueue);
-
-    // The block is expected to modify some part of the active region. Some activity such as chunk invalidation is
-    // performed asynchronously and each block is added to the specified dispatch group.
-    block();
-    GSStopwatchTraceStep(@"Applied the block.");
-    
-    // Rebuild the draw list.
-    [_lockCachedPointsInCameraFrustum lockForReading];
-    NSArray<GSBoxedVector *> *pointsInCamera = [_cachedPointsInCameraFrustum copy];
-    [_lockCachedPointsInCameraFrustum unlockForReading];
-
-    [_drawList removeAllObjects];
-    for(GSBoxedVector *position in pointsInCamera)
-    {
-        GSChunkVAO *vao = [_chunkStore nonBlockingVaoAtPoint:position createIfMissing:NO];
-        if (vao) {
-            [_drawList addObject:vao];
-        }
-    }
-
-    // We're done. Release locks last to avoid interleaved trace messages.
-    GSStopwatchTraceStep(@"modifyWithBlock exit");
-    [_lockDrawList unlock];
-    dispatch_resume(_generationQueue);
-}
-
 - (void)needsChunkGeneration
 {
     if (self.shouldShutdown) {

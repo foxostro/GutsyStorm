@@ -384,99 +384,97 @@
 
     GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
 
-    [_activeRegion modifyWithBlock:^{
-        GSChunkVoxelData *voxels1 = nil;
-        GSChunkVoxelData *voxels2 = nil;
+    GSChunkVoxelData *voxels1 = nil;
+    GSChunkVoxelData *voxels2 = nil;
 
-        GSGridSlot *voxelSlot = [_gridVoxelData slotAtPoint:pos];
-        [voxelSlot.lock lockForWriting];
-        voxels1 = (GSChunkVoxelData *)voxelSlot.item;
-        if (!voxels1) {
-            voxels1 = [self newVoxelChunkAtPoint:pos];
-        } else {
-            [voxels1 invalidate];
-            voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
-            [voxels2 saveToFile];
-            voxelSlot.item = voxels2;
-        }
-        [voxelSlot.lock unlockForWriting];
+    GSGridSlot *voxelSlot = [_gridVoxelData slotAtPoint:pos];
+    [voxelSlot.lock lockForWriting];
+    voxels1 = (GSChunkVoxelData *)voxelSlot.item;
+    if (!voxels1) {
+        voxels1 = [self newVoxelChunkAtPoint:pos];
+    } else {
+        [voxels1 invalidate];
+        voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
+        [voxels2 saveToFile];
+        voxelSlot.item = voxels2;
+    }
+    [voxelSlot.lock unlockForWriting];
+    
+    GSStopwatchTraceStep(@"Updated voxels.");
+
+    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
+
+    /* XXX: Consider replacing sunlightChunksInvalidatedByVoxelChangeAtPoint with a flood-fill constrained to the
+     * local neighborhood. If the flood-fill would exit the center chunk then take note of which chunk because that
+     * one needs invalidation too.
+     */
+    NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByChangeAtPoint:pos
+                                                                     originalVoxels:voxels1
+                                                                     modifiedVoxels:voxels2];
+    GSStopwatchTraceStep(@"Estimated affected sunlight chunks: %@", points);
+
+    for(GSBoxedVector *bp in points)
+    {
+        vector_float3 p = [bp vectorValue];
         
-        GSStopwatchTraceStep(@"Updated voxels.");
+        GSChunkSunlightData *sunlight2 = nil;
+        GSChunkGeometryData *geo2 = nil;
 
-        GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
-
-        /* XXX: Consider replacing sunlightChunksInvalidatedByVoxelChangeAtPoint with a flood-fill constrained to the
-         * local neighborhood. If the flood-fill would exit the center chunk then take note of which chunk because that
-         * one needs invalidation too.
-         */
-        NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByChangeAtPoint:pos
-                                                                         originalVoxels:voxels1
-                                                                         modifiedVoxels:voxels2];
-        GSStopwatchTraceStep(@"Estimated affected sunlight chunks: %@", points);
-
-        for(GSBoxedVector *bp in points)
+        // Update sunlight.
         {
-            vector_float3 p = [bp vectorValue];
-            
-            GSChunkSunlightData *sunlight2 = nil;
-            GSChunkGeometryData *geo2 = nil;
-
-            // Update sunlight.
-            {
-                GSGridSlot *sunSlot = [_gridSunlightData slotAtPoint:p];
-                [sunSlot.lock lockForWriting];
-                GSChunkSunlightData *sunlight1 = (GSChunkSunlightData *)sunSlot.item;
-                if (sunlight1) {
-                    /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
-                     * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
-                     */
-                    [sunlight1 invalidate];
-                    sunlight2 = [sunlight1 copyWithEditAtPoint:pos neighborhood:neighborhood];
-                } else {
-                    sunlight2 = [self newSunlightChunkAtPoint:pos];
-                }
-                sunSlot.item = sunlight2;
-                [sunSlot.lock unlockForWriting];
+            GSGridSlot *sunSlot = [_gridSunlightData slotAtPoint:p];
+            [sunSlot.lock lockForWriting];
+            GSChunkSunlightData *sunlight1 = (GSChunkSunlightData *)sunSlot.item;
+            if (sunlight1) {
+                /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
+                 * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
+                 */
+                [sunlight1 invalidate];
+                sunlight2 = [sunlight1 copyWithEditAtPoint:pos neighborhood:neighborhood];
+            } else {
+                sunlight2 = [self newSunlightChunkAtPoint:pos];
             }
-            GSStopwatchTraceStep(@"Updated sunlight at %@", bp);
-
-            // Update geometry.
-            {
-                GSGridSlot *geoSlot = [_gridGeometryData slotAtPoint:p];
-                [geoSlot.lock lockForWriting];
-                GSChunkGeometryData *geo1 = (GSChunkGeometryData *)geoSlot.item;
-                if (geo1) {
-                    /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
-                     * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
-                     */
-                    [geo1 invalidate];
-                    geo2 = [geo1 copyWithSunlight:sunlight2];
-                } else {
-                    vector_float3 minCorner = GSMinCornerForChunkAtPoint(p);
-                    geo2 = [[GSChunkGeometryData alloc] initWithMinP:minCorner
-                                                              folder:_folder
-                                                            sunlight:sunlight2
-                                                      groupForSaving:_groupForSaving
-                                                      queueForSaving:_queueForSaving
-                                                        allowLoading:NO];
-                }
-                geoSlot.item = geo2;
-                [geoSlot.lock unlockForWriting];
-            }
-            GSStopwatchTraceStep(@"Updated geometry at %@", bp);
-
-            // Update the Vertex Array Object.
-            {
-                GSGridSlot *vaoSlot = [_gridVAO slotAtPoint:p];
-                [vaoSlot.lock lockForWriting];
-                [vaoSlot.item invalidate];
-                GSChunkVAO *vao2 = [[GSChunkVAO alloc] initWithChunkGeometry:geo2 glContext:_glContext];
-                vaoSlot.item = vao2;
-                [vaoSlot.lock unlockForWriting];
-            }
-            GSStopwatchTraceStep(@"Updated VAO at %@", bp);
+            sunSlot.item = sunlight2;
+            [sunSlot.lock unlockForWriting];
         }
-    }];
+        GSStopwatchTraceStep(@"Updated sunlight at %@", bp);
+
+        // Update geometry.
+        {
+            GSGridSlot *geoSlot = [_gridGeometryData slotAtPoint:p];
+            [geoSlot.lock lockForWriting];
+            GSChunkGeometryData *geo1 = (GSChunkGeometryData *)geoSlot.item;
+            if (geo1) {
+                /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
+                 * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
+                 */
+                [geo1 invalidate];
+                geo2 = [geo1 copyWithSunlight:sunlight2];
+            } else {
+                vector_float3 minCorner = GSMinCornerForChunkAtPoint(p);
+                geo2 = [[GSChunkGeometryData alloc] initWithMinP:minCorner
+                                                          folder:_folder
+                                                        sunlight:sunlight2
+                                                  groupForSaving:_groupForSaving
+                                                  queueForSaving:_queueForSaving
+                                                    allowLoading:NO];
+            }
+            geoSlot.item = geo2;
+            [geoSlot.lock unlockForWriting];
+        }
+        GSStopwatchTraceStep(@"Updated geometry at %@", bp);
+
+        // Update the Vertex Array Object.
+        {
+            GSGridSlot *vaoSlot = [_gridVAO slotAtPoint:p];
+            [vaoSlot.lock lockForWriting];
+            [vaoSlot.item invalidate];
+            GSChunkVAO *vao2 = [[GSChunkVAO alloc] initWithChunkGeometry:geo2 glContext:_glContext];
+            vaoSlot.item = vao2;
+            [vaoSlot.lock unlockForWriting];
+        }
+        GSStopwatchTraceStep(@"Updated VAO at %@", bp);
+    }
 
     GSStopwatchTraceEnd(@"placeBlockAtPoint exit %@", boxedPos);
 }
