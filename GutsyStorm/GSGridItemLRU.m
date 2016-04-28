@@ -12,7 +12,7 @@
 {
     NSMutableArray<NSObject<GSGridItem> *> *_list;
     NSMutableDictionary<NSObject<GSGridItem> *, NSNumber *> *_dictIndex;
-    NSMutableDictionary<NSObject<GSGridItem> *, NSMutableArray *> *_dictBucket;
+    NSMutableDictionary<NSObject<GSGridItem> *, GSGridBucket *> *_dictBucket;
 }
 
 - (nonnull instancetype)init
@@ -25,7 +25,7 @@
     return self;
 }
 
-- (void)referenceObject:(nonnull NSObject<GSGridItem> *)object bucket:(nonnull NSMutableArray *)bucket
+- (void)referenceObject:(nonnull NSObject<GSGridItem> *)object bucket:(nonnull GSGridBucket *)bucket
 {
     NSParameterAssert(object);
     NSParameterAssert(bucket);
@@ -52,7 +52,7 @@
         return;
     }
 
-    NSMutableArray *bucket = [_dictBucket objectForKey:object];
+    GSGridBucket *bucket = [_dictBucket objectForKey:object];
 
     [_list removeLastObject];
     [_dictBucket removeObjectForKey:object];

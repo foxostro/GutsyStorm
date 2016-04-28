@@ -9,12 +9,16 @@
 #import <Foundation/Foundation.h>
 #import "GSGridItem.h"
 
+
+@class GSGridBucket;
+
+
 @interface GSGridItemLRU<__covariant TYPE> : NSObject
 
 - (nonnull instancetype)init;
 
 /* Mark the object as being recently used. */
-- (void)referenceObject:(TYPE _Nonnull)object bucket:(nonnull NSMutableArray *)bucket;
+- (void)referenceObject:(TYPE _Nonnull)object bucket:(nonnull GSGridBucket *)bucket;
 
 /* Get the least recently used object and remove it from the LRU list. */
 - (void)popAndReturnObject:(TYPE _Nullable * _Nonnull)outObject bucket:(TYPE _Nullable * _Nonnull)outBucket;

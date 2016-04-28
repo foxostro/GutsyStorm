@@ -12,8 +12,6 @@
 /* Grid Items are objects which are inserted into a grid slot. These are all intended to be immutable objects. */
 @protocol GSGridItem <NSCopying>
 
-@required
-
 /* The minimum corner of the item, which is a rectangular prism (box). */
 @property (readonly, nonatomic) vector_float3 minP;
 
@@ -21,6 +19,7 @@
 @property (readonly, nonatomic) NSUInteger cost;
 
 @end
+
 
 /* This block defines a factory to generate new grid item objects given only the unique minP of the item. */
 typedef NSObject<GSGridItem> * (^GSGridItemFactory)(vector_float3 minP);
