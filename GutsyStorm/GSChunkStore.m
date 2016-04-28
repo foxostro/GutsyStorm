@@ -391,17 +391,21 @@
         GSGridSlot *voxelSlot = [_gridVoxelData slotAtPoint:pos];
         [voxelSlot.lock lockForWriting];
         voxels1 = (GSChunkVoxelData *)voxelSlot.item;
-        [voxels1 invalidate];
         if (!voxels1) {
             voxels1 = [self newVoxelChunkAtPoint:pos];
+        } else {
+            [voxels1 invalidate];
+            voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
+            [voxels2 saveToFile];
+            voxelSlot.item = voxels2;
         }
-        voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
-        [voxels2 saveToFile];
         [voxelSlot.lock unlockForWriting];
         
         GSStopwatchTraceStep(@"Updated voxels.");
 
+#if 0
         GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
+#endif
 
         /* XXX: Consider replacing sunlightChunksInvalidatedByVoxelChangeAtPoint with a flood-fill constrained to the
          * local neighborhood. If the flood-fill would exit the center chunk then take note of which chunk because that
@@ -416,6 +420,7 @@
         {
             vector_float3 p = [bp vectorValue];
             
+#if 0
             GSChunkSunlightData *sunlight2 = nil;
             GSChunkGeometryData *geo2 = nil;
 
@@ -473,6 +478,17 @@
                 [vaoSlot.lock unlockForWriting];
             }
             GSStopwatchTraceStep(@"Updated VAO at %@", bp);
+#else
+            // Invalidate sunlight.
+            for(GSGrid *grid in @[_gridSunlightData, _gridGeometryData, _gridVAO])
+            {
+                GSGridSlot *slot = [grid slotAtPoint:p];
+                [slot.lock lockForWriting];
+                [slot.item invalidate];
+                slot.item = nil;
+                [slot.lock unlockForWriting];
+            }
+#endif
         }
     }];
 
