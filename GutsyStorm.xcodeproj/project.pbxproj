@@ -39,6 +39,7 @@
 		6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184B1BD33F8400CD21FB /* text.frag.txt */; };
 		6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184C1BD33F8400CD21FB /* text.vert.txt */; };
 		6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6FAE2A371CC6F42D000D2E9A /* Defaults.plist */; };
+		6FD400B61CD1C3F200C5117E /* GSGridSlot.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FD400B51CD1C3F200C5117E /* GSGridSlot.m */; };
 		6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */; };
 		6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */; };
 		6FEE3F4E1BCF92800076E5B9 /* cursor.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4C1BCF92800076E5B9 /* cursor.vert.txt */; };
@@ -138,6 +139,8 @@
 		6F90184B1BD33F8400CD21FB /* text.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.frag.txt; sourceTree = "<group>"; };
 		6F90184C1BD33F8400CD21FB /* text.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.vert.txt; sourceTree = "<group>"; };
 		6FAE2A371CC6F42D000D2E9A /* Defaults.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Defaults.plist; sourceTree = "<group>"; };
+		6FD400B41CD1C3F200C5117E /* GSGridSlot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridSlot.h; sourceTree = "<group>"; };
+		6FD400B51CD1C3F200C5117E /* GSGridSlot.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridSlot.m; sourceTree = "<group>"; };
 		6FE184FE1BD7E9E7009A076D /* GSTextLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextLabel.h; sourceTree = "<group>"; };
 		6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTextLabel.m; sourceTree = "<group>"; };
 		6FE2F2AE1BD171F0009A83DC /* GSQuaternion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSQuaternion.h; sourceTree = "<group>"; };
@@ -440,6 +443,8 @@
 				AC56651416F03B440041E34F /* GSGridItem.h */,
 				6F8A80B81CB982710063166C /* GSGridItemLRU.h */,
 				6F8A80B91CB982710063166C /* GSGridItemLRU.m */,
+				6FD400B41CD1C3F200C5117E /* GSGridSlot.h */,
+				6FD400B51CD1C3F200C5117E /* GSGridSlot.m */,
 				6F10D4B71CD1B405006B8881 /* GSGridBucket.h */,
 				6F10D4B81CD1B405006B8881 /* GSGridBucket.m */,
 				AC48C44416F563E40017BA94 /* GSGrid.h */,
@@ -548,6 +553,7 @@
 				6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */,
 				4A4E20771516B086008745E0 /* GSVectorUtils.m in Sources */,
 				6F10D4B91CD1B405006B8881 /* GSGridBucket.m in Sources */,
+				6FD400B61CD1C3F200C5117E /* GSGridSlot.m in Sources */,
 				4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */,
 				4A9A3BA61517200E00607B1A /* GSCamera.m in Sources */,
 				4A9A3BAD1517252E00607B1A /* GLString.m in Sources */,
