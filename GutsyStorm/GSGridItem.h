@@ -18,6 +18,11 @@
 /* The cost of the item for use in grids which enforce cost limits. */
 @property (readonly, nonatomic) NSUInteger cost;
 
+/* Invalidate the grid item.
+ * Useful when replacing this item with a new item.
+ */
+- (void)invalidate;
+
 @end
 
 

@@ -379,4 +379,12 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     return YES;
 }
 
+- (void)invalidate
+{
+    NSString *fileName = [[self class] fileNameForSunlightDataFromMinP:minP];
+    NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
+    const char *path = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];
+    unlink(path);
+}
+
 @end

@@ -448,4 +448,12 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     return modifiedVoxelData;
 }
 
+- (void)invalidate
+{
+    NSString *fileName = [[self class] fileNameForVoxelDataFromMinP:minP];
+    NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
+    const char *path = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];
+    unlink(path);
+}
+
 @end

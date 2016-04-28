@@ -14,7 +14,6 @@
 #import "GSBoxedVector.h"
 #import "GSGridLRU.h"
 #import "GSActivity.h"
-#import "GSGridEdit.h"
 #import "GSGridBucket.h"
 
 
@@ -186,15 +185,14 @@
     {
         GSGridBucket *bucket = _buckets[i];
 
-        [_lockTheCount lock];
-
-        _count -= bucket.slots.count;
-
         [bucket.lock lock];
-        [bucket.slots removeAllObjects];
+        {
+            [_lockTheCount lock];
+            _count -= bucket.slots.count;
+            [_lockTheCount unlock];
+            [bucket.slots removeAllObjects];
+        }
         [bucket.lock unlock];
-        
-        [_lockTheCount unlock];
     }
 
     [_lockBuckets unlockForReading];

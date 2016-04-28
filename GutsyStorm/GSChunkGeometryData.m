@@ -356,6 +356,14 @@ static void applyLightToVertices(size_t numChunkVerts,
     });
 }
 
+- (void)invalidate
+{
+    NSString *fileName = [[self class] fileNameForGeometryDataFromMinP:minP];
+    NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
+    const char *path = [[url path] cStringUsingEncoding:NSMacOSRomanStringEncoding];
+    unlink(path);
+}
+
 @end
 
 static void applyLightToVertices(size_t numChunkVerts,

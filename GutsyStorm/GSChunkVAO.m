@@ -185,4 +185,9 @@ typedef GLuint index_t;
     assert(checkGLErrors() == 0);
 }
 
+- (void)invalidate
+{
+    // do nothing
+}
+
 @end

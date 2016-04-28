@@ -19,15 +19,11 @@
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 #import "GSGrid.h"
-#import "GSGridVAO.h"
-#import "GSGridGeometry.h"
-#import "GSGridSunlight.h"
 #import "GSMatrixUtils.h"
 #import "GSActivity.h"
 #import "GSTerrainJournal.h"
 #import "GSTerrainJournalEntry.h"
 #import "GSReaderWriterLock.h"
-#import "GSGridEdit.h"
 #import "GSGridSlot.h"
 
 #import <OpenGL/gl.h>
@@ -56,9 +52,9 @@
 
 @implementation GSChunkStore
 {
-    GSGridVAO *_gridVAO;
-    GSGridGeometry *_gridGeometryData;
-    GSGridSunlight *_gridSunlightData;
+    GSGrid *_gridVAO;
+    GSGrid *_gridGeometryData;
+    GSGrid *_gridSunlightData;
     GSGrid *_gridVoxelData;
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _queueForSaving;
@@ -120,9 +116,9 @@
     assert(!_chunkStoreHasBeenShutdown);
 
     _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"];
-    _gridSunlightData = [[GSGridSunlight alloc] initWithName:@"gridSunlightData" cacheFolder:_folder];
-    _gridGeometryData = [[GSGridGeometry alloc] initWithName:@"gridGeometryData" cacheFolder:_folder];
-    _gridVAO = [[GSGridVAO alloc] initWithName:@"gridVAO"];
+    _gridSunlightData = [[GSGrid alloc] initWithName:@"gridSunlightData"];
+    _gridGeometryData = [[GSGrid alloc] initWithName:@"gridGeometryData"];
+    _gridVAO = [[GSGrid alloc] initWithName:@"gridVAO"];
 
     // Format all grid item costs as byte counts.
     NSByteCountFormatter *formatter = [[NSByteCountFormatter alloc] init];
@@ -133,15 +129,14 @@
     _gridVAO.costFormatter = formatter;
 }
 
-- (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByVoxelChangeAtPoint:(nonnull GSGridEdit *)edit
+- (nonnull NSSet<GSBoxedVector *> *)sunlightChunksInvalidatedByChangeAtPoint:(vector_float3)p
+                                                              originalVoxels:(nonnull GSChunkVoxelData *)voxels1
+                                                              modifiedVoxels:(nonnull GSChunkVoxelData *)voxels2
 {
     // The caller must ensure that the grids stay consistent with one another during the call to this method.
 
-    NSParameterAssert(edit);
-    NSParameterAssert(edit.originalObject);
-    NSParameterAssert(edit.modifiedObject);
-
-    vector_float3 p = edit.pos;
+    NSParameterAssert(voxels1);
+    NSParameterAssert(voxels2);
 
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     vector_long3 clpOfEdit = GSMakeIntegerVector3(p.x - minP.x, p.y - minP.y, p.z - minP.z);
@@ -152,8 +147,8 @@
         return [NSSet setWithObject:[GSBoxedVector boxedVectorWithVector:minP]];
     }
 
-    GSVoxel originalVoxel = [edit.originalObject voxelAtLocalPosition:clpOfEdit];
-    GSVoxel modifiedVoxel = [edit.modifiedObject voxelAtLocalPosition:clpOfEdit];
+    GSVoxel originalVoxel = [voxels1 voxelAtLocalPosition:clpOfEdit];
+    GSVoxel modifiedVoxel = [voxels2 voxelAtLocalPosition:clpOfEdit];
 
     BOOL originalIsOpaque = originalVoxel.opaque;
     BOOL modifiedIsOpaque = modifiedVoxel.opaque;
@@ -182,7 +177,7 @@
     
     BOOL bottomBlockIsOpaque;
     if (clpOfEdit.y >= 1) {
-        GSVoxel bottomVoxel = [edit.modifiedObject voxelAtLocalPosition:(clpOfEdit + GSMakeIntegerVector3(0, -1, 0))];
+        GSVoxel bottomVoxel = [voxels2 voxelAtLocalPosition:(clpOfEdit + GSMakeIntegerVector3(0, -1, 0))];
         bottomBlockIsOpaque = bottomVoxel.opaque;
     } else {
         bottomBlockIsOpaque = NO;
@@ -210,10 +205,11 @@
             GSChunkSunlightData *sunChunk = nil;
             GSGridSlot *slot = [_gridSunlightData slotAtPoint:p];
             [slot.lock lockForWriting];
-            if (!slot.item) {
-                // TODO: create the sunlight chunk if it's not present
-                sunChunk = nil;
-                abort();
+            if (slot.item) {
+                sunChunk = (GSChunkSunlightData *)slot.item;
+            } else {
+                sunChunk = [self newSunlightChunkAtPoint:p];
+                slot.item = sunChunk;
             }
             [slot.lock unlockForWriting];
 
@@ -222,7 +218,7 @@
                 vector_long3 adjacentPoint = adjacentPoints[i];
                 
                 if (adjacentPoint.y >= 0 && adjacentPoint.y < CHUNK_SIZE_Y) {
-                    GSVoxel voxel = [edit.originalObject voxelAtLocalPosition:adjacentPoint];
+                    GSVoxel voxel = [voxels1 voxelAtLocalPosition:adjacentPoint];
                     
                     if (!voxel.opaque) {
                         GSTerrainBufferElement sunlightLevel = [sunChunk.sunlight valueAtPosition:adjacentPoint];
@@ -418,7 +414,9 @@
          * local neighborhood. If the flood-fill would exit the center chunk then take note of which chunk because that
          * one needs invalidation too.
          */
-        NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByVoxelChangeAtPoint:[[GSGridEdit alloc] initWithOriginalItem:voxels1 modifiedItem:voxels2 pos:pos]];
+        NSSet<GSBoxedVector *> *points = [self sunlightChunksInvalidatedByChangeAtPoint:pos
+                                                                         originalVoxels:voxels1
+                                                                         modifiedVoxels:voxels2];
         GSStopwatchTraceStep(@"Estimated affected sunlight chunks: %@", points);
 
         for(GSBoxedVector *bp in points)
