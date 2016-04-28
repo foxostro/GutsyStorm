@@ -11,13 +11,18 @@
 
 @implementation GSGridBucket
 
+- (nonnull instancetype)init
+{
+    @throw nil;
+}
+
 - (nonnull instancetype)initWithName:(NSString *)name
 {
     if (self = [super init]) {
         _name = [name copy];
-        _lock = [[GSReaderWriterLock alloc] init];
-        _lock.name = [NSString stringWithFormat:@"%@.lock", name];
         _items = [[NSMutableArray alloc] init];
+        _lock = [[NSLock alloc] init];
+        _lock.name = [NSString stringWithFormat:@"%@.lock", name];
     }
     return self;
 }

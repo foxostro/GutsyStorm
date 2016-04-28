@@ -14,8 +14,9 @@
 
 @property (nonnull, readonly, nonatomic) NSString *name;
 @property (nonnull, readonly, nonatomic) NSMutableArray<NSObject <GSGridItem> *> *items;
-@property (nonnull, readonly, nonatomic) GSReaderWriterLock *lock;
+@property (nonnull, readonly, nonatomic) NSLock *lock;
 
+- (nonnull instancetype)init NS_UNAVAILABLE;
 - (nonnull instancetype)initWithName:(nonnull NSString *)name NS_DESIGNATED_INITIALIZER;
 
 @end

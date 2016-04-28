@@ -28,10 +28,6 @@
     NSUInteger _numBuckets;
     GSGridBucket * __strong *_buckets;
 
-    // These locks are used for lock striping across the buckets. These protect bucket contents.
-    NSUInteger _numLocks;
-    NSLock * __strong *_locks;
-
     NSLock *_lockTheCount; // Lock protects _count, _costTotal, _lru, and other ivars associated with table limits.
     NSInteger _count;
     float _loadLevelToTriggerResize;
@@ -70,7 +66,6 @@
 {
     if (self = [super init]) {
         _factory = [factory copy];
-        _numLocks = [[NSProcessInfo processInfo] processorCount] * 2;
         _numBuckets = 1024;
         _buckets = [[self class] newBuckets:_numBuckets gridName:name];
         _lru = [GSGridItemLRU new];
@@ -82,18 +77,8 @@
         _costLimit = 0;
         _loadLevelToTriggerResize = 0.5;
 
-        _locks = (NSLock * __strong *)calloc(_numLocks, sizeof(NSLock *));
-        if (!_locks) {
-            [NSException raise:NSMallocException format:@"Out of memory allocating `_locks'."];
-        }
-        for(NSUInteger i=0; i<_numLocks; ++i)
-        {
-            _locks[i] = [NSLock new];
-            _locks[i].name = [NSString stringWithFormat:@"%@.lock[%lu]", name, i];
-        }
-
         _lockBucketsArray = [GSReaderWriterLock new];
-        _lockBucketsArray.name = [NSString stringWithFormat:@"%@.lockTheTableItself", name];
+        _lockBucketsArray.name = [NSString stringWithFormat:@"%@.lockBucketsArray", name];
     }
 
     return self;
@@ -106,12 +91,6 @@
         _buckets[i] = nil;
     }
     free(_buckets);
-
-    for(NSUInteger i=0; i<_numLocks; ++i)
-    {
-        _locks[i] = nil;
-    }
-    free(_locks);
 }
 
 - (void)resizeTableIfNecessary
@@ -149,8 +128,7 @@
         // Insert each object into the new hash table.
         for(NSUInteger i=0; i<oldNumBuckets; ++i)
         {
-            [oldBuckets[i].lock lockForWriting];
-            [_buckets[i].lock lockForWriting];
+            [oldBuckets[i].lock lock];
         }
         for(NSUInteger i=0; i<oldNumBuckets; ++i)
         {
@@ -162,8 +140,7 @@
         }
         for(NSUInteger i=0; i<oldNumBuckets; ++i)
         {
-            [oldBuckets[i].lock unlockForWriting];
-            [_buckets[i].lock unlockForWriting];
+            [oldBuckets[i].lock unlock];
         }
         
         // Free the old set of buckets.
@@ -195,13 +172,11 @@
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
-    NSUInteger idxLock = hash % _numLocks;
-    NSLock *lock = _locks[idxLock];
     GSGridBucket *bucket = _buckets[idxBucket];
     
     if(blocking) {
-        [lock lock];
-    } else if(![lock tryLock]) {
+        [bucket.lock lock];
+    } else if(![bucket.lock tryLock]) {
         [_lockBucketsArray unlockForReading];
         return NO;
     }
@@ -231,7 +206,7 @@
         result = YES;
     }
     
-    [lock unlock];
+    [bucket.lock unlock];
     [_lockBucketsArray unlockForReading];
 
     if (createdAnItem) {
@@ -271,11 +246,9 @@
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
-    NSUInteger idxLock = hash % _numLocks;
-    NSLock *lock = _locks[idxLock];
     GSGridBucket *bucket = _buckets[idxBucket];
 
-    [lock lock];
+    [bucket.lock lock];
 
     NSObject <GSGridItem> *foundItem = [self _searchForItemAtPosition:minP bucket:bucket];
 
@@ -283,7 +256,7 @@
         [self _unlockedEvictItem:foundItem bucket:bucket];
     }
 
-    [lock unlock];
+    [bucket.lock unlock];
     [_lockBucketsArray unlockForReading];
 }
 
@@ -301,11 +274,9 @@
     vector_float3 minP = GSMinCornerForChunkAtPoint(pos);
     NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
-    NSUInteger idxLock = hash % _numLocks;
-    NSLock *lock = _locks[idxLock];
     GSGridBucket *bucket = _buckets[idxBucket];
     
-    [lock lock];
+    [bucket.lock lock];
     
     NSObject <GSGridItem> *foundItem = [self _searchForItemAtPosition:minP bucket:bucket];
     
@@ -320,7 +291,7 @@
         [_lockTheCount unlock];
     }
     
-    [lock unlock];
+    [bucket.lock unlock];
     [_lockBucketsArray unlockForReading];
 }
 
@@ -340,12 +311,10 @@
     vector_float3 minP = GSMinCornerForChunkAtPoint(p);
     NSUInteger hash = vector_hash(minP);
     NSUInteger idxBucket = hash % _numBuckets;
-    NSUInteger idxLock = hash % _numLocks;
-    NSLock *lock = _locks[idxLock];
     GSGridBucket *bucket = _buckets[idxBucket];
     NSUInteger indexOfFoundItem = NSNotFound;
 
-    [lock lock];
+    [bucket.lock lock];
 
     // Search for an existing item at the specified point. If it exists then just do a straight-up replacement.
     for(NSUInteger i = 0, n = bucket.items.count; i < n; ++i)
@@ -376,7 +345,7 @@
         [self _unlockedReplaceItemAtIndex:indexOfFoundItem inBucket:bucket withChange:change];
     }
 
-    [lock unlock];
+    [bucket.lock unlock];
     [_lockBucketsArray unlockForReading];
 
     [self _enforceGridCostLimits];
