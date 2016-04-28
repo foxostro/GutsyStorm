@@ -41,7 +41,7 @@
     [_dictBucket setObject:bucket forKey:object];
 }
 
-- (void)popAndReturnObject:(id _Nonnull * _Nonnull)outObject bucket:(id _Nonnull * _Nonnull)outBucket
+- (void)popAndReturnObject:(id _Nonnull * _Nonnull)outObject bucket:(GSGridBucket * _Nonnull * _Nonnull)outBucket
 {
     NSParameterAssert(outObject);
     NSParameterAssert(outBucket);

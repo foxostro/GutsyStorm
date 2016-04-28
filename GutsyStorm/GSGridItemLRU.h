@@ -21,7 +21,7 @@
 - (void)referenceObject:(TYPE _Nonnull)object bucket:(nonnull GSGridBucket *)bucket;
 
 /* Get the least recently used object and remove it from the LRU list. */
-- (void)popAndReturnObject:(TYPE _Nullable * _Nonnull)outObject bucket:(TYPE _Nullable * _Nonnull)outBucket;
+- (void)popAndReturnObject:(TYPE _Nullable * _Nonnull)outObject bucket:(GSGridBucket * _Nonnull * _Nonnull)outBucket;
 
 /* Remove the object from the LRU list. */
 - (void)removeObject:(TYPE _Nonnull)object;

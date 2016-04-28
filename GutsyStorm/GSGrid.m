@@ -32,7 +32,7 @@
     float _loadLevelToTriggerResize;
     NSInteger _costTotal;
     NSInteger _costLimit;
-    GSGridItemLRU *_lru;
+    GSGridItemLRU<NSObject <GSGridItem> *> *_lru;
 
     // Keep a reference to a block which can make new grid items on demand.
     GSGridItemFactory _factory;
