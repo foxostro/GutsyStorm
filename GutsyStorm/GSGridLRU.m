@@ -1,14 +1,14 @@
 //
-//  GSGridItemLRU.m
+//  GSGridLRU.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/9/16.
 //  Copyright © 2016 Andrew Fox. All rights reserved.
 //
 
-#import "GSGridItemLRU.h"
+#import "GSGridLRU.h"
 
-@implementation GSGridItemLRU
+@implementation GSGridLRU
 {
     NSMutableArray<NSObject<GSGridItem> *> *_list;
     NSMutableDictionary<NSObject<GSGridItem> *, NSNumber *> *_dictIndex;

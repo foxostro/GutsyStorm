@@ -12,7 +12,7 @@
 #import "GSGrid.h"
 #import "GSReaderWriterLock.h"
 #import "GSBoxedVector.h"
-#import "GSGridItemLRU.h"
+#import "GSGridLRU.h"
 #import "GSActivity.h"
 #import "GSGridEdit.h"
 #import "GSGridBucket.h"
@@ -32,7 +32,7 @@
     float _loadLevelToTriggerResize;
     NSInteger _costTotal;
     NSInteger _costLimit;
-    GSGridItemLRU<NSObject <GSGridItem> *> *_lru;
+    GSGridLRU<NSObject <GSGridItem> *> *_lru;
 
     // Keep a reference to a block which can make new grid items on demand.
     GSGridItemFactory _factory;
@@ -66,7 +66,7 @@
     if (self = [super init]) {
         _factory = [factory copy];
         _buckets = [[self class] newBuckets:128 gridName:name];
-        _lru = [GSGridItemLRU new];
+        _lru = [GSGridLRU new];
         _name = name;
 
         _lockTheCount = [NSLock new];

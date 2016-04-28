@@ -1,5 +1,5 @@
 //
-//  GSGridItemLRU.h
+//  GSGridLRU.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/9/16.
@@ -13,9 +13,9 @@
 @class GSGridBucket;
 
 
-@interface GSGridItemLRU<__covariant TYPE> : NSObject
+@interface GSGridLRU<__covariant TYPE> : NSObject
 
-- (nonnull instancetype)init;
+- (nonnull instancetype)init NS_DESIGNATED_INITIALIZER;
 
 /* Mark the object as being recently used. */
 - (void)referenceObject:(TYPE _Nonnull)object bucket:(nonnull GSGridBucket *)bucket;
