@@ -414,8 +414,6 @@
     
     GSStopwatchTraceStep(@"Updated voxels.");
 
-    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:pos];
-
     /* XXX: Consider replacing sunlightChunksInvalidatedByVoxelChangeAtPoint with a flood-fill constrained to the
      * local neighborhood. If the flood-fill would exit the center chunk then take note of which chunk because that
      * one needs invalidation too.
@@ -428,7 +426,7 @@
     for(GSBoxedVector *bp in points)
     {
         vector_float3 p = [bp vectorValue];
-        
+
         GSChunkSunlightData *sunlight2 = nil;
         GSChunkGeometryData *geo2 = nil;
 
@@ -438,10 +436,22 @@
             [sunSlot.lock lockForWriting];
             GSChunkSunlightData *sunlight1 = (GSChunkSunlightData *)sunSlot.item;
             if (sunlight1) {
+                [sunlight1 invalidate];
+                
+                /* XXX: Potential performance improvement here. We take locks repeatedly for the neighborhood. Do we
+                 * really need to grab it? It would seem to me that we really only need to update the single of the
+                 * neighborhood which corresponds to the modified voxel chunk. There's no need to grab locks on any
+                 * other parts of the voxel data grid.
+                 *
+                 * Also, the neighborhood inside of the new sunlight chunk only needs to be updated where the edit was
+                 * made. We can go into that buffer and make the change again there. This would avoid having to retrieve
+                 * and copy the entire voxel neighborhood for each affected sunlight chunk. 
+                 */
+                GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
+                
                 /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
                  * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
                  */
-                [sunlight1 invalidate];
                 sunlight2 = [sunlight1 copyWithEditAtPoint:pos neighborhood:neighborhood];
             } else {
                 sunlight2 = [self newSunlightChunkAtPoint:pos];
