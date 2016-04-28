@@ -61,7 +61,6 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 @synthesize minP;
-@synthesize cost;
 
 + (nonnull GSBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type
 {
@@ -141,8 +140,6 @@ static void applyLightToVertices(size_t numChunkVerts,
             [NSException raise:NSGenericException
                         format:@"Failed to fetch or generate the geometry chunk at \"%@\"", fileName];
         }
-
-        cost = _data.length;
 
         GSStopwatchTraceStep(@"Done initializing geometry chunk %@", [GSBoxedVector boxedVectorWithVector:minCorner]);
     }

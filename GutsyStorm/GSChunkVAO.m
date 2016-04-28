@@ -43,7 +43,6 @@ typedef GLuint index_t;
     BOOL _initializedYet;
 }
 
-@synthesize cost;
 @synthesize minP;
 
 + (nonnull GSVBOHolder *)sharedIndexBufferObject
@@ -89,7 +88,6 @@ typedef GLuint index_t;
         minP = geometry.minP;
         _vertsBuffer = [geometry copyVertsReturningCount:&_numIndicesForDrawing];
         _bufferSize = _numIndicesForDrawing * sizeof(GSTerrainVertexNoNormal);
-        cost = _bufferSize;
     }
 
     return self;

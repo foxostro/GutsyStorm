@@ -64,7 +64,6 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     dispatch_queue_t _queueForSaving;
 }
 
-@synthesize cost;
 @synthesize minP;
 
 + (nonnull NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP
@@ -87,7 +86,6 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         GSTerrainJournal *effectiveJournal = journal;
 
         minP = mp;
-        cost = BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3);
 
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
@@ -162,7 +160,6 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 {
     if (self = [super init]) {
         minP = mp;
-        cost = BUFFER_SIZE_IN_BYTES(data.dimensions);
         
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
