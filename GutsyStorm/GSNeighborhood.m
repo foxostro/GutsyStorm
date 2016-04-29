@@ -222,4 +222,25 @@
     return lightLevel;
 }
 
+- (nonnull instancetype)copyReplacing:(nonnull GSChunkVoxelData *)voxels1
+                         withNeighbor:(nonnull GSChunkVoxelData *)voxels2
+{
+    NSParameterAssert(voxels1 && voxels2);
+
+    GSNeighborhood *theCopy = [[GSNeighborhood alloc] init];
+
+    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        GSChunkVoxelData *voxels = [self neighborAtIndex:i];
+        
+        if (voxels == voxels1) {
+            voxels = voxels2;
+        }
+
+        [theCopy setNeighborAtIndex:i neighbor:voxels];
+    }
+
+    return theCopy;
+}
+
 @end

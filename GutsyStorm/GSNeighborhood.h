@@ -46,4 +46,8 @@
 - (unsigned)lightAtPoint:(vector_long3)p
                   getter:(GSTerrainBuffer * _Nonnull (^ _Nonnull)(GSChunkVoxelData *  _Nonnull c))getter;
 
+/* Copy the neighborhood but replace the instance of `voxels1' with `voxels2'. */
+- (nonnull instancetype)copyReplacing:(nonnull GSChunkVoxelData *)voxels1
+                         withNeighbor:(nonnull GSChunkVoxelData *)voxels2;
+
 @end

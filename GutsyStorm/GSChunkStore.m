@@ -34,12 +34,10 @@
 
 @interface GSChunkStore ()
 
++ (nonnull NSURL *)newTerrainCacheFolderURL;
+
 - (void)createGrids;
 - (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam;
-
-+ (nonnull NSURL *)newTerrainCacheFolderURL;
-- (nonnull GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p;
-
 - (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
 - (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
 - (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
@@ -82,7 +80,16 @@
 - (nonnull GSChunkSunlightData *)newSunlightChunkAtPoint:(vector_float3)pos
 {
     vector_float3 minCorner = GSMinCornerForChunkAtPoint(pos);
-    GSNeighborhood *neighborhood = [self neighborhoodAtPoint:minCorner];
+
+    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
+
+    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        vector_float3 a = pos + [GSNeighborhood offsetForNeighborIndex:i];
+        GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a];
+        [neighborhood setNeighborAtIndex:i neighbor:voxels];
+    }
+
     return [[GSChunkSunlightData alloc] initWithMinP:minCorner
                                               folder:_folder
                                       groupForSaving:_groupForSaving
@@ -204,18 +211,10 @@
                 clpOfEdit + GSMakeIntegerVector3( 0,  0, -1)
             };
 
-            GSChunkSunlightData *sunChunk = nil;
             GSGridSlot *slot = [_gridSunlightData slotAtPoint:p];
-            [slot.lock lockForWriting];
-            if (slot.item) {
-                sunChunk = (GSChunkSunlightData *)slot.item;
-            } else {
-                sunChunk = [self newSunlightChunkAtPoint:p];
-                slot.item = sunChunk;
-            }
-            [slot.lock unlockForWriting];
-
-            for(size_t i = 0; i < ARRAY_LEN(adjacentPoints); ++i)
+            GSChunkSunlightData *sunChunk = (GSChunkSunlightData *)slot.item;
+            
+            if (sunChunk) for(size_t i = 0; i < ARRAY_LEN(adjacentPoints); ++i)
             {
                 vector_long3 adjacentPoint = adjacentPoints[i];
                 
@@ -390,27 +389,57 @@
             entry.position = boxedPos;
             [_journal addEntry:entry];
         });
-    }
 
-    if (addToJournal) {
         GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
     }
+    
+    NSMutableDictionary<GSBoxedVector *, GSGridSlot *> *sunSlots = [NSMutableDictionary new];
+    NSMutableDictionary<GSBoxedVector *, GSGridSlot *> *geoSlots = [NSMutableDictionary new];
+    NSMutableDictionary<GSBoxedVector *, GSGridSlot *> *vaoSlots = [NSMutableDictionary new];
+    NSArray *gridSlots = @[vaoSlots, geoSlots, sunSlots];
+    GSGridSlot *voxSlot;
+    
+    // Acquire slots.
+    voxSlot = [_gridVoxelData slotAtPoint:pos];
+    {
+        GSTerrainBufferElement m = CHUNK_LIGHTING_MAX;
+        NSArray *points = @[[GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(pos)],
+                            [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(pos + vector_make(+m,  0,  0))],
+                            [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(pos + vector_make(-m,  0,  0))],
+                            [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(pos + vector_make( 0,  0, +m))],
+                            [GSBoxedVector boxedVectorWithVector:GSMinCornerForChunkAtPoint(pos + vector_make( 0,  0, -m))],
+                            ];
+        NSSet *set = [NSSet setWithArray:points];
+        for(GSBoxedVector *boxedPoint in set)
+        {
+            sunSlots[boxedPoint] = [_gridSunlightData slotAtPoint:[boxedPoint vectorValue]];
+            geoSlots[boxedPoint] = [_gridGeometryData slotAtPoint:[boxedPoint vectorValue]];
+            vaoSlots[boxedPoint] = [_gridVAO slotAtPoint:[boxedPoint vectorValue]];
+        }
+    }
+    
+    // Acquire locks upfront.
+    for(NSMutableDictionary *slots in gridSlots)
+    {
+        for(GSGridSlot *slot in [slots objectEnumerator])
+        {
+            [slot.lock lockForWriting];
+        }
+    }
+    [voxSlot.lock lockForWriting];
 
     GSChunkVoxelData *voxels1 = nil;
     GSChunkVoxelData *voxels2 = nil;
 
-    GSGridSlot *voxelSlot = [_gridVoxelData slotAtPoint:pos];
-    [voxelSlot.lock lockForWriting];
-    voxels1 = (GSChunkVoxelData *)voxelSlot.item;
+    voxels1 = (GSChunkVoxelData *)voxSlot.item;
     if (!voxels1) {
         voxels1 = [self newVoxelChunkAtPoint:pos];
     } else {
         [voxels1 invalidate];
         voxels2 = [voxels1 copyWithEditAtPoint:pos block:block];
         [voxels2 saveToFile];
-        voxelSlot.item = voxels2;
+        voxSlot.item = voxels2;
     }
-    [voxelSlot.lock unlockForWriting];
     
     GSStopwatchTraceStep(@"Updated voxels.");
 
@@ -432,70 +461,72 @@
 
         // Update sunlight.
         {
-            GSGridSlot *sunSlot = [_gridSunlightData slotAtPoint:p];
-            [sunSlot.lock lockForWriting];
+            GSGridSlot *sunSlot = sunSlots[bp];
             GSChunkSunlightData *sunlight1 = (GSChunkSunlightData *)sunSlot.item;
+
             if (sunlight1) {
                 [sunlight1 invalidate];
-                
-                /* XXX: Potential performance improvement here. We take locks repeatedly for the neighborhood. Do we
-                 * really need to grab it? It would seem to me that we really only need to update the single of the
-                 * neighborhood which corresponds to the modified voxel chunk. There's no need to grab locks on any
-                 * other parts of the voxel data grid.
-                 *
-                 * Also, the neighborhood inside of the new sunlight chunk only needs to be updated where the edit was
-                 * made. We can go into that buffer and make the change again there. This would avoid having to retrieve
-                 * and copy the entire voxel neighborhood for each affected sunlight chunk. 
-                 */
-                GSNeighborhood *neighborhood = [self neighborhoodAtPoint:p];
+
+                GSNeighborhood *neighborhood = [sunlight1.neighborhood copyReplacing:voxels1 withNeighbor:voxels2];
                 
                 /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
                  * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
                  */
                 sunlight2 = [sunlight1 copyWithEditAtPoint:pos neighborhood:neighborhood];
-            } else {
-                sunlight2 = [self newSunlightChunkAtPoint:pos];
             }
+
             sunSlot.item = sunlight2;
-            [sunSlot.lock unlockForWriting];
         }
         GSStopwatchTraceStep(@"Updated sunlight at %@", bp);
 
         // Update geometry.
         {
-            GSGridSlot *geoSlot = [_gridGeometryData slotAtPoint:p];
-            [geoSlot.lock lockForWriting];
+            GSGridSlot *geoSlot = geoSlots[bp];
             GSChunkGeometryData *geo1 = (GSChunkGeometryData *)geoSlot.item;
-            if (geo1) {
-                /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
-                 * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
-                 */
-                [geo1 invalidate];
-                geo2 = [geo1 copyWithSunlight:sunlight2];
-            } else {
-                vector_float3 minCorner = GSMinCornerForChunkAtPoint(p);
-                geo2 = [[GSChunkGeometryData alloc] initWithMinP:minCorner
-                                                          folder:_folder
-                                                        sunlight:sunlight2
-                                                  groupForSaving:_groupForSaving
-                                                  queueForSaving:_queueForSaving
-                                                    allowLoading:NO];
+
+            if (sunlight2) {
+                if (geo1) {
+                    /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
+                     * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
+                     */
+                    [geo1 invalidate];
+                    geo2 = [geo1 copyWithSunlight:sunlight2];
+                } else {
+                    vector_float3 minCorner = GSMinCornerForChunkAtPoint(p);
+                    geo2 = [[GSChunkGeometryData alloc] initWithMinP:minCorner
+                                                              folder:_folder
+                                                            sunlight:sunlight2
+                                                      groupForSaving:_groupForSaving
+                                                      queueForSaving:_queueForSaving
+                                                        allowLoading:NO];
+                }
             }
+
             geoSlot.item = geo2;
-            [geoSlot.lock unlockForWriting];
         }
         GSStopwatchTraceStep(@"Updated geometry at %@", bp);
 
         // Update the Vertex Array Object.
         {
-            GSGridSlot *vaoSlot = [_gridVAO slotAtPoint:p];
-            [vaoSlot.lock lockForWriting];
+            GSChunkVAO *vao2 = nil;
+            GSGridSlot *vaoSlot = vaoSlots[bp];
             [vaoSlot.item invalidate];
-            GSChunkVAO *vao2 = [[GSChunkVAO alloc] initWithChunkGeometry:geo2 glContext:_glContext];
+            if (geo2) {
+                vao2 = [[GSChunkVAO alloc] initWithChunkGeometry:geo2 glContext:_glContext];
+            }
             vaoSlot.item = vao2;
-            [vaoSlot.lock unlockForWriting];
         }
         GSStopwatchTraceStep(@"Updated VAO at %@", bp);
+    }
+    
+    // Release locks.
+    [voxSlot.lock unlockForWriting];
+    for(NSMutableDictionary *slots in [gridSlots reverseObjectEnumerator])
+    {
+        for(GSGridSlot *slot in [slots objectEnumerator])
+        {
+            [slot.lock unlockForWriting];
+        }
     }
 
     if (addToJournal) {
@@ -677,23 +708,6 @@
     }
 
     return YES;
-}
-
-- (nonnull GSNeighborhood *)neighborhoodAtPoint:(vector_float3)p
-{
-    assert(!_chunkStoreHasBeenShutdown);
-
-    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
-
-    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        vector_float3 a = p + [GSNeighborhood offsetForNeighborIndex:i];
-        GSChunkVoxelData *voxels = [self chunkVoxelsAtPoint:a]; // NOTE: may block
-        assert(voxels);
-        [neighborhood setNeighborAtIndex:i neighbor:voxels];
-    }
-    
-    return neighborhood;
 }
 
 - (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
