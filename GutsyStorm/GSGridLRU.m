@@ -11,7 +11,6 @@
 @implementation GSGridLRU
 {
     NSMutableArray<NSObject<NSCopying> *> *_list;
-    NSMutableDictionary<NSObject<NSCopying> *, NSNumber *> *_dictIndex;
     NSMutableDictionary<NSObject<NSCopying> *, GSGridBucket *> *_dictBucket;
 }
 
@@ -19,7 +18,6 @@
 {
     if (self = [super init]) {
         _list = [NSMutableArray new];
-        _dictIndex = [NSMutableDictionary new];
         _dictBucket = [NSMutableDictionary new];
     }
     return self;
@@ -30,18 +28,17 @@
     NSParameterAssert(object);
     NSParameterAssert(bucket);
 
-    NSNumber *indexNumber = [_dictIndex objectForKey:object];
-    if (indexNumber) {
-        NSUInteger index = [indexNumber unsignedIntegerValue];
+    NSUInteger index = [_list indexOfObject:object];
+
+    if (NSNotFound != index) {
         [_list removeObjectAtIndex:index];
     }
 
     [_list insertObject:object atIndex:0];
-    [_dictIndex setObject:@(0) forKey:object];
     [_dictBucket setObject:bucket forKey:object];
 }
 
-- (void)popAndReturnObject:(NSObject<NSCopying> * _Nonnull * _Nullable)outObject
+- (BOOL)popAndReturnObject:(NSObject<NSCopying> * _Nonnull * _Nullable)outObject
                     bucket:(GSGridBucket * _Nonnull * _Nullable)outBucket
 {
     NSParameterAssert(outObject);
@@ -50,36 +47,35 @@
     NSObject<NSCopying> *object = [_list lastObject];
     
     if (!object) {
-        return;
+        return NO;
     }
 
     GSGridBucket *bucket = [_dictBucket objectForKey:object];
 
     [_list removeLastObject];
     [_dictBucket removeObjectForKey:object];
-    [_dictIndex removeObjectForKey:object];
 
     *outObject = object;
     *outBucket = bucket;
+    return YES;
 }
 
 - (void)removeObject:(nonnull NSObject<NSCopying> *)object
 {
     NSParameterAssert(object);
     
-    NSNumber *indexNumber = [_dictIndex objectForKey:object];
-    if (indexNumber) {
-        NSUInteger index = [indexNumber unsignedIntegerValue];
+    NSUInteger index = [_list indexOfObject:object];
+    
+    if (NSNotFound != index) {
         [_list removeObjectAtIndex:index];
-        [_dictIndex removeObjectForKey:object];
-        [_dictBucket removeObjectForKey:object];
     }
+
+    [_dictBucket removeObjectForKey:object];
 }
 
 - (void)removeAllObjects
 {
     [_list removeAllObjects];
-    [_dictIndex removeAllObjects];
     [_dictBucket removeAllObjects];
 }
 

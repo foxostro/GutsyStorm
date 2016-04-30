@@ -28,6 +28,10 @@
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
 		4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */; };
 		6F10D4B91CD1B405006B8881 /* GSGridBucket.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F10D4B81CD1B405006B8881 /* GSGridBucket.m */; };
+		6F186B381CD421B00018FF5F /* GSGridLRUTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F186B371CD421B00018FF5F /* GSGridLRUTests.m */; };
+		6F186B3A1CD428B10018FF5F /* GSGridSlotTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F186B391CD428B10018FF5F /* GSGridSlotTests.m */; };
+		6F186B3E1CD431790018FF5F /* GSChunkVoxelDataTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F186B3D1CD431790018FF5F /* GSChunkVoxelDataTests.m */; };
+		6F186B401CD431A10018FF5F /* GSGridTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F186B3F1CD431A10018FF5F /* GSGridTests.m */; };
 		6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */; };
 		6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6AA69C1CB1CAF20039F8A4 /* GSVAOHolder.m */; };
 		6F7ACC0B1CC46FAF0084BAC5 /* GSTerrainJournalEntry.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F7ACC071CC46FAF0084BAC5 /* GSTerrainJournalEntry.m */; };
@@ -73,6 +77,16 @@
 		ACF27B03151AE486009FCAB9 /* terrain.png in Resources */ = {isa = PBXBuildFile; fileRef = ACF27B02151AE486009FCAB9 /* terrain.png */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		6F186B321CD4216D0018FF5F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4A2CCFE91513C3FC006C6551 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4A2CCFF11513C3FC006C6551;
+			remoteInfo = GutsyStorm;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		1338A2D915B792C800663E28 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = ../../../../System/Library/Frameworks/CoreVideo.framework; sourceTree = "<group>"; };
 		13C8BE161602854300403815 /* GSNeighborhood.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSNeighborhood.h; sourceTree = "<group>"; };
@@ -117,6 +131,12 @@
 		4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedTerrainVertex.m; sourceTree = "<group>"; };
 		6F10D4B71CD1B405006B8881 /* GSGridBucket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridBucket.h; sourceTree = "<group>"; };
 		6F10D4B81CD1B405006B8881 /* GSGridBucket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridBucket.m; sourceTree = "<group>"; };
+		6F186B2D1CD4216D0018FF5F /* GutsyStormTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GutsyStormTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6F186B311CD4216D0018FF5F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6F186B371CD421B00018FF5F /* GSGridLRUTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridLRUTests.m; sourceTree = "<group>"; };
+		6F186B391CD428B10018FF5F /* GSGridSlotTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridSlotTests.m; sourceTree = "<group>"; };
+		6F186B3D1CD431790018FF5F /* GSChunkVoxelDataTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GSChunkVoxelDataTests.m; path = GutsyStormTests/GSChunkVoxelDataTests.m; sourceTree = SOURCE_ROOT; };
+		6F186B3F1CD431A10018FF5F /* GSGridTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridTests.m; sourceTree = "<group>"; };
 		6F6158061BD69C8E00243A61 /* GSOpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLViewController.h; sourceTree = "<group>"; };
 		6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLViewController.m; sourceTree = "<group>"; };
 		6F6AA69B1CB1BCA60039F8A4 /* GSStopwatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSStopwatch.h; sourceTree = "<group>"; };
@@ -211,6 +231,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6F186B2A1CD4216D0018FF5F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -234,6 +261,7 @@
 			isa = PBXGroup;
 			children = (
 				4A2CCFFC1513C3FC006C6551 /* GutsyStorm */,
+				6F186B2E1CD4216D0018FF5F /* GutsyStormTests */,
 				4A2CCFF31513C3FC006C6551 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -242,6 +270,7 @@
 			isa = PBXGroup;
 			children = (
 				4A2CCFF21513C3FC006C6551 /* GutsyStorm.app */,
+				6F186B2D1CD4216D0018FF5F /* GutsyStormTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -314,6 +343,18 @@
 				6FAE2A371CC6F42D000D2E9A /* Defaults.plist */,
 			);
 			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		6F186B2E1CD4216D0018FF5F /* GutsyStormTests */ = {
+			isa = PBXGroup;
+			children = (
+				6F186B371CD421B00018FF5F /* GSGridLRUTests.m */,
+				6F186B391CD428B10018FF5F /* GSGridSlotTests.m */,
+				6F186B3F1CD431A10018FF5F /* GSGridTests.m */,
+				6F186B3D1CD431790018FF5F /* GSChunkVoxelDataTests.m */,
+				6F186B311CD4216D0018FF5F /* Info.plist */,
+			);
+			path = GutsyStormTests;
 			sourceTree = "<group>";
 		};
 		6F7ACC0D1CC46FBF0084BAC5 /* Journal */ = {
@@ -469,6 +510,24 @@
 			productReference = 4A2CCFF21513C3FC006C6551 /* GutsyStorm.app */;
 			productType = "com.apple.product-type.application";
 		};
+		6F186B2C1CD4216D0018FF5F /* GutsyStormTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6F186B361CD4216D0018FF5F /* Build configuration list for PBXNativeTarget "GutsyStormTests" */;
+			buildPhases = (
+				6F186B291CD4216D0018FF5F /* Sources */,
+				6F186B2A1CD4216D0018FF5F /* Frameworks */,
+				6F186B2B1CD4216D0018FF5F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6F186B331CD4216D0018FF5F /* PBXTargetDependency */,
+			);
+			name = GutsyStormTests;
+			productName = GutsyStormTests;
+			productReference = 6F186B2D1CD4216D0018FF5F /* GutsyStormTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -480,6 +539,10 @@
 				TargetAttributes = {
 					4A2CCFF11513C3FC006C6551 = {
 						DevelopmentTeam = TZ9N52W5SU;
+					};
+					6F186B2C1CD4216D0018FF5F = {
+						CreatedOnToolsVersion = 7.3;
+						TestTargetID = 4A2CCFF11513C3FC006C6551;
 					};
 				};
 			};
@@ -496,6 +559,7 @@
 			projectRoot = "";
 			targets = (
 				4A2CCFF11513C3FC006C6551 /* GutsyStorm */,
+				6F186B2C1CD4216D0018FF5F /* GutsyStormTests */,
 			);
 		};
 /* End PBXProject section */
@@ -518,6 +582,13 @@
 				ACF27B03151AE486009FCAB9 /* terrain.png in Resources */,
 				6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */,
 				6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6F186B2B1CD4216D0018FF5F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -579,7 +650,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6F186B291CD4216D0018FF5F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6F186B3E1CD431790018FF5F /* GSChunkVoxelDataTests.m in Sources */,
+				6F186B401CD431A10018FF5F /* GSGridTests.m in Sources */,
+				6F186B381CD421B00018FF5F /* GSGridLRUTests.m in Sources */,
+				6F186B3A1CD428B10018FF5F /* GSGridSlotTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6F186B331CD4216D0018FF5F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4A2CCFF11513C3FC006C6551 /* GutsyStorm */;
+			targetProxy = 6F186B321CD4216D0018FF5F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		4A2CCFFF1513C3FC006C6551 /* InfoPlist.strings */ = {
@@ -724,6 +814,59 @@
 			};
 			name = Release;
 		};
+		6F186B341CD4216D0018FF5F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				INFOPLIST_FILE = GutsyStormTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.foxostro.GutsyStormTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GutsyStorm.app/Contents/MacOS/GutsyStorm";
+			};
+			name = Debug;
+		};
+		6F186B351CD4216D0018FF5F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				INFOPLIST_FILE = GutsyStormTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = com.foxostro.GutsyStormTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GutsyStorm.app/Contents/MacOS/GutsyStorm";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -744,6 +887,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		6F186B361CD4216D0018FF5F /* Build configuration list for PBXNativeTarget "GutsyStormTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6F186B341CD4216D0018FF5F /* Debug */,
+				6F186B351CD4216D0018FF5F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 /* End XCConfigurationList section */
 	};

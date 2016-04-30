@@ -10,6 +10,9 @@
 #import "GSReaderWriterLock.h"
 
 @implementation GSGridSlot
+{
+    NSObject<GSGridItem> *_item;
+}
 
 - (nonnull instancetype)init
 {
@@ -25,6 +28,17 @@
         _item = nil;
     }
     return self;
+}
+
+- (void)setItem:(NSObject<GSGridItem> *)item
+{
+    if (![_lock holdingWriteLock]) {
+        [NSException raise:NSInternalInconsistencyException format:@"Must be holding the write lock to set the item."];
+    }
+    
+    if (item != _item) {
+        _item = item;
+    }
 }
 
 @end

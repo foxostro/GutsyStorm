@@ -21,4 +21,6 @@
 - (void)lockForWriting;
 - (void)unlockForWriting;
 
+- (BOOL)holdingWriteLock;
+
 @end

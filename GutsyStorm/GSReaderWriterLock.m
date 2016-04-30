@@ -7,6 +7,7 @@
 //
 
 #import "GSReaderWriterLock.h"
+#import <pthread/pthread.h>
 
 //#define DEBUG_LOG(...) NSLog(__VA_ARGS__)
 #define DEBUG_LOG(...)
@@ -16,6 +17,10 @@
     dispatch_semaphore_t _mutex;
     dispatch_semaphore_t _writing;
     unsigned _readcount;
+    
+    
+    dispatch_semaphore_t _lockMetadataForWriters;
+    pthread_t _writer;
 }
 
 - (nonnull instancetype)init
@@ -25,7 +30,9 @@
         // Initialization code here.
         _mutex = dispatch_semaphore_create(1);
         _writing = dispatch_semaphore_create(1);
+        _lockMetadataForWriters = dispatch_semaphore_create(1);
         _readcount = 0;
+        _writer = NULL;
         self.name = [super description];
     }
     return self;
@@ -89,19 +96,43 @@
 - (BOOL)tryLockForWriting
 {
     DEBUG_LOG(@"tryLockForWriting (%@)", self.name);
-    return 0 == dispatch_semaphore_wait(_writing, DISPATCH_TIME_NOW);
+    BOOL r = (0 == dispatch_semaphore_wait(_writing, DISPATCH_TIME_NOW));
+
+    if (r) {
+        dispatch_semaphore_wait(_lockMetadataForWriters, DISPATCH_TIME_FOREVER);
+        _writer = pthread_self();
+        dispatch_semaphore_signal(_lockMetadataForWriters);
+    }
+
+    return r;
 }
 
 - (void)lockForWriting
 {
     DEBUG_LOG(@"lockForWriting (%@)", self.name);
     dispatch_semaphore_wait(_writing, DISPATCH_TIME_FOREVER);
+
+    dispatch_semaphore_wait(_lockMetadataForWriters, DISPATCH_TIME_FOREVER);
+    _writer = pthread_self();
+    dispatch_semaphore_signal(_lockMetadataForWriters);
 }
 
 - (void)unlockForWriting
 {
+    dispatch_semaphore_wait(_lockMetadataForWriters, DISPATCH_TIME_FOREVER);
+    _writer = NULL;
+    dispatch_semaphore_signal(_lockMetadataForWriters);
+
     dispatch_semaphore_signal(_writing);
     DEBUG_LOG(@"unlockForWriting (%@)", self.name);
+}
+
+- (BOOL)holdingWriteLock
+{
+    dispatch_semaphore_wait(_lockMetadataForWriters, DISPATCH_TIME_FOREVER);
+    BOOL isWriter = _writer == pthread_self();
+    dispatch_semaphore_signal(_lockMetadataForWriters);
+    return isWriter;
 }
 
 @end

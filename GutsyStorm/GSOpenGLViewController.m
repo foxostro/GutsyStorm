@@ -119,7 +119,10 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    // Do view setup here.
+    
+    if (NSClassFromString(@"XCTestCase")) {
+        return;
+    }
 
     _openGlView = (GSOpenGLView *)self.view;
     _openGlView.delegate = self;

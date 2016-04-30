@@ -311,7 +311,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     // Outside-ness only changes when there is a change to a block which is outside. For example, adding or removing a
     // block in a cave has no effect on outside-ness of blocks. Adding a block outside can make the blocks below it
     // become inside blocks. Removing a block outside can make blocks beneath it become outside blocks.
-    if (!oldBlock.outside) {
+    if (oldBlock.outside) {
         p = editPosLocal;
         p.y = 0;
         

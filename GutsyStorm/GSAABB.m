@@ -57,7 +57,7 @@
         case 7: return (vector_float3){_maxs.x, _maxs.y, _maxs.z};
 
     default:
-        [NSException raise:@"Bad index" format:@"Bad index in -getVertex:"];
+        [NSException raise:NSInvalidArgumentException format:@"Bad index in -getVertex:"];
         break;
     }
 
