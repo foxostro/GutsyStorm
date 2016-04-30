@@ -378,6 +378,8 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     float _maxPlaceDistance;
 }
 
+@synthesize chunkStore = _chunkStore;
+
 - (nonnull NSString *)newShaderSourceStringFromFileAt:(nonnull NSString *)path
 {
     NSError *error;

@@ -367,18 +367,6 @@
 - (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block addToJournal:(BOOL)addToJournal
 {
     assert(!_chunkStoreHasBeenShutdown);
-    assert(_gridVoxelData);
-    assert(_activeRegion);
-    assert(_journal);
-    
-    /* XXX: There's definitely a threading hazard here that needs to be addressed with better synchronization.
-     * What if a grid access is interleaved with the call to -placeBlockAtPoint:block:? Couldn't this cause an incorrect
-     * chunk to be generated and inserted into grids? What if two calls to -placeBlockAtPoint:block: overlap?
-     */
-    
-    /* XXX: This will probably go better if we fetch all the slots we need, lock all the slots we need, and then
-     * update the items within, before finally releasing all the slots at the end.
-     */
     
     GSBoxedVector *boxedPos = [GSBoxedVector boxedVectorWithVector:pos];
     

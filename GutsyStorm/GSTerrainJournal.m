@@ -55,9 +55,12 @@
     [self.journalEntries removeObjectsInArray:entriesToDelete];
     
     [self.journalEntries addObject:entry];
-    BOOL success = [NSKeyedArchiver archiveRootObject:self toFile:[self.url path]];
-    if (!success) {
-        [NSException raise:NSGenericException format:@"Unable to recover after failing to save journal."];
+    
+    if (self.url) {
+        BOOL success = [NSKeyedArchiver archiveRootObject:self toFile:[self.url path]];
+        if (!success) {
+            [NSException raise:NSGenericException format:@"Unable to recover after failing to save journal."];
+        }
     }
 }
 

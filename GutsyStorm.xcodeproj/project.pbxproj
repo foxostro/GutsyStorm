@@ -44,6 +44,7 @@
 		6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184B1BD33F8400CD21FB /* text.frag.txt */; };
 		6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184C1BD33F8400CD21FB /* text.vert.txt */; };
 		6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6FAE2A371CC6F42D000D2E9A /* Defaults.plist */; };
+		6FCD25CB1CD56B86005FC566 /* GSChunkStoreTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD25CA1CD56B86005FC566 /* GSChunkStoreTests.m */; };
 		6FD400B61CD1C3F200C5117E /* GSGridSlot.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FD400B51CD1C3F200C5117E /* GSGridSlot.m */; };
 		6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */; };
 		6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FEE3F4B1BCF92800076E5B9 /* cursor.frag.txt */; };
@@ -157,6 +158,7 @@
 		6F90184B1BD33F8400CD21FB /* text.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.frag.txt; sourceTree = "<group>"; };
 		6F90184C1BD33F8400CD21FB /* text.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.vert.txt; sourceTree = "<group>"; };
 		6FAE2A371CC6F42D000D2E9A /* Defaults.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Defaults.plist; sourceTree = "<group>"; };
+		6FCD25CA1CD56B86005FC566 /* GSChunkStoreTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkStoreTests.m; sourceTree = "<group>"; };
 		6FD400B41CD1C3F200C5117E /* GSGridSlot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridSlot.h; sourceTree = "<group>"; };
 		6FD400B51CD1C3F200C5117E /* GSGridSlot.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridSlot.m; sourceTree = "<group>"; };
 		6FE184FE1BD7E9E7009A076D /* GSTextLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextLabel.h; sourceTree = "<group>"; };
@@ -355,6 +357,7 @@
 				6F186B3F1CD431A10018FF5F /* GSGridTests.m */,
 				6F186B3D1CD431790018FF5F /* GSChunkVoxelDataTests.m */,
 				6F186B411CD452B90018FF5F /* GSChunkSunlightDataTests.m */,
+				6FCD25CA1CD56B86005FC566 /* GSChunkStoreTests.m */,
 				6F186B311CD4216D0018FF5F /* Info.plist */,
 			);
 			path = GutsyStormTests;
@@ -659,6 +662,7 @@
 			files = (
 				6F186B421CD452B90018FF5F /* GSChunkSunlightDataTests.m in Sources */,
 				6F186B3E1CD431790018FF5F /* GSChunkVoxelDataTests.m in Sources */,
+				6FCD25CB1CD56B86005FC566 /* GSChunkStoreTests.m in Sources */,
 				6F186B401CD431A10018FF5F /* GSGridTests.m in Sources */,
 				6F186B381CD421B00018FF5F /* GSGridLRUTests.m in Sources */,
 				6F186B3A1CD428B10018FF5F /* GSGridSlotTests.m in Sources */,
