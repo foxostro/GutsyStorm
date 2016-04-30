@@ -46,7 +46,7 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                              folder:(nonnull NSURL *)folder
+                              folder:(nullable NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                         neighborhood:(nonnull GSNeighborhood *)neighborhood
@@ -69,7 +69,8 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     return self; // GSChunkSunlightData is immutable, so return self instead of deep copying
 }
 
-- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)p neighborhood:(nonnull GSNeighborhood *)neighborhood
+- (nonnull instancetype)copyWithEditAtPoint:(vector_float3 __unused)p
+                               neighborhood:(nonnull GSNeighborhood *)neighborhood
 {
     NSParameterAssert(neighborhood);
     return [[[self class] alloc] initWithMinP:self.minP
@@ -240,7 +241,6 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
                                                         folder:(nonnull NSURL *)folder
 {
     NSParameterAssert(neighborhood);
-    NSParameterAssert(folder);
 
     GSStopwatchTraceStep(@"newSunlightBufferWithNeighborhood enter");
 
@@ -248,11 +248,16 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
     BOOL failedToLoadFromFile = YES;
     NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:self.minP];
-    NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
+    NSURL *url = nil;
     NSError *error = nil;
-    NSData *data = [NSData dataWithContentsOfFile:[url path]
-                                          options:NSDataReadingMapped
-                                            error:&error];
+    NSData *data = nil;
+    
+    if (folder) {
+        url = [NSURL URLWithString:fileName relativeToURL:folder];
+        data = [NSData dataWithContentsOfFile:[url path]
+                                      options:NSDataReadingMapped
+                                        error:&error];
+    }
 
     if(data) {
         if (![self validateSunlightData:data error:&error]) {
@@ -267,7 +272,10 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     } else if ([error.domain isEqualToString:NSCocoaErrorDomain] && (error.code == 260)) {
         // File not found. We don't have to log this one because it's common and we know how to recover.
     } else {
-        NSLog(@"ERROR: Failed to load sunlight data for chunk at \"%@\": %@", fileName, error);
+        // Squelch the error message if we explicitly received nil for the cache folder
+        if (folder) {
+            NSLog(@"ERROR: Failed to load sunlight data for chunk at \"%@\": %@", fileName, error);
+        }
     }
     
     if (failedToLoadFromFile) {
@@ -285,10 +293,12 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
             .len = (uint64_t)BUFFER_SIZE_IN_BYTES(sunlightDim)
         };
 
-        [buffer saveToFile:url
-                     queue:_queueForSaving
-                     group:_groupForSaving
-                    header:[NSData dataWithBytes:&header length:sizeof(header)]];
+        if (url) {
+            [buffer saveToFile:url
+                         queue:_queueForSaving
+                         group:_groupForSaving
+                        header:[NSData dataWithBytes:&header length:sizeof(header)]];
+        }
         
         GSStopwatchTraceStep(@"Generated sunlight data for chunk.");
     }
