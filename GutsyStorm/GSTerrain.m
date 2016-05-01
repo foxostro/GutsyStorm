@@ -9,6 +9,7 @@
 #import "GSIntegerVector3.h"
 #import "GSVoxel.h"
 #import "GSNoise.h"
+#import "GSCube.h"
 #import "GSTerrainCursor.h"
 #import "GSChunkStore.h"
 #import "GSTextureArray.h"
@@ -377,7 +378,6 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     GSChunkStore *_chunkStore;
     GSChunkStoreRayMarcher *_chunkStoreRayMarcher;
     GSTerrainCursor *_cursor;
-    float _maxPlaceDistance;
 }
 
 @synthesize chunkStore = _chunkStore;
@@ -503,8 +503,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                   glContext:context
                                                   generator:generator];
         _chunkStoreRayMarcher = [[GSChunkStoreRayMarcher alloc] init];
-        _cursor = [[GSTerrainCursor alloc] initWithContext:context shader:cursorShader];
-        _maxPlaceDistance = [[NSUserDefaults standardUserDefaults] floatForKey:@"MaxPlaceDistance"];
+        _cursor = [[GSTerrainCursor alloc] initWithChunkStore:_chunkStore
+                                                       camera:cam
+                                                   cube:[[GSCube alloc] initWithContext:context shader:cursorShader]];
     }
     return self;
 }
@@ -519,19 +520,14 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     [_textureArray unbind];
     
     glDepthRange(0.0, 1.0 - edgeOffset);
-    [_cursor drawWithCamera:_camera];
+    [_cursor draw];
 
     glDepthRange(0.0, 1.0);
 }
 
-- (void)updateWithDeltaTime:(float)dt
-        cameraModifiedFlags:(unsigned)cameraModifiedFlags
+- (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)cameraModifiedFlags
 {
-    // Calculate the cursor position.
-    if (!_cursor.cursorIsActive || cameraModifiedFlags) {
-        [self recalcCursorPosition];
-    }
-    
+    [_cursor updateWithCameraModifiedFlags:cameraModifiedFlags];
     [_chunkStore updateWithCameraModifiedFlags:cameraModifiedFlags];
 }
 
@@ -556,7 +552,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.type = VOXEL_TYPE_CUBE;
         
         [_chunkStore placeBlockAtPoint:_cursor.cursorPlacePos block:block addToJournal:YES];
-        [self recalcCursorPosition];
+        [_cursor recalcCursorPosition];
     }
 }
 
@@ -570,39 +566,8 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.type = VOXEL_TYPE_EMPTY;
         
         [_chunkStore placeBlockAtPoint:_cursor.cursorPos block:block addToJournal:YES];
-        [self recalcCursorPosition];
+        [_cursor recalcCursorPosition];
     }
-}
-
-- (void)recalcCursorPosition
-{
-    vector_float3 rotated = quaternion_rotate_vector(_camera.cameraRot, vector_make(0, 0, -1));
-    GSRay ray = GSRayMake(_camera.cameraEye, rotated);
-    __block BOOL cursorIsActive = NO;
-    __block vector_float3 prev = ray.origin;
-    __block vector_float3 cursorPos;
-    
-    [_chunkStoreRayMarcher enumerateVoxelsOnRay:ray
-                                       maxDepth:_maxPlaceDistance
-                                      withBlock:^(vector_float3 p, BOOL *stop, BOOL *fail) {
-                                          GSVoxel voxel;
-                                          
-                                          if(![_chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {
-                                              *fail = YES; // Stops enumerations with un-successful condition
-                                          }
-                                          
-                                          if(voxel.type != VOXEL_TYPE_EMPTY) {
-                                              cursorIsActive = YES;
-                                              cursorPos = p;
-                                              *stop = YES; // Stops enumeration with successful condition.
-                                          } else {
-                                              prev = p;
-                                          }
-                                      }];
-
-    _cursor.cursorIsActive = cursorIsActive;
-    _cursor.cursorPos = cursorPos;
-    _cursor.cursorPlacePos = prev;
 }
 
 - (void)shutdown

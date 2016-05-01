@@ -8,7 +8,7 @@
 
 @class GSCamera;
 @class GSChunkStore;
-@class GSTerrainCursor;
+@class GSCubeCursor;
 @class GSTextureArray;
 @class GSTerrainJournal;
 @class GSChunkStore;

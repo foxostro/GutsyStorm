@@ -2,16 +2,18 @@
 //  GSTerrainCursor.h
 //  GutsyStorm
 //
-//  Created by Andrew Fox on 10/28/12.
-//  Copyright © 2012-2016 Andrew Fox. All rights reserved.
+//  Created by Andrew Fox on 5/1/16.
+//  Copyright © 2016 Andrew Fox. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>
-#import "GSChunkStore.h"
-#import "GSCube.h"
+#import <simd/vector.h>
 
-@class GSShader;
+
+@class GSChunkStore;
 @class GSCamera;
+@class GSCube;
+
 
 @interface GSTerrainCursor : NSObject
 
@@ -20,8 +22,15 @@
 @property (nonatomic, assign) vector_float3 cursorPlacePos;
 
 - (nonnull instancetype)init NS_UNAVAILABLE;
-- (nonnull instancetype)initWithContext:(nonnull NSOpenGLContext *)context
-                                  shader:(nonnull GSShader *)shader NS_DESIGNATED_INITIALIZER;
-- (void)drawWithCamera:(nonnull GSCamera *)camera;
+
+- (nonnull instancetype)initWithChunkStore:(nonnull GSChunkStore *)chunkStore
+                                    camera:(nonnull GSCamera *)camera
+                                      cube:(nonnull GSCube *)cube NS_DESIGNATED_INITIALIZER;
+
+- (void)updateWithCameraModifiedFlags:(unsigned)flags;
+
+- (void)draw;
+
+- (void)recalcCursorPosition;
 
 @end
