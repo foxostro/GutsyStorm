@@ -12,7 +12,7 @@
 @class GSChunkVAO;
 @class GSGridVAO;
 @class GSBoxedVector;
-@class GSChunkStore;
+@class GSTerrainChunkStore;
 
 
 @interface GSActiveRegion : NSObject
@@ -26,8 +26,8 @@
  * chunkStore -- Used to generate and retrieve VAOs.
  */
 - (nonnull instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
-                                             camera:(nonnull GSCamera *)camera
-                                        chunkStore:(nonnull GSChunkStore *)chunkStore;
+                                            camera:(nonnull GSCamera *)camera
+                                        chunkStore:(nonnull GSTerrainChunkStore *)chunkStore;
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
 

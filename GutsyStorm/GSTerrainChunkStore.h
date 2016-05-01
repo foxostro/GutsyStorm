@@ -18,7 +18,7 @@
 @class GSTerrainGenerator;
 
 
-@interface GSChunkStore : NSObject
+@interface GSTerrainChunkStore : NSObject
 
 - (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
                                  camera:(nonnull GSCamera *)camera
@@ -52,7 +52,7 @@
 
 - (GSVoxel)voxelAtPoint:(vector_float3)pos;
 
-- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block addToJournal:(BOOL)addToJournal;
+- (void)setBlock:(GSVoxel)block atPoint:(vector_float3)pos addToJournal:(BOOL)addToJournal;
 
 /* Notify the chunk store object that the system has come under memory pressure. */
 - (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status;

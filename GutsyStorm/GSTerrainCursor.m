@@ -8,7 +8,7 @@
 
 #import "GSTerrainCursor.h"
 #import "GSCamera.h"
-#import "GSChunkStore.h"
+#import "GSTerrainChunkStore.h"
 #import "GSTerrainRayMarcher.h"
 #import "GSCube.h"
 #import "GSMatrixUtils.h"
@@ -16,7 +16,7 @@
 
 @implementation GSTerrainCursor
 {
-    GSChunkStore *_chunkStore;
+    GSTerrainChunkStore *_chunkStore;
     GSCamera *_camera;
     GSTerrainRayMarcher *_rayMarcher;
     GSCube *_cube;
@@ -28,7 +28,7 @@
     @throw nil;
 }
 
-- (nonnull instancetype)initWithChunkStore:(nonnull GSChunkStore *)chunkStore
+- (nonnull instancetype)initWithChunkStore:(nonnull GSTerrainChunkStore *)chunkStore
                                     camera:(nonnull GSCamera *)camera
                                       cube:(nonnull GSCube *)cube
 {

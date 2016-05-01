@@ -11,7 +11,7 @@
 #import "GSVoxel.h"
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
-#import "GSChunkStore.h"
+#import "GSTerrainChunkStore.h"
 #import "GSChunkVAO.h"
 #import "GSActivity.h"
 #import "GSReaderWriterLock.h"
@@ -56,7 +56,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     vector_float3 _activeRegionExtent;
 
     /* Used to generate and retrieve Vertex Array Objects. */
-    __weak GSChunkStore *_chunkStore;
+    __weak GSTerrainChunkStore *_chunkStore;
 
     /* Dispatch Queue used for generating chunks asynchronously. */
     dispatch_queue_t _generationQueue;
@@ -75,7 +75,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 
 - (nonnull instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                             camera:(nonnull GSCamera *)camera
-                                        chunkStore:(nonnull GSChunkStore *)chunkStore
+                                        chunkStore:(nonnull GSTerrainChunkStore *)chunkStore
 {
     NSParameterAssert(camera);
     NSParameterAssert(chunkStore);

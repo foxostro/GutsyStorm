@@ -11,7 +11,7 @@
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 #import "GSRay.h"
-#import "GSChunkStore.h"
+#import "GSTerrainChunkStore.h"
 #import "GSBoxedTerrainVertex.h"
 #import "GSVoxel.h"
 #import "GSNeighborhood.h"

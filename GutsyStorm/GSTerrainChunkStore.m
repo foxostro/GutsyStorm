@@ -11,7 +11,7 @@
 #import "GSCamera.h"
 #import "GSActiveRegion.h"
 #import "GSShader.h"
-#import "GSChunkStore.h"
+#import "GSTerrainChunkStore.h"
 #import "GSBoxedVector.h"
 #import "GSNeighborhood.h"
 #import "GSChunkVAO.h"
@@ -33,7 +33,7 @@
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
 
 
-@interface GSChunkStore ()
+@interface GSTerrainChunkStore ()
 
 + (nonnull NSURL *)newTerrainCacheFolderURL;
 
@@ -48,7 +48,7 @@
 @end
 
 
-@implementation GSChunkStore
+@implementation GSTerrainChunkStore
 {
     GSGrid *_gridVAO;
     GSGrid *_gridGeometryData;
@@ -263,7 +263,7 @@
                               generator:(nonnull GSTerrainGenerator *)generator
 {
     if (self = [super init]) {
-        _folder = [GSChunkStore newTerrainCacheFolderURL];
+        _folder = [GSTerrainChunkStore newTerrainCacheFolderURL];
         _groupForSaving = dispatch_group_create();
         _chunkStoreHasBeenShutdown = NO;
         _camera = camera;
@@ -358,14 +358,14 @@
     
     for(GSTerrainJournalEntry *entry in journal.journalEntries)
     {
-        [self placeBlockAtPoint:[entry.position vectorValue] block:entry.value addToJournal:NO];
+        [self setBlock:entry.value atPoint:[entry.position vectorValue] addToJournal:NO];
     }
 
     dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
     GSStopwatchTraceEnd(@"applyJournal");
 }
 
-- (void)placeBlockAtPoint:(vector_float3)pos block:(GSVoxel)block addToJournal:(BOOL)addToJournal
+- (void)setBlock:(GSVoxel)block atPoint:(vector_float3)pos addToJournal:(BOOL)addToJournal
 {
     assert(!_chunkStoreHasBeenShutdown);
     

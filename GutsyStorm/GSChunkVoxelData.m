@@ -10,7 +10,7 @@
 #import "GSChunkVoxelData.h"
 #import "GSRay.h"
 #import "GSBoxedVector.h"
-#import "GSChunkStore.h"
+#import "GSTerrainChunkStore.h"
 #import "GSNeighborhood.h"
 #import "GSErrorCodes.h"
 #import "GSMutableBuffer.h"

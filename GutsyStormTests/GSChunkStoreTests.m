@@ -9,7 +9,7 @@
 #import <XCTest/XCTest.h>
 #import "GSTerrain.h"
 #import "GSTerrainJournal.h"
-#import "GSChunkStore.h"
+#import "GSTerrainChunkStore.h"
 #import "GSCamera.h"
 #import "GSBoxedVector.h"
 #import "GSNeighborhood.h"
@@ -21,7 +21,7 @@
 @implementation GSChunkStoreTests
 {
     GSTerrain *_terrain;
-    GSChunkStore *_chunkStore;
+    GSTerrainChunkStore *_chunkStore;
     GSVoxel cube, empty;
 }
 
@@ -70,8 +70,8 @@
 {
     vector_float3 p = vector_make(90.0, 4.0, 127.0);
     [self measureBlock:^{
-        [_chunkStore placeBlockAtPoint:p block:empty addToJournal:NO];
-        [_chunkStore placeBlockAtPoint:p block:cube addToJournal:NO];
+        [_chunkStore setBlockAtPoint:p block:empty addToJournal:NO];
+        [_chunkStore setBlockAtPoint:p block:cube addToJournal:NO];
     }];
 }
 

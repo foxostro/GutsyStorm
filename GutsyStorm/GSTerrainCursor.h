@@ -10,7 +10,7 @@
 #import <simd/vector.h>
 
 
-@class GSChunkStore;
+@class GSTerrainChunkStore;
 @class GSCamera;
 @class GSCube;
 
@@ -23,7 +23,7 @@
 
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
-- (nonnull instancetype)initWithChunkStore:(nonnull GSChunkStore *)chunkStore
+- (nonnull instancetype)initWithChunkStore:(nonnull GSTerrainChunkStore *)chunkStore
                                     camera:(nonnull GSCamera *)camera
                                       cube:(nonnull GSCube *)cube NS_DESIGNATED_INITIALIZER;
 

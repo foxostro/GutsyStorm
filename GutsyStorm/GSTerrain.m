@@ -11,7 +11,7 @@
 #import "GSNoise.h"
 #import "GSCube.h"
 #import "GSTerrainCursor.h"
-#import "GSChunkStore.h"
+#import "GSTerrainChunkStore.h"
 #import "GSTextureArray.h"
 #import "GSShader.h"
 #import "GSCamera.h"
@@ -31,7 +31,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 {
     GSCamera *_camera;
     GSTextureArray *_textureArray;
-    GSChunkStore *_chunkStore;
+    GSTerrainChunkStore *_chunkStore;
     GSTerrainRayMarcher *_chunkStoreRayMarcher;
     GSTerrainCursor *_cursor;
 }
@@ -97,27 +97,24 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                  camera:(nonnull GSCamera *)cam
                               glContext:(nonnull NSOpenGLContext *)context
 {
+    assert(checkGLErrors() == 0);
+
     if (self = [super init]) {
         _journal = journal;
         _camera = cam;
-
-        assert(checkGLErrors() == 0);
-
-        GSShader *cursorShader = [self newCursorShader];
-        GSShader *terrainShader = [self newTerrainShader];
-
-        NSString *path = [[NSBundle mainBundle] pathForResource:@"terrain" ofType:@"png"];
-        _textureArray = [[GSTextureArray alloc] initWithImagePath:path numTextures:4];
-
-        _chunkStore = [[GSChunkStore alloc] initWithJournal:journal
-                                                     camera:cam
-                                              terrainShader:terrainShader
-                                                  glContext:context
-                                                  generator:[[GSTerrainGenerator alloc] initWithRandomSeed:journal.randomSeed]];
+        _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle mainBundle] pathForResource:@"terrain"
+                                                                                                  ofType:@"png"]
+                                                      numTextures:4];
+        _chunkStore = [[GSTerrainChunkStore alloc] initWithJournal:journal
+                                                            camera:cam
+                                                     terrainShader:[self newTerrainShader]
+                                                         glContext:context
+                                                         generator:[[GSTerrainGenerator alloc] initWithRandomSeed:journal.randomSeed]];
         _chunkStoreRayMarcher = [[GSTerrainRayMarcher alloc] init];
         _cursor = [[GSTerrainCursor alloc] initWithChunkStore:_chunkStore
                                                        camera:cam
-                                                   cube:[[GSCube alloc] initWithContext:context shader:cursorShader]];
+                                                   cube:[[GSCube alloc] initWithContext:context
+                                                                                 shader:[self newCursorShader]]];
     }
     return self;
 }
@@ -163,7 +160,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_CUBE;
         
-        [_chunkStore placeBlockAtPoint:_cursor.cursorPlacePos block:block addToJournal:YES];
+        [_chunkStore setBlock:block atPoint:_cursor.cursorPlacePos addToJournal:YES];
         [_cursor recalcCursorPosition];
     }
 }
@@ -177,7 +174,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_EMPTY;
         
-        [_chunkStore placeBlockAtPoint:_cursor.cursorPos block:block addToJournal:YES];
+        [_chunkStore setBlock:block atPoint:_cursor.cursorPos addToJournal:YES];
         [_cursor recalcCursorPosition];
     }
 }

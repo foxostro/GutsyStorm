@@ -12,7 +12,7 @@
 #import "GSRay.h"
 #import "GSNeighborhood.h"
 #import "GSChunkVoxelData.h"
-#import "GSChunkStore.h"
+#import "GSTerrainChunkStore.h"
 
 
 @implementation GSNeighborhood

@@ -7,16 +7,14 @@
 //
 
 @class GSCamera;
-@class GSChunkStore;
-@class GSCubeCursor;
 @class GSTextureArray;
 @class GSTerrainJournal;
-@class GSChunkStore;
+@class GSTerrainChunkStore;
 
 @interface GSTerrain : NSObject
 
 @property (nonatomic, nonnull, readonly) GSTerrainJournal *journal;
-@property (nonatomic, nonnull, readonly) GSChunkStore *chunkStore;
+@property (nonatomic, nonnull, readonly) GSTerrainChunkStore *chunkStore;
 
 - (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
                                  camera:(nonnull GSCamera *)cam
