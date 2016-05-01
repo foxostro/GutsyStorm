@@ -18,6 +18,7 @@
 #import "GSRay.h"
 #import "GSMatrixUtils.h"
 #import "GSTerrainJournal.h"
+#import "GSChunkStoreRayMarcher.h"
 
 #import <OpenGL/gl.h>
 
@@ -374,6 +375,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     GSCamera *_camera;
     GSTextureArray *_textureArray;
     GSChunkStore *_chunkStore;
+    GSChunkStoreRayMarcher *_chunkStoreRayMarcher;
     GSTerrainCursor *_cursor;
     float _maxPlaceDistance;
 }
@@ -500,9 +502,8 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                               terrainShader:terrainShader
                                                   glContext:context
                                                   generator:generator];
-
+        _chunkStoreRayMarcher = [[GSChunkStoreRayMarcher alloc] init];
         _cursor = [[GSTerrainCursor alloc] initWithContext:context shader:cursorShader];
-
         _maxPlaceDistance = [[NSUserDefaults standardUserDefaults] floatForKey:@"MaxPlaceDistance"];
     }
     return self;
@@ -581,23 +582,23 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     __block vector_float3 prev = ray.origin;
     __block vector_float3 cursorPos;
     
-    [_chunkStore enumerateVoxelsOnRay:ray
-                             maxDepth:_maxPlaceDistance
-                            withBlock:^(vector_float3 p, BOOL *stop, BOOL *fail) {
-        GSVoxel voxel;
-
-        if(![_chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {
-            *fail = YES; // Stops enumerations with un-successful condition
-        }
-        
-        if(voxel.type != VOXEL_TYPE_EMPTY) {
-            cursorIsActive = YES;
-            cursorPos = p;
-            *stop = YES; // Stops enumeration with successful condition.
-        } else {
-            prev = p;
-        }
-    }];
+    [_chunkStoreRayMarcher enumerateVoxelsOnRay:ray
+                                       maxDepth:_maxPlaceDistance
+                                      withBlock:^(vector_float3 p, BOOL *stop, BOOL *fail) {
+                                          GSVoxel voxel;
+                                          
+                                          if(![_chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {
+                                              *fail = YES; // Stops enumerations with un-successful condition
+                                          }
+                                          
+                                          if(voxel.type != VOXEL_TYPE_EMPTY) {
+                                              cursorIsActive = YES;
+                                              cursorPos = p;
+                                              *stop = YES; // Stops enumeration with successful condition.
+                                          } else {
+                                              prev = p;
+                                          }
+                                      }];
 
     _cursor.cursorIsActive = cursorIsActive;
     _cursor.cursorPos = cursorPos;

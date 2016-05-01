@@ -27,6 +27,7 @@
 		4AD9531915142AA000C2AF8E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AD9531815142AA000C2AF8E /* OpenGL.framework */; };
 		4AD9531D15142B1800C2AF8E /* GSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */; };
 		4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */ = {isa = PBXBuildFile; fileRef = 4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */; };
+		6F084A1F1CD6B5560029DB6F /* GSChunkStoreRayMarcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F084A1E1CD6B5560029DB6F /* GSChunkStoreRayMarcher.m */; };
 		6F10D4B91CD1B405006B8881 /* GSGridBucket.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F10D4B81CD1B405006B8881 /* GSGridBucket.m */; };
 		6F186B381CD421B00018FF5F /* GSGridLRUTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F186B371CD421B00018FF5F /* GSGridLRUTests.m */; };
 		6F186B3A1CD428B10018FF5F /* GSGridSlotTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F186B391CD428B10018FF5F /* GSGridSlotTests.m */; };
@@ -131,6 +132,8 @@
 		4AD9531C15142B1800C2AF8E /* GSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLView.m; sourceTree = "<group>"; };
 		4AE4E550153B982100FC3047 /* GSBoxedTerrainVertex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSBoxedTerrainVertex.h; sourceTree = "<group>"; };
 		4AE4E551153B982100FC3047 /* GSBoxedTerrainVertex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSBoxedTerrainVertex.m; sourceTree = "<group>"; };
+		6F084A1D1CD6B5560029DB6F /* GSChunkStoreRayMarcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkStoreRayMarcher.h; sourceTree = "<group>"; };
+		6F084A1E1CD6B5560029DB6F /* GSChunkStoreRayMarcher.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkStoreRayMarcher.m; sourceTree = "<group>"; };
 		6F10D4B71CD1B405006B8881 /* GSGridBucket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridBucket.h; sourceTree = "<group>"; };
 		6F10D4B81CD1B405006B8881 /* GSGridBucket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridBucket.m; sourceTree = "<group>"; };
 		6F186B2D1CD4216D0018FF5F /* GutsyStormTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GutsyStormTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -253,6 +256,8 @@
 				AC3767A5163DFD4200BAE03F /* GSTerrain.m */,
 				AC5B2802151E2C1D0045B6E4 /* GSChunkStore.h */,
 				AC5B2803151E2C1D0045B6E4 /* GSChunkStore.m */,
+				6F084A1D1CD6B5560029DB6F /* GSChunkStoreRayMarcher.h */,
+				6F084A1E1CD6B5560029DB6F /* GSChunkStoreRayMarcher.m */,
 				6F7ACC0D1CC46FBF0084BAC5 /* Journal */,
 				ACE6ABEC16F9985F00DE88E3 /* Grid */,
 				ACE41C4916938D09003C572B /* Block Mesh Objects */,
@@ -626,6 +631,7 @@
 				AC154885152C04EF00434374 /* GSBoxedVector.m in Sources */,
 				6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */,
 				4AE4E552153B982100FC3047 /* GSBoxedTerrainVertex.m in Sources */,
+				6F084A1F1CD6B5560029DB6F /* GSChunkStoreRayMarcher.m in Sources */,
 				4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */,
 				4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */,
 				6F7ACC0B1CC46FAF0084BAC5 /* GSTerrainJournalEntry.m in Sources */,
@@ -903,6 +909,7 @@
 				6F186B351CD4216D0018FF5F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

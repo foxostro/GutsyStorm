@@ -7,7 +7,6 @@
 //
 
 #import "GSChunkVoxelData.h"
-#import "GSRay.h"
 #import "GSTerrainBuffer.h"
 
 
@@ -32,18 +31,6 @@
 - (void)drawActiveChunks;
 
 - (void)updateWithCameraModifiedFlags:(unsigned)cameraModifiedFlags;
-
-/* Enumerates the voxels on the specified ray up to the specified maximum depth. Calls the block for each voxel cell.
- * The block may set '*stop=YES;' to indicate that enumeration should terminate with a successful condition. The block
- * may set '*fail=YES;' to indicate that enumeration should terminate with a non-successful condition. Typically, this
- * occurs when the block realizes that it must block to take a lock.
- * Returns YES or NO depending on whether the operation was successful. This method will do its best to avoid blocking
- * (i.e. by waiting to take locks) and will return early if the alternative is to block. In this case, the function
- * returns NO.
- */
-- (BOOL)enumerateVoxelsOnRay:(GSRay)ray
-                    maxDepth:(unsigned)maxDepth
-                   withBlock:(void (^ _Nonnull)(vector_float3 p, BOOL * _Nullable stop, BOOL * _Nullable fail))block;
 
 /* Try to get the Vertex Array Object for the specified point in space.
  * Returns nil when it's not possible to get the VAO without blocking on a lock.
