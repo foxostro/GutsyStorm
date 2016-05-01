@@ -13,11 +13,20 @@
 
 
 @implementation GSTerrainRayMarcher
+{
+    GSTerrainChunkStore *_chunkStore;
+}
 
 - (nonnull instancetype)init
 {
+    @throw nil;
+}
+
+- (nonnull instancetype)initWithChunkStore:(nonnull GSTerrainChunkStore *)chunkStore
+{
+    NSParameterAssert(chunkStore);
     if (self = [super init]) {
-        // nothing to do
+        _chunkStore = chunkStore;
     }
     return self;
 }

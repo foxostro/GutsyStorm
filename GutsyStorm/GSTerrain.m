@@ -110,7 +110,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                      terrainShader:[self newTerrainShader]
                                                          glContext:context
                                                          generator:[[GSTerrainGenerator alloc] initWithRandomSeed:journal.randomSeed]];
-        _chunkStoreRayMarcher = [[GSTerrainRayMarcher alloc] init];
+        _chunkStoreRayMarcher = [[GSTerrainRayMarcher alloc] initWithChunkStore:_chunkStore];
         _cursor = [[GSTerrainCursor alloc] initWithChunkStore:_chunkStore
                                                        camera:cam
                                                    cube:[[GSCube alloc] initWithContext:context

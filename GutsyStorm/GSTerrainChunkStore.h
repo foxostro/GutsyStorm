@@ -10,6 +10,7 @@
 #import "GSTerrainBuffer.h"
 
 
+@class GSGrid;
 @class GSCamera;
 @class GSShader;
 @class GSTerrainJournal;
@@ -19,6 +20,11 @@
 
 
 @interface GSTerrainChunkStore : NSObject
+
+@property (nonatomic, nonnull, readonly) GSGrid *gridVAO;
+@property (nonatomic, nonnull, readonly) GSGrid *gridGeometryData;
+@property (nonatomic, nonnull, readonly) GSGrid *gridSunlightData;
+@property (nonatomic, nonnull, readonly) GSGrid *gridVoxelData;
 
 - (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
                                  camera:(nonnull GSCamera *)camera
@@ -43,12 +49,6 @@
  * If the `createIfMissing' flag is set then the VAO is created if the slot was empty. This can take time.
  */
 - (nullable GSChunkVAO *)nonBlockingVaoAtPoint:(nonnull GSBoxedVector *)p createIfMissing:(BOOL)createIfMissing;
-
-/* Try to get the voxel at the specified position. If successful then store it in 'voxel' and return YES. If
- * unsuccessful then this returns NO without modifying the voxel pointed to by 'voxel'. This method may fail in this way
- * when it would have to block to take a lock.
- */
-- (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel;
 
 - (GSVoxel)voxelAtPoint:(vector_float3)pos;
 

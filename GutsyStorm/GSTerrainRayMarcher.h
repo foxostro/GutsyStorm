@@ -11,9 +11,13 @@
 #import "GSRay.h"
 
 
+@class GSTerrainChunkStore;
+
+
 @interface GSTerrainRayMarcher : NSObject
 
-- (nonnull instancetype)init NS_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init NS_UNAVAILABLE;
+- (nonnull instancetype)initWithChunkStore:(nonnull GSTerrainChunkStore *)chunkStore NS_DESIGNATED_INITIALIZER;
 
 /* Enumerates the voxels on the specified ray up to the specified maximum depth. Calls the block for each voxel cell.
  * The block may set '*stop=YES;' to indicate that enumeration should terminate with a successful condition. The block

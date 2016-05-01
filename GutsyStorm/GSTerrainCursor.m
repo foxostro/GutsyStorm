@@ -12,6 +12,8 @@
 #import "GSTerrainRayMarcher.h"
 #import "GSCube.h"
 #import "GSMatrixUtils.h"
+#import "GSGrid.h"
+#import "GSGridSlot.h"
 
 
 @implementation GSTerrainCursor
@@ -40,7 +42,7 @@
         _chunkStore = chunkStore;
         _camera = camera;
         _cube = cube;
-        _rayMarcher = [[GSTerrainRayMarcher alloc] init];
+        _rayMarcher = [[GSTerrainRayMarcher alloc] initWithChunkStore:chunkStore];
         _cursorIsActive = NO;
         _cursorPos = vector_make(0, 0, 0);
         _cursorPlacePos = vector_make(0, 0, 0);
@@ -81,7 +83,7 @@
                             withBlock:^(vector_float3 p, BOOL *stop, BOOL *fail) {
                                 GSVoxel voxel;
                                 
-                                if(![_chunkStore tryToGetVoxelAtPoint:p voxel:&voxel]) {
+                                if(![self _tryToGetVoxel:&voxel atPoint:p]) {
                                     *fail = YES; // Stops enumerations with un-successful condition
                                 }
                                 
@@ -97,6 +99,52 @@
     _cursorIsActive = cursorIsActive;
     _cursorPos = cursorPos;
     _cursorPlacePos = prev;
+}
+
+- (BOOL)_tryToGetChunkVoxels:(GSChunkVoxelData * _Nonnull * _Nonnull)chunk atPoint:(vector_float3)p
+{
+    NSParameterAssert(p.y >= 0 && p.y < GSChunkSizeIntVec3.y);
+    NSParameterAssert(chunk);
+    
+    GSGrid *gridVoxelData = _chunkStore.gridVoxelData;
+    
+    GSGridSlot *slot = [gridVoxelData slotAtPoint:p blocking:NO];
+    
+    if (!slot) {
+        return NO;
+    }
+    
+    if(![slot.lock tryLockForReading]) {
+        return NO;
+    }
+    
+    GSChunkVoxelData *voxels = (GSChunkVoxelData *)slot.item;
+    if (voxels) {
+        *chunk = voxels;
+    }
+    
+    [slot.lock unlockForReading];
+    
+    return (voxels != nil);
+}
+
+- (BOOL)_tryToGetVoxel:(nonnull GSVoxel *)voxel atPoint:(vector_float3)pos
+{
+    NSParameterAssert(voxel);
+    
+    GSChunkVoxelData *chunk = nil;
+    
+    if(![self _tryToGetChunkVoxels:&chunk atPoint:pos]) {
+        return NO;
+    }
+    
+    assert(chunk);
+    
+    *voxel = [chunk voxelAtLocalPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
+                                                              pos.y-chunk.minP.y,
+                                                              pos.z-chunk.minP.z)];
+    
+    return YES;
 }
 
 @end

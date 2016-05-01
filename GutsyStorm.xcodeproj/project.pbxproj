@@ -257,8 +257,6 @@
 				13C8BE181602854300403815 /* GSVoxel.h */,
 				AC3767A4163DFD4100BAE03F /* GSTerrain.h */,
 				AC3767A5163DFD4200BAE03F /* GSTerrain.m */,
-				AC5B2802151E2C1D0045B6E4 /* GSTerrainChunkStore.h */,
-				AC5B2803151E2C1D0045B6E4 /* GSTerrainChunkStore.m */,
 				6F7ACC0D1CC46FBF0084BAC5 /* Journal */,
 				ACE6ABEC16F9985F00DE88E3 /* Grid */,
 				ACE41C4916938D09003C572B /* Block Mesh Objects */,
@@ -461,6 +459,8 @@
 				6F084A1E1CD6B5560029DB6F /* GSTerrainRayMarcher.m */,
 				6F084A231CD6BD7B0029DB6F /* GSTerrainGenerator.h */,
 				6F084A241CD6BD7B0029DB6F /* GSTerrainGenerator.m */,
+				AC5B2802151E2C1D0045B6E4 /* GSTerrainChunkStore.h */,
+				AC5B2803151E2C1D0045B6E4 /* GSTerrainChunkStore.m */,
 			);
 			name = Util;
 			sourceTree = "<group>";

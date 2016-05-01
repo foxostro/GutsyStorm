@@ -43,17 +43,11 @@
 - (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
 - (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
-- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData * _Nonnull * _Nonnull)chunk;
-
 @end
 
 
 @implementation GSTerrainChunkStore
 {
-    GSGrid *_gridVAO;
-    GSGrid *_gridGeometryData;
-    GSGrid *_gridSunlightData;
-    GSGrid *_gridVoxelData;
     dispatch_group_t _groupForSaving;
     dispatch_queue_t _queueForSaving;
     BOOL _chunkStoreHasBeenShutdown;
@@ -567,26 +561,6 @@
     return vao;
 }
 
-- (BOOL)tryToGetVoxelAtPoint:(vector_float3)pos voxel:(nonnull GSVoxel *)voxel
-{
-    GSChunkVoxelData *chunk = nil;
-
-    assert(!_chunkStoreHasBeenShutdown);
-    assert(voxel);
-
-    if(![self tryToGetChunkVoxelsAtPoint:pos chunk:&chunk]) {
-        return NO;
-    }
-
-    assert(chunk);
-
-    *voxel = [chunk voxelAtLocalPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
-                                                               pos.y-chunk.minP.y,
-                                                               pos.z-chunk.minP.z)];
-    
-    return YES;
-}
-
 - (GSVoxel)voxelAtPoint:(vector_float3)pos
 {
     assert(!_chunkStoreHasBeenShutdown);
@@ -661,33 +635,6 @@
     [slot.lock unlockForWriting];
     
     return voxels;
-}
-
-- (BOOL)tryToGetChunkVoxelsAtPoint:(vector_float3)p chunk:(GSChunkVoxelData * _Nonnull * _Nonnull)chunk
-{
-    assert(!_chunkStoreHasBeenShutdown);
-    NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
-    NSParameterAssert(chunk);
-    assert(_gridVoxelData);
-
-    GSGridSlot *slot = [_gridVoxelData slotAtPoint:p blocking:NO];
-    
-    if (!slot) {
-        return NO;
-    }
-    
-    if(![slot.lock tryLockForReading]) {
-        return NO;
-    }
-
-    GSChunkVoxelData *voxels = (GSChunkVoxelData *)slot.item;
-    if (voxels) {
-        *chunk = voxels;
-    }
-
-    [slot.lock unlockForReading];
-    
-    return (voxels != nil);
 }
 
 + (nonnull NSURL *)newTerrainCacheFolderURL
