@@ -9,7 +9,7 @@
 #import "GSTerrainCursor.h"
 #import "GSCamera.h"
 #import "GSChunkStore.h"
-#import "GSChunkStoreRayMarcher.h"
+#import "GSTerrainRayMarcher.h"
 #import "GSCube.h"
 #import "GSMatrixUtils.h"
 
@@ -18,7 +18,7 @@
 {
     GSChunkStore *_chunkStore;
     GSCamera *_camera;
-    GSChunkStoreRayMarcher *_rayMarcher;
+    GSTerrainRayMarcher *_rayMarcher;
     GSCube *_cube;
     float _maxPlaceDistance;
 }
@@ -40,7 +40,7 @@
         _chunkStore = chunkStore;
         _camera = camera;
         _cube = cube;
-        _rayMarcher = [[GSChunkStoreRayMarcher alloc] init];
+        _rayMarcher = [[GSTerrainRayMarcher alloc] init];
         _cursorIsActive = NO;
         _cursorPos = vector_make(0, 0, 0);
         _cursorPlacePos = vector_make(0, 0, 0);

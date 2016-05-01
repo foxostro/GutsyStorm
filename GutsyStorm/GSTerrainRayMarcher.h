@@ -1,5 +1,5 @@
 //
-//  GSChunkStoreRayMarcher.h
+//  GSTerrainRayMarcher.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 5/1/16.
@@ -11,7 +11,7 @@
 #import "GSRay.h"
 
 
-@interface GSChunkStoreRayMarcher : NSObject
+@interface GSTerrainRayMarcher : NSObject
 
 - (nonnull instancetype)init NS_DESIGNATED_INITIALIZER;
 

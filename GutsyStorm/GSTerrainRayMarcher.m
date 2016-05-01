@@ -1,18 +1,18 @@
 //
-//  GSChunkStoreRayMarcher.m
+//  GSTerrainRayMarcher.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 5/1/16.
 //  Copyright © 2016 Andrew Fox. All rights reserved.
 //
 
-#import "GSChunkStoreRayMarcher.h"
+#import "GSTerrainRayMarcher.h"
 #import "GSIntegerVector3.h"
 #import "GSVectorUtils.h"
 #import "GSVoxel.h"
 
 
-@implementation GSChunkStoreRayMarcher
+@implementation GSTerrainRayMarcher
 
 - (nonnull instancetype)init
 {

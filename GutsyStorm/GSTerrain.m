@@ -19,7 +19,7 @@
 #import "GSRay.h"
 #import "GSMatrixUtils.h"
 #import "GSTerrainJournal.h"
-#import "GSChunkStoreRayMarcher.h"
+#import "GSTerrainRayMarcher.h"
 #import "GSTerrainGenerator.h"
 
 #import <OpenGL/gl.h>
@@ -32,7 +32,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     GSCamera *_camera;
     GSTextureArray *_textureArray;
     GSChunkStore *_chunkStore;
-    GSChunkStoreRayMarcher *_chunkStoreRayMarcher;
+    GSTerrainRayMarcher *_chunkStoreRayMarcher;
     GSTerrainCursor *_cursor;
 }
 
@@ -114,7 +114,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                               terrainShader:terrainShader
                                                   glContext:context
                                                   generator:[[GSTerrainGenerator alloc] initWithRandomSeed:journal.randomSeed]];
-        _chunkStoreRayMarcher = [[GSChunkStoreRayMarcher alloc] init];
+        _chunkStoreRayMarcher = [[GSTerrainRayMarcher alloc] init];
         _cursor = [[GSTerrainCursor alloc] initWithChunkStore:_chunkStore
                                                        camera:cam
                                                    cube:[[GSCube alloc] initWithContext:context shader:cursorShader]];
