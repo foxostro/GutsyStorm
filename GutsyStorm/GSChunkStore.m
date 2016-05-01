@@ -25,6 +25,7 @@
 #import "GSTerrainJournalEntry.h"
 #import "GSReaderWriterLock.h"
 #import "GSGridSlot.h"
+#import "GSTerrainGenerator.h"
 
 #import <OpenGL/gl.h>
 
@@ -61,7 +62,7 @@
     GSShader *_terrainShader;
     NSOpenGLContext *_glContext;
     GSTerrainJournal *_journal;
-    GSTerrainProcessorBlock _generator;
+    GSTerrainGenerator *_generator;
     GSActiveRegion *_activeRegion;
     vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
 }
@@ -259,7 +260,7 @@
                                  camera:(nonnull GSCamera *)camera
                           terrainShader:(nonnull GSShader *)terrainShader
                               glContext:(nonnull NSOpenGLContext *)glContext
-                              generator:(nonnull GSTerrainProcessorBlock)generator
+                              generator:(nonnull GSTerrainGenerator *)generator
 {
     if (self = [super init]) {
         _folder = [GSChunkStore newTerrainCacheFolderURL];
@@ -268,7 +269,7 @@
         _camera = camera;
         _terrainShader = terrainShader;
         _glContext = glContext;
-        _generator = [generator copy];
+        _generator = generator;
         _journal = journal;
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
 

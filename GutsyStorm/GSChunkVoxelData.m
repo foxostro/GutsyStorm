@@ -17,6 +17,7 @@
 #import "GSActivity.h"
 #import "GSTerrainJournal.h"
 #import "GSTerrainJournalEntry.h"
+#import "GSTerrainGenerator.h"
 
 
 #define VOXEL_MAGIC ('lxov')
@@ -51,7 +52,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                   editPos:(vector_float3)editPos
                  oldBlock:(GSVoxel)oldBlock;
 
-- (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainProcessorBlock)generator
+- (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainGenerator *)generator
                                                    journal:(nonnull GSTerrainJournal *)journal;
 
 @end
@@ -76,7 +77,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                              journal:(nonnull GSTerrainJournal *)journal
-                           generator:(nonnull GSTerrainProcessorBlock)generator
+                           generator:(nonnull GSTerrainGenerator *)generator
 {
     NSParameterAssert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
@@ -365,7 +366,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
  * translated so that voxelData[0,0,0] corresponds to (minX, minY, minZ). The size of the chunk is unscaled so that,
  * for example, the width of the chunk is equal to maxP-minP. Ditto for the other major axii.
  */
-- (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainProcessorBlock)generator
+- (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainGenerator *)generator
                                                    journal:(nonnull GSTerrainJournal *)journal
 {
     vector_float3 thisMinP = self.minP;
@@ -382,7 +383,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 
     // Generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.
-    generator(count, voxels, a, b, thisMinP);
+    [generator generateWithDestination:voxels count:count minCorner:a maxCorner:b offsetToWorld:thisMinP];
 
     GSMutableBuffer *data;
     

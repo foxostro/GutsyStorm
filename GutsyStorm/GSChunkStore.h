@@ -15,6 +15,7 @@
 @class GSTerrainJournal;
 @class GSChunkVAO;
 @class GSBoxedVector;
+@class GSTerrainGenerator;
 
 
 @interface GSChunkStore : NSObject
@@ -23,7 +24,7 @@
                                  camera:(nonnull GSCamera *)camera
                           terrainShader:(nonnull GSShader *)terrainShader
                               glContext:(nonnull NSOpenGLContext *)glContext
-                              generator:(nonnull GSTerrainProcessorBlock)generator;
+                              generator:(nonnull GSTerrainGenerator *)generator;
 
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.

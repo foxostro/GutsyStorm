@@ -14,11 +14,7 @@
 
 @class GSTerrainJournal;
 @class GSTerrainBuffer;
-
-
-typedef void (^GSTerrainProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
-                                        vector_long3 minP, vector_long3 maxP,
-                                        vector_float3 offsetToWorld);
+@class GSTerrainGenerator;
 
 
 @interface GSChunkVoxelData : NSObject <GSGridItem>
@@ -32,7 +28,7 @@ typedef void (^GSTerrainProcessorBlock)(size_t count, GSVoxel * _Nonnull voxels,
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                              journal:(nonnull GSTerrainJournal *)journal
-                           generator:(nonnull GSTerrainProcessorBlock)generator;
+                           generator:(nonnull GSTerrainGenerator *)generator;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minP
                               folder:(nullable NSURL *)folder
