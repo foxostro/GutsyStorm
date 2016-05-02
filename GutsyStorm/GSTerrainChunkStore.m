@@ -39,9 +39,6 @@
 
 - (void)createGrids;
 - (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam;
-- (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
-- (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
-- (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
 @end
 
@@ -559,19 +556,6 @@
     [slot.lock unlockForWriting];
     
     return vao;
-}
-
-- (GSVoxel)voxelAtPoint:(vector_float3)pos
-{
-    assert(!_chunkStoreHasBeenShutdown);
-
-    GSChunkVoxelData *chunk = [self chunkVoxelsAtPoint:pos];
-
-    assert(chunk);
-
-    return [chunk voxelAtLocalPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
-                                                             pos.y-chunk.minP.y,
-                                                             pos.z-chunk.minP.z)];
 }
 
 - (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p

@@ -17,6 +17,9 @@
 @class GSChunkVAO;
 @class GSBoxedVector;
 @class GSTerrainGenerator;
+@class GSChunkGeometryData;
+@class GSChunkSunlightData;
+@class GSChunkVoxelData;
 
 
 @interface GSTerrainChunkStore : NSObject
@@ -50,9 +53,11 @@
  */
 - (nullable GSChunkVAO *)nonBlockingVaoAtPoint:(nonnull GSBoxedVector *)p createIfMissing:(BOOL)createIfMissing;
 
-- (GSVoxel)voxelAtPoint:(vector_float3)pos;
-
 - (void)setBlock:(GSVoxel)block atPoint:(vector_float3)pos addToJournal:(BOOL)addToJournal;
+
+- (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
+- (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
+- (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
 
 /* Notify the chunk store object that the system has come under memory pressure. */
 - (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status;

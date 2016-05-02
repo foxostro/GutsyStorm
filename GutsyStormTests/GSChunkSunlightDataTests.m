@@ -12,6 +12,40 @@
 #import "GSChunkSunlightData.h"
 #import "GSNeighborhood.h"
 #import "GSTerrainBuffer.h"
+#import "GSTerrainGenerator.h"
+
+
+@interface GSChunkSunlightDataTests_TerrainGenerator : GSTerrainGenerator
+@end
+
+@implementation GSChunkSunlightDataTests_TerrainGenerator
+
+- (void)generateWithDestination:(nonnull GSVoxel *)voxels
+                          count:(NSUInteger)count
+                      minCorner:(vector_long3)minP
+                      maxCorner:(vector_long3)maxP
+                  offsetToWorld:(vector_float3)offsetToWorld
+{
+    vector_long3 clp;
+    FOR_BOX(clp, minP, maxP)
+    {
+        BOOL isEmpty = YES;
+        
+        if (clp.y == 32) {
+            BOOL centerChunk = (offsetToWorld.x == 0 && offsetToWorld.y == 0 && offsetToWorld.z == 0);
+            isEmpty = (centerChunk && clp.x == 7 && clp.z == 7);
+        } else if (clp.y == 0 || clp.y == 10) {
+            isEmpty = NO;
+        }
+        
+        NSUInteger idx = INDEX_BOX(clp, minP, maxP);
+        voxels[idx].type = isEmpty ? VOXEL_TYPE_EMPTY : VOXEL_TYPE_CUBE;
+        voxels[idx].opaque = isEmpty ? 0 : 1;
+    }
+}
+
+@end
+
 
 @interface GSChunkSunlightDataTests : XCTestCase
 
@@ -34,26 +68,8 @@
     
     journal = [[GSTerrainJournal alloc] init];
     
-    GSTerrainProcessorBlock generator = ^(size_t count, GSVoxel * _Nonnull voxels,
-                                          vector_long3 minP, vector_long3 maxP, vector_float3 offsetToWorld) {
-        vector_long3 clp;
-        FOR_BOX(clp, minP, maxP)
-        {
-            BOOL isEmpty = YES;
-            
-            if (clp.y == 32) {
-                BOOL centerChunk = (offsetToWorld.x == 0 && offsetToWorld.y == 0 && offsetToWorld.z == 0);
-                isEmpty = (centerChunk && clp.x == 7 && clp.z == 7);
-            } else if (clp.y == 0 || clp.y == 10) {
-                isEmpty = NO;
-            }
-
-            NSUInteger idx = INDEX_BOX(clp, minP, maxP);
-            voxels[idx].type = isEmpty ? VOXEL_TYPE_EMPTY : VOXEL_TYPE_CUBE;
-            voxels[idx].opaque = isEmpty ? 0 : 1;
-        }
-    };
-
+    GSTerrainGenerator *generator = [[GSChunkSunlightDataTests_TerrainGenerator alloc] initWithRandomSeed:0];
+    
     GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
 
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)

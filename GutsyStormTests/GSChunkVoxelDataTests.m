@@ -8,7 +8,53 @@
 
 #import <XCTest/XCTest.h>
 #import "GSTerrainJournal.h"
+#import "GSTerrainGenerator.h"
 #import "GSChunkVoxelData.h"
+
+
+static const GSVoxel empty = {
+    .outside = 0,
+    .exposedToAirOnTop = 0,
+    .opaque = 0,
+    .upsideDown = 0,
+    .dir = VOXEL_DIR_NORTH,
+    .type = VOXEL_TYPE_EMPTY,
+    .tex = VOXEL_TEX_DIRT,
+};
+
+static const GSVoxel cube = {
+    .outside = 0,
+    .exposedToAirOnTop = 0,
+    .opaque = 1,
+    .upsideDown = 0,
+    .dir = VOXEL_DIR_NORTH,
+    .type = VOXEL_TYPE_CUBE,
+    .tex = VOXEL_TEX_DIRT,
+};
+
+static const int level = 10;
+
+
+@interface GSChunkVoxelDataTests_TerrainGenerator : GSTerrainGenerator
+@end
+
+@implementation GSChunkVoxelDataTests_TerrainGenerator
+
+- (void)generateWithDestination:(nonnull GSVoxel *)voxels
+                          count:(NSUInteger)count
+                      minCorner:(vector_long3)minP
+                      maxCorner:(vector_long3)maxP
+                  offsetToWorld:(vector_float3)offsetToWorld
+{
+    vector_long3 clp;
+    FOR_BOX(clp, minP, maxP)
+    {
+        voxels[INDEX_BOX(clp, minP, maxP)] = (clp.y > level) ? empty : cube;
+    }
+}
+
+@end
+
 
 @interface GSChunkVoxelDataTests : XCTestCase
 
@@ -20,38 +66,22 @@
     dispatch_queue_t queueForSaving;
     GSTerrainJournal *journal;
     GSChunkVoxelData *chunk;
-    GSVoxel empty;
-    GSVoxel cube;
-    NSUInteger level;
 }
 
 - (void)setUp
 {
     [super setUp];
-    
-    empty.opaque = 0;
-    empty.type = VOXEL_TYPE_EMPTY;
-    cube.opaque = 1;
-    cube.type = VOXEL_TYPE_CUBE;
-    level = 10;
+
     groupForSaving = dispatch_group_create();
     queueForSaving = dispatch_queue_create("com.foxostro.GutsyStorm.GSChunkVoxelDataTests.queueForSaving",
                                            DISPATCH_QUEUE_SERIAL);
     journal = [[GSTerrainJournal alloc] init];
-    GSTerrainProcessorBlock generator = ^(size_t count, GSVoxel * _Nonnull voxels,
-                                          vector_long3 minP, vector_long3 maxP, vector_float3 offsetToWorld) {
-        vector_long3 clp;
-        FOR_BOX(clp, minP, maxP)
-        {
-            voxels[INDEX_BOX(clp, minP, maxP)] = (clp.y > level) ? empty : cube;
-        }
-    };
     chunk = [[GSChunkVoxelData alloc] initWithMinP:vector_make(0, 0, 0)
                                             folder:[NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES]
                                     groupForSaving:groupForSaving
                                     queueForSaving:queueForSaving
                                            journal:journal
-                                         generator:generator];
+                                         generator:[[GSChunkVoxelDataTests_TerrainGenerator alloc] initWithRandomSeed:0]];
 }
 
 - (void)testBasicVoxelAccess

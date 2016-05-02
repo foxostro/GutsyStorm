@@ -1,5 +1,5 @@
 //
-//  GSChunkStoreTests.m
+//  GSTerrainChunkStoreTests.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 4/30/16.
@@ -14,11 +14,11 @@
 #import "GSBoxedVector.h"
 #import "GSNeighborhood.h"
 
-@interface GSChunkStoreTests : XCTestCase
+@interface GSTerrainChunkStoreTests : XCTestCase
 
 @end
 
-@implementation GSChunkStoreTests
+@implementation GSTerrainChunkStoreTests
 {
     GSTerrain *_terrain;
     GSTerrainChunkStore *_chunkStore;
@@ -53,7 +53,7 @@
     {
         vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
         while(![_chunkStore nonBlockingVaoAtPoint:[GSBoxedVector boxedVectorWithVector:p+offset] createIfMissing:YES]);
-        [_chunkStore voxelAtPoint:p];
+        [_chunkStore chunkVoxelsAtPoint:p];
     }
 }
 
@@ -70,8 +70,8 @@
 {
     vector_float3 p = vector_make(90.0, 4.0, 127.0);
     [self measureBlock:^{
-        [_chunkStore setBlockAtPoint:p block:empty addToJournal:NO];
-        [_chunkStore setBlockAtPoint:p block:cube addToJournal:NO];
+        [_chunkStore setBlock:empty atPoint:p addToJournal:NO];
+        [_chunkStore setBlock:cube atPoint:p addToJournal:NO];
     }];
 }
 
