@@ -20,5 +20,6 @@
 - (nonnull instancetype)initWithCoder:(nonnull NSCoder *)decoder;
 
 - (void)addEntry:(nonnull GSTerrainJournalEntry *)entry;
+- (void)flush;
 
 @end

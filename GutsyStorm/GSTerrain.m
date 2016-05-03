@@ -194,6 +194,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 {
     [_chunkStore shutdown];
     _chunkStore = nil;
+
+    [_journal flush];
+    _journal = nil;
 }
 
 @end
