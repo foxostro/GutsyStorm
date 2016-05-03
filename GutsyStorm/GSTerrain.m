@@ -21,6 +21,7 @@
 #import "GSTerrainJournal.h"
 #import "GSTerrainRayMarcher.h"
 #import "GSTerrainGenerator.h"
+#import "GSTerrainModifyBlockOperation.h"
 
 #import <OpenGL/gl.h>
 
@@ -154,13 +155,18 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 {
     if(_cursor.cursorIsActive) {
         GSVoxel block;
-        
         bzero(&block, sizeof(GSVoxel));
         block.opaque = YES;
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_CUBE;
         
-        [_chunkStore setBlock:block atPoint:_cursor.cursorPlacePos addToJournal:YES];
+        GSTerrainModifyBlockOperation *placeBlock;
+        placeBlock = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
+                                                                         block:block
+                                                                      position:_cursor.cursorPlacePos
+                                                                       journal:_journal];
+        [placeBlock run];
+
         [_cursor recalcCursorPosition];
     }
 }
@@ -169,12 +175,17 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 {
     if(_cursor.cursorIsActive) {
         GSVoxel block;
-        
         bzero(&block, sizeof(GSVoxel));
         block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_EMPTY;
         
-        [_chunkStore setBlock:block atPoint:_cursor.cursorPos addToJournal:YES];
+        GSTerrainModifyBlockOperation *placeBlock;
+        placeBlock = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
+                                                                         block:block
+                                                                      position:_cursor.cursorPos
+                                                                       journal:_journal];
+        [placeBlock run];
+        
         [_cursor recalcCursorPosition];
     }
 }

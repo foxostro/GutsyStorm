@@ -10,6 +10,8 @@
 
 @interface GSChunkVAO : NSObject <GSGridItem>
 
+@property (nonatomic, nonnull, readonly) NSOpenGLContext *glContext;
+
 - (nonnull instancetype)initWithChunkGeometry:(nonnull GSChunkGeometryData *)geometry
                                     glContext:(nonnull NSOpenGLContext *)glContext;
 

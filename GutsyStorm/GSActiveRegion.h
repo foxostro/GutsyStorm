@@ -27,7 +27,7 @@
  */
 - (nonnull instancetype)initWithActiveRegionExtent:(vector_float3)activeRegionExtent
                                             camera:(nonnull GSCamera *)camera
-                                        chunkStore:(nonnull GSTerrainChunkStore *)chunkStore;
+                                        chunkStore:(nonnull GSTerrainChunkStore *)chunkstore;
 
 - (void)updateWithCameraModifiedFlags:(unsigned)flags;
 

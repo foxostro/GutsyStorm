@@ -42,6 +42,10 @@
 
 - (void)updateWithCameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
+- (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
+- (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
+- (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
+
 /* Try to get the Vertex Array Object for the specified point in space.
  * Returns nil when it's not possible to get the VAO without blocking on a lock.
  */
@@ -53,11 +57,10 @@
  */
 - (nullable GSChunkVAO *)nonBlockingVaoAtPoint:(nonnull GSBoxedVector *)p createIfMissing:(BOOL)createIfMissing;
 
-- (void)setBlock:(GSVoxel)block atPoint:(vector_float3)pos addToJournal:(BOOL)addToJournal;
-
-- (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
-- (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
-- (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p;
+- (nonnull GSChunkVoxelData *)newVoxelChunkAtPoint:(vector_float3)pos;
+- (nonnull GSChunkSunlightData *)newSunlightChunkAtPoint:(vector_float3)pos;
+- (nonnull GSChunkGeometryData *)newGeometryChunkAtPoint:(vector_float3)pos;
+- (nonnull GSChunkVAO *)newVAOChunkAtPoint:(vector_float3)pos;
 
 /* Notify the chunk store object that the system has come under memory pressure. */
 - (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status;

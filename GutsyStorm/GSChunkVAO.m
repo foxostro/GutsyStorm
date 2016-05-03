@@ -37,7 +37,6 @@ typedef GLuint index_t;
     GLsizei _numIndicesForDrawing;
     GSVBOHolder *_ibo;
     GSVAOHolder *_vao;
-    NSOpenGLContext *_glContext;
     GSTerrainVertexNoNormal *_vertsBuffer;
     GLsizeiptr _bufferSize;
     BOOL _initializedYet;

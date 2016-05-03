@@ -46,6 +46,7 @@
 		6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */; };
 		6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184B1BD33F8400CD21FB /* text.frag.txt */; };
 		6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184C1BD33F8400CD21FB /* text.vert.txt */; };
+		6FAC70B41CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */; };
 		6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6FAE2A371CC6F42D000D2E9A /* Defaults.plist */; };
 		6FCD25CB1CD56B86005FC566 /* GSTerrainChunkStoreTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD25CA1CD56B86005FC566 /* GSTerrainChunkStoreTests.m */; };
 		6FD400B61CD1C3F200C5117E /* GSGridSlot.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FD400B51CD1C3F200C5117E /* GSGridSlot.m */; };
@@ -165,6 +166,8 @@
 		6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = crosshairs.vert.txt; sourceTree = "<group>"; };
 		6F90184B1BD33F8400CD21FB /* text.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.frag.txt; sourceTree = "<group>"; };
 		6F90184C1BD33F8400CD21FB /* text.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.vert.txt; sourceTree = "<group>"; };
+		6FAC70B21CD7B78B00F87554 /* GSTerrainModifyBlockOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainModifyBlockOperation.h; sourceTree = "<group>"; };
+		6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainModifyBlockOperation.m; sourceTree = "<group>"; };
 		6FAE2A371CC6F42D000D2E9A /* Defaults.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Defaults.plist; sourceTree = "<group>"; };
 		6FCD25CA1CD56B86005FC566 /* GSTerrainChunkStoreTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainChunkStoreTests.m; sourceTree = "<group>"; };
 		6FD400B41CD1C3F200C5117E /* GSGridSlot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridSlot.h; sourceTree = "<group>"; };
@@ -461,6 +464,8 @@
 				6F084A241CD6BD7B0029DB6F /* GSTerrainGenerator.m */,
 				AC5B2802151E2C1D0045B6E4 /* GSTerrainChunkStore.h */,
 				AC5B2803151E2C1D0045B6E4 /* GSTerrainChunkStore.m */,
+				6FAC70B21CD7B78B00F87554 /* GSTerrainModifyBlockOperation.h */,
+				6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */,
 			);
 			name = Util;
 			sourceTree = "<group>";
@@ -643,6 +648,7 @@
 				6F7ACC0B1CC46FAF0084BAC5 /* GSTerrainJournalEntry.m in Sources */,
 				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
 				6F7ACC101CC4700A0084BAC5 /* GSActivity.m in Sources */,
+				6FAC70B41CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m in Sources */,
 				6F7ACC0C1CC46FAF0084BAC5 /* GSTerrainJournal.m in Sources */,
 				6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */,
 				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,

@@ -14,7 +14,7 @@
 
 @implementation GSTerrainRayMarcher
 {
-    GSTerrainChunkStore *_chunkStore;
+    __weak GSTerrainChunkStore *_chunkStore;
 }
 
 - (nonnull instancetype)init
