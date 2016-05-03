@@ -1,12 +1,12 @@
 //
-//  GSActiveRegion.m
+//  GSTerrainActiveRegion.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/14/12.
 //  Copyright © 2012-2016 Andrew Fox. All rights reserved.
 //
 
-#import "GSActiveRegion.h"
+#import "GSTerrainActiveRegion.h"
 #import "GSFrustum.h"
 #import "GSVoxel.h"
 #import "GSBoxedVector.h"
@@ -37,7 +37,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 }
 
 
-@interface GSActiveRegion ()
+@interface GSTerrainActiveRegion ()
 
 /* Flag indicates that the queue should shutdown. */
 @property (atomic, readwrite) BOOL shouldShutdown;
@@ -45,7 +45,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
 @end
 
 
-@implementation GSActiveRegion
+@implementation GSTerrainActiveRegion
 {
     /* The camera at the center of the active region. */
     GSCamera *_camera;
@@ -88,18 +88,18 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         _camera = camera;
         _activeRegionExtent = activeRegionExtent;
         _chunkStore = chunkStore;
-        _generationQueue = dispatch_queue_create("GSActiveRegion.generationQueue", DISPATCH_QUEUE_CONCURRENT);
+        _generationQueue = dispatch_queue_create("GSTerrainActiveRegion.generationQueue", DISPATCH_QUEUE_CONCURRENT);
         
         long n = [[NSProcessInfo processInfo] processorCount];
         _generationSema = dispatch_semaphore_create(n);
 
         _drawList = [NSMutableSet new];
         _lockDrawList = [NSLock new];
-        _lockDrawList.name = @"GSActiveRegion.lockDrawList";
+        _lockDrawList.name = @"GSTerrainActiveRegion.lockDrawList";
         
         _cachedPointsInCameraFrustum = nil;
         _lockCachedPointsInCameraFrustum = [GSReaderWriterLock new];
-        _lockCachedPointsInCameraFrustum.name = @"GSActiveRegion.lockCachedPointsInCameraFrustum";
+        _lockCachedPointsInCameraFrustum.name = @"GSTerrainActiveRegion.lockCachedPointsInCameraFrustum";
     }
     
     return self;
@@ -120,7 +120,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         return;
     }
     
-    //GSStopwatchTraceBegin(@"GSActiveRegion.draw");
+    //GSStopwatchTraceBegin(@"GSTerrainActiveRegion.draw");
 
     [_lockDrawList lock];
 
@@ -189,7 +189,7 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
         [self needsChunkGeneration];
     }
     
-    //GSStopwatchTraceEnd(@"GSActiveRegion.draw");
+    //GSStopwatchTraceEnd(@"GSTerrainActiveRegion.draw");
 }
 
 - (nonnull NSArray<GSBoxedVector *> *)pointsInCameraFrustum

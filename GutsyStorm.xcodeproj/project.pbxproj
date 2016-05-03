@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		1338A2DA15B792C800663E28 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1338A2D915B792C800663E28 /* CoreVideo.framework */; };
 		13C8BE191602854300403815 /* GSNeighborhood.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE171602854300403815 /* GSNeighborhood.m */; };
-		13C8BE1D16038DC000403815 /* GSActiveRegion.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE1C16038DC000403815 /* GSActiveRegion.m */; };
+		13C8BE1D16038DC000403815 /* GSTerrainActiveRegion.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C8BE1C16038DC000403815 /* GSTerrainActiveRegion.m */; };
 		4A2310C0153E10F100A4EBE6 /* GSChunkVoxelData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */; };
 		4A2310C4153E110400A4EBE6 /* GSChunkGeometryData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */; };
 		4A2CCFF71513C3FC006C6551 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A2CCFF61513C3FC006C6551 /* Cocoa.framework */; };
@@ -98,8 +98,8 @@
 		13C8BE161602854300403815 /* GSNeighborhood.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSNeighborhood.h; sourceTree = "<group>"; };
 		13C8BE171602854300403815 /* GSNeighborhood.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSNeighborhood.m; sourceTree = "<group>"; };
 		13C8BE181602854300403815 /* GSVoxel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVoxel.h; sourceTree = "<group>"; };
-		13C8BE1B16038DC000403815 /* GSActiveRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSActiveRegion.h; sourceTree = "<group>"; };
-		13C8BE1C16038DC000403815 /* GSActiveRegion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSActiveRegion.m; sourceTree = "<group>"; };
+		13C8BE1B16038DC000403815 /* GSTerrainActiveRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainActiveRegion.h; sourceTree = "<group>"; };
+		13C8BE1C16038DC000403815 /* GSTerrainActiveRegion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainActiveRegion.m; sourceTree = "<group>"; };
 		4A1F6E51153F6F6100D194AE /* GSIntegerVector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSIntegerVector3.h; sourceTree = "<group>"; };
 		4A2310BE153E10F100A4EBE6 /* GSChunkVoxelData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSChunkVoxelData.h; sourceTree = "<group>"; };
 		4A2310BF153E10F100A4EBE6 /* GSChunkVoxelData.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkVoxelData.m; sourceTree = "<group>"; };
@@ -150,8 +150,8 @@
 		6F186B3D1CD431790018FF5F /* GSChunkVoxelDataTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GSChunkVoxelDataTests.m; path = GutsyStormTests/GSChunkVoxelDataTests.m; sourceTree = SOURCE_ROOT; };
 		6F186B3F1CD431A10018FF5F /* GSGridTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridTests.m; sourceTree = "<group>"; };
 		6F186B411CD452B90018FF5F /* GSChunkSunlightDataTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkSunlightDataTests.m; sourceTree = "<group>"; };
-		6F2DE04A1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GSTerrainApplyJournalOperation.h; path = GutsyStorm/GSTerrainApplyJournalOperation.h; sourceTree = "<group>"; };
-		6F2DE04B1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GSTerrainApplyJournalOperation.m; path = GutsyStorm/GSTerrainApplyJournalOperation.m; sourceTree = "<group>"; };
+		6F2DE04A1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainApplyJournalOperation.h; sourceTree = "<group>"; };
+		6F2DE04B1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainApplyJournalOperation.m; sourceTree = "<group>"; };
 		6F6158061BD69C8E00243A61 /* GSOpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLViewController.h; sourceTree = "<group>"; };
 		6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLViewController.m; sourceTree = "<group>"; };
 		6F6AA69B1CB1BCA60039F8A4 /* GSStopwatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSStopwatch.h; sourceTree = "<group>"; };
@@ -266,6 +266,7 @@
 				6F7ACC0D1CC46FBF0084BAC5 /* Journal */,
 				ACE6ABEC16F9985F00DE88E3 /* Grid */,
 				ACE41C4916938D09003C572B /* Block Mesh Objects */,
+				6F2DE04D1CD86C6B00BD2719 /* Operations */,
 				ACDD767016F6623A008169D1 /* Util */,
 			);
 			name = Terrain;
@@ -274,8 +275,6 @@
 		4A2CCFE71513C3FC006C6551 = {
 			isa = PBXGroup;
 			children = (
-				6F2DE04A1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.h */,
-				6F2DE04B1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m */,
 				4A2CCFFC1513C3FC006C6551 /* GutsyStorm */,
 				6F186B2E1CD4216D0018FF5F /* GutsyStormTests */,
 				4A2CCFF31513C3FC006C6551 /* Products */,
@@ -375,6 +374,17 @@
 			path = GutsyStormTests;
 			sourceTree = "<group>";
 		};
+		6F2DE04D1CD86C6B00BD2719 /* Operations */ = {
+			isa = PBXGroup;
+			children = (
+				6FAC70B21CD7B78B00F87554 /* GSTerrainModifyBlockOperation.h */,
+				6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */,
+				6F2DE04A1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.h */,
+				6F2DE04B1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m */,
+			);
+			name = Operations;
+			sourceTree = "<group>";
+		};
 		6F7ACC0D1CC46FBF0084BAC5 /* Journal */ = {
 			isa = PBXGroup;
 			children = (
@@ -457,20 +467,18 @@
 				ACDD767216F6629D008169D1 /* GSTerrainBuffer.m */,
 				ACE8F00A16FE6A7D00ABA2AD /* GSMutableBuffer.h */,
 				ACE8F00B16FE6A7D00ABA2AD /* GSMutableBuffer.m */,
-				6F084A201CD6B8320029DB6F /* GSTerrainCursor.h */,
-				6F084A211CD6B8320029DB6F /* GSTerrainCursor.m */,
-				13C8BE1B16038DC000403815 /* GSActiveRegion.h */,
-				13C8BE1C16038DC000403815 /* GSActiveRegion.m */,
 				13C8BE161602854300403815 /* GSNeighborhood.h */,
 				13C8BE171602854300403815 /* GSNeighborhood.m */,
+				6F084A201CD6B8320029DB6F /* GSTerrainCursor.h */,
+				6F084A211CD6B8320029DB6F /* GSTerrainCursor.m */,
+				13C8BE1B16038DC000403815 /* GSTerrainActiveRegion.h */,
+				13C8BE1C16038DC000403815 /* GSTerrainActiveRegion.m */,
 				6F084A1D1CD6B5560029DB6F /* GSTerrainRayMarcher.h */,
 				6F084A1E1CD6B5560029DB6F /* GSTerrainRayMarcher.m */,
 				6F084A231CD6BD7B0029DB6F /* GSTerrainGenerator.h */,
 				6F084A241CD6BD7B0029DB6F /* GSTerrainGenerator.m */,
 				AC5B2802151E2C1D0045B6E4 /* GSTerrainChunkStore.h */,
 				AC5B2803151E2C1D0045B6E4 /* GSTerrainChunkStore.m */,
-				6FAC70B21CD7B78B00F87554 /* GSTerrainModifyBlockOperation.h */,
-				6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */,
 			);
 			name = Util;
 			sourceTree = "<group>";
@@ -659,7 +667,7 @@
 				6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */,
 				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,
 				13C8BE191602854300403815 /* GSNeighborhood.m in Sources */,
-				13C8BE1D16038DC000403815 /* GSActiveRegion.m in Sources */,
+				13C8BE1D16038DC000403815 /* GSTerrainActiveRegion.m in Sources */,
 				AC3767A2163DFB4000BAE03F /* GSErrorCodes.m in Sources */,
 				AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */,
 				6F084A251CD6BD7B0029DB6F /* GSTerrainGenerator.m in Sources */,

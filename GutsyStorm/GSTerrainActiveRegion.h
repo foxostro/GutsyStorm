@@ -1,5 +1,5 @@
 //
-//  GSActiveRegion.h
+//  GSTerrainActiveRegion.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 9/14/12.
@@ -15,7 +15,7 @@
 @class GSTerrainChunkStore;
 
 
-@interface GSActiveRegion : NSObject
+@interface GSTerrainActiveRegion : NSObject
 
 /* Constructor.
  *

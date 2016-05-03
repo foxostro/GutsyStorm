@@ -21,7 +21,7 @@
 #import "GSTerrainJournal.h"
 #import "GSTerrainRayMarcher.h"
 #import "GSTerrainGenerator.h"
-#import "GSActiveRegion.h"
+#import "GSTerrainActiveRegion.h"
 #import "GSTerrainModifyBlockOperation.h"
 #import "GSTerrainApplyJournalOperation.h"
 #import "GSActivity.h"
@@ -38,7 +38,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     GSTerrainChunkStore *_chunkStore;
     GSTerrainRayMarcher *_chunkStoreRayMarcher;
     GSTerrainCursor *_cursor;
-    GSActiveRegion *_activeRegion;
+    GSTerrainActiveRegion *_activeRegion;
     vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
     GSShader *_terrainShader;
 }
@@ -180,7 +180,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
             GSStopwatchTraceEnd(@"GSTerrainApplyJournalOperation");
         }
 
-        _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
+        _activeRegion = [[GSTerrainActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
                                                                     camera:_camera
                                                                 chunkStore:_chunkStore];
     }
