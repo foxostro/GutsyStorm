@@ -22,6 +22,7 @@
 #import "GSTerrainRayMarcher.h"
 #import "GSTerrainGenerator.h"
 #import "GSTerrainModifyBlockOperation.h"
+#import "GSActiveRegion.h"
 
 #import <OpenGL/gl.h>
 
@@ -35,6 +36,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     GSTerrainChunkStore *_chunkStore;
     GSTerrainRayMarcher *_chunkStoreRayMarcher;
     GSTerrainCursor *_cursor;
+    GSActiveRegion *_activeRegion;
+    vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
+    GSShader *_terrainShader;
 }
 
 @synthesize chunkStore = _chunkStore;
@@ -94,6 +98,32 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     return terrainShader;
 }
 
++ (nonnull NSURL *)newTerrainCacheFolderURL
+{
+    NSArray<NSString *> *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    NSString *folder = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+    
+    folder = [folder stringByAppendingPathComponent:bundleIdentifier];
+    folder = [folder stringByAppendingPathComponent:@"terrain-cache"];
+    NSLog(@"ChunkStore will cache terrain data in folder: %@", folder);
+    
+    if(![[NSFileManager defaultManager] createDirectoryAtPath:folder
+                                  withIntermediateDirectories:YES
+                                                   attributes:nil
+                                                        error:NULL]) {
+        NSLog(@"Failed to create terrain cache folder: %@", folder);
+    }
+    
+    NSURL *url = [[NSURL alloc] initFileURLWithPath:folder isDirectory:YES];
+    
+    if(![url checkResourceIsReachableAndReturnError:NULL]) {
+        NSLog(@"ChunkStore's terrain cache folder is not reachable: %@", folder);
+    }
+    
+    return url;
+}
+
 - (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
                                  camera:(nonnull GSCamera *)cam
                               glContext:(nonnull NSOpenGLContext *)context
@@ -101,21 +131,35 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     assert(checkGLErrors() == 0);
 
     if (self = [super init]) {
+        // Active region is bounded at y>=0.
+        const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
+        _activeRegionExtent = vector_make(w, CHUNK_SIZE_Y, w);
+        
         _journal = journal;
         _camera = cam;
+        
+        _terrainShader = [self newTerrainShader];
+
         _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle mainBundle] pathForResource:@"terrain"
                                                                                                   ofType:@"png"]
                                                       numTextures:4];
+
         _chunkStore = [[GSTerrainChunkStore alloc] initWithJournal:journal
+                                                       cacheFolder:[[self class] newTerrainCacheFolderURL]
                                                             camera:cam
-                                                     terrainShader:[self newTerrainShader]
                                                          glContext:context
                                                          generator:[[GSTerrainGenerator alloc] initWithRandomSeed:journal.randomSeed]];
+
         _chunkStoreRayMarcher = [[GSTerrainRayMarcher alloc] initWithChunkStore:_chunkStore];
+
         _cursor = [[GSTerrainCursor alloc] initWithChunkStore:_chunkStore
                                                        camera:cam
                                                    cube:[[GSCube alloc] initWithContext:context
                                                                                  shader:[self newCursorShader]]];
+
+        _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
+                                                                    camera:_camera
+                                                                chunkStore:_chunkStore];
     }
     return self;
 }
@@ -123,10 +167,18 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 - (void)draw
 {
     static const float edgeOffset = 1e-4;
+
+    matrix_float4x4 translation = GSMatrixFromTranslation(vector_make(0.5f, 0.5f, 0.5f));
+    matrix_float4x4 modelView = matrix_multiply(translation, _camera.modelViewMatrix);
+    matrix_float4x4 mvp = matrix_multiply(modelView, _camera.projectionMatrix);
+
     glDepthRange(edgeOffset, 1.0); // Use glDepthRange so the block cursor is properly offset from the block itself.
 
     [_textureArray bind];
-    [_chunkStore drawActiveChunks];
+    [_terrainShader bind];
+    [_terrainShader bindUniformWithMatrix4x4:mvp name:@"mvp"];
+    [_activeRegion draw];
+    [_terrainShader unbind];
     [_textureArray unbind];
     
     glDepthRange(0.0, 1.0 - edgeOffset);
@@ -135,15 +187,30 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     glDepthRange(0.0, 1.0);
 }
 
-- (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)cameraModifiedFlags
+- (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)flags
 {
-    [_cursor updateWithCameraModifiedFlags:cameraModifiedFlags];
-    [_chunkStore updateWithCameraModifiedFlags:cameraModifiedFlags];
+    [_cursor updateWithCameraModifiedFlags:flags];
+    [_activeRegion updateWithCameraModifiedFlags:flags];
 }
 
 - (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status
 {
     [_chunkStore memoryPressure:status];
+
+    switch(status)
+    {
+        case DISPATCH_MEMORYPRESSURE_NORMAL:
+            // do nothing
+            break;
+            
+        case DISPATCH_MEMORYPRESSURE_WARN:
+            // do nothing
+            break;
+            
+        case DISPATCH_MEMORYPRESSURE_CRITICAL:
+            [_activeRegion clearDrawList];
+            break;
+    }
 }
 
 - (void)printInfo
@@ -192,6 +259,9 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 - (void)shutdown
 {
+    [_activeRegion shutdown];
+    _activeRegion = nil;
+
     [_chunkStore shutdown];
     _chunkStore = nil;
 

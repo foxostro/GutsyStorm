@@ -1,5 +1,5 @@
 //
-//  GSChunkStore.m
+//  GSTerrainChunkStore.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
@@ -9,7 +9,6 @@
 #import "GSIntegerVector3.h"
 #import "GSRay.h"
 #import "GSCamera.h"
-#import "GSActiveRegion.h"
 #import "GSShader.h"
 #import "GSTerrainChunkStore.h"
 #import "GSBoxedVector.h"
@@ -31,16 +30,6 @@
 #import <OpenGL/gl.h>
 
 
-@interface GSTerrainChunkStore ()
-
-+ (nonnull NSURL *)newTerrainCacheFolderURL;
-
-- (void)createGrids;
-- (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam;
-
-@end
-
-
 @implementation GSTerrainChunkStore
 {
     dispatch_group_t _groupForSaving;
@@ -52,8 +41,6 @@
     NSOpenGLContext *_glContext;
     GSTerrainJournal *_journal;
     GSTerrainGenerator *_generator;
-    GSActiveRegion *_activeRegion;
-    vector_float3 _activeRegionExtent; // The active region is specified relative to the camera position.
 }
 
 - (nonnull GSChunkVoxelData *)newVoxelChunkAtPoint:(vector_float3)pos
@@ -107,51 +94,34 @@
                                            glContext:_glContext];
 }
 
-- (void)createGrids
-{
-    assert(!_chunkStoreHasBeenShutdown);
-
-    _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"];
-    _gridSunlightData = [[GSGrid alloc] initWithName:@"gridSunlightData"];
-    _gridGeometryData = [[GSGrid alloc] initWithName:@"gridGeometryData"];
-    _gridVAO = [[GSGrid alloc] initWithName:@"gridVAO"];
-}
-
-- (void)setupActiveRegionWithCamera:(nonnull GSCamera *)cam
-{
-    assert(!_chunkStoreHasBeenShutdown);
-    NSParameterAssert(cam);
-
-    // Active region is bounded at y>=0.
-    const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
-    _activeRegionExtent = vector_make(w, CHUNK_SIZE_Y, w);
-    _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent camera:cam chunkStore:self];
-}
-
 - (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
+                            cacheFolder:(nonnull NSURL *)url
                                  camera:(nonnull GSCamera *)camera
-                          terrainShader:(nonnull GSShader *)terrainShader
                               glContext:(nonnull NSOpenGLContext *)glContext
                               generator:(nonnull GSTerrainGenerator *)generator
 {
     if (self = [super init]) {
-        _folder = [GSTerrainChunkStore newTerrainCacheFolderURL];
+        _folder = url;
         _groupForSaving = dispatch_group_create();
         _chunkStoreHasBeenShutdown = NO;
         _camera = camera;
-        _terrainShader = terrainShader;
         _glContext = glContext;
         _generator = generator;
         _journal = journal;
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
 
-        [self createGrids];
-        [self setupActiveRegionWithCamera:camera];
+        _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"];
+        _gridSunlightData = [[GSGrid alloc] initWithName:@"gridSunlightData"];
+        _gridGeometryData = [[GSGrid alloc] initWithName:@"gridGeometryData"];
+        _gridVAO = [[GSGrid alloc] initWithName:@"gridVAO"];
         
         // If the cache folder is empty then apply the journal to rebuild it.
         // Since rebuilding from the journal is expensive, we avoid doing unless we have no choice.
         // Also, this provides a pretty easy way for the user to force a rebuild when they need it.
-        NSArray *cacheContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[_folder path] error:nil];
+        NSArray *cacheContents = nil;
+        if (_folder) {
+            cacheContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[_folder path] error:nil];
+        }
         if (!cacheContents || cacheContents.count == 0) {
             [self applyJournal:journal];
         }
@@ -169,10 +139,6 @@
     assert(_gridVAO);
     assert(_groupForSaving);
     assert(_queueForSaving);
-
-    // Shutdown the active region, which maintains it's own queue of async updates.
-    [_activeRegion shutdown];
-    _activeRegion = nil;
 
     // Wait for save operations to complete.
     NSLog(@"Waiting for all chunk-saving tasks to complete.");
@@ -196,28 +162,6 @@
 
     _groupForSaving = NULL;
     _queueForSaving = NULL;
-}
-
-- (void)drawActiveChunks
-{
-    assert(_terrainShader);
-    assert(_activeRegion);
-
-    matrix_float4x4 translation = GSMatrixFromTranslation(vector_make(0.5f, 0.5f, 0.5f));
-    matrix_float4x4 modelView = matrix_multiply(translation, _camera.modelViewMatrix);
-    matrix_float4x4 mvp = matrix_multiply(modelView, _camera.projectionMatrix);
-
-    [_terrainShader bind];
-    [_terrainShader bindUniformWithMatrix4x4:mvp name:@"mvp"];
-    [_activeRegion draw];
-    [_terrainShader unbind];
-}
-
-- (void)updateWithCameraModifiedFlags:(unsigned)flags
-{
-    assert(!_chunkStoreHasBeenShutdown);
-    assert(_activeRegion);
-    [_activeRegion updateWithCameraModifiedFlags:flags];
 }
 
 - (void)applyJournal:(nonnull GSTerrainJournal *)journal
@@ -290,7 +234,6 @@
 - (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
-    assert(p.y >= 0 && p.y < _activeRegionExtent.y);
     assert(_gridGeometryData);
 
     GSChunkGeometryData *geo = nil;
@@ -311,8 +254,6 @@
 - (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
-    NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
-    assert(_gridSunlightData);
     
     GSChunkSunlightData *sunlight = nil;
     GSGridSlot *slot = [_gridSunlightData slotAtPoint:p];
@@ -332,8 +273,6 @@
 - (nonnull GSChunkVoxelData *)chunkVoxelsAtPoint:(vector_float3)p
 {
     assert(!_chunkStoreHasBeenShutdown);
-    NSParameterAssert(p.y >= 0 && p.y < _activeRegionExtent.y);
-    assert(_gridVoxelData);
     
     GSChunkVoxelData *voxels = nil;
     GSGridSlot *slot = [_gridVoxelData slotAtPoint:p];
@@ -348,32 +287,6 @@
     [slot.lock unlockForWriting];
     
     return voxels;
-}
-
-+ (nonnull NSURL *)newTerrainCacheFolderURL
-{
-    NSArray<NSString *> *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-    NSString *folder = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
-    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-
-    folder = [folder stringByAppendingPathComponent:bundleIdentifier];
-    folder = [folder stringByAppendingPathComponent:@"terrain-cache"];
-    NSLog(@"ChunkStore will cache terrain data in folder: %@", folder);
-    
-    if(![[NSFileManager defaultManager] createDirectoryAtPath:folder
-                                  withIntermediateDirectories:YES
-                                                   attributes:nil
-                                                        error:NULL]) {
-        NSLog(@"Failed to create terrain cache folder: %@", folder);
-    }
-    
-    NSURL *url = [[NSURL alloc] initFileURLWithPath:folder isDirectory:YES];
-    
-    if(![url checkResourceIsReachableAndReturnError:NULL]) {
-        NSLog(@"ChunkStore's terrain cache folder is not reachable: %@", folder);
-    }
-    
-    return url;
 }
 
 - (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status
@@ -408,7 +321,6 @@
             [_gridSunlightData evictAllItems];
             [_gridGeometryData evictAllItems];
             [_gridVAO evictAllItems];
-            [_activeRegion clearDrawList];
             break;
     }
 }

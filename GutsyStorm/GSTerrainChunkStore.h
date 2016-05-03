@@ -1,5 +1,5 @@
 //
-//  GSChunkStore.h
+//  GSTerrainChunkStore.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 3/24/12.
@@ -30,17 +30,10 @@
 @property (nonatomic, nonnull, readonly) GSGrid *gridVoxelData;
 
 - (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
+                            cacheFolder:(nonnull NSURL *)url
                                  camera:(nonnull GSCamera *)camera
-                          terrainShader:(nonnull GSShader *)terrainShader
                               glContext:(nonnull NSOpenGLContext *)glContext
                               generator:(nonnull GSTerrainGenerator *)generator;
-
-/* Assumes the caller has already locked the GL context or
- * otherwise ensures no concurrent GL calls will be made.
- */
-- (void)drawActiveChunks;
-
-- (void)updateWithCameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
 - (nonnull GSChunkGeometryData *)chunkGeometryAtPoint:(vector_float3)p;
 - (nonnull GSChunkSunlightData *)chunkSunlightAtPoint:(vector_float3)p;
