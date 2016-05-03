@@ -24,11 +24,12 @@
 + (nonnull NSString *)fileNameForVoxelDataFromMinP:(vector_float3)minP;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minP
-                              folder:(nullable NSURL *)folder
+                              folder:(nonnull NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                             journal:(nonnull GSTerrainJournal *)journal
-                           generator:(nonnull GSTerrainGenerator *)generator;
+                             journal:(nullable GSTerrainJournal *)journal
+                           generator:(nonnull GSTerrainGenerator *)generator
+                        allowLoading:(BOOL)allowLoading;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minP
                               folder:(nullable NSURL *)folder

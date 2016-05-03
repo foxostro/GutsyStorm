@@ -22,10 +22,11 @@
 + (nonnull NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                              folder:(nullable NSURL *)folder
+                              folder:(nonnull NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                        neighborhood:(nonnull GSNeighborhood *)neighborhood;
+                        neighborhood:(nonnull GSNeighborhood *)neighborhood
+                        allowLoading:(BOOL)allowLoading;
 
 - (nonnull instancetype)copyWithEditAtPoint:(vector_float3)p neighborhood:(nonnull GSNeighborhood *)neighborhood;
 

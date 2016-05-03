@@ -6,10 +6,6 @@
 //  Copyright © 2012-2016 Andrew Fox. All rights reserved.
 //
 
-#import "GSIntegerVector3.h"
-#import "GSRay.h"
-#import "GSCamera.h"
-#import "GSShader.h"
 #import "GSTerrainChunkStore.h"
 #import "GSBoxedVector.h"
 #import "GSNeighborhood.h"
@@ -18,16 +14,7 @@
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 #import "GSGrid.h"
-#import "GSMatrixUtils.h"
-#import "GSActivity.h"
-#import "GSTerrainJournal.h"
-#import "GSTerrainJournalEntry.h"
-#import "GSReaderWriterLock.h"
 #import "GSGridSlot.h"
-#import "GSTerrainGenerator.h"
-#import "GSTerrainModifyBlockOperation.h"
-
-#import <OpenGL/gl.h>
 
 
 @implementation GSTerrainChunkStore
@@ -51,7 +38,8 @@
                                    groupForSaving:_groupForSaving
                                    queueForSaving:_queueForSaving
                                           journal:_journal
-                                        generator:_generator];
+                                        generator:_generator
+                                     allowLoading:_enableLoadingFromCacheFolder];
 }
 
 - (nonnull GSChunkSunlightData *)newSunlightChunkAtPoint:(vector_float3)pos
@@ -71,7 +59,8 @@
                                               folder:_folder
                                       groupForSaving:_groupForSaving
                                       queueForSaving:_queueForSaving
-                                        neighborhood:neighborhood];
+                                        neighborhood:neighborhood
+                                        allowLoading:_enableLoadingFromCacheFolder];
 }
 
 - (nonnull GSChunkGeometryData *)newGeometryChunkAtPoint:(vector_float3)pos
@@ -83,7 +72,7 @@
                                             sunlight:sunlight
                                       groupForSaving:_groupForSaving
                                       queueForSaving:_queueForSaving
-                                        allowLoading:YES];
+                                        allowLoading:_enableLoadingFromCacheFolder];
 }
 
 - (nonnull GSChunkVAO *)newVAOChunkAtPoint:(vector_float3)pos
@@ -109,25 +98,22 @@
         _generator = generator;
         _journal = journal;
         _queueForSaving = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+        _enableLoadingFromCacheFolder = YES;
 
         _gridVoxelData = [[GSGrid alloc] initWithName:@"gridVoxelData"];
         _gridSunlightData = [[GSGrid alloc] initWithName:@"gridSunlightData"];
         _gridGeometryData = [[GSGrid alloc] initWithName:@"gridGeometryData"];
         _gridVAO = [[GSGrid alloc] initWithName:@"gridVAO"];
-        
-        // If the cache folder is empty then apply the journal to rebuild it.
-        // Since rebuilding from the journal is expensive, we avoid doing unless we have no choice.
-        // Also, this provides a pretty easy way for the user to force a rebuild when they need it.
-        NSArray *cacheContents = nil;
-        if (_folder) {
-            cacheContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[_folder path] error:nil];
-        }
-        if (!cacheContents || cacheContents.count == 0) {
-            [self applyJournal:journal];
-        }
     }
     
     return self;
+}
+
+- (void)flushSaveQueue
+{
+    NSLog(@"Waiting for all chunk-saving tasks to complete.");
+    dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
+    NSLog(@"All chunks have been saved.");
 }
 
 - (void)shutdown
@@ -140,10 +126,7 @@
     assert(_groupForSaving);
     assert(_queueForSaving);
 
-    // Wait for save operations to complete.
-    NSLog(@"Waiting for all chunk-saving tasks to complete.");
-    dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
-    NSLog(@"All chunks have been saved.");
+    [self flushSaveQueue];
     
     // From this point on, we do not expect anyone to access the chunk store data.
     _chunkStoreHasBeenShutdown = YES;
@@ -162,29 +145,6 @@
 
     _groupForSaving = NULL;
     _queueForSaving = NULL;
-}
-
-- (void)applyJournal:(nonnull GSTerrainJournal *)journal
-{
-    // XXX: Should applyJournal even be a part of GSTerrainChunkStore?
-    NSParameterAssert(journal);
-
-    assert(!_chunkStoreHasBeenShutdown);
-    
-    GSStopwatchTraceBegin(@"applyJournal");
-    
-    for(GSTerrainJournalEntry *entry in journal.journalEntries)
-    {
-        GSTerrainModifyBlockOperation *op;
-        op = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:self
-                                                                 block:entry.value
-                                                              position:[entry.position vectorValue]
-                                                               journal:nil];
-        [op main];
-    }
-
-    dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
-    GSStopwatchTraceEnd(@"applyJournal");
 }
 
 - (nullable GSChunkVAO *)tryToGetVaoAtPoint:(vector_float3)pos

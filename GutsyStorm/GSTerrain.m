@@ -21,8 +21,10 @@
 #import "GSTerrainJournal.h"
 #import "GSTerrainRayMarcher.h"
 #import "GSTerrainGenerator.h"
-#import "GSTerrainModifyBlockOperation.h"
 #import "GSActiveRegion.h"
+#import "GSTerrainModifyBlockOperation.h"
+#import "GSTerrainApplyJournalOperation.h"
+#import "GSActivity.h"
 
 #import <OpenGL/gl.h>
 
@@ -131,6 +133,8 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     assert(checkGLErrors() == 0);
 
     if (self = [super init]) {
+        NSURL *cacheFolder = [[self class] newTerrainCacheFolderURL];
+
         // Active region is bounded at y>=0.
         const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         _activeRegionExtent = vector_make(w, CHUNK_SIZE_Y, w);
@@ -145,7 +149,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                       numTextures:4];
 
         _chunkStore = [[GSTerrainChunkStore alloc] initWithJournal:journal
-                                                       cacheFolder:[[self class] newTerrainCacheFolderURL]
+                                                       cacheFolder:cacheFolder
                                                             camera:cam
                                                          glContext:context
                                                          generator:[[GSTerrainGenerator alloc] initWithRandomSeed:journal.randomSeed]];
@@ -154,8 +158,27 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
         _cursor = [[GSTerrainCursor alloc] initWithChunkStore:_chunkStore
                                                        camera:cam
-                                                   cube:[[GSCube alloc] initWithContext:context
-                                                                                 shader:[self newCursorShader]]];
+                                                         cube:[[GSCube alloc] initWithContext:context
+                                                                                       shader:[self newCursorShader]]];
+        
+        // If the cache folder is empty then apply the journal to rebuild it.
+        // Since rebuilding from the journal is expensive, we avoid doing unless we have no choice.
+        // Also, this provides a pretty easy way for the user to force a rebuild when they need it.
+        NSArray *cacheContents = nil;
+        if (cacheFolder) {
+            NSError *error = nil;
+            cacheContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[cacheFolder path] error:&error];
+            if (!cacheContents) {
+                NSLog(@"Error while examining terrain cache folder: %@", error);
+            }
+        }
+        if (!cacheContents || cacheContents.count == 0) {
+            GSStopwatchTraceBegin(@"GSTerrainApplyJournalOperation");
+            GSTerrainApplyJournalOperation *op;
+            op = [[GSTerrainApplyJournalOperation alloc] initWithJournal:_journal chunkStore:_chunkStore];
+            [op main];
+            GSStopwatchTraceEnd(@"GSTerrainApplyJournalOperation");
+        }
 
         _activeRegion = [[GSActiveRegion alloc] initWithActiveRegionExtent:_activeRegionExtent
                                                                     camera:_camera

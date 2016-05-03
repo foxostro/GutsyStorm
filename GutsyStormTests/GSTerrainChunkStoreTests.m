@@ -84,8 +84,8 @@
                                                                journal:nil];
     
     [self measureBlock:^{
-        [place run];
-        [remove run];
+        [place main];
+        [remove main];
     }];
 }
 

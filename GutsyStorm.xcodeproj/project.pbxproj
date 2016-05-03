@@ -36,6 +36,7 @@
 		6F186B3E1CD431790018FF5F /* GSChunkVoxelDataTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F186B3D1CD431790018FF5F /* GSChunkVoxelDataTests.m */; };
 		6F186B401CD431A10018FF5F /* GSGridTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F186B3F1CD431A10018FF5F /* GSGridTests.m */; };
 		6F186B421CD452B90018FF5F /* GSChunkSunlightDataTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F186B411CD452B90018FF5F /* GSChunkSunlightDataTests.m */; };
+		6F2DE04C1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F2DE04B1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m */; };
 		6F6158081BD69C8E00243A61 /* GSOpenGLViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */; };
 		6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F6AA69C1CB1CAF20039F8A4 /* GSVAOHolder.m */; };
 		6F7ACC0B1CC46FAF0084BAC5 /* GSTerrainJournalEntry.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F7ACC071CC46FAF0084BAC5 /* GSTerrainJournalEntry.m */; };
@@ -149,6 +150,8 @@
 		6F186B3D1CD431790018FF5F /* GSChunkVoxelDataTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GSChunkVoxelDataTests.m; path = GutsyStormTests/GSChunkVoxelDataTests.m; sourceTree = SOURCE_ROOT; };
 		6F186B3F1CD431A10018FF5F /* GSGridTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridTests.m; sourceTree = "<group>"; };
 		6F186B411CD452B90018FF5F /* GSChunkSunlightDataTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSChunkSunlightDataTests.m; sourceTree = "<group>"; };
+		6F2DE04A1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GSTerrainApplyJournalOperation.h; path = GutsyStorm/GSTerrainApplyJournalOperation.h; sourceTree = "<group>"; };
+		6F2DE04B1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GSTerrainApplyJournalOperation.m; path = GutsyStorm/GSTerrainApplyJournalOperation.m; sourceTree = "<group>"; };
 		6F6158061BD69C8E00243A61 /* GSOpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLViewController.h; sourceTree = "<group>"; };
 		6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLViewController.m; sourceTree = "<group>"; };
 		6F6AA69B1CB1BCA60039F8A4 /* GSStopwatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSStopwatch.h; sourceTree = "<group>"; };
@@ -271,6 +274,8 @@
 		4A2CCFE71513C3FC006C6551 = {
 			isa = PBXGroup;
 			children = (
+				6F2DE04A1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.h */,
+				6F2DE04B1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m */,
 				4A2CCFFC1513C3FC006C6551 /* GutsyStorm */,
 				6F186B2E1CD4216D0018FF5F /* GutsyStormTests */,
 				4A2CCFF31513C3FC006C6551 /* Products */,
@@ -648,6 +653,7 @@
 				6F7ACC0B1CC46FAF0084BAC5 /* GSTerrainJournalEntry.m in Sources */,
 				4A95D39F154645920042C081 /* GSReaderWriterLock.m in Sources */,
 				6F7ACC101CC4700A0084BAC5 /* GSActivity.m in Sources */,
+				6F2DE04C1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m in Sources */,
 				6FAC70B41CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m in Sources */,
 				6F7ACC0C1CC46FAF0084BAC5 /* GSTerrainJournal.m in Sources */,
 				6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */,

@@ -73,12 +73,17 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)mp
-                              folder:(nullable NSURL *)folder
+                              folder:(nonnull NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                             journal:(nonnull GSTerrainJournal *)journal
+                             journal:(nullable GSTerrainJournal *)journal
                            generator:(nonnull GSTerrainGenerator *)generator
+                        allowLoading:(BOOL)allowLoading
 {
+    NSParameterAssert(folder);
+    NSParameterAssert(groupForSaving);
+    NSParameterAssert(queueForSaving);
+    NSParameterAssert(generator);
     NSParameterAssert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
     if (self = [super init]) {
@@ -96,12 +101,11 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         BOOL failedToLoadFromFile = YES;
         GSTerrainBuffer *buffer = nil;
         NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:minP];
-        NSURL *url = nil;
+        NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
         NSError *error = nil;
         NSData *data = nil;
         
-        if (_folder) {
-            url = [NSURL URLWithString:fileName relativeToURL:_folder];
+        if (allowLoading) {
             data = [NSData dataWithContentsOfFile:[url path]
                                           options:NSDataReadingMapped
                                             error:&error];
@@ -115,8 +119,8 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                 // from errors.
                 effectiveJournal = nil;
             } else {
-                // Squelch the error message if we explicitly received nil for the cache folder
-                if (_folder) {
+                // Squelch the error message if we were explicitly instructed to not load from file.
+                if (allowLoading) {
                     NSLog(@"ERROR: Failed to load voxel data for chunk at \"%@\": %@", fileName, error);
                 }
             }
@@ -140,12 +144,12 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                 .d = CHUNK_SIZE_Z,
                 .len = (uint64_t)BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)
             };
-            if (url) {
-                [buffer saveToFile:url
-                             queue:_queueForSaving
-                             group:_groupForSaving
-                            header:[NSData dataWithBytes:&header length:sizeof(header)]];
-            }
+            
+            [buffer saveToFile:url
+                         queue:_queueForSaving
+                         group:_groupForSaving
+                        header:[NSData dataWithBytes:&header length:sizeof(header)]];
+
             GSStopwatchTraceStep(@"Generated voxel chunk contents.");
         }
         

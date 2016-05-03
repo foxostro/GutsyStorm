@@ -29,6 +29,9 @@
 @property (nonatomic, nonnull, readonly) GSGrid *gridSunlightData;
 @property (nonatomic, nonnull, readonly) GSGrid *gridVoxelData;
 
+// Prevents all loading from the terrain cache folder during certain operations such as when applying the journal.
+@property (nonatomic, readwrite) BOOL enableLoadingFromCacheFolder;
+
 - (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
                             cacheFolder:(nonnull NSURL *)url
                                  camera:(nonnull GSCamera *)camera
@@ -64,5 +67,8 @@
  * For example, synchronize with the disk one last time and resources.
  */
 - (void)shutdown;
+
+/* Flush the queue used to save chunks to the cache folder asynchronously. */
+- (void)flushSaveQueue;
 
 @end

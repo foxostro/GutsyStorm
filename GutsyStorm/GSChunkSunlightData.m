@@ -46,20 +46,25 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                              folder:(nullable NSURL *)folder
+                              folder:(nonnull NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                         neighborhood:(nonnull GSNeighborhood *)neighborhood
+                        allowLoading:(BOOL)allowLoading
 {
-    if(self = [super init]) {
-        assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
+    NSParameterAssert(folder);
+    NSParameterAssert(groupForSaving);
+    NSParameterAssert(queueForSaving);
+    NSParameterAssert(neighborhood);
+    assert(CHUNK_LIGHTING_MAX < MIN(CHUNK_SIZE_X, CHUNK_SIZE_Z));
 
+    if(self = [super init]) {
         minP = minCorner;
         _folder = folder;
         _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _neighborhood = neighborhood;
-        _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder];
+        _sunlight = [self newSunlightBufferWithNeighborhood:neighborhood folder:folder allowLoading:allowLoading];
     }
     return self;
 }
@@ -77,7 +82,8 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
                                        folder:_folder
                                groupForSaving:_groupForSaving
                                queueForSaving:_queueForSaving
-                                 neighborhood:neighborhood];
+                                 neighborhood:neighborhood
+                                 allowLoading:NO];
 }
 
 /* Copy the voxel data for the neighborhood into a new buffer and return the buffer. If the method would block when taking the
@@ -239,8 +245,10 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
 - (nonnull GSTerrainBuffer *)newSunlightBufferWithNeighborhood:(nonnull GSNeighborhood *)neighborhood
                                                         folder:(nonnull NSURL *)folder
+                                                  allowLoading:(BOOL)allowLoading
 {
     NSParameterAssert(neighborhood);
+    NSParameterAssert(folder);
 
     GSStopwatchTraceStep(@"newSunlightBufferWithNeighborhood enter");
 
@@ -248,12 +256,11 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
 
     BOOL failedToLoadFromFile = YES;
     NSString *fileName = [GSChunkSunlightData fileNameForSunlightDataFromMinP:self.minP];
-    NSURL *url = nil;
+    NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
     NSError *error = nil;
     NSData *data = nil;
     
-    if (folder) {
-        url = [NSURL URLWithString:fileName relativeToURL:folder];
+    if (allowLoading) {
         data = [NSData dataWithContentsOfFile:[url path]
                                       options:NSDataReadingMapped
                                         error:&error];
@@ -272,16 +279,16 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
     } else if ([error.domain isEqualToString:NSCocoaErrorDomain] && (error.code == 260)) {
         // File not found. We don't have to log this one because it's common and we know how to recover.
     } else {
-        // Squelch the error message if we explicitly received nil for the cache folder
-        if (folder) {
+        // Squelch the error message if we were explicitly instructed to not load from file.
+        if (allowLoading) {
             NSLog(@"ERROR: Failed to load sunlight data for chunk at \"%@\": %@", fileName, error);
         }
     }
     
     if (failedToLoadFromFile) {
-        GSVoxel *data = [self newVoxelBufferWithNeighborhood:neighborhood];
-        buffer = [self newSunlightBufferUsingCombinedVoxelData:data];
-        free(data);
+        GSVoxel *voxels = [self newVoxelBufferWithNeighborhood:neighborhood];
+        buffer = [self newSunlightBufferUsingCombinedVoxelData:voxels];
+        free(voxels);
 
         struct GSChunkSunlightHeader header = {
             .magic = SUNLIGHT_MAGIC,
@@ -293,12 +300,10 @@ static const vector_long3 sunlightDim = {CHUNK_SIZE_X+2, CHUNK_SIZE_Y, CHUNK_SIZ
             .len = (uint64_t)BUFFER_SIZE_IN_BYTES(sunlightDim)
         };
 
-        if (url) {
-            [buffer saveToFile:url
-                         queue:_queueForSaving
-                         group:_groupForSaving
-                        header:[NSData dataWithBytes:&header length:sizeof(header)]];
-        }
+        [buffer saveToFile:url
+                     queue:_queueForSaving
+                     group:_groupForSaving
+                    header:[NSData dataWithBytes:&header length:sizeof(header)]];
         
         GSStopwatchTraceStep(@"Generated sunlight data for chunk.");
     }
