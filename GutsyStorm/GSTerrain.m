@@ -165,7 +165,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                                          block:block
                                                                       position:_cursor.cursorPlacePos
                                                                        journal:_journal];
-        [placeBlock run];
+        [placeBlock main];
 
         [_cursor recalcCursorPosition];
     }
@@ -184,7 +184,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                                                          block:block
                                                                       position:_cursor.cursorPos
                                                                        journal:_journal];
-        [placeBlock run];
+        [placeBlock main];
         
         [_cursor recalcCursorPosition];
     }

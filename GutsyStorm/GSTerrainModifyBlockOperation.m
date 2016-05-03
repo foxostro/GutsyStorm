@@ -167,7 +167,7 @@
     return set;
 }
 
-- (void)run
+- (void)main
 {
     GSBoxedVector *boxedPos = [GSBoxedVector boxedVectorWithVector:_pos];
     

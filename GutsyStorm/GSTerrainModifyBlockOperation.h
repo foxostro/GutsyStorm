@@ -15,13 +15,12 @@
 @class GSTerrainJournal;
 
 
-@interface GSTerrainModifyBlockOperation : NSObject
+@interface GSTerrainModifyBlockOperation : NSOperation
 
 - (nonnull instancetype)init NS_UNAVAILABLE;
 - (nonnull instancetype)initWithChunkStore:(nonnull GSTerrainChunkStore *)chunkStore
                                      block:(GSVoxel)block
                                   position:(vector_float3)pos
                                    journal:(nullable GSTerrainJournal *)journal NS_DESIGNATED_INITIALIZER;
-- (void)run;
 
 @end

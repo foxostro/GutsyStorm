@@ -236,7 +236,7 @@
                                                                  block:entry.value
                                                               position:[entry.position vectorValue]
                                                                journal:nil];
-        [op run];
+        [op main];
     }
 
     dispatch_group_wait(_groupForSaving, DISPATCH_TIME_FOREVER);
