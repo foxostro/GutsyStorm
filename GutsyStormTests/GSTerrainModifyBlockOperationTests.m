@@ -15,11 +15,11 @@
 #import "GSNeighborhood.h"
 #import "GSTerrainModifyBlockOperation.h"
 
-@interface GSTerrainChunkStoreTests : XCTestCase
+@interface GSTerrainModifyBlockOperationTests : XCTestCase
 
 @end
 
-@implementation GSTerrainChunkStoreTests
+@implementation GSTerrainModifyBlockOperationTests
 {
     GSTerrain *_terrain;
     GSTerrainChunkStore *_chunkStore;
