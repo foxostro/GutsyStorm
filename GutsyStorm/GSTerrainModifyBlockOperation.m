@@ -24,60 +24,130 @@
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
 
 
-@implementation GSTerrainModifyBlockOperation
+static void logEditInJournal(GSTerrainJournal * _Nullable journal,
+                             GSVoxel blockToPlace,
+                             vector_float3 editPos)
 {
-    GSTerrainChunkStore *_chunkStore;
-    GSVoxel _block;
-    vector_float3 _pos;
-    GSTerrainJournal *_journal;
-}
-
-- (nonnull instancetype)init NS_UNAVAILABLE
-{
-    @throw nil;
-}
-
-- (nonnull instancetype)initWithChunkStore:(nonnull GSTerrainChunkStore *)chunkStore
-                                     block:(GSVoxel)block
-                                  position:(vector_float3)pos
-                                   journal:(nullable GSTerrainJournal *)journal
-{
-    if (self = [super init]) {
-        _chunkStore = chunkStore;
-        _block = block;
-        _pos = pos;
-        _journal = journal;
+    if (journal) {
+        GSBoxedVector *boxedPos = [GSBoxedVector boxedVectorWithVector:editPos];
+        
+        GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
+        
+        GSTerrainJournalEntry *entry = [[GSTerrainJournalEntry alloc] init];
+        entry.value = blockToPlace;
+        entry.position = boxedPos;
+        [journal addEntry:entry];
     }
-    return self;
 }
 
-- (void)updateVoxelsWithVoxelSlots:(nonnull GSNeighborhood<GSGridSlot *> *)voxSlots
-                    originalVoxels:(GSChunkVoxelData * _Nonnull * _Nonnull)voxels1
-                 replacementVoxels:(GSChunkVoxelData * _Nonnull * _Nonnull)voxels2
+static void fetchSlots(GSTerrainChunkStore * _Nonnull chunkStore,
+                       vector_float3 editPos,
+                       GSNeighborhood<GSGridSlot *> * _Nonnull voxSlots,
+                       GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
+                       GSNeighborhood<GSGridSlot *> * _Nonnull geoSlots,
+                       GSNeighborhood<GSGridSlot *> * _Nonnull vaoSlots)
 {
-    NSParameterAssert(voxSlots);
-    NSParameterAssert(voxels1);
-    NSParameterAssert(voxels2);
+    assert(chunkStore);
+    assert(voxSlots);
+    assert(sunSlots);
+    assert(geoSlots);
+    assert(vaoSlots);
+
+    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+    {
+        vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
+        vector_float3 neighborPos = offset + GSMinCornerForChunkAtPoint(editPos);
+        
+        [voxSlots setNeighborAtIndex:i neighbor:[chunkStore.gridVoxelData slotAtPoint:neighborPos]];
+        [sunSlots setNeighborAtIndex:i neighbor:[chunkStore.gridSunlightData slotAtPoint:neighborPos]];
+        [geoSlots setNeighborAtIndex:i neighbor:[chunkStore.gridGeometryData slotAtPoint:neighborPos]];
+        [vaoSlots setNeighborAtIndex:i neighbor:[chunkStore.gridVAO slotAtPoint:neighborPos]];
+    }
+}
+
+static void acquireLocks(GSNeighborhood<GSGridSlot *> * _Nonnull voxSlots,
+                         GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
+                         GSNeighborhood<GSGridSlot *> * _Nonnull geoSlots,
+                         GSNeighborhood<GSGridSlot *> * _Nonnull vaoSlots)
+{
+    assert(voxSlots);
+    assert(sunSlots);
+    assert(geoSlots);
+    assert(vaoSlots);
+
+    for(GSNeighborhood<GSGridSlot *> *slots in @[vaoSlots, geoSlots, sunSlots, voxSlots])
+    {
+        for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+        {
+            GSGridSlot *slot = [slots neighborAtIndex:i];
+            [slot.lock lockForWriting];
+        }
+    }
+    GSStopwatchTraceStep(@"Acquired slot locks.");
+}
+
+static void releaseLocks(GSNeighborhood<GSGridSlot *> * _Nonnull voxSlots,
+                         GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
+                         GSNeighborhood<GSGridSlot *> * _Nonnull geoSlots,
+                         GSNeighborhood<GSGridSlot *> * _Nonnull vaoSlots)
+{
+    assert(voxSlots);
+    assert(sunSlots);
+    assert(geoSlots);
+    assert(vaoSlots);
+    
+    for(GSNeighborhood<GSGridSlot *> *slots in @[voxSlots, sunSlots, geoSlots, vaoSlots])
+    {
+        for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
+        {
+            GSGridSlot *slot = [slots neighborAtIndex:i];
+            [slot.lock unlockForWriting];
+        }
+    }
+    GSStopwatchTraceStep(@"Released slot locks.");
+}
+
+static void updateVoxels(GSTerrainChunkStore * _Nonnull chunkStore,
+                         GSVoxel blockToPlace,
+                         vector_float3 editPos,
+                         GSNeighborhood<GSGridSlot *> * _Nonnull voxSlots,
+                         GSChunkVoxelData * _Nonnull * _Nonnull outVoxels1,
+                         GSChunkVoxelData * _Nonnull * _Nonnull outVoxels2)
+{
+    assert(chunkStore);
+    assert(voxSlots);
+    assert(outVoxels1);
+    assert(outVoxels2);
+
+    GSChunkVoxelData *voxels1, *voxels2;
 
     GSGridSlot *voxSlot = [voxSlots neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
-    *voxels1 = (GSChunkVoxelData *)voxSlot.item;
-    if (!*voxels1) {
-        *voxels1 = [_chunkStore newVoxelChunkAtPoint:_pos];
+    voxels1 = (GSChunkVoxelData *)voxSlot.item;
+    if (!voxels1) {
+        voxels1 = [chunkStore newVoxelChunkAtPoint:editPos];
     }
-    [*voxels1 invalidate];
-    *voxels2 = [*voxels1 copyWithEditAtPoint:_pos block:_block];
-    [*voxels2 saveToFile];
-    voxSlot.item = *voxels2;
+    [voxels1 invalidate];
+    voxels2 = [voxels1 copyWithEditAtPoint:editPos block:blockToPlace];
+    [voxels2 saveToFile];
+    voxSlot.item = voxels2;
+
+    *outVoxels1 = voxels1;
+    *outVoxels2 = voxels2;
 
     GSStopwatchTraceStep(@"Updated voxels.");
 }
 
-- (GSTerrainBuffer *)updateSunlightWithSunSlots:(nonnull GSNeighborhood<GSGridSlot *> *)sunSlots
-                                 originalVoxels:(nonnull GSChunkVoxelData *)voxels1
-                              replacementVoxels:(nonnull GSChunkVoxelData *)voxels2
-                               affectedAreaMinP:(vector_long3 * _Nullable)affectedAreaMinP
-                               affectedAreaMaxP:(vector_long3 * _Nullable)affectedAreaMaxP
+static void calculateNeighborhoodSunlight(GSVoxel originalVoxel,
+                                          vector_float3 editPos,
+                                          GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
+                                          GSChunkVoxelData * _Nonnull voxels1,
+                                          GSChunkVoxelData * _Nonnull voxels2,
+                                          vector_long3 * _Nullable affectedAreaMinP,
+                                          vector_long3 * _Nullable affectedAreaMaxP,
+                                          GSTerrainBuffer **outNeighborhoodSunlight)
 {
+    assert(outNeighborhoodSunlight);
+
     GSTerrainBuffer *nSunlight = nil;
     
     GSGridSlot *sunSlot = [sunSlots neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
@@ -85,7 +155,8 @@
     
     if (!sunlight) {
         GSStopwatchTraceStep(@"Skipping sunlight update.");
-        return nil;
+        *outNeighborhoodSunlight = nil;
+        return;
     }
     
     GSSunlightNeighborhood *sunNeighborhood = [[GSSunlightNeighborhood alloc] init];
@@ -96,59 +167,69 @@
         GSChunkSunlightData *neighbor = (GSChunkSunlightData *)slot.item;
         [sunNeighborhood setNeighborAtIndex:i neighbor:neighbor];
     }
-
+    
     GSVoxelNeighborhood *originalVoxelNeighborhood = sunlight.neighborhood;
     assert(originalVoxelNeighborhood);
     GSVoxelNeighborhood *voxelNeighborhood = [originalVoxelNeighborhood copyReplacing:voxels1 withNeighbor:voxels2];
     sunNeighborhood.voxelNeighborhood = voxelNeighborhood;
     
-    vector_long3 editPosClp = GSCastToIntegerVector3(_pos - voxels1.minP);
-    GSVoxel originalVoxel = [voxels1 voxelAtLocalPosition:editPosClp];
+    vector_long3 editPosClp = GSCastToIntegerVector3(editPos - voxels1.minP);
+    //GSVoxel originalVoxel = [voxels1 voxelAtLocalPosition:editPosClp];
     GSVoxel modifiedVoxel = [voxels2 voxelAtLocalPosition:editPosClp];
     BOOL removingLight = !originalVoxel.opaque && modifiedVoxel.opaque;
 
-    nSunlight = [sunNeighborhood newSunlightBufferWithEditAtPoint:_pos
+    nSunlight = [sunNeighborhood newSunlightBufferWithEditAtPoint:editPos
                                                     removingLight:removingLight
                                                  affectedAreaMinP:affectedAreaMinP
                                                  affectedAreaMaxP:affectedAreaMaxP];
-
+    
     GSStopwatchTraceStep(@"Updated sunlight for the neighborhood.");
-    return nSunlight;
+    *outNeighborhoodSunlight = nSunlight;
 }
 
-- (void)invalidateChunksWithSlotsArray:(NSArray *)slotsArray
+static void invalidateDependentChunks(GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
+                                      GSNeighborhood<GSGridSlot *> * _Nonnull geoSlots,
+                                      GSNeighborhood<GSGridSlot *> * _Nonnull vaoSlots)
 {
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
-        for(GSNeighborhood<GSGridSlot *> *slots in slotsArray)
-        {
-            GSGridSlot *slot = [slots neighborAtIndex:i];
-            [slot.item invalidate];
-            slot.item = nil;
-        }
+        GSGridSlot *slot;
+        
+        slot = [sunSlots neighborAtIndex:i];
+        [slot.item invalidate];
+        slot.item = nil;
+        
+        slot = [geoSlots neighborAtIndex:i];
+        [slot.item invalidate];
+        slot.item = nil;
+        
+        slot = [vaoSlots neighborAtIndex:i];
+        [slot.item invalidate];
+        slot.item = nil;
     }
 }
 
-- (void)updateNeighbor:(GSVoxelNeighborIndex)i
-        originalVoxels:(nonnull GSChunkVoxelData *)voxels1
-     replacementVoxels:(nonnull GSChunkVoxelData *)voxels2
-  neighborhoodSunlight:(nonnull GSTerrainBuffer *)nSunlight
-      affectedAreaMinP:(vector_long3)affectedAreaMinP
-      affectedAreaMaxP:(vector_long3)affectedAreaMaxP
-              sunSlots:(nonnull GSNeighborhood<GSGridSlot *> *)sunSlots
-              geoSlots:(nonnull GSNeighborhood<GSGridSlot *> *)geoSlots
-              vaoSlots:(nonnull GSNeighborhood<GSGridSlot *> *)vaoSlots
+static void rebuildDependentChunks(GSVoxelNeighborIndex i,
+                                   vector_float3 editPos,
+                                   GSChunkVoxelData * _Nonnull voxels1,
+                                   GSChunkVoxelData * _Nonnull voxels2,
+                                   GSTerrainBuffer * _Nonnull nSunlight,
+                                   vector_long3 affectedAreaMinP,
+                                   vector_long3 affectedAreaMaxP,
+                                   GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
+                                   GSNeighborhood<GSGridSlot *> * _Nonnull geoSlots,
+                                   GSNeighborhood<GSGridSlot *> * _Nonnull vaoSlots)
 {
-    NSParameterAssert(voxels1);
-    NSParameterAssert(voxels2);
-    NSParameterAssert(nSunlight);
-    NSParameterAssert(sunSlots);
-    NSParameterAssert(geoSlots);
-    NSParameterAssert(vaoSlots);
-    NSParameterAssert((affectedAreaMaxP.x > affectedAreaMinP.x) &&
-                      (affectedAreaMaxP.y > affectedAreaMinP.y) &&
-                      (affectedAreaMaxP.z > affectedAreaMinP.z));
-
+    assert(voxels1);
+    assert(voxels2);
+    assert(nSunlight);
+    assert(sunSlots);
+    assert(geoSlots);
+    assert(vaoSlots);
+    assert((affectedAreaMaxP.x > affectedAreaMinP.x) &&
+           (affectedAreaMaxP.y > affectedAreaMinP.y) &&
+           (affectedAreaMaxP.z > affectedAreaMinP.z));
+    
     GSChunkSunlightData *sunlight2 = nil;
     GSChunkGeometryData *geo2 = nil;
     
@@ -163,10 +244,10 @@
         
         b.mins = affectedAreaMinP;
         b.maxs = affectedAreaMaxP;
-
+        
         BOOL intersects = (a.mins.x <= b.maxs.x) && (a.maxs.x >= b.mins.x) &&
-                          (a.mins.y <= b.maxs.y) && (a.maxs.y >= b.mins.y) &&
-                          (a.mins.z <= b.maxs.z) && (a.maxs.z >= b.mins.z);
+        (a.mins.y <= b.maxs.y) && (a.maxs.y >= b.mins.y) &&
+        (a.mins.z <= b.maxs.z) && (a.maxs.z >= b.mins.z);
         
         if (!intersects) {
             return;
@@ -181,7 +262,7 @@
         if (sunlight1) {
             [sunlight1 invalidate];
             
-            vector_float3 slotMinP = sunSlot.minP - GSMinCornerForChunkAtPoint(_pos);
+            vector_float3 slotMinP = sunSlot.minP - GSMinCornerForChunkAtPoint(editPos);
             vector_long3 minP = GSCastToIntegerVector3(slotMinP);
             GSVoxelNeighborhood *neighborhood = [sunlight1.neighborhood copyReplacing:voxels1 withNeighbor:voxels2];
             vector_long3 a = minP + GSMakeIntegerVector3(-1, 0, -1);
@@ -233,92 +314,73 @@
     }
 }
 
+
+@implementation GSTerrainModifyBlockOperation
+{
+    GSTerrainChunkStore *_chunkStore;
+    GSVoxel _block;
+    vector_float3 _pos;
+    GSTerrainJournal *_journal;
+}
+
+- (nonnull instancetype)init NS_UNAVAILABLE
+{
+    @throw nil;
+}
+
+- (nonnull instancetype)initWithChunkStore:(nonnull GSTerrainChunkStore *)chunkStore
+                                     block:(GSVoxel)block
+                                  position:(vector_float3)pos
+                                   journal:(nullable GSTerrainJournal *)journal
+{
+    if (self = [super init]) {
+        _chunkStore = chunkStore;
+        _block = block;
+        _pos = pos;
+        _journal = journal;
+    }
+    return self;
+}
+
 - (void)main
 {
-    GSBoxedVector *boxedPos = [GSBoxedVector boxedVectorWithVector:_pos];
-    
-    if (_journal) {
-        GSStopwatchTraceBegin(@"placeBlockAtPoint enter %@", boxedPos);
+    logEditInJournal(_journal, _block, _pos);
 
-        GSTerrainJournalEntry *entry = [[GSTerrainJournalEntry alloc] init];
-        entry.value = _block;
-        entry.position = boxedPos;
-        [_journal addEntry:entry];
-    }
-    
     GSNeighborhood<GSGridSlot *> *voxSlots = [[GSNeighborhood alloc] init];
     GSNeighborhood<GSGridSlot *> *sunSlots = [[GSNeighborhood alloc] init];
     GSNeighborhood<GSGridSlot *> *geoSlots = [[GSNeighborhood alloc] init];
     GSNeighborhood<GSGridSlot *> *vaoSlots = [[GSNeighborhood alloc] init];
-    NSArray *gridSlots = @[vaoSlots, geoSlots, sunSlots, voxSlots];
-    
-    // Get slots.
-    for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-    {
-        vector_float3 offset = [GSNeighborhood offsetForNeighborIndex:i];
-        vector_float3 neighborPos = offset + GSMinCornerForChunkAtPoint(_pos);
-        
-        [voxSlots setNeighborAtIndex:i neighbor:[_chunkStore.gridVoxelData slotAtPoint:neighborPos]];
-        [sunSlots setNeighborAtIndex:i neighbor:[_chunkStore.gridSunlightData slotAtPoint:neighborPos]];
-        [geoSlots setNeighborAtIndex:i neighbor:[_chunkStore.gridGeometryData slotAtPoint:neighborPos]];
-        [vaoSlots setNeighborAtIndex:i neighbor:[_chunkStore.gridVAO slotAtPoint:neighborPos]];
-    }
-    
-    // Acquire slot locks upfront.
-    for(GSNeighborhood<GSGridSlot *> *slots in gridSlots)
-    {
-        for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-        {
-            GSGridSlot *slot = [slots neighborAtIndex:i];
-            [slot.lock lockForWriting];
-        }
-    }
-    GSStopwatchTraceStep(@"Acquired slot locks.");
+
+    // Acquire slot locks upfront. We perform the modification while holding locks on the whole neighborhood.
+    fetchSlots(_chunkStore, _pos, voxSlots, sunSlots, geoSlots, vaoSlots);
+    acquireLocks(voxSlots, sunSlots, geoSlots, vaoSlots);
 
     // Update the voxels for the neighborhood.
     GSChunkVoxelData *voxels1 = nil;
     GSChunkVoxelData *voxels2 = nil;
-    [self updateVoxelsWithVoxelSlots:voxSlots originalVoxels:&voxels1 replacementVoxels:&voxels2];
+    updateVoxels(_chunkStore, _block, _pos, voxSlots, &voxels1, &voxels2);
 
     // Update sunlight for the neighborhood.
-    vector_long3 affectedAreaMinP, affectedAreaMaxP;
-    GSTerrainBuffer *nSunlight = [self updateSunlightWithSunSlots:sunSlots
-                                                   originalVoxels:voxels1
-                                                replacementVoxels:voxels2
-                                                 affectedAreaMinP:&affectedAreaMinP
-                                                 affectedAreaMaxP:&affectedAreaMaxP];
+    vector_long3 affectedMinP, affectedMaxP;
+    GSTerrainBuffer *nSunlight;
+    calculateNeighborhoodSunlight(_block, _pos, sunSlots, voxels1, voxels2, &affectedMinP, &affectedMaxP, &nSunlight);
 
     if (!nSunlight) {
         // We don't have sunlight, so we simply invalidate all the items held by these slots.
-        [self invalidateChunksWithSlotsArray:@[sunSlots, geoSlots, vaoSlots]];
+        invalidateDependentChunks(sunSlots, geoSlots, vaoSlots);
     } else {
+        // Rebuild the chain of dependent chunks using the updated voxels and sunlight.
         for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
         {
-            [self updateNeighbor:i
-                  originalVoxels:voxels1
-               replacementVoxels:voxels2
-            neighborhoodSunlight:nSunlight
-                affectedAreaMinP:affectedAreaMinP
-                affectedAreaMaxP:affectedAreaMaxP
-                        sunSlots:sunSlots
-                        geoSlots:geoSlots
-                        vaoSlots:vaoSlots];
+            rebuildDependentChunks(i, _pos, voxels1, voxels2, nSunlight, affectedMinP, affectedMaxP,
+                                   sunSlots, geoSlots, vaoSlots);
         }
     }
 
-    // Release locks.
-    for(GSNeighborhood<GSGridSlot *> *slots in [gridSlots reverseObjectEnumerator])
-    {
-        for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
-        {
-            GSGridSlot *slot = [slots neighborAtIndex:i];
-            [slot.lock unlockForWriting];
-        }
-    }
-    GSStopwatchTraceStep(@"Released slot locks.");
-    
+    releaseLocks(voxSlots, sunSlots, geoSlots, vaoSlots);
+
     if (_journal) {
-        GSStopwatchTraceEnd(@"placeBlockAtPoint exit %@", boxedPos);
+        GSStopwatchTraceEnd(@"placeBlockAtPoint exit %@", [GSBoxedVector boxedVectorWithVector:_pos]);
     }
 }
 

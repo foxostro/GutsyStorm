@@ -73,7 +73,6 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount,
                     GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
                     vector_long3 sunlightMinP, vector_long3 sunlightMaxP,
                     vector_long3 blurMinP, vector_long3 blurMaxP,
-                    BOOL * _Nullable outAnyChanges,
                     vector_long3 * _Nullable outAffectedAreaMinP, vector_long3 * _Nullable outAffectedAreaMaxP)
 {
     assert(voxels);
@@ -81,7 +80,6 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount,
     assert(sunlight);
     assert(sunCount);
     
-    BOOL anyChanges = NO;
     vector_long3 actualAffectedAreaMinP = blurMaxP, actualAffectedAreaMaxP = blurMinP;
 
     // Blur phase.
@@ -115,8 +113,6 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount,
                 if ((lightLevel - 1) > (*value)) {
                     *value = lightLevel - 1;
                     
-                    anyChanges = YES;
-                    
                     actualAffectedAreaMinP.x = MIN(actualAffectedAreaMinP.x, p.x);
                     actualAffectedAreaMinP.y = MIN(actualAffectedAreaMinP.y, p.y);
                     actualAffectedAreaMinP.z = MIN(actualAffectedAreaMinP.z, p.z);
@@ -127,14 +123,6 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount,
                 }
             }
         }
-    }
-
-    assert((anyChanges && (actualAffectedAreaMaxP.x > actualAffectedAreaMinP.x) &&
-                          (actualAffectedAreaMaxP.y > actualAffectedAreaMinP.y) &&
-                          (actualAffectedAreaMaxP.z > actualAffectedAreaMinP.z)) || (!anyChanges));
-    
-    if (outAnyChanges) {
-        *outAnyChanges = anyChanges;
     }
     
     if (outAffectedAreaMinP) {

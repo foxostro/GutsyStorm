@@ -119,32 +119,32 @@
                    nSunMinP, nSunMaxP,
                    workAreaMinP, workAreaMaxP);
 
-    BOOL anyChangesToAffectedArea;
+    vector_long3 affectedMinP, affectedMaxP;
     GSSunlightBlur(voxels, voxelCount,
                    GSCombinedMinP, GSCombinedMaxP,
                    sunlight, nSunCount,
                    nSunMinP, nSunMaxP,
                    workAreaMinP, workAreaMaxP,
-                   &anyChangesToAffectedArea, outAffectedAreaMinP, outAffectedAreaMaxP);
+                   &affectedMinP, &affectedMaxP);
     
-    // If the sunlight blur changed no light values (i.e. sunlight was already in equilibrium state) then set the
-    // affected area to a 3x3x3 block cube surrounding the edit. This will ensure geometry gets updated later.
-    if (!anyChangesToAffectedArea) {
-        vector_long3 affectedAreaMinP = editPosClp - GSMakeIntegerVector3(1, 1, 1);
-        affectedAreaMinP.y = MAX(affectedAreaMinP.y, 0);
+    // If sunlight was already in equilibrium state when we performed the sunlight blur then set the
+    // affected area to a 3x3x3 cube surrounding the edit point. This will ensure geometry gets updated later.
+    if((affectedMaxP.x <= affectedMinP.x) || (affectedMaxP.y <= affectedMinP.y) || (affectedMaxP.z <= affectedMinP.z)) {
+        affectedMinP = editPosClp - GSMakeIntegerVector3(1, 1, 1);
+        affectedMinP.y = MAX(affectedMinP.y, 0);
         
-        vector_long3 affectedAreaMaxP = editPosClp + GSMakeIntegerVector3(1, 1, 1);
-        affectedAreaMaxP.y = MIN(affectedAreaMaxP.y, GSChunkSizeIntVec3.y);
-        
-        if (outAffectedAreaMinP) {
-            *outAffectedAreaMinP = affectedAreaMinP;
-        }
-        
-        if (outAffectedAreaMaxP) {
-            *outAffectedAreaMaxP = affectedAreaMaxP;
-        }
+        affectedMaxP = editPosClp + GSMakeIntegerVector3(1, 1, 1);
+        affectedMaxP.y = MIN(affectedMaxP.y, GSChunkSizeIntVec3.y);
     }
-    
+
+    if (outAffectedAreaMinP) {
+        *outAffectedAreaMinP = affectedMinP;
+    }
+
+    if (outAffectedAreaMaxP) {
+        *outAffectedAreaMaxP = affectedMaxP;
+    }
+
     free(voxels);
     
     GSTerrainBuffer *result = [[GSTerrainBuffer alloc] initWithDimensions:nSunDim copyUnalignedData:sunlight];

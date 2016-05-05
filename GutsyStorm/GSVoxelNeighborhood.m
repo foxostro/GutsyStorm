@@ -166,7 +166,7 @@
                    sunlight, nSunCount,
                    nSunMinP, nSunMaxP,
                    nSunMinP, maxBoxPoint,
-                   NULL, NULL, NULL);
+                   NULL, NULL);
     
     free(voxels);
     
