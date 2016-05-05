@@ -10,7 +10,7 @@
 #import "GSTerrainBuffer.h" // for GSTerrainBufferElement, needed by Voxel.h
 #import "GSVoxel.h"
 #import "GSFace.h"
-#import "GSNeighborhood.h"
+#import "GSVoxelNeighborhood.h"
 #import "GSChunkVoxelData.h"
 #import "GSBlockMesh.h"
 
@@ -155,7 +155,7 @@
 
 - (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
                                       vertexList:(nonnull NSMutableArray<GSBoxedTerrainVertex *> *)vertexList
-                                       voxelData:(nonnull GSNeighborhood *)voxelData
+                                       voxelData:(nonnull GSVoxelNeighborhood *)voxelData
                                             minP:(vector_float3)minP
 {
     assert(vertexList);

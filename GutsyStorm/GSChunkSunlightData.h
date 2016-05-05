@@ -10,24 +10,32 @@
 #import "GSGridItem.h"
 
 
-@class GSNeighborhood;
 @class GSTerrainBuffer;
+@class GSVoxelNeighborhood;
 
 
 @interface GSChunkSunlightData : NSObject <GSGridItem>
 
-@property (readonly, nonatomic, nonnull) GSTerrainBuffer * sunlight;
-@property (readonly, nonatomic, nonnull) GSNeighborhood * neighborhood;
+@property (readonly, nonatomic, nonnull) GSTerrainBuffer *sunlight;
+@property (readonly, nonatomic, nonnull) GSVoxelNeighborhood *neighborhood;
 
 + (nonnull NSString *)fileNameForSunlightDataFromMinP:(vector_float3)minP;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                              folder:(nonnull NSURL *)folder
+                              folder:(nullable NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
-                        neighborhood:(nonnull GSNeighborhood *)neighborhood
+                        neighborhood:(nonnull GSVoxelNeighborhood *)neighborhood
                         allowLoading:(BOOL)allowLoading;
 
-- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)p neighborhood:(nonnull GSNeighborhood *)neighborhood;
+- (nonnull instancetype)initWithMinP:(vector_float3)minCorner
+                              folder:(nullable NSURL *)folder
+                      groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+                        sunlightData:(nonnull GSTerrainBuffer *)updatedSunlightData
+                        neighborhood:(nonnull GSVoxelNeighborhood *)neighborhood;
+
+- (nonnull instancetype)copyReplacingSunlightData:(nonnull GSTerrainBuffer *)updatedSunlightData
+                                     neighborhood:(nonnull GSVoxelNeighborhood *)neighborhood;
 
 @end

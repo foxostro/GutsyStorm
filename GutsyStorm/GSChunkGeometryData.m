@@ -14,7 +14,7 @@
 #import "GSTerrainChunkStore.h"
 #import "GSBoxedTerrainVertex.h"
 #import "GSVoxel.h"
-#import "GSNeighborhood.h"
+#import "GSVoxelNeighborhood.h"
 #import "GSBlockMesh.h"
 #import "GSBlockMeshCube.h"
 #import "GSBlockMeshRamp.h"
@@ -133,7 +133,6 @@ static void applyLightToVertices(size_t numChunkVerts,
         if (failedToLoadFromFile) {
             _data = [[self class] dataWithSunlight:sunlight minP:minP];
             [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
-            GSStopwatchTraceStep(@"Generated geometry for chunk.");
         }
         
         if (!_data) {
@@ -269,7 +268,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     NSParameterAssert(sunlight);
 
-    GSNeighborhood *neighborhood = sunlight.neighborhood;
+    GSVoxelNeighborhood *neighborhood = sunlight.neighborhood;
 
     const vector_float3 maxCorner = minCorner + vector_make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 

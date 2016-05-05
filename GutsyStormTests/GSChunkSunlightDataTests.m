@@ -10,7 +10,7 @@
 #import "GSTerrainJournal.h"
 #import "GSChunkVoxelData.h"
 #import "GSChunkSunlightData.h"
-#import "GSNeighborhood.h"
+#import "GSVoxelNeighborhood.h"
 #import "GSTerrainBuffer.h"
 #import "GSTerrainGenerator.h"
 
@@ -70,7 +70,7 @@
     
     GSTerrainGenerator *generator = [[GSChunkSunlightDataTests_TerrainGenerator alloc] initWithRandomSeed:0];
     
-    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
+    GSVoxelNeighborhood *neighborhood = [[GSVoxelNeighborhood alloc] init];
 
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {
@@ -80,7 +80,8 @@
                                                            groupForSaving:groupForSaving
                                                            queueForSaving:queueForSaving
                                                                   journal:journal
-                                                                generator:generator];
+                                                                generator:generator
+                                                             allowLoading:NO];
         [neighborhood setNeighborAtIndex:i neighbor:voxels];
     }
 
@@ -88,7 +89,8 @@
                                                   folder:nil
                                           groupForSaving:groupForSaving
                                           queueForSaving:queueForSaving
-                                            neighborhood:neighborhood];
+                                            neighborhood:neighborhood
+                                            allowLoading:NO];
 }
 
 - (NSMutableString *)stringSliceOf:(nonnull GSChunkSunlightData *)chunk atY:(int)y
@@ -229,14 +231,19 @@
     XCTAssertEqual([voxels1 voxelAtLocalPosition:p].outside, 1);
     XCTAssertEqual([voxels2 voxelAtLocalPosition:p].outside, 0);
 
-    GSNeighborhood *neighborhood = [sunChunk.neighborhood copyReplacing:voxels1 withNeighbor:voxels2];
-    
-    GSChunkSunlightData *sunChunk2 = [sunChunk copyWithEditAtPoint:vector_make(7, 32, 7) neighborhood:neighborhood];
+    GSVoxelNeighborhood *neighborhood = [sunChunk.neighborhood copyReplacing:voxels1 withNeighbor:voxels2];
+
+    vector_long3 a = GSMakeIntegerVector3(-1, 0, -1);
+    vector_long3 b = GSMakeIntegerVector3(1, 0, 1) + GSChunkSizeIntVec3;
+    GSTerrainBuffer *sunlight = [[neighborhood newSunlightBuffer] copySubBufferWithMinCorner:a maxCorner:b];
+
+    GSChunkSunlightData *sunChunk2 = [sunChunk copyReplacingSunlightData:sunlight neighborhood:neighborhood];
     GSChunkSunlightData *sunChunk3 = [[GSChunkSunlightData alloc] initWithMinP:vector_make(0, 0, 0)
                                                                         folder:nil
                                                                 groupForSaving:groupForSaving
                                                                 queueForSaving:queueForSaving
-                                                                  neighborhood:neighborhood];
+                                                                  neighborhood:neighborhood
+                                                                  allowLoading:NO];
 
     FOR_BOX(p, minP, maxP)
     {

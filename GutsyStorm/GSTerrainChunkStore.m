@@ -8,7 +8,7 @@
 
 #import "GSTerrainChunkStore.h"
 #import "GSBoxedVector.h"
-#import "GSNeighborhood.h"
+#import "GSVoxelNeighborhood.h"
 #import "GSChunkVAO.h"
 #import "GSChunkGeometryData.h"
 #import "GSChunkSunlightData.h"
@@ -46,7 +46,7 @@
 {
     vector_float3 minCorner = GSMinCornerForChunkAtPoint(pos);
 
-    GSNeighborhood *neighborhood = [[GSNeighborhood alloc] init];
+    GSVoxelNeighborhood *neighborhood = [[GSVoxelNeighborhood alloc] init];
 
     for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
     {

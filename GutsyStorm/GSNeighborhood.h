@@ -7,47 +7,20 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "GSIntegerVector3.h"
-#import "GSReaderWriterLock.h"
-#import "GSVoxel.h"
+#import "GSVoxel.h" // for GSVoxelNeighborIndex
 
 
-@class GSChunkVoxelData;
 @class GSTerrainBuffer;
 
 
-@interface GSNeighborhood : NSObject
+@interface GSNeighborhood<__covariant ObjectType> : NSObject
 
 + (vector_float3)offsetForNeighborIndex:(GSVoxelNeighborIndex)idx;
 
-- (nonnull GSChunkVoxelData *)neighborAtIndex:(GSVoxelNeighborIndex)idx;
-- (void)setNeighborAtIndex:(GSVoxelNeighborIndex)idx neighbor:(nonnull GSChunkVoxelData *)neighbor;
-- (void)enumerateNeighborsWithBlock:(void (^ _Nonnull)(GSChunkVoxelData * _Nonnull voxels))block;
-- (void)enumerateNeighborsWithBlock2:(void (^ _Nonnull)(GSVoxelNeighborIndex i, GSChunkVoxelData * _Nonnull v))block;
+- (nonnull ObjectType)neighborAtIndex:(GSVoxelNeighborIndex)idx;
+- (void)setNeighborAtIndex:(GSVoxelNeighborIndex)idx neighbor:(nonnull ObjectType)neighbor;
 
-/* Copy the voxel data for this neighborhood into a new buffer and return that buffer.
- * The returned buffer is (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y elements in size and may be indexed using the INDEX2 macro.
- */
-- (nonnull GSVoxel *)newVoxelBufferFromNeighborhood;
-
-/* Given a position relative to this voxel, return the chunk that contains the specified position.
- * Also returns the position in the local coordinate system of that chunk.
- * The position must be within the neighborhood.
- */
-- (nonnull GSChunkVoxelData *)neighborVoxelAtPoint:(nonnull vector_long3 *)chunkLocalP;
-
-/* Returns a copy of the voxel at the the specified position in the neighborhood.
- * Positions are specified in chunk-local space relative to the center chunk of the neighborhood.
- * Coordinates which exceed the bounds of the center chunk refer to its neighbors.
- */
-- (GSVoxel)voxelAtPoint:(vector_long3)p;
-
-/* Returns the lighting value at the specified block position for the specified lighting buffer. */
-- (unsigned)lightAtPoint:(vector_long3)p
-                  getter:(GSTerrainBuffer * _Nonnull (^ _Nonnull)(GSChunkVoxelData *  _Nonnull c))getter;
-
-/* Copy the neighborhood but replace the instance of `voxels1' with `voxels2'. */
-- (nonnull instancetype)copyReplacing:(nonnull GSChunkVoxelData *)voxels1
-                         withNeighbor:(nonnull GSChunkVoxelData *)voxels2;
+/* Copy the neighborhood but replace the instance of `original' with `replacement'. */
+- (nonnull instancetype)copyReplacing:(nonnull ObjectType)original withNeighbor:(nonnull ObjectType)replacement;
 
 @end

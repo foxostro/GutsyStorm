@@ -69,7 +69,6 @@
 
 - (void)testPlaceAndRemoveBlock
 {
-    // XXX: should this test of GSTerrainModifyBlockOperation even be a part of the chunk store test suite?
     vector_float3 p = vector_make(90.0, 4.0, 127.0);
     
     GSTerrainModifyBlockOperation *place, *remove;

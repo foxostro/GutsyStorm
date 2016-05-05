@@ -73,14 +73,13 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)mp
-                              folder:(nonnull NSURL *)folder
+                              folder:(nullable NSURL *)folder
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                              journal:(nullable GSTerrainJournal *)journal
                            generator:(nonnull GSTerrainGenerator *)generator
                         allowLoading:(BOOL)allowLoading
 {
-    NSParameterAssert(folder);
     NSParameterAssert(groupForSaving);
     NSParameterAssert(queueForSaving);
     NSParameterAssert(generator);
@@ -101,11 +100,11 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         BOOL failedToLoadFromFile = YES;
         GSTerrainBuffer *buffer = nil;
         NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:minP];
-        NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
+        NSURL *url = folder ? [NSURL URLWithString:fileName relativeToURL:_folder] : nil;
         NSError *error = nil;
         NSData *data = nil;
         
-        if (allowLoading) {
+        if (allowLoading && folder) {
             data = [NSData dataWithContentsOfFile:[url path]
                                           options:NSDataReadingMapped
                                             error:&error];
@@ -145,10 +144,12 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                 .len = (uint64_t)BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)
             };
             
-            [buffer saveToFile:url
-                         queue:_queueForSaving
-                         group:_groupForSaving
-                        header:[NSData dataWithBytes:&header length:sizeof(header)]];
+            if (url) {
+                [buffer saveToFile:url
+                             queue:_queueForSaving
+                             group:_groupForSaving
+                            header:[NSData dataWithBytes:&header length:sizeof(header)]];
+            }
 
             GSStopwatchTraceStep(@"Generated voxel chunk contents.");
         }
@@ -180,11 +181,9 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
         GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
-        GSStopwatchTraceStep(@"markOutsideVoxels enter");
         [self markOutsideVoxels:dataWithUpdatedOutside
                         editPos:editPos
                        oldBlock:oldBlock];
-        GSStopwatchTraceStep(@"markOutsideVoxels leave");
         _voxels = dataWithUpdatedOutside;
     }
     
@@ -444,7 +443,6 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 
 - (nonnull instancetype)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
 {
-    GSStopwatchTraceStep(@"copyWithEditAtPoint enter");
     NSParameterAssert(vector_equal(GSMinCornerForChunkAtPoint(pos), minP));
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSTerrainBufferElement newValue = *((GSTerrainBufferElement *)&newBlock);

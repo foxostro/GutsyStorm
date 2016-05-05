@@ -7,6 +7,8 @@
 //
 
 @class GSFace;
+@class GSBoxedTerrainVertex;
+@class GSVoxelNeighborhood;
 
 @interface GSBlockMesh : NSObject
 
@@ -14,7 +16,7 @@
 
 - (void)generateGeometryForSingleBlockAtPosition:(vector_float3)pos
                                       vertexList:(nonnull NSMutableArray<GSBoxedTerrainVertex *> *)vertexList
-                                       voxelData:(nonnull GSNeighborhood *)voxelData
+                                       voxelData:(nonnull GSVoxelNeighborhood *)voxelData
                                             minP:(vector_float3)minP;
 
 @end

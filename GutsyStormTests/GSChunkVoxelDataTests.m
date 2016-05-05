@@ -81,7 +81,8 @@ static const int level = 10;
                                     groupForSaving:groupForSaving
                                     queueForSaving:queueForSaving
                                            journal:journal
-                                         generator:[[GSChunkVoxelDataTests_TerrainGenerator alloc] initWithRandomSeed:0]];
+                                         generator:[[GSChunkVoxelDataTests_TerrainGenerator alloc] initWithRandomSeed:0]
+                                      allowLoading:NO];
 }
 
 - (void)testBasicVoxelAccess

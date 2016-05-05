@@ -78,7 +78,7 @@ void GSStopwatchTraceJoin(struct GSStopwatchTraceState * _Nullable completedSubt
                          completedSubtrace, completedSubtrace->elapsedTimeTotalNs / (float)NSEC_PER_MSEC);
 }
 
-#ifdef GS_STOPWATCH_TRACE_STEP_ENABLED
+#if  GS_STOPWATCH_TRACE_STEP_ENABLED
 void GSStopwatchTraceStep(NSString * _Nonnull format, ...)
 {
     if (!gStopwatchTracingEnabled) {

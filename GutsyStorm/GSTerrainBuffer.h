@@ -20,13 +20,6 @@ static inline size_t BUFFER_SIZE_IN_BYTES(vector_long3 dimensions)
 }
 
 
-// Columns in the y-axis are contiguous in memory.
-static inline size_t INDEX_INTO_LIGHTING_BUFFER(vector_long3 dimensions, vector_long3 p)
-{
-    return (p.x * dimensions.y * dimensions.z) + (p.z * dimensions.y) + (p.y);
-}
-
-
 @class GSTerrainBuffer;
 
 
@@ -43,15 +36,34 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
     GSTerrainBufferElement *_data;
 }
 
-@property (nonatomic, readonly) vector_long3 dimensions;
-
-/* Creates a new buffer of dimensions (CHUNK_SIZE_X+2) x (CHUNK_SIZE_Y) x (CHUNK_SIZE_Z+2).
- * The contents of the new buffer are initialized from the specified larger, raw buffer. Non-overlapping portions are
- * discarded.
+/* Allocate a chunk of memory of size `len' bytes in length for use as a terrain element buffer.
+ * `len' is the length of the buffer in bytes, not the count of elements.
+ * The contents of the buffer are undefined.
+ * This function cannot fail.
  */
-+ (nonnull instancetype)newBufferFromLargerRawBuffer:(const GSTerrainBufferElement * _Nonnull)srcBuf
-                                             srcMinP:(vector_long3)srcMinP
-                                             srcMaxP:(vector_long3)srcMaxP;
++ (nonnull GSTerrainBufferElement *)allocateBufferWithLength:(NSUInteger)len;
+
+/* Allocate a chunk of memory of size `len' bytes in length for use as a terrain element buffer.
+ * `len' is the length of the buffer in bytes, not the count of elements.
+ * The contents of the buffer are identical to the specified `src' buffer, which must be a buffer allocated with
+ * either bufferAllocate, bufferClone, or bufferCloneUnaligned.
+ *
+ * The retrictions on `src' permit a very fast and inexpensive copy.
+ */
++ (nonnull GSTerrainBufferElement *)cloneBuffer:(nonnull const GSTerrainBufferElement *)src len:(NSUInteger)len;
+
+/* Identical to bufferClone except that the restriction on `src' is relaxed and is permitted to be any memory.
+ * `len' is the length of the buffer in bytes, not the count of elements.
+ */
++ (nonnull GSTerrainBufferElement *)cloneUnalignedBuffer:(nonnull const GSTerrainBufferElement*)src len:(NSUInteger)len;
+
+/* Deallocate a buffer previosuly created by bufferAllocate, bufferClone, or bufferCloneUnaligned.
+ * `len' is the length of the buffer in bytes, not the count of elements.
+ */
++ (void)deallocateBuffer:(nullable GSTerrainBufferElement *)buffer len:(NSUInteger)len;
+
+@property (nonatomic, readonly) vector_long3 offsetFromChunkLocalSpace;
+@property (nonatomic, readonly) vector_long3 dimensions;
 
 /* Initialize a buffer of the specified dimensions. Contents are undefined. */
 - (nonnull instancetype)initWithDimensions:(vector_long3)dim;
@@ -101,12 +113,11 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
              group:(nonnull dispatch_group_t)group
             header:(nullable NSData *)header;
 
-/* Copies this buffer into a sub-range of another buffer of dimensions defined by GSCombinedMinP and GSCombinedMaxP. */
-- (void)copyToCombinedNeighborhoodBuffer:(nonnull GSTerrainBufferElement *)dstBuf
-                                   count:(NSUInteger)count
-                                neighbor:(GSVoxelNeighborIndex)neighbor;
+/* Creates a new buffer of dimensions of smaller dimensions than this buffer. */
+- (nonnull instancetype)copySubBufferWithMinCorner:(vector_long3)srcMinP maxCorner:(vector_long3)srcMaxP;
 
-- (nonnull GSTerrainBuffer *)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(GSTerrainBufferElement)value;
+/* Creates a new buffer with the contents of this buffer plus a modification applied as specified. */
+- (nonnull instancetype)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(GSTerrainBufferElement)value;
 
 - (nonnull GSTerrainBufferElement *)data;
 
