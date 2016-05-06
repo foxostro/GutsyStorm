@@ -282,12 +282,11 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
         
         if (geo1) {
             [geo1 invalidate];
-            
-            /* XXX: Potential performance improvement here. The copyWithEdit method can be made faster by only
-             * re-propagating sunlight in the region affected by the edit; not across the entire chunk.
-             */
+
             if(sunlight2) {
-                geo2 = [geo1 copyWithSunlight:sunlight2];
+                geo2 = [geo1 copyWithSunlight:sunlight2
+                          invalidatedAreaMinP:affectedAreaMinP
+                          invalidatedAreaMaxP:affectedAreaMaxP];
             }
         }
         

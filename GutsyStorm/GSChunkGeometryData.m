@@ -12,18 +12,16 @@
 #import "GSChunkVoxelData.h"
 #import "GSRay.h"
 #import "GSTerrainChunkStore.h"
-#import "GSBoxedTerrainVertex.h"
 #import "GSVoxel.h"
 #import "GSVoxelNeighborhood.h"
+#import "SyscallWrappers.h"
+#import "GSActivity.h"
+#import "GSErrorCodes.h"
 #import "GSBlockMesh.h"
 #import "GSBlockMeshCube.h"
 #import "GSBlockMeshRamp.h"
 #import "GSBlockMeshInsideCorner.h"
 #import "GSBlockMeshOutsideCorner.h"
-#import "SyscallWrappers.h"
-#import "GSActivity.h"
-#import "GSErrorCodes.h"
-#import "GSBoxedVector.h"
 
 
 #define GEO_MAGIC ('moeg')
@@ -40,43 +38,41 @@ struct GSChunkGeometryHeader
 };
 
 
+static inline vector_float3 subChunkMinCorner(vector_float3 minP, NSUInteger i)
+{
+    return minP + vector_make(0, CHUNK_SIZE_Y * i / GSNumGeometrySubChunks, 0);
+}
+
+
+static inline vector_float3 subChunkMaxCorner(vector_float3 minP, NSUInteger i)
+{
+    return subChunkMinCorner(minP, i) + vector_make(CHUNK_SIZE_X, CHUNK_SIZE_Y / GSNumGeometrySubChunks, CHUNK_SIZE_Z);
+}
+
+
+static NSArray<GSBoxedTerrainVertex *> * _Nonnull
+createVertices(GSChunkSunlightData * _Nonnull sunlight,
+               vector_float3 chunkMinP,
+               vector_float3 minCorner,
+               vector_float3 maxCorner);
+
+
 static void applyLightToVertices(size_t numChunkVerts,
                                  GSTerrainVertex * _Nonnull vertsBuffer,
                                  GSTerrainBuffer * _Nonnull sunlight,
                                  vector_float3 minP);
 
+
 @interface GSChunkGeometryData ()
 
-+ (nonnull NSData *)dataWithSunlight:(nonnull GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner;
+- (void)generateDataWithSunlight:(nonnull GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner;
 
 @end
 
 
 @implementation GSChunkGeometryData
-{
-    NSData *_data;
-    NSURL *_folder;
-    dispatch_group_t _groupForSaving;
-    dispatch_queue_t _queueForSaving;
-}
 
 @synthesize minP;
-
-+ (nonnull GSBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type
-{
-    static GSBlockMesh *factories[NUM_VOXEL_TYPES] = {nil};
-    static dispatch_once_t onceToken;
-    
-    dispatch_once(&onceToken, ^{
-        factories[VOXEL_TYPE_CUBE]           = [[GSBlockMeshCube alloc] init];
-        factories[VOXEL_TYPE_RAMP]           = [[GSBlockMeshRamp alloc] init];
-        factories[VOXEL_TYPE_CORNER_INSIDE]  = [[GSBlockMeshInsideCorner alloc] init];
-        factories[VOXEL_TYPE_CORNER_OUTSIDE] = [[GSBlockMeshOutsideCorner alloc] init];
-    });
-
-    assert(factories[type]);
-    return factories[type];
-}
 
 + (nonnull NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP
 {
@@ -131,7 +127,16 @@ static void applyLightToVertices(size_t numChunkVerts,
         }
 
         if (failedToLoadFromFile) {
-            _data = [[self class] dataWithSunlight:sunlight minP:minP];
+            for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
+            {
+                _vertices[i] = createVertices(sunlight,
+                                              minCorner,
+                                              subChunkMinCorner(minCorner, i),
+                                              subChunkMaxCorner(minCorner, i));
+            }
+            GSStopwatchTraceStep(@"Done generating triangles.");
+
+            [self generateDataWithSunlight:sunlight minP:minP];
             [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
         }
         
@@ -146,20 +151,112 @@ static void applyLightToVertices(size_t numChunkVerts,
     return self;
 }
 
+- (nonnull instancetype)initWithMinP:(vector_float3)minCorner
+                              folder:(nonnull NSURL *)folder
+                            sunlight:(nonnull GSChunkSunlightData *)sunlight
+                            vertices:(NSArray * __strong _Nonnull [GSNumGeometrySubChunks])vertices
+                      groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving
+{
+    NSParameterAssert(folder);
+    NSParameterAssert(sunlight);
+    NSParameterAssert(queueForSaving);
+    NSParameterAssert(groupForSaving);
+    
+    if (self = [super init]) {
+        GSStopwatchTraceStep(@"Initializing geometry chunk %@", [GSBoxedVector boxedVectorWithVector:minCorner]);
+        
+        minP = minCorner;
+        
+        _groupForSaving = groupForSaving; // dispatch group used for tasks related to saving chunks to disk
+        _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
+        _folder = folder;
+        
+        for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
+        {
+            _vertices[i] = vertices[i];
+        }
+        
+        NSString *fileName = [[self class] fileNameForGeometryDataFromMinP:minCorner];
+        NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
+        
+        [self generateDataWithSunlight:sunlight minP:minP];
+        [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
+        
+        if (!_data) {
+            [NSException raise:NSGenericException
+                        format:@"Failed to fetch or generate the geometry chunk at \"%@\"", fileName];
+        }
+        
+        GSStopwatchTraceStep(@"Done initializing geometry chunk %@", [GSBoxedVector boxedVectorWithVector:minCorner]);
+    }
+    
+    return self;
+}
+
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // all geometry objects are immutable, so return self instead of deep copying
 }
 
 - (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight
+                     invalidatedAreaMinP:(vector_long3)invalidatedAreaMinP
+                     invalidatedAreaMaxP:(vector_long3)invalidatedAreaMaxP
 {
     NSParameterAssert(sunlight);
-    return [[[self class] alloc] initWithMinP:self.minP
+    
+    if (!_vertices) {
+        return [[[self class] alloc] initWithMinP:minP
+                                           folder:_folder
+                                         sunlight:sunlight
+                                   groupForSaving:_groupForSaving
+                                   queueForSaving:_queueForSaving
+                                     allowLoading:NO];
+    }
+
+    BOOL invalidatedSubChunk[GSNumGeometrySubChunks];
+    {
+        struct { vector_float3 mins, maxs; } a, b;
+
+        a.mins = GSCastToFloat3(invalidatedAreaMinP) + minP;
+        a.maxs = GSCastToFloat3(invalidatedAreaMaxP) + minP;
+
+        for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
+        {
+            b.mins = subChunkMinCorner(minP, i);
+            b.maxs = subChunkMaxCorner(minP, i);
+            
+            BOOL intersects = (a.mins.x <= b.maxs.x) && (a.maxs.x >= b.mins.x) &&
+                              (a.mins.y <= b.maxs.y) && (a.maxs.y >= b.mins.y) &&
+                              (a.mins.z <= b.maxs.z) && (a.maxs.z >= b.mins.z);
+            
+            invalidatedSubChunk[i] = intersects;
+        }
+    }
+    
+    NSArray<GSBoxedTerrainVertex *> *updatedVertices[GSNumGeometrySubChunks] = {nil};
+    for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
+    {
+        NSArray<GSBoxedTerrainVertex *> *vertices;
+
+        if (invalidatedSubChunk[i]) {
+            vertices = createVertices(sunlight,
+                                      minP,
+                                      subChunkMinCorner(minP, i),
+                                      subChunkMaxCorner(minP, i));
+        } else {
+            vertices = _vertices[i];
+        }
+
+        updatedVertices[i] = vertices;
+    }
+
+    return [[[self class] alloc] initWithMinP:minP
                                        folder:_folder
                                      sunlight:sunlight
+                                     vertices:updatedVertices
                                groupForSaving:_groupForSaving
-                               queueForSaving:_queueForSaving
-                                 allowLoading:NO];
+                               queueForSaving:_queueForSaving];
 }
 
 - (BOOL)validateGeometryData:(nonnull NSData *)data error:(NSError **)error
@@ -260,39 +357,17 @@ static void applyLightToVertices(size_t numChunkVerts,
     return vertsCopy;
 }
 
-// Completely regenerate geometry for the chunk.
-+ (nonnull NSData *)dataWithSunlight:(nonnull GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner
+- (void)generateDataWithSunlight:(nonnull GSChunkSunlightData *)sunlight minP:(vector_float3)minCorner
 {
-    vector_float3 pos;
-    NSMutableArray<GSBoxedTerrainVertex *> *vertices;
-
     NSParameterAssert(sunlight);
-
-    GSVoxelNeighborhood *neighborhood = sunlight.neighborhood;
-
-    const vector_float3 maxCorner = minCorner + vector_make(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
-
-    vertices = [NSMutableArray<GSBoxedTerrainVertex *> new];
-
-    // Iterate over all voxels in the chunk and generate geometry.
-    FOR_BOX(pos, minCorner, maxCorner)
+    
+    NSMutableArray *entireVertices = [[NSMutableArray alloc] init];
+    for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
     {
-        vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minCorner.x, pos.y-minCorner.y, pos.z-minCorner.z);
-        GSVoxel voxel = [[neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
-        GSVoxelType type = voxel.type;
-        assert(type < NUM_VOXEL_TYPES);
-
-        if(type != VOXEL_TYPE_EMPTY) {
-            GSBlockMesh *factory = [[self class] sharedMeshFactoryWithBlockType:type];
-            [factory generateGeometryForSingleBlockAtPosition:pos
-                                                   vertexList:vertices
-                                                    voxelData:neighborhood
-                                                         minP:minCorner];
-        }
+        [entireVertices addObjectsFromArray:_vertices[i]];
     }
-    GSStopwatchTraceStep(@"done generating triangles");
 
-    const GLsizei numChunkVerts = (GLsizei)[vertices count];
+    const GLsizei numChunkVerts = (GLsizei)[entireVertices count];
 
     const uint32_t len = numChunkVerts * sizeof(GSTerrainVertex);
     const size_t capacity = sizeof(struct GSChunkGeometryHeader) + len;
@@ -315,15 +390,14 @@ static void applyLightToVertices(size_t numChunkVerts,
     // Take the vertices array and generate raw buffers for OpenGL to consume.
     for(GLsizei i=0; i<numChunkVerts; ++i)
     {
-        GSBoxedTerrainVertex *v = vertices[i];
+        GSBoxedTerrainVertex *v = entireVertices[i];
         vertsBuffer[i] = v.v;
     }
 
     // Iterate over all vertices and calculate lighting.
-    GSStopwatchTraceStep(@"ready to apply light");
     applyLightToVertices(numChunkVerts, vertsBuffer, sunlight.sunlight, minCorner);
     
-    return data;
+    _data = data;
 }
 
 - (void)saveData:(nonnull NSData *)data
@@ -361,6 +435,48 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 @end
+
+static NSArray<GSBoxedTerrainVertex *> * _Nonnull
+createVertices(GSChunkSunlightData * _Nonnull sunlight,
+               vector_float3 chunkMinP,
+               vector_float3 minCorner,
+               vector_float3 maxCorner)
+{
+    assert(sunlight);
+    
+    static GSBlockMesh *factories[NUM_VOXEL_TYPES] = {nil};
+    static dispatch_once_t onceToken;
+    
+    dispatch_once(&onceToken, ^{
+        factories[VOXEL_TYPE_CUBE]           = [[GSBlockMeshCube alloc] init];
+        factories[VOXEL_TYPE_RAMP]           = [[GSBlockMeshRamp alloc] init];
+        factories[VOXEL_TYPE_CORNER_INSIDE]  = [[GSBlockMeshInsideCorner alloc] init];
+        factories[VOXEL_TYPE_CORNER_OUTSIDE] = [[GSBlockMeshOutsideCorner alloc] init];
+    });
+    
+    GSVoxelNeighborhood *neighborhood = sunlight.neighborhood;
+    GSChunkVoxelData *center = [neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
+    
+    // Iterate over all voxels in the chunk and generate geometry.
+    NSMutableArray<GSBoxedTerrainVertex *> *vertices = [[NSMutableArray alloc] init];
+    vector_float3 pos;
+    FOR_BOX(pos, minCorner, maxCorner)
+    {
+        vector_long3 chunkLocalPos = GSCastToIntegerVector3(pos - chunkMinP);
+        GSVoxel voxel = [center voxelAtLocalPosition:chunkLocalPos];
+        GSVoxelType type = voxel.type;
+        
+        if ((type < NUM_VOXEL_TYPES) && (type != VOXEL_TYPE_EMPTY)) {
+            GSBlockMesh *factory = factories[type];
+            [factory generateGeometryForSingleBlockAtPosition:pos
+                                                   vertexList:vertices
+                                                    voxelData:neighborhood
+                                                         minP:chunkMinP];
+        }
+    }
+    
+    return vertices;
+}
 
 static void applyLightToVertices(size_t numChunkVerts,
                                  GSTerrainVertex * _Nonnull vertsBuffer,

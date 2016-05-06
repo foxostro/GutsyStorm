@@ -10,6 +10,7 @@
 #import "GSGridItem.h"
 #import "GSVoxel.h"
 #import "GSTerrainVertex.h"
+#import "GSBoxedTerrainVertex.h"
 
 
 @class GSNeighborhood;
@@ -17,12 +18,23 @@
 @class GSChunkSunlightData;
 
 
+#define GSNumGeometrySubChunks (16)
+_Static_assert(CHUNK_SIZE_Y % GSNumGeometrySubChunks == 0,
+               "Chunk size must be evenly divisible by the number of geometry sub-chunks");
+
+
 @interface GSChunkGeometryData : NSObject <GSGridItem>
+{
+@private
+    NSArray<GSBoxedTerrainVertex *> *_vertices[GSNumGeometrySubChunks];
+
+    NSData *_data;
+    NSURL *_folder;
+    dispatch_group_t _groupForSaving;
+    dispatch_queue_t _queueForSaving;
+}
 
 + (nonnull NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP;
-
-/* Returns the shared block mesh factory for the specified voxel type. */
-+ (nonnull GSBlockMesh *)sharedMeshFactoryWithBlockType:(GSVoxelType)type;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
                               folder:(nonnull NSURL *)folder
@@ -31,7 +43,16 @@
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                         allowLoading:(BOOL)allowLoading;
 
-- (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight;
+- (nonnull instancetype)initWithMinP:(vector_float3)minCorner
+                              folder:(nonnull NSURL *)folder
+                            sunlight:(nonnull GSChunkSunlightData *)sunlight
+                            vertices:(NSArray * __strong _Nonnull [GSNumGeometrySubChunks])vertices
+                      groupForSaving:(nonnull dispatch_group_t)groupForSaving
+                      queueForSaving:(nonnull dispatch_queue_t)queueForSaving;
+
+- (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight
+                     invalidatedAreaMinP:(vector_long3)affectedAreaMinP
+                     invalidatedAreaMaxP:(vector_long3)affectedAreaMaxP;
 
 /* Copy the chunk vertex buffer to a new buffer and return it.
  * Return the number of vertices in the buffer in `count'
