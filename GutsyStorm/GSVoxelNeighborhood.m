@@ -138,9 +138,18 @@
 /* Generate and return sunlight data for the entire voxel neighborhood. */
 - (nonnull GSTerrainBuffer *)newSunlightBuffer
 {
-    vector_long3 nSunMinP = GSCombinedMinP - GSMakeIntegerVector3(1, 0, 1);
-    vector_long3 nSunMaxP = GSCombinedMaxP + GSMakeIntegerVector3(1, 0, 1);
+    vector_long3 border = GSMakeIntegerVector3(CHUNK_LIGHTING_MAX+1, 0, CHUNK_LIGHTING_MAX+1);
+    vector_long3 nSunMinP = GSZeroIntVec3 - border;
+    vector_long3 nSunMaxP = GSChunkSizeIntVec3 + border;
     vector_long3 nSunDim = nSunMaxP - nSunMinP;
+    
+    assert(nSunMinP.x >= GSCombinedMinP.x &&
+           nSunMinP.y >= GSCombinedMinP.y &&
+           nSunMinP.z >= GSCombinedMinP.z);
+    
+    assert(nSunMaxP.x <= GSCombinedMaxP.x &&
+           nSunMaxP.y <= GSCombinedMaxP.y &&
+           nSunMaxP.z <= GSCombinedMaxP.z);
     
     size_t voxelCount = 0;
     GSVoxel *voxels = [self newVoxelBufferReturningCount:&voxelCount];
@@ -150,16 +159,16 @@
     GSTerrainBufferElement *sunlight = [GSTerrainBuffer allocateBufferWithLength:nSunLen];
     bzero(sunlight, nSunLen); // Initially, set every element in the buffer to zero.
     
-    // Every block above the elevation of the highest opaque block will be fully and directly lit.
-    // We can take advantage of this to avoid a lot of work.
-    vector_long3 maxBoxPoint = nSunMaxP;
-    maxBoxPoint.y = GSFindElevationOfHighestOpaqueBlock(voxels, voxelCount, GSCombinedMinP, GSCombinedMaxP);
-    
     GSSunlightSeed(voxels, voxelCount,
                    GSCombinedMinP, GSCombinedMaxP,
                    sunlight, nSunCount,
                    nSunMinP, nSunMaxP,
                    nSunMinP, nSunMaxP);
+    
+    // Every block above the elevation of the highest opaque block will be fully and directly lit.
+    // We can take advantage of this to avoid a lot of work.
+    vector_long3 maxBoxPoint = nSunMaxP;
+    maxBoxPoint.y = GSFindElevationOfHighestOpaqueBlock(voxels, voxelCount, GSCombinedMinP, GSCombinedMaxP);
     
     GSSunlightBlur(voxels, voxelCount,
                    GSCombinedMinP, GSCombinedMaxP,
@@ -173,7 +182,7 @@
     GSTerrainBuffer *neighborhoodSunlight = [[GSTerrainBuffer alloc] initWithDimensions:nSunDim
                                                              takeOwnershipOfAlignedData:sunlight];
     
-    vector_long3 a = GSMakeIntegerVector3(-1, 0, -1);
+    vector_long3 a = -GSMakeIntegerVector3(1, 0, 1);
     vector_long3 b = GSMakeIntegerVector3(1, 0, 1) + GSChunkSizeIntVec3;
     GSTerrainBuffer *centerChunkSunlight = [neighborhoodSunlight copySubBufferWithMinCorner:a maxCorner:b];
     

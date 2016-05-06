@@ -102,9 +102,11 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount,
             }
             
             BOOL adj = GSSunlightAdjacent(p, lightLevel,
-                                            voxels, voxelMinP, voxelMaxP,
-                                            sunlight, sunlightMinP, sunlightMaxP);
-            
+                                          voxels, voxelCount,
+                                          voxelMinP, voxelMaxP,
+                                          sunlight, sunCount,
+                                          sunlightMinP, sunlightMaxP);
+
             if(adj) {
                 size_t sunlightIdx = INDEX_BOX(p, sunlightMinP, sunlightMaxP);
                 assert(sunlightIdx < sunCount);
@@ -135,9 +137,9 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount,
 }
 
 BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
-                          GSVoxel * _Nonnull voxels,
+                          GSVoxel * _Nonnull voxels, size_t voxCount,
                           vector_long3 voxelMinP, vector_long3 voxelMaxP,
-                          GSTerrainBufferElement * _Nonnull sunlight,
+                          GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
                           vector_long3 sunlightMinP, vector_long3 sunlightMaxP)
 {
     assert(voxels);
@@ -147,18 +149,20 @@ BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
     {
         vector_long3 a = p + GSOffsetForVoxelFace[i];
         
-        if(a.x < -CHUNK_SIZE_X || a.x >= (2*CHUNK_SIZE_X) ||
-           a.z < -CHUNK_SIZE_Z || a.z >= (2*CHUNK_SIZE_Z) ||
-           a.y < 0 || a.y >= CHUNK_SIZE_Y) {
+        if(a.x < sunlightMinP.x || a.x >= sunlightMaxP.x ||
+           a.z < sunlightMinP.z || a.z >= sunlightMaxP.z ||
+           a.y < sunlightMinP.y || a.y >= sunlightMaxP.y) {
             continue; // The point is out of bounds, so bail out.
         }
         
         size_t voxelIdx = INDEX_BOX(a, voxelMinP, voxelMaxP);
+        assert(voxelIdx < voxCount);
         if(voxels[voxelIdx].opaque) {
             continue;
         }
         
         size_t sunlightIdx = INDEX_BOX(a, sunlightMinP, sunlightMaxP);
+        assert(sunlightIdx < sunCount);
         if(sunlight[sunlightIdx] == lightLevel) {
             return YES;
         }
