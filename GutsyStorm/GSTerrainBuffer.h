@@ -117,7 +117,9 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
 - (nonnull instancetype)copySubBufferWithMinCorner:(vector_long3)srcMinP maxCorner:(vector_long3)srcMaxP;
 
 /* Creates a new buffer with the contents of this buffer plus a modification applied as specified. */
-- (nonnull instancetype)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(GSTerrainBufferElement)value;
+- (nonnull instancetype)copyWithEditAtPosition:(vector_long3)chunkLocalPos
+                                         value:(GSTerrainBufferElement)value
+                                     operation:(GSVoxelBitwiseOp)op;
 
 - (nonnull GSTerrainBufferElement *)data;
 

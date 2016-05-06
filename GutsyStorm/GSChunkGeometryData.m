@@ -22,6 +22,7 @@
 #import "GSBlockMeshRamp.h"
 #import "GSBlockMeshInsideCorner.h"
 #import "GSBlockMeshOutsideCorner.h"
+#import "GSBoxedVector.h"
 
 
 #define GEO_MAGIC ('moeg')

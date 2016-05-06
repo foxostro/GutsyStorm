@@ -108,7 +108,7 @@ static void releaseLocks(GSNeighborhood<GSGridSlot *> * _Nonnull voxSlots,
 }
 
 static void updateVoxels(GSTerrainChunkStore * _Nonnull chunkStore,
-                         GSVoxel blockToPlace,
+                         GSVoxel blockToPlace, GSVoxelBitwiseOp op,
                          vector_float3 editPos,
                          GSNeighborhood<GSGridSlot *> * _Nonnull voxSlots,
                          GSChunkVoxelData * _Nonnull * _Nonnull outVoxels1,
@@ -127,7 +127,7 @@ static void updateVoxels(GSTerrainChunkStore * _Nonnull chunkStore,
         voxels1 = [chunkStore newVoxelChunkAtPoint:editPos];
     }
     [voxels1 invalidate];
-    voxels2 = [voxels1 copyWithEditAtPoint:editPos block:blockToPlace];
+    voxels2 = [voxels1 copyWithEditAtPoint:editPos block:blockToPlace operation:op];
     [voxels2 saveToFile];
     voxSlot.item = voxels2;
 
@@ -137,8 +137,7 @@ static void updateVoxels(GSTerrainChunkStore * _Nonnull chunkStore,
     GSStopwatchTraceStep(@"Updated voxels.");
 }
 
-static void calculateNeighborhoodSunlight(GSVoxel originalVoxel,
-                                          vector_float3 editPos,
+static void calculateNeighborhoodSunlight(vector_float3 editPos,
                                           GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
                                           GSChunkVoxelData * _Nonnull voxels1,
                                           GSChunkVoxelData * _Nonnull voxels2,
@@ -174,9 +173,10 @@ static void calculateNeighborhoodSunlight(GSVoxel originalVoxel,
     sunNeighborhood.voxelNeighborhood = voxelNeighborhood;
     
     vector_long3 editPosClp = GSCastToIntegerVector3(editPos - voxels1.minP);
-    //GSVoxel originalVoxel = [voxels1 voxelAtLocalPosition:editPosClp];
+    GSVoxel originalVoxel = [voxels1 voxelAtLocalPosition:editPosClp];
     GSVoxel modifiedVoxel = [voxels2 voxelAtLocalPosition:editPosClp];
-    BOOL removingLight = !originalVoxel.opaque && modifiedVoxel.opaque;
+    BOOL removingLight = (!originalVoxel.opaque && modifiedVoxel.opaque) ||
+                         (originalVoxel.torch && !modifiedVoxel.torch);
 
     nSunlight = [sunNeighborhood newSunlightBufferWithEditAtPoint:editPos
                                                     removingLight:removingLight
@@ -318,6 +318,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
 {
     GSTerrainChunkStore *_chunkStore;
     GSVoxel _block;
+    GSVoxelBitwiseOp _op;
     vector_float3 _pos;
     GSTerrainJournal *_journal;
 }
@@ -329,6 +330,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
 
 - (nonnull instancetype)initWithChunkStore:(nonnull GSTerrainChunkStore *)chunkStore
                                      block:(GSVoxel)block
+                                 operation:(GSVoxelBitwiseOp)op
                                   position:(vector_float3)pos
                                    journal:(nullable GSTerrainJournal *)journal
 {
@@ -336,6 +338,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
         _chunkStore = chunkStore;
         _block = block;
         _pos = pos;
+        _op = op;
         _journal = journal;
     }
     return self;
@@ -357,12 +360,12 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
     // Update the voxels for the neighborhood.
     GSChunkVoxelData *voxels1 = nil;
     GSChunkVoxelData *voxels2 = nil;
-    updateVoxels(_chunkStore, _block, _pos, voxSlots, &voxels1, &voxels2);
+    updateVoxels(_chunkStore, _block, _op, _pos, voxSlots, &voxels1, &voxels2);
 
     // Update sunlight for the neighborhood.
     vector_long3 affectedMinP, affectedMaxP;
     GSTerrainBuffer *nSunlight;
-    calculateNeighborhoodSunlight(_block, _pos, sunSlots, voxels1, voxels2, &affectedMinP, &affectedMaxP, &nSunlight);
+    calculateNeighborhoodSunlight(_pos, sunSlots, voxels1, voxels2, &affectedMinP, &affectedMaxP, &nSunlight);
 
     if (!nSunlight) {
         // We don't have sunlight, so we simply invalidate all the items held by these slots.

@@ -253,10 +253,11 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         GSTerrainModifyBlockOperation *placeBlock;
         placeBlock = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
                                                                          block:block
+                                                                     operation:Set
                                                                       position:_cursor.cursorPlacePos
                                                                        journal:_journal];
         [placeBlock main];
-
+        
         [_cursor recalcCursorPosition];
     }
 }
@@ -272,11 +273,46 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         GSTerrainModifyBlockOperation *placeBlock;
         placeBlock = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
                                                                          block:block
+                                                                     operation:Set
                                                                       position:_cursor.cursorPos
                                                                        journal:_journal];
         [placeBlock main];
         
         [_cursor recalcCursorPosition];
+    }
+}
+
+- (void)placeTorchUnderCrosshairs
+{
+    if(_cursor.cursorIsActive) {
+        GSVoxel block;
+        memset(&block, 0, sizeof(GSVoxel));
+        block.torch = YES;
+
+        GSTerrainModifyBlockOperation *placeBlock;
+        placeBlock = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
+                                                                         block:block
+                                                                     operation:BitwiseOr
+                                                                      position:_cursor.cursorPlacePos
+                                                                       journal:_journal];
+        [placeBlock main];
+    }
+}
+
+- (void)removeTorchUnderCrosshairs
+{
+    if(_cursor.cursorIsActive) {
+        GSVoxel block;
+        memset(&block, ~0, sizeof(GSVoxel));
+        block.torch = NO;
+        
+        GSTerrainModifyBlockOperation *placeBlock;
+        placeBlock = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
+                                                                         block:block
+                                                                     operation:BitwiseAnd
+                                                                      position:_cursor.cursorPlacePos
+                                                                       journal:_journal];
+        [placeBlock main];
     }
 }
 

@@ -43,6 +43,8 @@
 
 - (void)saveToFile;
 
-- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock;
+- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)pos
+                                      block:(GSVoxel)newBlock
+                                  operation:(GSVoxelBitwiseOp)op;
 
 @end

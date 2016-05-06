@@ -88,6 +88,9 @@ typedef struct
 {
     /* Cache the results of the calculation of whether this vertex is outside or inside. */
     uint8_t outside:1;
+    
+    /* Indicates a torch is placed on this block. It is a light source. */
+    uint8_t torch:1;
 
     /* Indicates the block above the one for this vertex is an empty, air block. */
     uint8_t exposedToAirOnTop:1;
@@ -151,3 +154,9 @@ typedef enum
     CHUNK_NEIGHBOR_CENTER = 8,
     CHUNK_NUM_NEIGHBORS = 9
 } GSVoxelNeighborIndex;
+
+typedef enum {
+    Set,
+    BitwiseOr,
+    BitwiseAnd
+} GSVoxelBitwiseOp;

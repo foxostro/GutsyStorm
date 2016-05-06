@@ -20,6 +20,7 @@
 - (nonnull instancetype)init NS_UNAVAILABLE;
 - (nonnull instancetype)initWithChunkStore:(nonnull GSTerrainChunkStore *)chunkStore
                                      block:(GSVoxel)block
+                                 operation:(GSVoxelBitwiseOp)op
                                   position:(vector_float3)pos
                                    journal:(nullable GSTerrainJournal *)journal NS_DESIGNATED_INITIALIZER;
 

@@ -240,7 +240,9 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     return aBuffer;
 }
 
-- (nonnull instancetype)copyWithEditAtPosition:(vector_long3)chunkLocalPos value:(GSTerrainBufferElement)newValue
+- (nonnull instancetype)copyWithEditAtPosition:(vector_long3)chunkLocalPos
+                                         value:(GSTerrainBufferElement)newValue
+                                     operation:(GSVoxelBitwiseOp)op
 {
     vector_long3 dim = self.dimensions;
     vector_long3 p = chunkLocalPos + _offsetFromChunkLocalSpace;
@@ -250,7 +252,23 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < dim.z);
 
     GSTerrainBufferElement *modifiedData = [[self class] cloneBuffer:_data len:BUFFER_SIZE_IN_BYTES(dim)];
-    modifiedData[INDEX_BOX(p, GSZeroIntVec3, dim)] = newValue;
+    
+    size_t idx = INDEX_BOX(p, GSZeroIntVec3, dim);
+    
+    switch(op)
+    {
+    case Set:
+        modifiedData[idx] = newValue;
+        break;
+
+    case BitwiseOr:
+        modifiedData[idx] |= newValue;
+        break;
+        
+    case BitwiseAnd:
+        modifiedData[idx] &= newValue;
+        break;
+    }
 
     GSTerrainBuffer *buffer = [[GSTerrainBuffer alloc] initWithDimensions:dim takeOwnershipOfAlignedData:modifiedData];
 

@@ -41,6 +41,8 @@
     int32_t _mouseDeltaX, _mouseDeltaY;
 
     BOOL _spaceBarDebounce;
+    BOOL _vKeyDebounce;
+    BOOL _cKeyDebounce;
     BOOL _bKeyDebounce;
     BOOL _uKeyDebounce;
     BOOL _pKeyDebounce;
@@ -241,6 +243,24 @@
         }
     } else {
         _spaceBarDebounce = NO;
+    }
+    
+    if([_keysDown[@('c')] boolValue]) {
+        if(!_cKeyDebounce) {
+            _cKeyDebounce = YES;
+            [_terrain removeTorchUnderCrosshairs];
+        }
+    } else {
+        _cKeyDebounce = NO;
+    }
+    
+    if([_keysDown[@('v')] boolValue]) {
+        if(!_vKeyDebounce) {
+            _vKeyDebounce = YES;
+            [_terrain placeTorchUnderCrosshairs];
+        }
+    } else {
+        _vKeyDebounce = NO;
     }
     
     if([_keysDown[@('b')] boolValue]) {

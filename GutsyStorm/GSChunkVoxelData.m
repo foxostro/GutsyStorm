@@ -441,13 +441,15 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                      header:[NSData dataWithBytes:&header length:sizeof(header)]];
 }
 
-- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)pos block:(GSVoxel)newBlock
+- (nonnull instancetype)copyWithEditAtPoint:(vector_float3)pos
+                                      block:(GSVoxel)newBlock
+                                  operation:(GSVoxelBitwiseOp)op
 {
     NSParameterAssert(vector_equal(GSMinCornerForChunkAtPoint(pos), minP));
     vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
     GSTerrainBufferElement newValue = *((GSTerrainBufferElement *)&newBlock);
     GSVoxel oldBlock = [self voxelAtLocalPosition:chunkLocalPos];
-    GSTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue];
+    GSTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue operation:op];
     GSChunkVoxelData *modifiedVoxelData = [[[self class] alloc] initWithMinP:minP
                                                                       folder:_folder
                                                               groupForSaving:_groupForSaving

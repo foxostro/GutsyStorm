@@ -28,8 +28,10 @@
 - (void)updateWithDeltaTime:(float)dt cameraModifiedFlags:(unsigned)cameraModifiedFlags;
 
 - (void)placeBlockUnderCrosshairs;
-
 - (void)removeBlockUnderCrosshairs;
+
+- (void)placeTorchUnderCrosshairs;
+- (void)removeTorchUnderCrosshairs;
 
 /* Notify the terrain object that the system has come under memory pressure. */
 - (void)memoryPressure:(dispatch_source_memorypressure_flags_t)status;

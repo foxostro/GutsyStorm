@@ -635,6 +635,7 @@ static void generateTerrainVoxel(GSNoise * _Nonnull noiseSource0, GSNoise * _Non
     }
     
     outVoxel->outside = NO; // calculated later
+    outVoxel->torch = NO;
     outVoxel->exposedToAirOnTop = NO; // calculated later
     outVoxel->opaque = groundLayer || floatingMountain;
     outVoxel->upsideDown = NO; // calculated later

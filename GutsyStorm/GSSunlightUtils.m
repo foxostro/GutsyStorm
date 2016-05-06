@@ -52,18 +52,17 @@ void GSSunlightSeed(GSVoxel * _Nonnull voxels, size_t voxelCount,
     // Also, find the elevation of the highest opaque block.
     FOR_BOX(p, seedMinP, seedMaxP)
     {
-        GSVoxel voxel = {0};
         size_t voxelIdx = INDEX_BOX(p, voxelMinP, voxelMaxP);
-        if (voxelIdx < voxelCount) { // Voxels that are out of bounds are assumed to be set to zero.
-            voxel = voxels[voxelIdx];
-        }
-        
-        BOOL directlyLit = (!voxel.opaque) && (voxel.outside);
-        
-        if (directlyLit) {
-            size_t sunlightIdx = INDEX_BOX(p, sunlightMinP, sunlightMaxP);
-            assert(sunlightIdx < sunCount);
-            sunlight[sunlightIdx] = CHUNK_LIGHTING_MAX;
+
+        if (voxelIdx < voxelCount) {
+            GSVoxel voxel = voxels[voxelIdx];
+            BOOL directlyLit = (!voxel.opaque) && (voxel.outside || voxel.torch);
+            
+            if (directlyLit) {
+                size_t sunlightIdx = INDEX_BOX(p, sunlightMinP, sunlightMaxP);
+                assert(sunlightIdx < sunCount);
+                sunlight[sunlightIdx] = CHUNK_LIGHTING_MAX;
+            }
         }
     }
 }
