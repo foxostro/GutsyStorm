@@ -13,7 +13,8 @@
 @interface GSTerrainJournalEntry : NSObject <NSCoding>
 
 @property (nonatomic) GSVoxel value;
-@property (nonatomic, nonnull) GSBoxedVector *position;
+@property (nonatomic) GSVoxelBitwiseOp operation;
+@property (nonatomic, nonnull, copy) GSBoxedVector *position;
 
 - (nonnull instancetype)init NS_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)initWithCoder:(nonnull NSCoder *)decoder;

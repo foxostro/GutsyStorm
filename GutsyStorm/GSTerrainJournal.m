@@ -52,12 +52,14 @@
 - (void)addEntry:(GSTerrainJournalEntry *)entry
 {
     NSParameterAssert(entry);
-    
+
     dispatch_group_async(_group, _queue, ^{
-        // First, delete all previous journal entries which reference the modified block position. These are redundant and
-        // a little bit of house keeping work spent now can drastically reduce the time spent applying the journal later.
+        // First, delete all previous journal entries which reference the modified block position. These are redundant
+        // and a little bit of house keeping work spent now can drastically reduce the time spent applying the journal
+        // later.
         // Counter-argument: Rebuilding from the journal is expected to be expensive and expected to be rare.
-        NSMutableArray<GSTerrainJournalEntry *> *entriesToDelete = [[NSMutableArray alloc] initWithCapacity:self.journalEntries.count];
+        NSMutableArray<GSTerrainJournalEntry *> *entriesToDelete =
+            [[NSMutableArray alloc] initWithCapacity:self.journalEntries.count];
         for(GSTerrainJournalEntry *thatEntry in self.journalEntries)
         {
             if ([entry.position isEqualTo:thatEntry.position]) {
