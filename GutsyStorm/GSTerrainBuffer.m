@@ -213,23 +213,26 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     });
 }
 
-- (nonnull instancetype)copySubBufferWithMinCorner:(vector_long3)srcMinP maxCorner:(vector_long3)srcMaxP
+- (nonnull instancetype)copySubBufferFromSubrange:(GSIntAABB * _Nonnull)srcBox
 {
-    NSParameterAssert(srcMaxP.y - srcMinP.y == CHUNK_SIZE_Y);
+    NSParameterAssert(srcBox && (srcBox->maxs.y - srcBox->mins.y == CHUNK_SIZE_Y));
     
-    vector_long3 p = GSZeroIntVec3, newDimensions = srcMaxP - srcMinP;
+    vector_long3 p = GSZeroIntVec3, newDimensions = srcBox->maxs - srcBox->mins;
     GSTerrainBufferElement *dstBuf = [[self class] allocateBufferWithLength:BUFFER_SIZE_IN_BYTES(newDimensions)];
+    
+    GSIntAABB thisBufferBox = { GSZeroIntVec3, _dimensions };
+    GSIntAABB relSrcBox = { GSZeroIntVec3, newDimensions };
 
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, newDimensions)
+    FOR_Y_COLUMN_IN_BOX(p, relSrcBox)
     {
-        vector_long3 srcPos = p + srcMinP + _offsetFromChunkLocalSpace;
+        vector_long3 srcPos = p + srcBox->mins + _offsetFromChunkLocalSpace;
         assert(srcPos.x >= 0 && srcPos.y >= 0 && srcPos.z >= 0);
         assert(srcPos.x < _dimensions.x && srcPos.y < _dimensions.y && srcPos.z < _dimensions.z);
 
-        size_t srcOffset = INDEX_BOX2(srcPos, GSZeroIntVec3, _dimensions);
+        size_t srcOffset = INDEX_BOX(srcPos, thisBufferBox);
         assert(srcOffset < _dimensions.x*_dimensions.y*_dimensions.z);
 
-        size_t dstOffset = INDEX_BOX2(p, GSZeroIntVec3, newDimensions);
+        size_t dstOffset = INDEX_BOX(p, relSrcBox);
         assert(dstOffset < newDimensions.x*newDimensions.y*newDimensions.z);
 
         memcpy(dstBuf + dstOffset, _data + srcOffset, newDimensions.y * sizeof(GSTerrainBufferElement));

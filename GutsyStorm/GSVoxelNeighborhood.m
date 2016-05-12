@@ -114,12 +114,8 @@
         long offsetZ = offsetsZ[i];
         
         vector_long3 p;
-        FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
-        {
-            assert(p.x >= 0 && p.x < GSChunkSizeIntVec3.x);
-            assert(p.y >= 0 && p.y < GSChunkSizeIntVec3.y);
-            assert(p.z >= 0 && p.z < GSChunkSizeIntVec3.z);
-            
+        FOR_Y_COLUMN_IN_BOX(p, chunkBox)
+        {   
             size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), combinedBox);
             size_t srcIdx = INDEX_BOX(p, chunkBox);
             
@@ -183,9 +179,8 @@
     GSTerrainBuffer *neighborhoodSunlight = [[GSTerrainBuffer alloc] initWithDimensions:nSunDim
                                                              takeOwnershipOfAlignedData:sunlight];
     
-    vector_long3 a = -oneBorder;
-    vector_long3 b = oneBorder + GSChunkSizeIntVec3;
-    GSTerrainBuffer *centerChunkSunlight = [neighborhoodSunlight copySubBufferWithMinCorner:a maxCorner:b];
+    GSIntAABB finalBox = { -oneBorder, oneBorder + GSChunkSizeIntVec3 };
+    GSTerrainBuffer *centerChunkSunlight = [neighborhoodSunlight copySubBufferFromSubrange:&finalBox];
     
     return centerChunkSunlight;
 }

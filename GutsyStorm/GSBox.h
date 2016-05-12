@@ -13,12 +13,12 @@
 #import "GSAABB.h"
 
 
-#define FOR_BOX(p, minP, maxP) for((p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \
-                                   for((p).y = (minP).y; (p).y < (maxP).y; ++(p).y) \
-                                       for((p).z = (minP).z; (p).z < (maxP).z; ++(p).z)
+#define FOR_BOX(p, box) for((p).x = (box).mins.x; (p).x < (box).maxs.x; ++(p).x) \
+                                   for((p).y = (box).mins.y; (p).y < (box).maxs.y; ++(p).y) \
+                                       for((p).z = (box).mins.z; (p).z < (box).maxs.z; ++(p).z)
 
-#define FOR_Y_COLUMN_IN_BOX(p, minP, maxP) for((p).y = (minP).y, (p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \
-                                             for((p).z = (minP).z; (p).z < (maxP).z; ++(p).z)
+#define FOR_Y_COLUMN_IN_BOX(p, box) for((p).y = (box).mins.y, (p).x = (box).mins.x; (p).x < (box).maxs.x; ++(p).x) \
+                                             for((p).z = (box).mins.z; (p).z < (box).maxs.z; ++(p).z)
 
 
 static inline long INDEX_BOX(vector_long3 p, GSIntAABB box)

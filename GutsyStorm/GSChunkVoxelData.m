@@ -277,10 +277,11 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     NSParameterAssert(data);
     
     vector_long3 p;
+    GSIntAABB chunkBox = {GSZeroIntVec3, GSChunkSizeIntVec3};
     
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
+    FOR_Y_COLUMN_IN_BOX(p, chunkBox)
     {
         // Get the y value of the highest non-empty voxel in the chunk.
         long heightOfHighestVoxel;
@@ -301,7 +302,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     }
     
     // Determine voxels in the chunk which are exposed to air on top.
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
+    FOR_Y_COLUMN_IN_BOX(p, chunkBox)
     {
         // Find a voxel which is empty and is directly above a cube voxel.
         p.y = CHUNK_SIZE_Y-1;
@@ -397,7 +398,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     data = [[GSMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
     GSVoxel *buf = (GSVoxel *)[data mutableData];
 
-    FOR_Y_COLUMN_IN_BOX(p, chunkBox.mins, chunkBox.maxs)
+    FOR_Y_COLUMN_IN_BOX(p, chunkBox)
     {
         memcpy(&buf[INDEX_BOX(p, chunkBox)], &voxels[INDEX_BOX(p, box)], chunkBox.maxs.y * sizeof(GSVoxel));
     }

@@ -256,9 +256,13 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
             vector_float3 slotMinP = sunSlot.minP - GSMinCornerForChunkAtPoint(editPos);
             vector_long3 minP = GSCastToIntegerVector3(slotMinP);
             GSVoxelNeighborhood *neighborhood = [sunlight1.neighborhood copyReplacing:voxels1 withNeighbor:voxels2];
-            vector_long3 a = minP + GSMakeIntegerVector3(-1, 0, -1);
-            vector_long3 b = minP + GSMakeIntegerVector3(1, 0, 1) + GSChunkSizeIntVec3;
-            GSTerrainBuffer *sunlight = [nSunlight copySubBufferWithMinCorner:a maxCorner:b];
+            
+            GSIntAABB subrange = {
+                .mins = minP + GSMakeIntegerVector3(-1, 0, -1),
+                .maxs = minP + GSMakeIntegerVector3(1, 0, 1) + GSChunkSizeIntVec3
+            };
+            
+            GSTerrainBuffer *sunlight = [nSunlight copySubBufferFromSubrange:&subrange];
             sunlight2 = [sunlight1 copyReplacingSunlightData:sunlight neighborhood:neighborhood];
         }
         

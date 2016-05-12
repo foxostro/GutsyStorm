@@ -8,7 +8,8 @@
 
 #import <Foundation/Foundation.h>
 #import "GSIntegerVector3.h"
-#import "GSVoxel.h"
+#import "GSBox.h"
+#import "GSVoxel.h" // for GSVoxelBitwiseOp
 
 
 typedef uint16_t GSTerrainBufferElement;
@@ -114,7 +115,7 @@ typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NS
             header:(nullable NSData *)header;
 
 /* Creates a new buffer of dimensions of smaller dimensions than this buffer. */
-- (nonnull instancetype)copySubBufferWithMinCorner:(vector_long3)srcMinP maxCorner:(vector_long3)srcMaxP;
+- (nonnull instancetype)copySubBufferFromSubrange:(GSIntAABB * _Nonnull)srcBox;
 
 /* Creates a new buffer with the contents of this buffer plus a modification applied as specified. */
 - (nonnull instancetype)copyWithEditAtPosition:(vector_long3)chunkLocalPos

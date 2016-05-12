@@ -19,7 +19,7 @@ long GSFindElevationOfHighestOpaqueBlock(GSVoxel * _Nonnull voxels, size_t voxel
     vector_long3 p;
     long highest = voxelBox->maxs.y;
     
-    FOR_BOX(p, voxelBox->mins, voxelBox->maxs)
+    FOR_BOX(p, *voxelBox)
     {
         GSVoxel voxel = {0};
         size_t voxelIdx = INDEX_BOX(p, *voxelBox);
@@ -51,7 +51,7 @@ void GSSunlightSeed(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _N
     // Seed phase.
     // Seed the sunlight buffer with light at outside non-opaque blocks.
     // Also, find the elevation of the highest opaque block.
-    FOR_BOX(p, seedBox->mins, seedBox->maxs)
+    FOR_BOX(p, *seedBox)
     {
         size_t voxelIdx = INDEX_BOX(p, *voxelBox);
 
@@ -90,7 +90,7 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _N
     for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
     {
         vector_long3 p;
-        FOR_BOX(p, blurBox->mins, blurBox->maxs)
+        FOR_BOX(p, *blurBox)
         {
             GSVoxel voxel = {0};
             size_t voxelIdx = INDEX_BOX(p, *voxelBox);

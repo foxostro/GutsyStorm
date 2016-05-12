@@ -49,14 +49,16 @@
 
         long offsetX = offsetsX[i];
         long offsetZ = offsetsZ[i];
+
+        GSIntAABB neighborBox;
+        neighborBox.mins = -(neighbor.sunlight.offsetFromChunkLocalSpace);
+        neighborBox.maxs = neighborBox.mins + srcDim;
         
-        vector_long3 p, a, b;
-        a = -(neighbor.sunlight.offsetFromChunkLocalSpace);
-        b = a + srcDim;
-        FOR_Y_COLUMN_IN_BOX(p, a, b)
+        vector_long3 p;
+        FOR_Y_COLUMN_IN_BOX(p, neighborBox)
         {
             size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), nSunBox);
-            size_t srcIdx = INDEX_BOX2(p, a, b);
+            size_t srcIdx = INDEX_BOX(p, neighborBox);
 
             assert(dstIdx < count);
             assert(srcIdx < (srcDim.x * srcDim.y * srcDim.z));
@@ -109,8 +111,8 @@
 
     // If we're removing light then we need to zero out the blur region first.
     if (removingLight) {
-        vector_long3 a = workBox.mins + border, b = workBox.maxs - border;
-        FOR_BOX(p, a, b)
+        GSIntAABB adjustedWorkBox = { .mins = workBox.mins + border, .maxs = workBox.maxs - border };
+        FOR_BOX(p, adjustedWorkBox)
         {
             size_t srcIdx = INDEX_BOX(p, nSunBox);
             assert(srcIdx < (nSunDim.x * nSunDim.y * nSunDim.z));

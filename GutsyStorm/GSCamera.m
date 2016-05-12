@@ -12,6 +12,7 @@
 #import "GSTerrainBuffer.h" // for GSTerrainBufferElement, needed by Voxel.h
 #import "GSQuaternion.h"
 #import "GSVectorUtils.h"
+#import "GSVoxel.h" // for CHUNK_SIZE_Y
 
 @implementation GSCamera
 {

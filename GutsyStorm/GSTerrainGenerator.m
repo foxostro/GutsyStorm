@@ -386,7 +386,7 @@ static void generateTerrainVoxel(GSNoise * _Nonnull noiseSource0, GSNoise * _Non
     vector_long3 clp;
     
     // First, generate voxels for a region of terrain.
-    FOR_BOX(clp, box->mins, box->maxs)
+    FOR_BOX(clp, *box)
     {
         vector_float3 worldPosition = vector_make(clp.x, clp.y, clp.z) + offsetToWorld;
         GSVoxel *voxel = &voxels[INDEX_BOX(clp, *box)];
@@ -546,7 +546,7 @@ static void postProcessVoxels(struct GSPostProcessingRuleSet * _Nonnull ruleSet,
     vector_long3 inset = { 1, 1, 1};
     GSIntAABB insetBox = { .mins = box->mins + inset, .maxs = box->maxs - inset };
     
-    FOR_Y_COLUMN_IN_BOX(p, insetBox.mins, insetBox.maxs)
+    FOR_Y_COLUMN_IN_BOX(p, insetBox)
     {
         if(ruleSet->upsideDown) {
             // Find a voxel which is empty and is directly below a cube voxel.
