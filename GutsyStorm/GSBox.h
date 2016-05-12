@@ -30,10 +30,5 @@ static inline long INDEX_BOX(vector_long3 p, GSIntAABB box)
     return ((p.x-box.mins.x)*sizeY*sizeZ) + ((p.z-box.mins.z)*sizeY) + (p.y-box.mins.y);
 }
 
-static inline long INDEX_BOX2(vector_long3 p, vector_long3 a, vector_long3 b)
-{
-    return INDEX_BOX(p, (GSIntAABB){ .mins = a, .maxs = b });
-}
-
 
 #endif /* GSBox_h */
