@@ -2,20 +2,37 @@
 //  GSAABB.h
 //  GutsyStorm
 //
-//  Created by Andrew Fox on 3/31/12.
-//  Copyright © 2012-2016 Andrew Fox. All rights reserved.
+//  Created by Andrew Fox on 5/9/16.
+//  Copyright © 2016 Andrew Fox. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
-#import <simd/vector.h>
+#ifndef GSAABB_h
+#define GSAABB_h
 
-@interface GSAABB : NSObject
+typedef struct {
+    vector_float3 mins, maxs;
+} GSFloatAABB;
 
-@property (assign, nonatomic) vector_float3 mins;
-@property (assign, nonatomic) vector_float3 maxs;
+static inline BOOL GSFloatAABBIntersects(GSFloatAABB *a, GSFloatAABB *b)
+{
+    assert(a && b);
+    BOOL intersects = (a->mins.x <= b->maxs.x) && (a->maxs.x >= b->mins.x) &&
+                      (a->mins.y <= b->maxs.y) && (a->maxs.y >= b->mins.y) &&
+                      (a->mins.z <= b->maxs.z) && (a->maxs.z >= b->mins.z);
+    return intersects;
+}
 
-- (vector_float3)getVertex:(size_t)i;
-- (nonnull instancetype)initWithVerts:(nonnull vector_float3 *)vertices numVerts:(size_t)numVerts;
-- (nonnull instancetype)initWithMinP:(vector_float3)minP maxP:(vector_float3)maxP;
+typedef struct {
+    vector_long3 mins, maxs;
+} GSIntAABB;
 
-@end
+static inline BOOL GSIntAABBIntersects(GSIntAABB *a, GSIntAABB *b)
+{
+    assert(a && b);
+    BOOL intersects = (a->mins.x <= b->maxs.x) && (a->maxs.x >= b->mins.x) &&
+                      (a->mins.y <= b->maxs.y) && (a->maxs.y >= b->mins.y) &&
+                      (a->mins.z <= b->maxs.z) && (a->maxs.z >= b->mins.z);
+    return intersects;
+}
+
+#endif /* GSAABB_h */

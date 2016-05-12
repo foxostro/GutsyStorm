@@ -204,10 +204,10 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 - (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight
-                     invalidatedAreaMinP:(vector_long3)invalidatedAreaMinP
-                     invalidatedAreaMaxP:(vector_long3)invalidatedAreaMaxP
+                       invalidatedRegion:(GSIntAABB * _Nonnull)invalidatedRegion
 {
     NSParameterAssert(sunlight);
+    NSParameterAssert(invalidatedRegion);
     
     if (!_vertices) {
         return [[[self class] alloc] initWithMinP:minP
@@ -220,21 +220,19 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     BOOL invalidatedSubChunk[GSNumGeometrySubChunks];
     {
-        struct { vector_float3 mins, maxs; } a, b;
-
-        a.mins = GSCastToFloat3(invalidatedAreaMinP) + minP;
-        a.maxs = GSCastToFloat3(invalidatedAreaMaxP) + minP;
+        GSFloatAABB a = {
+            .mins = GSCastToFloat3(invalidatedRegion->mins) + minP,
+            .maxs = GSCastToFloat3(invalidatedRegion->maxs) + minP
+        };
 
         for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
         {
-            b.mins = subChunkMinCorner(minP, i);
-            b.maxs = subChunkMaxCorner(minP, i);
-            
-            BOOL intersects = (a.mins.x <= b.maxs.x) && (a.maxs.x >= b.mins.x) &&
-                              (a.mins.y <= b.maxs.y) && (a.maxs.y >= b.mins.y) &&
-                              (a.mins.z <= b.maxs.z) && (a.maxs.z >= b.mins.z);
-            
-            invalidatedSubChunk[i] = intersects;
+            GSFloatAABB b = {
+                .mins = subChunkMinCorner(minP, i),
+                .maxs = subChunkMaxCorner(minP, i)
+            };
+
+            invalidatedSubChunk[i] = GSFloatAABBIntersects(&a, &b);
         }
     }
     

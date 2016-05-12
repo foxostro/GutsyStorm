@@ -19,6 +19,7 @@
 #import "GSChunkSunlightData.h"
 #import "GSChunkVoxelData.h"
 #import "GSSunlightNeighborhood.h"
+#import "GSAABB.h"
 
 
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
@@ -141,11 +142,12 @@ static void calculateNeighborhoodSunlight(vector_float3 editPos,
                                           GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
                                           GSChunkVoxelData * _Nonnull voxels1,
                                           GSChunkVoxelData * _Nonnull voxels2,
-                                          vector_long3 * _Nullable affectedAreaMinP,
-                                          vector_long3 * _Nullable affectedAreaMaxP,
+                                          GSIntAABB * _Nullable affectedRegion,
                                           GSTerrainBuffer **outNeighborhoodSunlight)
 {
     assert(outNeighborhoodSunlight);
+    assert(voxels1);
+    assert(voxels2);
 
     GSTerrainBuffer *nSunlight = nil;
     
@@ -180,8 +182,7 @@ static void calculateNeighborhoodSunlight(vector_float3 editPos,
 
     nSunlight = [sunNeighborhood newSunlightBufferWithEditAtPoint:editPos
                                                     removingLight:removingLight
-                                                 affectedAreaMinP:affectedAreaMinP
-                                                 affectedAreaMaxP:affectedAreaMaxP];
+                                                   affectedRegion:affectedRegion];
     
     GSStopwatchTraceStep(@"Updated sunlight for the neighborhood.");
     *outNeighborhoodSunlight = nSunlight;
@@ -214,8 +215,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
                                    GSChunkVoxelData * _Nonnull voxels1,
                                    GSChunkVoxelData * _Nonnull voxels2,
                                    GSTerrainBuffer * _Nonnull nSunlight,
-                                   vector_long3 affectedAreaMinP,
-                                   vector_long3 affectedAreaMaxP,
+                                   GSIntAABB * _Nonnull affectedRegion,
                                    GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
                                    GSNeighborhood<GSGridSlot *> * _Nonnull geoSlots,
                                    GSNeighborhood<GSGridSlot *> * _Nonnull vaoSlots)
@@ -223,33 +223,24 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
     assert(voxels1);
     assert(voxels2);
     assert(nSunlight);
+    assert(affectedRegion);
     assert(sunSlots);
     assert(geoSlots);
     assert(vaoSlots);
-    assert((affectedAreaMaxP.x > affectedAreaMinP.x) &&
-           (affectedAreaMaxP.y > affectedAreaMinP.y) &&
-           (affectedAreaMaxP.z > affectedAreaMinP.z));
+    assert((affectedRegion->maxs.x > affectedRegion->mins.x) &&
+           (affectedRegion->maxs.y > affectedRegion->mins.y) &&
+           (affectedRegion->maxs.z > affectedRegion->mins.z));
     
     GSChunkSunlightData *sunlight2 = nil;
     GSChunkGeometryData *geo2 = nil;
     
     // If the affected area does not include this neighbor then skip it.
     {
-        vector_float3 foffset = [GSNeighborhood offsetForNeighborIndex:i];
-        
-        struct { vector_long3 mins, maxs; } a, b;
-        
-        a.mins = GSCastToIntegerVector3(foffset);
+        GSIntAABB a;
+        a.mins = GSCastToIntegerVector3([GSNeighborhood offsetForNeighborIndex:i]);
         a.maxs = a.mins + GSChunkSizeIntVec3;
-        
-        b.mins = affectedAreaMinP;
-        b.maxs = affectedAreaMaxP;
-        
-        BOOL intersects = (a.mins.x <= b.maxs.x) && (a.maxs.x >= b.mins.x) &&
-        (a.mins.y <= b.maxs.y) && (a.maxs.y >= b.mins.y) &&
-        (a.mins.z <= b.maxs.z) && (a.maxs.z >= b.mins.z);
-        
-        if (!intersects) {
+
+        if (!GSIntAABBIntersects(&a, affectedRegion)) {
             return;
         }
     }
@@ -284,9 +275,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
             [geo1 invalidate];
 
             if(sunlight2) {
-                geo2 = [geo1 copyWithSunlight:sunlight2
-                          invalidatedAreaMinP:affectedAreaMinP
-                          invalidatedAreaMaxP:affectedAreaMaxP];
+                geo2 = [geo1 copyWithSunlight:sunlight2 invalidatedRegion:affectedRegion];
             }
         }
         
@@ -363,9 +352,9 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
     updateVoxels(_chunkStore, _block, _op, _pos, voxSlots, &voxels1, &voxels2);
 
     // Update sunlight for the neighborhood.
-    vector_long3 affectedMinP, affectedMaxP;
+    GSIntAABB affectedRegion;
     GSTerrainBuffer *nSunlight;
-    calculateNeighborhoodSunlight(_pos, sunSlots, voxels1, voxels2, &affectedMinP, &affectedMaxP, &nSunlight);
+    calculateNeighborhoodSunlight(_pos, sunSlots, voxels1, voxels2, &affectedRegion, &nSunlight);
 
     if (!nSunlight) {
         // We don't have sunlight, so we simply invalidate all the items held by these slots.
@@ -374,8 +363,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
         // Rebuild the chain of dependent chunks using the updated voxels and sunlight.
         for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
         {
-            rebuildDependentChunks(i, _pos, voxels1, voxels2, nSunlight, affectedMinP, affectedMaxP,
-                                   sunSlots, geoSlots, vaoSlots);
+            rebuildDependentChunks(i, _pos, voxels1, voxels2, nSunlight, &affectedRegion, sunSlots, geoSlots, vaoSlots);
         }
     }
 

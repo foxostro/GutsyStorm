@@ -7,9 +7,9 @@
 //
 
 #import <assert.h>
-#import "GSAABB.h"
+#import "GSBoxedAABB.h"
 
-@implementation GSAABB
+@implementation GSBoxedAABB
 
 - (nonnull instancetype)initWithVerts:(nonnull vector_float3 *)vertices numVerts:(size_t)numVerts
 {

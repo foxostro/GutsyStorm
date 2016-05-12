@@ -8,26 +8,25 @@
 
 #import "GSVoxel.h"
 #import "GSTerrainBuffer.h"
+#import "GSAABB.h"
 
-
-long GSFindElevationOfHighestOpaqueBlock(GSVoxel * _Nonnull voxels, size_t voxelCount,
-                                         vector_long3 voxelMinP, vector_long3 voxelMaxP);
+long GSFindElevationOfHighestOpaqueBlock(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _Nonnull voxelBox);
 
 void GSSunlightSeed(GSVoxel * _Nonnull voxels, size_t voxelCount,
-                    vector_long3 voxelMinP, vector_long3 voxelMaxP,
+                    GSIntAABB * _Nonnull voxelBox,
                     GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
-                    vector_long3 sunlightMinP, vector_long3 sunlightMaxP,
-                    vector_long3 seedMinP, vector_long3 seedMaxP);
+                    GSIntAABB * _Nonnull sunlightBox,
+                    GSIntAABB * _Nonnull seedBox);
 
 void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount,
-                    vector_long3 voxelMinP, vector_long3 voxelMaxP,
+                    GSIntAABB * _Nonnull voxelBox,
                     GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
-                    vector_long3 sunlightMinP, vector_long3 sunlightMaxP,
-                    vector_long3 blurMinP, vector_long3 blurMaxP,
-                    vector_long3 * _Nullable affectedAreaMinP, vector_long3 * _Nullable affectedAreaMaxP);
+                    GSIntAABB * _Nonnull sunlightBox,
+                    GSIntAABB * _Nonnull blurBox,
+                    GSIntAABB * _Nullable affectedRegion);
 
 BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
                         GSVoxel * _Nonnull voxels, size_t voxCount,
-                        vector_long3 voxelMinP, vector_long3 voxelMaxP,
+                        GSIntAABB * _Nonnull voxelBox,
                         GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
-                        vector_long3 sunlightMinP, vector_long3 sunlightMaxP);
+                        GSIntAABB * _Nonnull sunlightBox);
