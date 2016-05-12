@@ -40,15 +40,19 @@ struct GSChunkGeometryHeader
 };
 
 
-static inline vector_float3 subChunkMinCorner(vector_float3 minP, NSUInteger i)
+static inline GSFloatAABB subChunkBoxFloat(vector_float3 minP, NSUInteger i)
 {
-    return minP + (vector_float3){0, CHUNK_SIZE_Y * i / GSNumGeometrySubChunks, 0};
+    GSFloatAABB result;
+    result.mins = minP + (vector_float3){0, CHUNK_SIZE_Y * i / GSNumGeometrySubChunks, 0};
+    result.maxs = result.mins + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y / GSNumGeometrySubChunks, CHUNK_SIZE_Z};
+    return result;
 }
 
 
-static inline vector_float3 subChunkMaxCorner(vector_float3 minP, NSUInteger i)
+static inline GSIntAABB subChunkBoxInt(vector_float3 minP, NSUInteger i)
 {
-    return subChunkMinCorner(minP, i) + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y / GSNumGeometrySubChunks, CHUNK_SIZE_Z};
+    GSFloatAABB box = subChunkBoxFloat(minP, i);
+    return (GSIntAABB){ GSCastToIntegerVector3(box.mins), GSCastToIntegerVector3(box.maxs) };
 }
 
 
@@ -222,11 +226,7 @@ static void applyLightToVertices(size_t numChunkVerts,
 
         for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
         {
-            GSFloatAABB b = {
-                .mins = subChunkMinCorner(minP, i),
-                .maxs = subChunkMaxCorner(minP, i)
-            };
-
+            GSFloatAABB b = subChunkBoxFloat(minP, i);
             invalidatedSubChunk[i] = GSFloatAABBIntersects(&a, &b);
         }
     }
@@ -440,9 +440,7 @@ createVertices(GSChunkSunlightData * _Nonnull sunlight, vector_float3 chunkMinP,
 {
     assert(sunlight);
 
-    GSIntAABB box;
-    box.mins = GSCastToIntegerVector3(subChunkMinCorner(chunkMinP, i));
-    box.maxs = GSCastToIntegerVector3(subChunkMaxCorner(chunkMinP, i));
+    GSIntAABB box = subChunkBoxInt(chunkMinP, i);
 
     static GSBlockMesh *factories[NUM_VOXEL_TYPES] = {nil};
     static dispatch_once_t onceToken;
