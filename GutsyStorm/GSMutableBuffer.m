@@ -7,6 +7,8 @@
 //
 
 #import "GSMutableBuffer.h"
+#import "GSBox.h"
+
 
 @implementation GSMutableBuffer
 

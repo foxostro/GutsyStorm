@@ -14,6 +14,7 @@
 #import "GSMatrixUtils.h"
 #import "GSGrid.h"
 #import "GSGridSlot.h"
+#import "GSVectorUtils.h"
 
 
 @implementation GSTerrainCursor
@@ -44,8 +45,8 @@
         _cube = cube;
         _rayMarcher = [[GSTerrainRayMarcher alloc] initWithChunkStore:chunkStore];
         _cursorIsActive = NO;
-        _cursorPos = vector_make(0, 0, 0);
-        _cursorPlacePos = vector_make(0, 0, 0);
+        _cursorPos = (vector_float3){0, 0, 0};
+        _cursorPlacePos = (vector_float3){0, 0, 0};
         _maxPlaceDistance = [[NSUserDefaults standardUserDefaults] floatForKey:@"MaxPlaceDistance"];
     }
     return self;

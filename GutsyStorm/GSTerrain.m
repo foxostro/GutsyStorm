@@ -18,6 +18,7 @@
 #import "GSTerrain.h"
 #import "GSRay.h"
 #import "GSMatrixUtils.h"
+#import "GSVectorUtils.h"
 #import "GSTerrainJournal.h"
 #import "GSTerrainRayMarcher.h"
 #import "GSTerrainGenerator.h"

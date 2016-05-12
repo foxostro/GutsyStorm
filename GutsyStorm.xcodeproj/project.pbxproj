@@ -159,6 +159,7 @@
 		6F2DE04A1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainApplyJournalOperation.h; sourceTree = "<group>"; };
 		6F2DE04B1CD85E9D00BD2719 /* GSTerrainApplyJournalOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainApplyJournalOperation.m; sourceTree = "<group>"; };
 		6F2E05161CE1B1D100EC03C8 /* GSAABB.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSAABB.h; sourceTree = "<group>"; };
+		6F394A5D1CE46B4600F0D408 /* GSBox.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GSBox.h; path = GutsyStorm/GSBox.h; sourceTree = "<group>"; };
 		6F6158061BD69C8E00243A61 /* GSOpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSOpenGLViewController.h; sourceTree = "<group>"; };
 		6F6158071BD69C8E00243A61 /* GSOpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSOpenGLViewController.m; sourceTree = "<group>"; };
 		6F6AA69B1CB1BCA60039F8A4 /* GSStopwatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSStopwatch.h; sourceTree = "<group>"; };
@@ -290,6 +291,7 @@
 		4A2CCFE71513C3FC006C6551 = {
 			isa = PBXGroup;
 			children = (
+				6F394A5D1CE46B4600F0D408 /* GSBox.h */,
 				4A2CCFFC1513C3FC006C6551 /* GutsyStorm */,
 				6F186B2E1CD4216D0018FF5F /* GutsyStormTests */,
 				4A2CCFF31513C3FC006C6551 /* Products */,

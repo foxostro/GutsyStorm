@@ -9,6 +9,7 @@
 #import "GSSunlightNeighborhood.h"
 #import "GSSunlightUtils.h"
 #import "GSAABB.h"
+#import "GSBox.h"
 
 @implementation GSSunlightNeighborhood
 

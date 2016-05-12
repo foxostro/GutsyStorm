@@ -8,13 +8,13 @@
 
 #import "GSTerrainActiveRegion.h"
 #import "GSFrustum.h"
-#import "GSVoxel.h"
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
 #import "GSTerrainChunkStore.h"
 #import "GSChunkVAO.h"
 #import "GSActivity.h"
 #import "GSReaderWriterLock.h"
+#import "GSBox.h"
 
 
 static const uint64_t GSChunkCreationBudget = 10 * NSEC_PER_MSEC; // chosen arbitrarily

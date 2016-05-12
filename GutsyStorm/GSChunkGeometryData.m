@@ -23,6 +23,7 @@
 #import "GSBlockMeshInsideCorner.h"
 #import "GSBlockMeshOutsideCorner.h"
 #import "GSBoxedVector.h"
+#import "GSBox.h"
 
 
 #define GEO_MAGIC ('moeg')
@@ -41,13 +42,13 @@ struct GSChunkGeometryHeader
 
 static inline vector_float3 subChunkMinCorner(vector_float3 minP, NSUInteger i)
 {
-    return minP + vector_make(0, CHUNK_SIZE_Y * i / GSNumGeometrySubChunks, 0);
+    return minP + (vector_float3){0, CHUNK_SIZE_Y * i / GSNumGeometrySubChunks, 0};
 }
 
 
 static inline vector_float3 subChunkMaxCorner(vector_float3 minP, NSUInteger i)
 {
-    return subChunkMinCorner(minP, i) + vector_make(CHUNK_SIZE_X, CHUNK_SIZE_Y / GSNumGeometrySubChunks, CHUNK_SIZE_Z);
+    return subChunkMinCorner(minP, i) + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y / GSNumGeometrySubChunks, CHUNK_SIZE_Z};
 }
 
 
@@ -497,7 +498,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     {
         GSTerrainVertex *v = &vertsBuffer[i];
         
-        vector_float3 vertexPos = vector_make(v->position[0], v->position[1], v->position[2]);
+        vector_float3 vertexPos = (vector_float3){v->position[0], v->position[1], v->position[2]};
         vector_long3 normal = (vector_long3){v->normal[0], v->normal[1], v->normal[2]};
 
         uint8_t sunlightValue = [sunlight lightForVertexAtPoint:vertexPos

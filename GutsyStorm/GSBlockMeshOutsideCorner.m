@@ -7,7 +7,7 @@
 //
 
 #import "GSTerrainBuffer.h" // for GSTerrainBufferElement, needed by Voxel.h
-#import "GSVoxel.h"
+#import "GSVectorUtils.h"
 #import "GSFace.h"
 #import "GSBoxedTerrainVertex.h"
 #import "GSNeighborhood.h"

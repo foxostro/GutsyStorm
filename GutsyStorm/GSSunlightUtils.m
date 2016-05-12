@@ -7,6 +7,7 @@
 //
 
 #import "GSSunlightUtils.h"
+#import "GSBox.h"
 
 // Find the elevation of the highest opaque block.
 long GSFindElevationOfHighestOpaqueBlock(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _Nonnull voxelBox)

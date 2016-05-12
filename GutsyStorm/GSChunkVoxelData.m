@@ -18,6 +18,7 @@
 #import "GSTerrainJournal.h"
 #import "GSTerrainJournalEntry.h"
 #import "GSTerrainGenerator.h"
+#import "GSBox.h"
 
 
 #define VOXEL_MAGIC ('lxov')

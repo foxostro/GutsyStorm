@@ -8,6 +8,7 @@
 
 #import "GSVoxelNeighborhood.h"
 #import "GSSunlightUtils.h"
+#import "GSBox.h"
 
 @implementation GSVoxelNeighborhood
 

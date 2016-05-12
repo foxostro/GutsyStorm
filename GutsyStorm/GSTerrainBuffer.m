@@ -7,12 +7,12 @@
 //
 
 #import "GSTerrainBuffer.h"
-#import "GSVoxel.h"
 #import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
 #import "GSNeighborhood.h"
-#import "GSVoxel.h" // for INDEX_BOX
 #import "GSStopwatch.h"
+#import "GSVectorUtils.h"
+#import "GSBox.h"
 
 
 /* Get points to sample for voxel lighting. */

@@ -8,6 +8,8 @@
 
 #import "GSTerrainGenerator.h"
 #import "GSNoise.h"
+#import "GSBox.h"
+#import "GSVectorUtils.h"
 
 
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
