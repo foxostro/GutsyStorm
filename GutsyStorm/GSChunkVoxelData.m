@@ -278,7 +278,11 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     
     vector_long3 p;
     GSIntAABB chunkBox = {GSZeroIntVec3, GSChunkSizeIntVec3};
-    
+
+    GSVoxel *voxels = (GSVoxel *)[data mutableData];
+    vector_long3 offsetVoxelBox = data.offsetFromChunkLocalSpace;
+    GSIntAABB voxelBox = { GSZeroIntVec3, data.dimensions };
+
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
     FOR_Y_COLUMN_IN_BOX(p, chunkBox)
@@ -287,7 +291,9 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         long heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z)];
+            vector_long3 chunkLocalPos = GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z);
+            vector_long3 q = chunkLocalPos + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             
             if(voxel->opaque) {
                 break;
@@ -296,7 +302,8 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         
         for(p.y = 0; p.y < GSChunkSizeIntVec3.y; ++p.y)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+            vector_long3 q = p + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
@@ -306,10 +313,18 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     {
         // Find a voxel which is empty and is directly above a cube voxel.
         p.y = CHUNK_SIZE_Y-1;
-        GSVoxelType prevType = ((GSVoxel *)[data pointerToValueAtPosition:p])->type;
+        
+        GSVoxelType prevType;
+        {
+            vector_long3 q = p + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
+            prevType = voxel->type;
+        }
+
         for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+            vector_long3 q = p + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             voxel->exposedToAirOnTop = isExposedToAirOnTop(voxel->type, prevType);
             prevType = voxel->type;
         }
@@ -324,6 +339,10 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     vector_long3 p;
     vector_long3 editPosLocal = GSMakeIntegerVector3(editPos.x - minP.x, editPos.y - minP.y, editPos.z - minP.z);
     
+    GSVoxel *voxels = (GSVoxel *)[data mutableData];
+    vector_long3 offsetVoxelBox = data.offsetFromChunkLocalSpace;
+    GSIntAABB voxelBox = { GSZeroIntVec3, data.dimensions };
+    
     // If the old block was inside then changing it cannot change the outside-ness of the block or any blocks below it.
     // Outside-ness only changes when there is a change to a block which is outside. For example, adding or removing a
     // block in a cave has no effect on outside-ness of blocks. Adding a block outside can make the blocks below it
@@ -336,7 +355,9 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         long heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z)];
+            vector_long3 chunkLocalPos = GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z);
+            vector_long3 q = chunkLocalPos + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             
             if(voxel->opaque) {
                 break;
@@ -345,22 +366,30 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         
         for(p.y = 0; p.y < GSChunkSizeIntVec3.y; ++p.y)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+            vector_long3 q = p + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
+
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
     
     // Determine voxels in the chunk which are exposed to air on top.
-    // We need only updpate the modified block and the block below it.
+    // We need only update the modified block and the block below it.
     for(p = editPosLocal; p.y >= editPosLocal.y - 1; --p.y)
     {
         BOOL exposedToAirOnTop = YES;
-        GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+        
+        vector_long3 q = p + offsetVoxelBox;
+        GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
         
         if (p.y < CHUNK_SIZE_Y-1) {
             vector_long3 aboveP = p;
             aboveP.y = p.y + 1;
-            GSVoxelType typeOfBlockAbove = ((GSVoxel *)[data pointerToValueAtPosition:aboveP])->type;
+            
+            q = aboveP + offsetVoxelBox;
+            GSVoxel *aboveVoxel = &voxels[INDEX_BOX(aboveP, voxelBox)];
+            GSVoxelType typeOfBlockAbove = aboveVoxel->type;
+
             exposedToAirOnTop = isExposedToAirOnTop(voxel->type, typeOfBlockAbove);
         }
         

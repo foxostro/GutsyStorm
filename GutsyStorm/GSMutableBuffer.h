@@ -15,7 +15,4 @@
 
 - (nonnull GSTerrainBufferElement *)mutableData;
 
-/* Returns a pointer to the value at the specified point in chunk-local space. */
-- (nonnull GSTerrainBufferElement *)pointerToValueAtPosition:(vector_long3)chunkLocalPos;
-
 @end

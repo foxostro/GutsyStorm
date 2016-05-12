@@ -29,18 +29,4 @@
     return _data;
 }
 
-- (nonnull GSTerrainBufferElement *)pointerToValueAtPosition:(vector_long3)chunkLocalPos
-{
-    NSParameterAssert(_data);
-    
-    GSIntAABB selfBox = { GSZeroIntVec3, self.dimensions };
-    vector_long3 p = chunkLocalPos + _offsetFromChunkLocalSpace;
-
-    assert(p.x >= selfBox.mins.x && p.x < selfBox.maxs.x &&
-           p.y >= selfBox.mins.y && p.y < selfBox.maxs.y &&
-           p.z >= selfBox.mins.z && p.z < selfBox.maxs.z);
-
-    return &_data[INDEX_BOX(p, selfBox)];
-}
-
 @end
