@@ -10,6 +10,7 @@
 #define GSBox_h
 
 #import "GSIntegerVector3.h"
+#import "GSAABB.h"
 
 
 #define FOR_BOX(p, minP, maxP) for((p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \
@@ -20,13 +21,18 @@
                                              for((p).z = (minP).z; (p).z < (maxP).z; ++(p).z)
 
 
-static inline long INDEX_BOX(vector_long3 p, vector_long3 minP, vector_long3 maxP)
+static inline long INDEX_BOX(vector_long3 p, GSIntAABB box)
 {
-    const long sizeY = maxP.y - minP.y;
-    const long sizeZ = maxP.z - minP.z;
+    const long sizeY = box.maxs.y - box.mins.y;
+    const long sizeZ = box.maxs.z - box.mins.z;
     
     // Columns in the y-axis are contiguous in memory.
-    return ((p.x-minP.x)*sizeY*sizeZ) + ((p.z-minP.z)*sizeY) + (p.y-minP.y);
+    return ((p.x-box.mins.x)*sizeY*sizeZ) + ((p.z-box.mins.z)*sizeY) + (p.y-box.mins.y);
+}
+
+static inline long INDEX_BOX2(vector_long3 p, vector_long3 a, vector_long3 b)
+{
+    return INDEX_BOX(p, (GSIntAABB){ .mins = a, .maxs = b });
 }
 
 

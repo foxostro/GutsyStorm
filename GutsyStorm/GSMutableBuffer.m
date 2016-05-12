@@ -39,7 +39,7 @@
     assert(p.x >= 0 && p.x < dim.x &&
            p.y >= 0 && p.y < dim.y &&
            p.z >= 0 && p.z < dim.z);
-    return &_data[INDEX_BOX(p, GSZeroIntVec3, dim)];
+    return &_data[INDEX_BOX2(p, GSZeroIntVec3, dim)];
 }
 
 @end

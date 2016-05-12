@@ -55,8 +55,8 @@
         b = a + srcDim;
         FOR_Y_COLUMN_IN_BOX(p, a, b)
         {
-            size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), nSunBox.mins, nSunBox.maxs);
-            size_t srcIdx = INDEX_BOX(p, a, b);
+            size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), nSunBox);
+            size_t srcIdx = INDEX_BOX2(p, a, b);
 
             assert(dstIdx < count);
             assert(srcIdx < (srcDim.x * srcDim.y * srcDim.z));
@@ -112,7 +112,7 @@
         vector_long3 a = workBox.mins + border, b = workBox.maxs - border;
         FOR_BOX(p, a, b)
         {
-            size_t srcIdx = INDEX_BOX(p, nSunBox.mins, nSunBox.maxs);
+            size_t srcIdx = INDEX_BOX(p, nSunBox);
             assert(srcIdx < (nSunDim.x * nSunDim.y * nSunDim.z));
             sunlight[srcIdx] = 0;
         }

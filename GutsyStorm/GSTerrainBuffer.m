@@ -137,7 +137,7 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     if(p.x >= 0 && p.x < dim.x &&
        p.y >= 0 && p.y < dim.y &&
        p.z >= 0 && p.z < dim.z) {
-        return _data[INDEX_BOX(p, GSZeroIntVec3, dim)];
+        return _data[INDEX_BOX2(p, GSZeroIntVec3, dim)];
     } else {
         return 0;
     }
@@ -226,10 +226,10 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
         assert(srcPos.x >= 0 && srcPos.y >= 0 && srcPos.z >= 0);
         assert(srcPos.x < _dimensions.x && srcPos.y < _dimensions.y && srcPos.z < _dimensions.z);
 
-        size_t srcOffset = INDEX_BOX(srcPos, GSZeroIntVec3, _dimensions);
+        size_t srcOffset = INDEX_BOX2(srcPos, GSZeroIntVec3, _dimensions);
         assert(srcOffset < _dimensions.x*_dimensions.y*_dimensions.z);
 
-        size_t dstOffset = INDEX_BOX(p, GSZeroIntVec3, newDimensions);
+        size_t dstOffset = INDEX_BOX2(p, GSZeroIntVec3, newDimensions);
         assert(dstOffset < newDimensions.x*newDimensions.y*newDimensions.z);
 
         memcpy(dstBuf + dstOffset, _data + srcOffset, newDimensions.y * sizeof(GSTerrainBufferElement));
@@ -253,7 +253,7 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
 
     GSTerrainBufferElement *modifiedData = [[self class] cloneBuffer:_data len:BUFFER_SIZE_IN_BYTES(dim)];
     
-    size_t idx = INDEX_BOX(p, GSZeroIntVec3, dim);
+    size_t idx = INDEX_BOX2(p, GSZeroIntVec3, dim);
     
     switch(op)
     {

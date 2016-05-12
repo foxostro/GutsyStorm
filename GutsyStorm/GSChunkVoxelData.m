@@ -19,6 +19,7 @@
 #import "GSTerrainJournalEntry.h"
 #import "GSTerrainGenerator.h"
 #import "GSBox.h"
+#import "GSVectorUtils.h"
 
 
 #define VOXEL_MAGIC ('lxov')
@@ -374,11 +375,12 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                                                    journal:(nonnull GSTerrainJournal *)journal
 {
     vector_float3 thisMinP = self.minP;
-    vector_long3 p, a, b;
-    a = GSMakeIntegerVector3(-2, 0, -2);
-    b = GSMakeIntegerVector3(GSChunkSizeIntVec3.x+2, GSChunkSizeIntVec3.y, GSChunkSizeIntVec3.z+2);
+    vector_long3 p;
+    vector_long3 border = (vector_long3){2, 0, 2};
+    GSIntAABB chunkBox = { .mins = GSZeroIntVec3, .maxs = GSChunkSizeIntVec3};
+    GSIntAABB box = { .mins = chunkBox.mins - border, .maxs = chunkBox.maxs + border};
 
-    const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
+    const size_t count = (box.maxs.x-box.mins.x) * (box.maxs.y-box.mins.y) * (box.maxs.z-box.mins.z);
     GSVoxel *voxels = malloc(count * sizeof(GSVoxel));
 
     if (!voxels) {
@@ -387,7 +389,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 
     // Generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.
-    [generator generateWithDestination:voxels count:count minCorner:a maxCorner:b offsetToWorld:thisMinP];
+    [generator generateWithDestination:voxels count:count region:&box offsetToWorld:thisMinP];
 
     GSMutableBuffer *data;
     
@@ -395,11 +397,9 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     data = [[GSMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
     GSVoxel *buf = (GSVoxel *)[data mutableData];
 
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
+    FOR_Y_COLUMN_IN_BOX(p, chunkBox.mins, chunkBox.maxs)
     {
-        memcpy(&buf[INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)],
-               &voxels[INDEX_BOX(p, a, b)],
-               GSChunkSizeIntVec3.y * sizeof(GSVoxel));
+        memcpy(&buf[INDEX_BOX(p, chunkBox)], &voxels[INDEX_BOX(p, box)], chunkBox.maxs.y * sizeof(GSVoxel));
     }
 
     free(voxels);
@@ -409,12 +409,12 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         for(GSTerrainJournalEntry *entry in journal.journalEntries)
         {
             vector_long3 worldPos = [entry.position integerVectorValue];
-            vector_long3 localPos = worldPos - GSMakeIntegerVector3(thisMinP.x, thisMinP.y, thisMinP.z);
+            vector_long3 localPos = worldPos - GSCastToIntegerVector3(thisMinP);
 
-            if (localPos.x >= 0 && localPos.x < GSChunkSizeIntVec3.x &&
-                localPos.y >= 0 && localPos.y < GSChunkSizeIntVec3.y &&
-                localPos.z >= 0 && localPos.z < GSChunkSizeIntVec3.z) {
-                buf[INDEX_BOX(localPos, GSZeroIntVec3, GSChunkSizeIntVec3)] = entry.value;
+            if (localPos.x >= chunkBox.mins.x && localPos.x < chunkBox.maxs.x &&
+                localPos.y >= chunkBox.mins.y && localPos.y < chunkBox.maxs.y &&
+                localPos.z >= chunkBox.mins.z && localPos.z < chunkBox.maxs.z) {
+                buf[INDEX_BOX(localPos, chunkBox)] = entry.value;
             }
         }
     }

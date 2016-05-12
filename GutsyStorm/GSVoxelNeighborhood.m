@@ -84,7 +84,9 @@
 - (nonnull GSVoxel *)newVoxelBufferReturningCount:(size_t *)outCount
 {
     static const size_t count = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
-    
+    GSIntAABB combinedBox = { GSCombinedMinP, GSCombinedMaxP };
+    GSIntAABB chunkBox = {GSZeroIntVec3, GSChunkSizeIntVec3};
+
     // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
     GSVoxel *combinedVoxelData = malloc(count*sizeof(GSVoxel));
     if(!combinedVoxelData) {
@@ -118,8 +120,8 @@
             assert(p.y >= 0 && p.y < GSChunkSizeIntVec3.y);
             assert(p.z >= 0 && p.z < GSChunkSizeIntVec3.z);
             
-            size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), GSCombinedMinP, GSCombinedMaxP);
-            size_t srcIdx = INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3);
+            size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), combinedBox);
+            size_t srcIdx = INDEX_BOX(p, chunkBox);
             
             assert(dstIdx < count);
             assert(srcIdx < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));
