@@ -84,7 +84,7 @@ extern uint64_t dispatch_benchmark(size_t count, void (^block)(void));
 {
     vector_float3 p = vector_make(53.0, 54.0, 81.0);
 
-    uint64_t averageTime = dispatch_benchmark(5, ^{
+    uint64_t averageTime = dispatch_benchmark(11, ^{
         
         for(p.y = 54; p.y >= 26; --p.y)
         {
@@ -93,7 +93,7 @@ extern uint64_t dispatch_benchmark(size_t count, void (^block)(void));
                                                                      block:empty
                                                                  operation:Set
                                                                   position:p
-                                                                   journal:_journal];
+                                                                   journal:nil];
             [op main];
         }
     });
