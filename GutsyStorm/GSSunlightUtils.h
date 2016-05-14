@@ -27,6 +27,6 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount,
 
 BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
                         GSVoxel * _Nonnull voxels, size_t voxCount,
-                        GSIntAABB * _Nonnull voxelBox,
+                        GSIntAABB voxelBox,
                         GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
-                        GSIntAABB * _Nonnull sunlightBox);
+                        GSIntAABB sunlightBox);

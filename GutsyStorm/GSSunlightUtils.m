@@ -103,8 +103,8 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _N
             }
             
             BOOL adj = GSSunlightAdjacent(p, lightLevel,
-                                          voxels, voxelCount, voxelBox,
-                                          sunlight, sunCount, sunlightBox);
+                                          voxels, voxelCount, *voxelBox,
+                                          sunlight, sunCount, *sunlightBox);
 
             if(adj) {
                 size_t sunlightIdx = INDEX_BOX(p, *sunlightBox);
@@ -133,9 +133,9 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _N
 
 BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
                         GSVoxel * _Nonnull voxels, size_t voxCount,
-                        GSIntAABB * _Nonnull voxelBox,
+                        GSIntAABB voxelBox,
                         GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
-                        GSIntAABB * _Nonnull sunlightBox)
+                        GSIntAABB sunlightBox)
 {
     assert(voxels);
     assert(voxCount);
@@ -148,19 +148,19 @@ BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
     {
         vector_long3 a = p + GSOffsetForVoxelFace[i];
         
-        if(a.x < sunlightBox->mins.x || a.x >= sunlightBox->maxs.x ||
-           a.z < sunlightBox->mins.z || a.z >= sunlightBox->maxs.z ||
-           a.y < sunlightBox->mins.y || a.y >= sunlightBox->maxs.y) {
+        if(a.x < sunlightBox.mins.x || a.x >= sunlightBox.maxs.x ||
+           a.z < sunlightBox.mins.z || a.z >= sunlightBox.maxs.z ||
+           a.y < sunlightBox.mins.y || a.y >= sunlightBox.maxs.y) {
             continue; // The point is out of bounds, so bail out.
         }
         
-        size_t voxelIdx = INDEX_BOX(a, *voxelBox);
+        size_t voxelIdx = INDEX_BOX(a, voxelBox);
         assert(voxelIdx < voxCount);
         if(voxels[voxelIdx].opaque) {
             continue;
         }
         
-        size_t sunlightIdx = INDEX_BOX(a, *sunlightBox);
+        size_t sunlightIdx = INDEX_BOX(a, sunlightBox);
         assert(sunlightIdx < sunCount);
         if(sunlight[sunlightIdx] == lightLevel) {
             return YES;
