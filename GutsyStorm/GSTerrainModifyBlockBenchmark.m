@@ -104,20 +104,9 @@ extern uint64_t dispatch_benchmark(size_t count, void (^block)(void));
 
 - (void)run
 {
-    NSArray *benchmarks = @[[NSValue valueWithPointer:@selector(benchmarkPlaceAndRemove)]
-                            ];
-
-    [benchmarks enumerateObjectsUsingBlock:^(NSValue * _Nonnull value,
-                                             NSUInteger __unused idx,
-                                             BOOL * _Nonnull __unused stop) {
-        SEL sel = [value pointerValue];
-        [self setUp];
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self performSelector:sel];
-#pragma clang diagnostic pop
-        [self tearDown];
-    }];
+    [self setUp];
+    [self benchmarkPlaceAndRemove];
+    [self tearDown];
 }
 
 @end

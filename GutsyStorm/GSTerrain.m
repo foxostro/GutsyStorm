@@ -184,7 +184,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                 NSLog(@"Error while examining terrain cache folder: %@", error);
             }
         }
-        if (!cacheContents || cacheContents.count == 0) {
+        if ((!cacheContents || cacheContents.count == 0) && (_journal.url)) {
             GSStopwatchTraceBegin(@"GSTerrainApplyJournalOperation");
             GSTerrainApplyJournalOperation *op;
             op = [[GSTerrainApplyJournalOperation alloc] initWithJournal:_journal chunkStore:_chunkStore];
