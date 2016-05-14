@@ -15,6 +15,7 @@
 #import "GSBoxedVector.h"
 #import "GSNeighborhood.h"
 #import "GSActivity.h"
+#import "GSVectorUtils.h"
 #import "GSTerrainModifyBlockOperation.h"
 
 
