@@ -139,10 +139,8 @@ BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
 {
     assert(voxels);
     assert(voxCount);
-    assert(voxelBox);
     assert(sunlight);
     assert(sunCount);
-    assert(sunlightBox);
 
     for(GSVoxelFace i=0; i<FACE_NUM_FACES; ++i)
     {

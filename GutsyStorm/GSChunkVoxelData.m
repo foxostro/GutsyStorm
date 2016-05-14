@@ -387,7 +387,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
             aboveP.y = p.y + 1;
             
             q = aboveP + offsetVoxelBox;
-            GSVoxel *aboveVoxel = &voxels[INDEX_BOX(aboveP, voxelBox)];
+            GSVoxel *aboveVoxel = &voxels[INDEX_BOX(q, voxelBox)];
             GSVoxelType typeOfBlockAbove = aboveVoxel->type;
 
             exposedToAirOnTop = isExposedToAirOnTop(voxel->type, typeOfBlockAbove);
