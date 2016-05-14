@@ -31,4 +31,16 @@ static inline long INDEX_BOX(vector_long3 p, GSIntAABB box)
 }
 
 
+static inline vector_long3 GSBoxDimensionsInt(GSIntAABB box)
+{
+    return box.maxs - box.mins;
+}
+
+
+static inline vector_float3 GSBoxDimensionsFloat(GSFloatAABB box)
+{
+    return box.maxs - box.mins;
+}
+
+
 #endif /* GSBox_h */

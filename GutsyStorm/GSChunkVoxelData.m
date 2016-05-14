@@ -200,7 +200,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 - (BOOL)validateVoxelData:(nonnull NSData *)data error:(NSError **)error
 {
     NSParameterAssert(data);
-
+    
     const struct GSChunkVoxelHeader *header = [data bytes];
     
     if (!header) {
@@ -246,7 +246,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         }
         return NO;
     }
-    
+
     if (header->len != BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)) {
         if (error) {
             NSString *desc = [NSString stringWithFormat:@"Unexpected number of bytes in voxel data: found %lu " \

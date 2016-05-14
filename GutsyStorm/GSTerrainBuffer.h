@@ -21,12 +21,6 @@ static inline size_t BUFFER_SIZE_IN_BYTES(vector_long3 dimensions)
 }
 
 
-@class GSTerrainBuffer;
-
-
-typedef void (^GSBufferCompletionHandler)(GSTerrainBuffer * _Nonnull aBuffer, NSError * _Nullable error);
-
-
 /* Represents a three-dimensional grid of bytes.
  * This can be used for myriad purposes including volumetric lighting values and voxel data.
  */
