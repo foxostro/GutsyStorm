@@ -109,13 +109,8 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxe
                 if ((lightLevel - 1) > (*value)) {
                     *value = lightLevel - 1;
                     
-                    actualAffectedRegion.mins.x = MIN(actualAffectedRegion.mins.x, p.x);
-                    actualAffectedRegion.mins.y = MIN(actualAffectedRegion.mins.y, p.y);
-                    actualAffectedRegion.mins.z = MIN(actualAffectedRegion.mins.z, p.z);
-                    
-                    actualAffectedRegion.maxs.x = MAX(actualAffectedRegion.maxs.x, p.x);
-                    actualAffectedRegion.maxs.y = MAX(actualAffectedRegion.maxs.y, p.y);
-                    actualAffectedRegion.maxs.z = MAX(actualAffectedRegion.maxs.z, p.z);
+                    actualAffectedRegion.mins = vector_min(actualAffectedRegion.mins, p);
+                    actualAffectedRegion.maxs = vector_max(actualAffectedRegion.maxs, p);
                 }
             }
         }
