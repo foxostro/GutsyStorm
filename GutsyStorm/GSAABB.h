@@ -9,6 +9,10 @@
 #ifndef GSAABB_h
 #define GSAABB_h
 
+#import <Foundation/Foundation.h>
+#import "GSBoxedVector.h"
+
+
 typedef struct {
     vector_float3 mins, maxs;
 } GSFloatAABB;
@@ -20,6 +24,14 @@ static inline BOOL GSFloatAABBIntersects(GSFloatAABB a, GSFloatAABB b)
                       (a.mins.z <= b.maxs.z) && (a.maxs.z >= b.mins.z);
     return intersects;
 }
+
+static inline NSString * _Nonnull GSFloatAABBDescription(GSFloatAABB box)
+{
+    return [NSString stringWithFormat:@"[%@,%@]",
+            [GSBoxedVector boxedVectorWithVector:box.mins],
+            [GSBoxedVector boxedVectorWithVector:box.maxs]];
+}
+
 
 typedef struct {
     vector_long3 mins, maxs;
@@ -41,6 +53,11 @@ static inline BOOL GSIntAABBPointInBox(GSIntAABB b, vector_long3 p)
     return intersects;
 }
 
-NSString * _Nonnull GSIntAABBDescription(GSIntAABB box);
+static inline NSString * _Nonnull GSIntAABBDescription(GSIntAABB box)
+{
+    return [NSString stringWithFormat:@"[%@,%@]",
+            [GSBoxedVector boxedVectorWithIntegerVector:box.mins],
+            [GSBoxedVector boxedVectorWithIntegerVector:box.maxs]];
+}
 
 #endif /* GSAABB_h */

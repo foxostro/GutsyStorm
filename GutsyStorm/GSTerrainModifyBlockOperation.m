@@ -25,14 +25,6 @@
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
 
 
-NSString * _Nonnull GSIntAABBDescription(GSIntAABB box) // AFOX_TODO: relocate this function implementation
-{
-    return [NSString stringWithFormat:@"[%@,%@]",
-            [GSBoxedVector boxedVectorWithIntegerVector:box.mins],
-            [GSBoxedVector boxedVectorWithIntegerVector:box.maxs]];
-}
-
-
 static void logEditInJournal(GSTerrainJournal * _Nullable journal,
                              GSVoxel blockToPlace,
                              vector_float3 editPos)

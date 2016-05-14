@@ -235,7 +235,9 @@ static void applyLightToVertices(size_t numChunkVerts,
     {
         NSArray<GSBoxedTerrainVertex *> *vertices;
 
-        if (invalidatedSubChunk[i]) {
+        // Regenerate vertices for the sub-chunk if we determined they have been invalidated, and also if we don't have
+        // any vertices recorded for the sub-chunk at all.
+        if (invalidatedSubChunk[i] || (!_vertices[i])) {
             vertices = createVertices(sunlight, minP, i);
         } else {
             vertices = _vertices[i];
