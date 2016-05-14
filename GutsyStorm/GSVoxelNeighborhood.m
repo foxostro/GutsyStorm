@@ -110,15 +110,14 @@
     {
         GSChunkVoxelData *neighbor = (GSChunkVoxelData *)[self neighborAtIndex:i];
         const GSVoxel *data = (const GSVoxel *)[neighbor.voxels data];
-        long offsetX = offsetsX[i];
-        long offsetZ = offsetsZ[i];
+        vector_long3 offset = (vector_long3){ offsetsX[i], 0, offsetsZ[i] };
         
         vector_long3 p;
         FOR_Y_COLUMN_IN_BOX(p, chunkBox)
         {   
-            size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), combinedBox);
+            size_t dstIdx = INDEX_BOX(p + offset, combinedBox);
             size_t srcIdx = INDEX_BOX(p, chunkBox);
-            
+
             assert(dstIdx < count);
             assert(srcIdx < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));
             assert(sizeof(combinedVoxelData[0]) == sizeof(data[0]));
@@ -138,8 +137,8 @@
 - (nonnull GSTerrainBuffer *)newSunlightBuffer
 {
     GSIntAABB voxelBox = { .mins = GSCombinedMinP, .maxs = GSCombinedMaxP };
-    vector_long3 oneBorder = GSMakeIntegerVector3(1, 0, 1);
-    vector_long3 border = GSMakeIntegerVector3(CHUNK_LIGHTING_MAX, 0, CHUNK_LIGHTING_MAX) + oneBorder;
+    vector_long3 oneBorder = {1, 0, 1};
+    vector_long3 border = (vector_long3){CHUNK_LIGHTING_MAX, 0, CHUNK_LIGHTING_MAX} + oneBorder;
     GSIntAABB nSunBox = { .mins = GSZeroIntVec3 - border, .maxs = GSChunkSizeIntVec3 + border };
     vector_long3 nSunDim = nSunBox.maxs - nSunBox.mins;
     

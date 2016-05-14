@@ -202,8 +202,8 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     long activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
     long activeRegionSizeY = _activeRegionExtent.y/CHUNK_SIZE_Y;
     GSIntAABB activeRegion = {
-        .mins = GSMakeIntegerVector3(-activeRegionExtentX, 0, -activeRegionExtentZ),
-        .maxs = GSMakeIntegerVector3(activeRegionExtentX, activeRegionSizeY, activeRegionExtentZ)
+        .mins = { -activeRegionExtentX, 0, -activeRegionExtentZ },
+        .maxs = { activeRegionExtentX, activeRegionSizeY, activeRegionExtentZ }
     };
 
     vector_long3 p;

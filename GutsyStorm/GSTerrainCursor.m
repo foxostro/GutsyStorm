@@ -141,9 +141,7 @@
     
     assert(chunk);
     
-    *voxel = [chunk voxelAtLocalPosition:GSMakeIntegerVector3(pos.x-chunk.minP.x,
-                                                              pos.y-chunk.minP.y,
-                                                              pos.z-chunk.minP.z)];
+    *voxel = [chunk voxelAtLocalPosition:vector_long(pos-chunk.minP)];
     
     return YES;
 }

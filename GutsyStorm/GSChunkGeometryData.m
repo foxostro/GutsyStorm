@@ -52,7 +52,7 @@ static inline GSFloatAABB subChunkBoxFloat(vector_float3 minP, NSUInteger i)
 static inline GSIntAABB subChunkBoxInt(vector_float3 minP, NSUInteger i)
 {
     GSFloatAABB box = subChunkBoxFloat(minP, i);
-    return (GSIntAABB){ GSCastToIntegerVector3(box.mins), GSCastToIntegerVector3(box.maxs) };
+    return (GSIntAABB){ vector_long(box.mins), vector_long(box.maxs) };
 }
 
 
@@ -220,8 +220,8 @@ static void applyLightToVertices(size_t numChunkVerts,
     BOOL invalidatedSubChunk[GSNumGeometrySubChunks];
     {
         GSFloatAABB a = {
-            .mins = GSCastToFloat3(invalidatedRegion->mins) + minP,
-            .maxs = GSCastToFloat3(invalidatedRegion->maxs) + minP
+            .mins = vector_float(invalidatedRegion->mins) + minP,
+            .maxs = vector_float(invalidatedRegion->maxs) + minP
         };
 
         for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
@@ -460,7 +460,7 @@ createVertices(GSChunkSunlightData * _Nonnull sunlight, vector_float3 chunkMinP,
     vector_float3 pos;
     FOR_BOX(pos, box)
     {
-        vector_long3 chunkLocalPos = GSCastToIntegerVector3(pos - chunkMinP);
+        vector_long3 chunkLocalPos = vector_long(pos - chunkMinP);
         GSVoxel voxel = [center voxelAtLocalPosition:chunkLocalPos];
         GSVoxelType type = voxel.type;
         

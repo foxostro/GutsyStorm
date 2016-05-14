@@ -462,8 +462,8 @@ static BOOL cellPositionMatchesRule(struct GSPostProcessingRule * _Nonnull rule,
             if(x==0 && z==0) { // (0,0) refers to the target block, so the value in the diagram doesn't matter.
                 continue;
             }
-            
-            vector_long3 p = GSMakeIntegerVector3(x+clp.x, clp.y, z+clp.z);
+
+            vector_long3 p = { x+clp.x, clp.y, z+clp.z };
             GSVoxelType type = voxels[INDEX_BOX(p, *box)].type;
             long idx = 3*(-z+1) + (x+1);
             assert(idx >= 0 && idx < 9);

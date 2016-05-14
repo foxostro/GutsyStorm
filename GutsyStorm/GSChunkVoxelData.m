@@ -291,7 +291,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         long heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
-            vector_long3 chunkLocalPos = GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z);
+            vector_long3 chunkLocalPos = { p.x, heightOfHighestVoxel, p.z };
             vector_long3 q = chunkLocalPos + offsetVoxelBox;
             GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             
@@ -337,7 +337,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 {
     NSParameterAssert(data);
     vector_long3 p;
-    vector_long3 editPosLocal = GSMakeIntegerVector3(editPos.x - minP.x, editPos.y - minP.y, editPos.z - minP.z);
+    vector_long3 editPosLocal = vector_long(editPos - minP);
     
     GSVoxel *voxels = (GSVoxel *)[data mutableData];
     vector_long3 offsetVoxelBox = data.offsetFromChunkLocalSpace;
@@ -355,7 +355,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         long heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
-            vector_long3 chunkLocalPos = GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z);
+            vector_long3 chunkLocalPos = (vector_long3){p.x, heightOfHighestVoxel, p.z};
             vector_long3 q = chunkLocalPos + offsetVoxelBox;
             GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             
@@ -439,7 +439,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         for(GSTerrainJournalEntry *entry in journal.journalEntries)
         {
             vector_long3 worldPos = [entry.position integerVectorValue];
-            vector_long3 localPos = worldPos - GSCastToIntegerVector3(thisMinP);
+            vector_long3 localPos = worldPos - vector_long(thisMinP);
 
             if (localPos.x >= chunkBox.mins.x && localPos.x < chunkBox.maxs.x &&
                 localPos.y >= chunkBox.mins.y && localPos.y < chunkBox.maxs.y &&
@@ -479,7 +479,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                                   operation:(GSVoxelBitwiseOp)op
 {
     NSParameterAssert(vector_equal(GSMinCornerForChunkAtPoint(pos), minP));
-    vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
+    vector_long3 chunkLocalPos = vector_long(pos-minP);
     GSTerrainBufferElement newValue = *((GSTerrainBufferElement *)&newBlock);
     GSVoxel oldBlock = [self voxelAtLocalPosition:chunkLocalPos];
     GSTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue operation:op];

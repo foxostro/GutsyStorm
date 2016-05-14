@@ -174,7 +174,7 @@ static void calculateNeighborhoodSunlight(vector_float3 editPos,
     GSVoxelNeighborhood *voxelNeighborhood = [originalVoxelNeighborhood copyReplacing:voxels1 withNeighbor:voxels2];
     sunNeighborhood.voxelNeighborhood = voxelNeighborhood;
     
-    vector_long3 editPosClp = GSCastToIntegerVector3(editPos - voxels1.minP);
+    vector_long3 editPosClp = vector_long(editPos - voxels1.minP);
     GSVoxel originalVoxel = [voxels1 voxelAtLocalPosition:editPosClp];
     GSVoxel modifiedVoxel = [voxels2 voxelAtLocalPosition:editPosClp];
     BOOL removingLight = (!originalVoxel.opaque && modifiedVoxel.opaque) ||
@@ -237,7 +237,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
     // If the affected area does not include this neighbor then skip it.
     {
         GSIntAABB a;
-        a.mins = GSCastToIntegerVector3([GSNeighborhood offsetForNeighborIndex:i]);
+        a.mins = vector_long([GSNeighborhood offsetForNeighborIndex:i]);
         a.maxs = a.mins + GSChunkSizeIntVec3;
 
         if (!GSIntAABBIntersects(&a, affectedRegion)) {
@@ -254,12 +254,13 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
             [sunlight1 invalidate];
             
             vector_float3 slotMinP = sunSlot.minP - GSMinCornerForChunkAtPoint(editPos);
-            vector_long3 minP = GSCastToIntegerVector3(slotMinP);
+            vector_long3 minP = vector_long(slotMinP);
             GSVoxelNeighborhood *neighborhood = [sunlight1.neighborhood copyReplacing:voxels1 withNeighbor:voxels2];
             
+            vector_long3 border = { 1, 0, 1 };
             GSIntAABB subrange = {
-                .mins = minP + GSMakeIntegerVector3(-1, 0, -1),
-                .maxs = minP + GSMakeIntegerVector3(1, 0, 1) + GSChunkSizeIntVec3
+                .mins = minP - border,
+                .maxs = minP + border + GSChunkSizeIntVec3
             };
             
             GSTerrainBuffer *sunlight = [nSunlight copySubBufferFromSubrange:&subrange];

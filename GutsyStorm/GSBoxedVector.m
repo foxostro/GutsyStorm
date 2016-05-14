@@ -90,7 +90,7 @@
 
 - (vector_long3)integerVectorValue
 {
-    return GSMakeIntegerVector3(_vector.x, _vector.y, _vector.z);
+    return (vector_long3){_vector.x, _vector.y, _vector.z};
 }
 
 - (BOOL)isEqual:(nullable id)other

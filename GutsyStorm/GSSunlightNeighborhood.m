@@ -15,9 +15,10 @@
 
 - (nonnull GSTerrainBufferElement *)newSunlightBufferReturningCount:(size_t *)outCount
 {
+    vector_long3 border = {1, 0, 1};
     GSIntAABB nSunBox;
-    nSunBox.mins = GSCombinedMinP - GSMakeIntegerVector3(1, 0, 1);
-    nSunBox.maxs = GSCombinedMaxP + GSMakeIntegerVector3(1, 0, 1);
+    nSunBox.mins = GSCombinedMinP - border;
+    nSunBox.maxs = GSCombinedMaxP + border;
     vector_long3 nSunDim = nSunBox.maxs - nSunBox.mins;
 
     size_t count = nSunDim.x * nSunDim.y * nSunDim.z;
@@ -47,8 +48,7 @@
         GSTerrainBufferElement *srcData = [neighbor.sunlight data];
         vector_long3 srcDim = neighbor.sunlight.dimensions;
 
-        long offsetX = offsetsX[i];
-        long offsetZ = offsetsZ[i];
+        vector_long3 offset = { offsetsX[i], 0, offsetsZ[i] };
 
         GSIntAABB neighborBox;
         neighborBox.mins = -(neighbor.sunlight.offsetFromChunkLocalSpace);
@@ -57,7 +57,7 @@
         vector_long3 p;
         FOR_Y_COLUMN_IN_BOX(p, neighborBox)
         {
-            size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), nSunBox);
+            size_t dstIdx = INDEX_BOX(p + offset, nSunBox);
             size_t srcIdx = INDEX_BOX(p, neighborBox);
 
             assert(dstIdx < count);
@@ -100,7 +100,7 @@
     // Clear sunlight values in the region affected by the edit.
     GSChunkSunlightData *center = [self neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     assert(center);
-    vector_long3 editPosClp = GSCastToIntegerVector3(editPos - center.minP);
+    vector_long3 editPosClp = vector_long(editPos - center.minP);
     
     GSIntAABB workBox;
     workBox.mins = editPosClp - GSMakeIntegerVector3(blurSize, 0, blurSize);
