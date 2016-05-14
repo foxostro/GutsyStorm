@@ -221,7 +221,7 @@
     GSVoxel cube = {0};
     cube.type = VOXEL_TYPE_CUBE;
     cube.opaque = 1;
-    GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:vector_make(7, 32, 7) block:cube];
+    GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:vector_make(7, 32, 7) block:cube operation:Set];
     
     p = GSMakeIntegerVector3(7, 32, 7);
     XCTAssertEqual([voxels1 voxelAtLocalPosition:p].opaque, 0);

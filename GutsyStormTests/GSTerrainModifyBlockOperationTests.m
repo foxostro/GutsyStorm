@@ -75,10 +75,12 @@
     
     place = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
                                                                 block:empty
+                                                            operation:Set
                                                              position:p
                                                               journal:nil];
     remove = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
                                                                  block:cube
+                                                             operation:Set
                                                               position:p
                                                                journal:nil];
     

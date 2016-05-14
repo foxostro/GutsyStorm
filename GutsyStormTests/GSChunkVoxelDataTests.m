@@ -107,7 +107,7 @@ static const int level = 10;
 
 - (void)testCopyWithEditOutside
 {
-    GSChunkVoxelData *modifiedChunk = [chunk copyWithEditAtPoint:vector_make(2, 15, 2) block:cube];
+    GSChunkVoxelData *modifiedChunk = [chunk copyWithEditAtPoint:vector_make(2, 15, 2) block:cube operation:Set];
     
     vector_long3 p = GSZeroIntVec3, minP = GSZeroIntVec3, maxP = GSChunkSizeIntVec3;
     FOR_BOX(p, minP, maxP)
@@ -131,7 +131,7 @@ static const int level = 10;
 
 - (void)testCopyWithEditInside
 {
-    GSChunkVoxelData *modifiedChunk = [chunk copyWithEditAtPoint:vector_make(2, 1, 2) block:empty];
+    GSChunkVoxelData *modifiedChunk = [chunk copyWithEditAtPoint:vector_make(2, 1, 2) block:empty operation:Set];
     
     vector_long3 p = GSZeroIntVec3, minP = GSZeroIntVec3, maxP = GSChunkSizeIntVec3;
     FOR_BOX(p, minP, maxP)
