@@ -13,12 +13,11 @@ typedef struct {
     vector_float3 mins, maxs;
 } GSFloatAABB;
 
-static inline BOOL GSFloatAABBIntersects(GSFloatAABB *a, GSFloatAABB *b)
+static inline BOOL GSFloatAABBIntersects(GSFloatAABB a, GSFloatAABB b)
 {
-    assert(a && b);
-    BOOL intersects = (a->mins.x <= b->maxs.x) && (a->maxs.x >= b->mins.x) &&
-                      (a->mins.y <= b->maxs.y) && (a->maxs.y >= b->mins.y) &&
-                      (a->mins.z <= b->maxs.z) && (a->maxs.z >= b->mins.z);
+    BOOL intersects = (a.mins.x <= b.maxs.x) && (a.maxs.x >= b.mins.x) &&
+                      (a.mins.y <= b.maxs.y) && (a.maxs.y >= b.mins.y) &&
+                      (a.mins.z <= b.maxs.z) && (a.maxs.z >= b.mins.z);
     return intersects;
 }
 
@@ -26,12 +25,11 @@ typedef struct {
     vector_long3 mins, maxs;
 } GSIntAABB;
 
-static inline BOOL GSIntAABBIntersects(GSIntAABB *a, GSIntAABB *b)
+static inline BOOL GSIntAABBIntersects(GSIntAABB a, GSIntAABB b)
 {
-    assert(a && b);
-    BOOL intersects = (a->mins.x <= b->maxs.x) && (a->maxs.x >= b->mins.x) &&
-                      (a->mins.y <= b->maxs.y) && (a->maxs.y >= b->mins.y) &&
-                      (a->mins.z <= b->maxs.z) && (a->maxs.z >= b->mins.z);
+    BOOL intersects = (a.mins.x <= b.maxs.x) && (a.maxs.x >= b.mins.x) &&
+                      (a.mins.y <= b.maxs.y) && (a.maxs.y >= b.mins.y) &&
+                      (a.mins.z <= b.maxs.z) && (a.maxs.z >= b.mins.z);
     return intersects;
 }
 

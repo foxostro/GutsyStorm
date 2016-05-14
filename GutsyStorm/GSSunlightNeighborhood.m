@@ -120,14 +120,14 @@
         }
     }
 
-    GSSunlightSeed(voxels, voxelCount, &voxelBox,
-                   sunlight, nSunCount, &nSunBox,
-                   &workBox);
+    GSSunlightSeed(voxels, voxelCount, voxelBox,
+                   sunlight, nSunCount, nSunBox,
+                   workBox);
 
     GSIntAABB affectedBox;
-    GSSunlightBlur(voxels, voxelCount, &voxelBox,
-                   sunlight, nSunCount, &nSunBox,
-                   &workBox,
+    GSSunlightBlur(voxels, voxelCount, voxelBox,
+                   sunlight, nSunCount, nSunBox,
+                   workBox,
                    &affectedBox);
     
     // If sunlight was already in equilibrium state when we performed the sunlight blur then set the

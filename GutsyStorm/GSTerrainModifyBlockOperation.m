@@ -215,7 +215,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
                                    GSChunkVoxelData * _Nonnull voxels1,
                                    GSChunkVoxelData * _Nonnull voxels2,
                                    GSTerrainBuffer * _Nonnull nSunlight,
-                                   GSIntAABB * _Nonnull affectedRegion,
+                                   GSIntAABB affectedRegion,
                                    GSNeighborhood<GSGridSlot *> * _Nonnull sunSlots,
                                    GSNeighborhood<GSGridSlot *> * _Nonnull geoSlots,
                                    GSNeighborhood<GSGridSlot *> * _Nonnull vaoSlots)
@@ -223,13 +223,12 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
     assert(voxels1);
     assert(voxels2);
     assert(nSunlight);
-    assert(affectedRegion);
     assert(sunSlots);
     assert(geoSlots);
     assert(vaoSlots);
-    assert((affectedRegion->maxs.x > affectedRegion->mins.x) &&
-           (affectedRegion->maxs.y > affectedRegion->mins.y) &&
-           (affectedRegion->maxs.z > affectedRegion->mins.z));
+    assert((affectedRegion.maxs.x > affectedRegion.mins.x) &&
+           (affectedRegion.maxs.y > affectedRegion.mins.y) &&
+           (affectedRegion.maxs.z > affectedRegion.mins.z));
     
     GSChunkSunlightData *sunlight2 = nil;
     GSChunkGeometryData *geo2 = nil;
@@ -240,7 +239,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
         a.mins = vector_long([GSNeighborhood offsetForNeighborIndex:i]);
         a.maxs = a.mins + GSChunkSizeIntVec3;
 
-        if (!GSIntAABBIntersects(&a, affectedRegion)) {
+        if (!GSIntAABBIntersects(a, affectedRegion)) {
             return;
         }
     }
@@ -368,7 +367,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
         // Rebuild the chain of dependent chunks using the updated voxels and sunlight.
         for(GSVoxelNeighborIndex i = 0; i < CHUNK_NUM_NEIGHBORS; ++i)
         {
-            rebuildDependentChunks(i, _pos, voxels1, voxels2, nSunlight, &affectedRegion, sunSlots, geoSlots, vaoSlots);
+            rebuildDependentChunks(i, _pos, voxels1, voxels2, nSunlight, affectedRegion, sunSlots, geoSlots, vaoSlots);
         }
     }
 

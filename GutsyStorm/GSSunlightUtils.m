@@ -10,19 +10,18 @@
 #import "GSBox.h"
 
 // Find the elevation of the highest opaque block.
-long GSFindElevationOfHighestOpaqueBlock(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _Nonnull voxelBox)
+long GSFindElevationOfHighestOpaqueBlock(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxelBox)
 {
     assert(voxels);
     assert(voxelCount);
-    assert(voxelBox);
     
     vector_long3 p;
-    long highest = voxelBox->maxs.y;
+    long highest = voxelBox.maxs.y;
     
-    FOR_BOX(p, *voxelBox)
+    FOR_BOX(p, voxelBox)
     {
         GSVoxel voxel = {0};
-        size_t voxelIdx = INDEX_BOX(p, *voxelBox);
+        size_t voxelIdx = INDEX_BOX(p, voxelBox);
         if (voxelIdx < voxelCount) { // Voxels that are out of bounds are assumed to be set to zero.
             voxel = voxels[voxelIdx];
         }
@@ -35,32 +34,30 @@ long GSFindElevationOfHighestOpaqueBlock(GSVoxel * _Nonnull voxels, size_t voxel
     return highest;
 }
 
-void GSSunlightSeed(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _Nonnull voxelBox,
-                    GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount, GSIntAABB * _Nonnull sunlightBox,
-                    GSIntAABB * _Nonnull seedBox)
+void GSSunlightSeed(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxelBox,
+                    GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount, GSIntAABB sunlightBox,
+                    GSIntAABB seedBox)
 {
     assert(voxels);
     assert(voxelCount);
     assert(sunlight);
     assert(sunCount);
-    assert(sunlightBox);
-    assert(seedBox);
     
     vector_long3 p;
     
     // Seed phase.
     // Seed the sunlight buffer with light at outside non-opaque blocks.
     // Also, find the elevation of the highest opaque block.
-    FOR_BOX(p, *seedBox)
+    FOR_BOX(p, seedBox)
     {
-        size_t voxelIdx = INDEX_BOX(p, *voxelBox);
+        size_t voxelIdx = INDEX_BOX(p, voxelBox);
 
         if (voxelIdx < voxelCount) {
             GSVoxel voxel = voxels[voxelIdx];
             BOOL directlyLit = (!voxel.opaque) && (voxel.outside || voxel.torch);
 
             if (directlyLit) {
-                size_t sunlightIdx = INDEX_BOX(p, *sunlightBox);
+                size_t sunlightIdx = INDEX_BOX(p, sunlightBox);
                 assert(sunlightIdx < sunCount);
                 sunlight[sunlightIdx] = CHUNK_LIGHTING_MAX;
             }
@@ -68,20 +65,17 @@ void GSSunlightSeed(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _N
     }
 }
 
-void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _Nonnull voxelBox,
-                    GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount, GSIntAABB * _Nonnull sunlightBox,
-                    GSIntAABB * _Nonnull blurBox,
+void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxelBox,
+                    GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount, GSIntAABB sunlightBox,
+                    GSIntAABB blurBox,
                     GSIntAABB * _Nullable outAffectedRegion)
 {
     assert(voxels);
     assert(voxelCount);
-    assert(voxelBox);
     assert(sunlight);
     assert(sunCount);
-    assert(sunlightBox);
-    assert(blurBox);
     
-    GSIntAABB actualAffectedRegion = { .mins = blurBox->maxs, .maxs = blurBox->mins };
+    GSIntAABB actualAffectedRegion = { .mins = blurBox.maxs, .maxs = blurBox.mins };
 
     // Blur phase.
     // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
@@ -90,10 +84,10 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _N
     for(int lightLevel = CHUNK_LIGHTING_MAX; lightLevel >= 1; --lightLevel)
     {
         vector_long3 p;
-        FOR_BOX(p, *blurBox)
+        FOR_BOX(p, blurBox)
         {
             GSVoxel voxel = {0};
-            size_t voxelIdx = INDEX_BOX(p, *voxelBox);
+            size_t voxelIdx = INDEX_BOX(p, voxelBox);
             if (voxelIdx < voxelCount) { // Voxels that are out of bounds are assumed to be set to zero.
                 voxel = voxels[voxelIdx];
             }
@@ -103,11 +97,11 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _N
             }
             
             BOOL adj = GSSunlightAdjacent(p, lightLevel,
-                                          voxels, voxelCount, *voxelBox,
-                                          sunlight, sunCount, *sunlightBox);
+                                          voxels, voxelCount, voxelBox,
+                                          sunlight, sunCount, sunlightBox);
 
             if(adj) {
-                size_t sunlightIdx = INDEX_BOX(p, *sunlightBox);
+                size_t sunlightIdx = INDEX_BOX(p, sunlightBox);
                 assert(sunlightIdx < sunCount);
                 GSTerrainBufferElement *value = &sunlight[sunlightIdx];
 

@@ -203,11 +203,10 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 - (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight
-                       invalidatedRegion:(GSIntAABB * _Nonnull)invalidatedRegion
+                       invalidatedRegion:(GSIntAABB)invalidatedRegion
 {
     NSParameterAssert(sunlight);
-    NSParameterAssert(invalidatedRegion);
-    
+
     if (!_vertices) {
         return [[[self class] alloc] initWithMinP:minP
                                            folder:_folder
@@ -220,14 +219,14 @@ static void applyLightToVertices(size_t numChunkVerts,
     BOOL invalidatedSubChunk[GSNumGeometrySubChunks];
     {
         GSFloatAABB a = {
-            .mins = vector_float(invalidatedRegion->mins) + minP,
-            .maxs = vector_float(invalidatedRegion->maxs) + minP
+            .mins = vector_float(invalidatedRegion.mins) + minP,
+            .maxs = vector_float(invalidatedRegion.maxs) + minP
         };
 
         for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
         {
             GSFloatAABB b = subChunkBoxFloat(minP, i);
-            invalidatedSubChunk[i] = GSFloatAABBIntersects(&a, &b);
+            invalidatedSubChunk[i] = GSFloatAABBIntersects(a, b);
         }
     }
     

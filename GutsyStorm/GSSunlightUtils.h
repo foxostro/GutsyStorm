@@ -10,20 +10,16 @@
 #import "GSTerrainBuffer.h"
 #import "GSAABB.h"
 
-long GSFindElevationOfHighestOpaqueBlock(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB * _Nonnull voxelBox);
+long GSFindElevationOfHighestOpaqueBlock(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxelBox);
 
-void GSSunlightSeed(GSVoxel * _Nonnull voxels, size_t voxelCount,
-                    GSIntAABB * _Nonnull voxelBox,
-                    GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
-                    GSIntAABB * _Nonnull sunlightBox,
-                    GSIntAABB * _Nonnull seedBox);
+void GSSunlightSeed(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxelBox,
+                    GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount, GSIntAABB sunlightBox,
+                    GSIntAABB seedBox);
 
-void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount,
-                    GSIntAABB * _Nonnull voxelBox,
-                    GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
-                    GSIntAABB * _Nonnull sunlightBox,
-                    GSIntAABB * _Nonnull blurBox,
-                    GSIntAABB * _Nullable affectedRegion);
+void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxelBox,
+                    GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount, GSIntAABB sunlightBox,
+                    GSIntAABB blurBox,
+                    GSIntAABB * _Nullable outAffectedRegion);
 
 BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
                         GSVoxel * _Nonnull voxels, size_t voxCount,

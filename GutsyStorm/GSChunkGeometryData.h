@@ -52,7 +52,7 @@ _Static_assert(CHUNK_SIZE_Y % GSNumGeometrySubChunks == 0,
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving;
 
 - (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight
-                       invalidatedRegion:(GSIntAABB * _Nonnull)invalidatedRegion;
+                       invalidatedRegion:(GSIntAABB)invalidatedRegion;
 
 /* Copy the chunk vertex buffer to a new buffer and return it.
  * Return the number of vertices in the buffer in `count'

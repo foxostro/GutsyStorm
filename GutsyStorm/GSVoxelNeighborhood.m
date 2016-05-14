@@ -158,19 +158,19 @@
     GSTerrainBufferElement *sunlight = [GSTerrainBuffer allocateBufferWithLength:nSunLen];
     bzero(sunlight, nSunLen); // Initially, set every element in the buffer to zero.
     
-    GSSunlightSeed(voxels, voxelCount, &voxelBox,
-                   sunlight, nSunCount, &nSunBox,
-                   &nSunBox);
+    GSSunlightSeed(voxels, voxelCount, voxelBox,
+                   sunlight, nSunCount, nSunBox,
+                   nSunBox);
     
     // Every block above the elevation of the highest opaque block will be fully and directly lit.
     // We can take advantage of this to avoid a lot of work.
     vector_long3 maxBoxPoint = nSunBox.maxs;
-    maxBoxPoint.y = GSFindElevationOfHighestOpaqueBlock(voxels, voxelCount, &voxelBox);
+    maxBoxPoint.y = GSFindElevationOfHighestOpaqueBlock(voxels, voxelCount, voxelBox);
     GSIntAABB blurBox = { .mins = nSunBox.mins, .maxs = maxBoxPoint };
     
-    GSSunlightBlur(voxels, voxelCount, &voxelBox,
-                   sunlight, nSunCount, &nSunBox,
-                   &blurBox,
+    GSSunlightBlur(voxels, voxelCount, voxelBox,
+                   sunlight, nSunCount, nSunBox,
+                   blurBox,
                    NULL);
     
     free(voxels);
