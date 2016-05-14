@@ -156,13 +156,10 @@ BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
         
         size_t voxelIdx = INDEX_BOX(a, voxelBox);
         assert(voxelIdx < voxCount);
-        if(voxels[voxelIdx].opaque) {
-            continue;
-        }
         
         size_t sunlightIdx = INDEX_BOX(a, sunlightBox);
         assert(sunlightIdx < sunCount);
-        if(sunlight[sunlightIdx] == lightLevel) {
+        if (!(voxels[voxelIdx].opaque) && (sunlight[sunlightIdx] == lightLevel)) {
             return YES;
         }
     }
