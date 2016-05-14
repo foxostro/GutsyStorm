@@ -196,7 +196,9 @@ int checkGLErrors(void);
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime
 {
     if (_displayLinkShouldShutdown) {
-        dispatch_semaphore_signal(_semaDisplayLinkShutdown);
+        if (_semaDisplayLinkShutdown) {
+            dispatch_semaphore_signal(_semaDisplayLinkShutdown);
+        }
         return kCVReturnSuccess;
     }
 
