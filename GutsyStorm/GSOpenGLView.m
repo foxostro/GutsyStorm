@@ -226,12 +226,20 @@ int checkGLErrors(void);
     _displayLinkShouldShutdown = YES;
 
     // Calling CVDisplayLinkStop will kill the display link thread. So, cleanly shutdown first.
-    dispatch_semaphore_wait(_semaDisplayLinkShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/60.0));
-    CVReturn ret = CVDisplayLinkStop(_displayLink);
-    
-    if (ret != kCVReturnSuccess) {
-        NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
-        @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
+    if (_semaDisplayLinkShutdown) {
+        dispatch_semaphore_wait(_semaDisplayLinkShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/60.0));
+        _semaDisplayLinkShutdown = nil;
+    }
+
+    if (_displayLink) {
+        CVReturn ret = CVDisplayLinkStop(_displayLink);
+        
+        if (ret != kCVReturnSuccess) {
+            NSString *s = [NSString stringWithFormat:@"Display link error and no real way to handle it here: %d", (int)ret];
+            @throw [NSException exceptionWithName:NSGenericException reason:s userInfo:nil];
+        }
+        
+        _displayLink = nil;
     }
 }
 

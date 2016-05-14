@@ -81,13 +81,12 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                              folder:(nonnull NSURL *)folder
+                              folder:(nullable NSURL *)folder
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                         allowLoading:(BOOL)allowLoading
 {
-    NSParameterAssert(folder);
     NSParameterAssert(sunlight);
     NSParameterAssert(queueForSaving);
     NSParameterAssert(groupForSaving);
@@ -103,10 +102,10 @@ static void applyLightToVertices(size_t numChunkVerts,
         
         BOOL failedToLoadFromFile = YES;
         NSString *fileName = [[self class] fileNameForGeometryDataFromMinP:minCorner];
-        NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
+        NSURL *url = folder ? [NSURL URLWithString:fileName relativeToURL:folder] : nil;
         NSError *error = nil;
         
-        if (allowLoading) {
+        if (url && allowLoading) {
             _data = [NSData dataWithContentsOfFile:[url path]
                                            options:NSDataReadingMapped
                                              error:&error];
@@ -138,7 +137,9 @@ static void applyLightToVertices(size_t numChunkVerts,
             GSStopwatchTraceStep(@"Done generating triangles.");
 
             [self generateDataWithSunlight:sunlight minP:minP];
-            [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
+            if (url) {
+                [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
+            }
         }
         
         if (!_data) {
@@ -153,13 +154,12 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                              folder:(nonnull NSURL *)folder
+                              folder:(nullable NSURL *)folder
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
                             vertices:(NSArray * __strong _Nonnull [GSNumGeometrySubChunks])vertices
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
 {
-    NSParameterAssert(folder);
     NSParameterAssert(sunlight);
     NSParameterAssert(queueForSaving);
     NSParameterAssert(groupForSaving);
@@ -179,10 +179,13 @@ static void applyLightToVertices(size_t numChunkVerts,
         }
         
         NSString *fileName = [[self class] fileNameForGeometryDataFromMinP:minCorner];
-        NSURL *url = [NSURL URLWithString:fileName relativeToURL:folder];
+        NSURL *url = folder ? [NSURL URLWithString:fileName relativeToURL:folder] : nil;
         
         [self generateDataWithSunlight:sunlight minP:minP];
-        [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
+
+        if (url) {
+            [self saveData:_data url:url queue:queueForSaving group:groupForSaving];
+        }
         
         if (!_data) {
             [NSException raise:NSGenericException
@@ -406,6 +409,11 @@ static void applyLightToVertices(size_t numChunkVerts,
            queue:(nonnull dispatch_queue_t)queue
            group:(nonnull dispatch_group_t)group
 {
+    NSParameterAssert(data);
+    NSParameterAssert(url);
+    NSParameterAssert(queue);
+    NSParameterAssert(group);
+
     dispatch_group_enter(group);
     
     dispatch_data_t dd = dispatch_data_create([data bytes], [data length],

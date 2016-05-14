@@ -130,11 +130,22 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
                                  camera:(nonnull GSCamera *)cam
                               glContext:(nonnull NSOpenGLContext *)context
 {
+    
+    NSURL *cacheFolder = [[self class] newTerrainCacheFolderURL];
+    return [self initWithJournal:journal
+                     cacheFolder:cacheFolder
+                          camera:cam
+                       glContext:context];
+}
+
+- (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
+                            cacheFolder:(nullable NSURL *)cacheFolder
+                                 camera:(nonnull GSCamera *)cam
+                              glContext:(nonnull NSOpenGLContext *)context
+{
     assert(checkGLErrors() == 0);
 
     if (self = [super init]) {
-        NSURL *cacheFolder = [[self class] newTerrainCacheFolderURL];
-
         // Active region is bounded at y>=0.
         const NSInteger w = [[NSUserDefaults standardUserDefaults] integerForKey:@"ActiveRegionExtent"];
         _activeRegionExtent = vector_make(w, CHUNK_SIZE_Y, w);

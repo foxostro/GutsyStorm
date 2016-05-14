@@ -13,6 +13,7 @@
 #import "GSCamera.h"
 #import "GSOpenGLView.h"
 #import "GSMatrixUtils.h"
+#import "GSTerrainModifyBlockBenchmark.h"
 
 
 @interface GSOpenGLViewController ()
@@ -89,9 +90,15 @@
 
 - (void)applicationWillTerminate:(nonnull NSNotification *)notification
 {
-    dispatch_source_cancel(_memoryPressureSource);
+    if (_memoryPressureSource) {
+        dispatch_source_cancel(_memoryPressureSource);
+        _memoryPressureSource = nil;
+    }
     _timerShouldShutdown = YES;
-    dispatch_semaphore_wait(_semaTimerShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/30.0));
+    if (_semaTimerShutdown) {
+        dispatch_semaphore_wait(_semaTimerShutdown, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC/30.0));
+        _semaTimerShutdown = nil;
+    }
     [_updateTimer invalidate];
 
     [_openGlView shutdown];
@@ -118,6 +125,13 @@
     return journal;
 }
 
+- (void)benchmark
+{
+    GSTerrainModifyBlockBenchmark *benchmark;
+    benchmark = [[GSTerrainModifyBlockBenchmark alloc] initWithOpenGLContext:_openGlView.openGLContext];
+    [benchmark run];
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -130,6 +144,11 @@
     _openGlView.delegate = self;
     [_openGlView.window makeFirstResponder: self];
     [_openGlView.window setAcceptsMouseMovedEvents: YES];
+
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"Benchmark"]) {
+        [self benchmark];
+        [NSApp terminate:nil];
+    }
 
     _spaceBarDebounce = NO;
     _bKeyDebounce = NO;

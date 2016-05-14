@@ -37,14 +37,14 @@ _Static_assert(CHUNK_SIZE_Y % GSNumGeometrySubChunks == 0,
 + (nonnull NSString *)fileNameForGeometryDataFromMinP:(vector_float3)minP;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                              folder:(nonnull NSURL *)folder
+                              folder:(nullable NSURL *)folder
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
                         allowLoading:(BOOL)allowLoading;
 
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
-                              folder:(nonnull NSURL *)folder
+                              folder:(nullable NSURL *)folder
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
                             vertices:(NSArray * __strong _Nonnull [GSNumGeometrySubChunks])vertices
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving

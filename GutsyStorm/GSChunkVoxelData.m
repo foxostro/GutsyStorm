@@ -425,20 +425,22 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 
 - (void)saveToFile
 {
-    NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
-    NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
-    struct GSChunkVoxelHeader header = {
-        .magic = VOXEL_MAGIC,
-        .version = VOXEL_VERSION,
-        .w = CHUNK_SIZE_X,
-        .h = CHUNK_SIZE_Y,
-        .d = CHUNK_SIZE_Z,
-        .len = (uint64_t)BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)
-    };
-    [self.voxels saveToFile:url
-                      queue:_queueForSaving
-                      group:_groupForSaving
-                     header:[NSData dataWithBytes:&header length:sizeof(header)]];
+    if (_folder) {
+        NSString *fileName = [GSChunkVoxelData fileNameForVoxelDataFromMinP:self.minP];
+        NSURL *url = [NSURL URLWithString:fileName relativeToURL:_folder];
+        struct GSChunkVoxelHeader header = {
+            .magic = VOXEL_MAGIC,
+            .version = VOXEL_VERSION,
+            .w = CHUNK_SIZE_X,
+            .h = CHUNK_SIZE_Y,
+            .d = CHUNK_SIZE_Z,
+            .len = (uint64_t)BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)
+        };
+        [self.voxels saveToFile:url
+                          queue:_queueForSaving
+                          group:_groupForSaving
+                         header:[NSData dataWithBytes:&header length:sizeof(header)]];
+    }
 }
 
 - (nonnull instancetype)copyWithEditAtPoint:(vector_float3)pos

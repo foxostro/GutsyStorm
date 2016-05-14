@@ -8,5 +8,7 @@
 	<integer>10</integer>
 	<key>ActiveRegionExtent</key>
 	<integer>256</integer>
+	<key>Benchmark</key>
+	<false/>
 </dict>
 </plist>

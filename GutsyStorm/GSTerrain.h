@@ -20,6 +20,11 @@
                                  camera:(nonnull GSCamera *)cam
                               glContext:(nonnull NSOpenGLContext *)context;
 
+- (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
+                            cacheFolder:(nullable NSURL *)cacheFolder
+                                 camera:(nonnull GSCamera *)cam
+                              glContext:(nonnull NSOpenGLContext *)context;
+
 /* Assumes the caller has already locked the GL context or
  * otherwise ensures no concurrent GL calls will be made.
  */

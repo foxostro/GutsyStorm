@@ -84,7 +84,7 @@
 }
 
 - (nonnull instancetype)initWithJournal:(nonnull GSTerrainJournal *)journal
-                            cacheFolder:(nonnull NSURL *)url
+                            cacheFolder:(nullable NSURL *)url
                                  camera:(nonnull GSCamera *)camera
                               glContext:(nonnull NSOpenGLContext *)glContext
                               generator:(nonnull GSTerrainGenerator *)generator
