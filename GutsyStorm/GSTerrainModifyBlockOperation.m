@@ -25,6 +25,14 @@
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
 
 
+NSString * _Nonnull GSIntAABBDescription(GSIntAABB box) // AFOX_TODO: relocate this function implementation
+{
+    return [NSString stringWithFormat:@"[%@,%@]",
+            [GSBoxedVector boxedVectorWithIntegerVector:box.mins],
+            [GSBoxedVector boxedVectorWithIntegerVector:box.maxs]];
+}
+
+
 static void logEditInJournal(GSTerrainJournal * _Nullable journal,
                              GSVoxel blockToPlace,
                              vector_float3 editPos)
@@ -251,11 +259,11 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
         
         if (sunlight1) {
             [sunlight1 invalidate];
-            
+
             vector_float3 slotMinP = sunSlot.minP - GSMinCornerForChunkAtPoint(editPos);
             vector_long3 minP = vector_long(slotMinP);
             GSVoxelNeighborhood *neighborhood = [sunlight1.neighborhood copyReplacing:voxels1 withNeighbor:voxels2];
-            
+
             vector_long3 border = { 1, 0, 1 };
             GSIntAABB subrange = {
                 .mins = minP - border,
@@ -359,7 +367,7 @@ static void rebuildDependentChunks(GSVoxelNeighborIndex i,
     GSIntAABB affectedRegion;
     GSTerrainBuffer *nSunlight;
     calculateNeighborhoodSunlight(_pos, sunSlots, voxels1, voxels2, &affectedRegion, &nSunlight);
-
+    
     if (!nSunlight) {
         // We don't have sunlight, so we simply invalidate all the items held by these slots.
         invalidateDependentChunks(sunSlots, geoSlots, vaoSlots);

@@ -68,6 +68,7 @@ void GSSunlightSeed(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxe
 void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxelBox,
                     GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount, GSIntAABB sunlightBox,
                     GSIntAABB blurBox,
+                    vector_long3 editPosClp,
                     GSIntAABB * _Nullable outAffectedRegion)
 {
     assert(voxels);
@@ -75,7 +76,7 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxe
     assert(sunlight);
     assert(sunCount);
     
-    GSIntAABB actualAffectedRegion = { .mins = blurBox.maxs, .maxs = blurBox.mins };
+    GSIntAABB actualAffectedRegion = { .mins = editPosClp, .maxs = editPosClp };
 
     // Blur phase.
     // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.

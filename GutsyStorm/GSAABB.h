@@ -33,4 +33,14 @@ static inline BOOL GSIntAABBIntersects(GSIntAABB a, GSIntAABB b)
     return intersects;
 }
 
+static inline BOOL GSIntAABBPointInBox(GSIntAABB b, vector_long3 p)
+{
+    BOOL intersects = (p.x <= b.maxs.x) && (p.x >= b.mins.x) &&
+                      (p.y <= b.maxs.y) && (p.y >= b.mins.y) &&
+                      (p.z <= b.maxs.z) && (p.z >= b.mins.z);
+    return intersects;
+}
+
+NSString * _Nonnull GSIntAABBDescription(GSIntAABB box);
+
 #endif /* GSAABB_h */

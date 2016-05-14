@@ -171,6 +171,7 @@
     GSSunlightBlur(voxels, voxelCount, voxelBox,
                    sunlight, nSunCount, nSunBox,
                    blurBox,
+                   GSZeroIntVec3, // Pass zero because we don't care.
                    NULL);
     
     free(voxels);

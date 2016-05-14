@@ -128,6 +128,7 @@
     GSSunlightBlur(voxels, voxelCount, voxelBox,
                    sunlight, nSunCount, nSunBox,
                    workBox,
+                   editPosClp,
                    &affectedBox);
     
     // If sunlight was already in equilibrium state when we performed the sunlight blur then set the
@@ -139,6 +140,8 @@
         affectedBox.maxs = editPosClp + GSMakeIntegerVector3(1, 1, 1);
         affectedBox.maxs.y = MIN(affectedBox.maxs.y, GSChunkSizeIntVec3.y);
     }
+
+    assert(GSIntAABBPointInBox(affectedBox, editPosClp));
 
     if (outAffectedBox) {
         *outAffectedBox = affectedBox;
