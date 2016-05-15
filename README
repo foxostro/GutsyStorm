@@ -17,6 +17,22 @@ To build the game, just open it in Xcode and run! There is no bootstrap step.
 There are no external dependencies.
 
 
+Instructions
+============
+* Move the mouse to place a cursor on the terrain.
+* Use the WASD keys to move around in space.
+* Press 'b' to remove the block under the cursor.
+* Press Space Bar to place a block under the cursor.
+* Press 'c' and 'v' to add and remove torches under the cursor. These are not
+  currently represented with any object or marker besides their effects on
+  lighting.
+* Press 'y' and 'u' to have the game act as if a memory pressure notification
+  was received. This is useful for testing the behavior of the application in
+  memory pressure conditions. Also, you might consider looking at the
+  memory_pressure(1) command-line tool.
+* Press 'p' to print information to the console about the terrain object.
+
+
 System Requirements for Using Gutsy Storm
 =========================================
 The game has been tested on three machines:
@@ -57,3 +73,10 @@ To run a suite of performnace benchmarks, set the boolean "Benchmark" default to
 YES. This facility exists because it was much more convenient to make my own
 performance benchmark test harness than to get Xcode to actually run my XCTest
 performance tests in Release mode.
+
+To enable detailed logging of the time spent in user actions, set the boolean
+default "StopwatchTraceEnabled" to YES. This will cause the application to log
+to the console when a user action occurs and to log how long each intermediate
+step takes to run. Note that this functionality is disabled when the app is
+built with the GS_STOPWATCH_TRACE_STEP_ENABLED macro set to 0, which is the
+default. See GSActivity.h for details.
