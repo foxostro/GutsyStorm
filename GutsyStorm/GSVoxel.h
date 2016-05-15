@@ -6,8 +6,6 @@
 //  Copyright © 2012-2016 Andrew Fox. All rights reserved.
 //
 
-#import "GSVectorUtils.h"
-#import "GSIntegerVector3.h"
 #import "GSQuaternion.h"
 
 #define CHUNK_LIGHTING_MAX (12)
@@ -18,24 +16,6 @@
 
 _Static_assert((CHUNK_LIGHTING_MAX <= (CHUNK_SIZE_X - 1)) && (CHUNK_LIGHTING_MAX <= (CHUNK_SIZE_Z - 1)),
                "Lots of logic here assumes that lighting changes will never affect more than one chunk and it's neighbors.");
-
-#define FOR_BOX(p, minP, maxP) for((p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \
-                                   for((p).y = (minP).y; (p).y < (maxP).y; ++(p).y) \
-                                       for((p).z = (minP).z; (p).z < (maxP).z; ++(p).z)
-
-#define FOR_Y_COLUMN_IN_BOX(p, minP, maxP) for((p).y = (minP).y, (p).x = (minP).x; (p).x < (maxP).x; ++(p).x) \
-                                             for((p).z = (minP).z; (p).z < (maxP).z; ++(p).z)
-
-
-static inline long INDEX_BOX(vector_long3 p, vector_long3 minP, vector_long3 maxP)
-{
-    const long sizeY = maxP.y - minP.y;
-    const long sizeZ = maxP.z - minP.z;
-    
-    // Columns in the y-axis are contiguous in memory.
-    return ((p.x-minP.x)*sizeY*sizeZ) + ((p.z-minP.z)*sizeY) + (p.y-minP.y);
-}
-
 
 /* The voxel type affects the mesh which is used when drawing it.
  * According to GSVoxel, there can only be 8 types.
@@ -136,9 +116,9 @@ extern const vector_long3 GSCombinedMaxP;
 
 static inline vector_float3 GSMinCornerForChunkAtPoint(vector_float3 p)
 {
-    return vector_make(floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
-                       floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
-                       floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z);
+    return (vector_float3){floorf(p.x / CHUNK_SIZE_X) * CHUNK_SIZE_X,
+                           floorf(p.y / CHUNK_SIZE_Y) * CHUNK_SIZE_Y,
+                           floorf(p.z / CHUNK_SIZE_Z) * CHUNK_SIZE_Z};
 }
 
 typedef enum

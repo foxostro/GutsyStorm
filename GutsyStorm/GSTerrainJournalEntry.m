@@ -21,6 +21,7 @@
     
     if (self = [self init]) {
         _position = [decoder decodeObjectForKey:@"position"];
+        _operation = (GSVoxelBitwiseOp)[decoder decodeIntegerForKey:@"operation"];
         [[decoder decodeObjectForKey:@"value"] getBytes:&_value length:sizeof(_value)];
     }
     
@@ -32,6 +33,7 @@
     NSParameterAssert(encoder);
     
     [encoder encodeObject:self.position forKey:@"position"];
+    [encoder encodeInteger:(NSInteger)self.operation forKey:@"operation"];
     [encoder encodeObject:[NSData dataWithBytes:&_value length:sizeof(_value)] forKey:@"value"];
 }
 

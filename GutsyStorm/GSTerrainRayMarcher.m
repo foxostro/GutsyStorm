@@ -6,6 +6,7 @@
 //  Copyright © 2016 Andrew Fox. All rights reserved.
 //
 
+#import <simd/vector.h>
 #import "GSTerrainRayMarcher.h"
 #import "GSIntegerVector3.h"
 #import "GSVectorUtils.h"
@@ -52,7 +53,7 @@
     // * The Point3D structure is a simple structure having three integer fields (X, Y and Z).
     
     // The cell in which the ray starts.
-    vector_long3 start = GSMakeIntegerVector3(floorf(ray.origin.x), floorf(ray.origin.y), floorf(ray.origin.z));
+    vector_long3 start = vector_long(floor(ray.origin));
     int x = (int)start.x;
     int y = (int)start.y;
     int z = (int)start.z;
@@ -65,9 +66,9 @@
     // Calculate cell boundaries. When the step (i.e. direction sign) is positive,
     // the next boundary is AFTER our current position, meaning that we have to add 1.
     // Otherwise, it is BEFORE our current position, in which case we add nothing.
-    vector_long3 cellBoundary = GSMakeIntegerVector3(x + (stepX > 0 ? 1 : 0),
-                                                     y + (stepY > 0 ? 1 : 0),
-                                                     z + (stepZ > 0 ? 1 : 0));
+    vector_long3 cellBoundary = (vector_long3){x + (stepX > 0 ? 1 : 0),
+                                               y + (stepY > 0 ? 1 : 0),
+                                               z + (stepZ > 0 ? 1 : 0)};
     
     // NOTE: For the following calculations, the result will be Single.PositiveInfinity
     // when ray.Direction.X, Y or Z equals zero, which is OK. However, when the left-hand

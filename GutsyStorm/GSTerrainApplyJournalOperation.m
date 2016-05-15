@@ -46,7 +46,7 @@
         GSTerrainModifyBlockOperation *op;
         op = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
                                                                  block:entry.value
-                                                             operation:Set
+                                                             operation:entry.operation
                                                               position:[entry.position vectorValue]
                                                                journal:nil];
         [op main];

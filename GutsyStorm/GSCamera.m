@@ -10,8 +10,9 @@
 #import "GSCamera.h"
 #import "GSIntegerVector3.h"
 #import "GSTerrainBuffer.h" // for GSTerrainBufferElement, needed by Voxel.h
-#import "GSVoxel.h"
 #import "GSQuaternion.h"
+#import "GSVectorUtils.h"
+#import "GSVoxel.h" // for CHUNK_SIZE_Y
 
 @implementation GSCamera
 {
@@ -38,8 +39,8 @@
 // Updated the camera look vectors.
 - (void)updateCameraLookVectors
 {
-    _cameraCenter = _cameraEye + vector_normalize(quaternion_rotate_vector(_cameraRot, vector_make(0,0,-1)));
-    _cameraUp = vector_normalize(quaternion_rotate_vector(_cameraRot, vector_make(0,1,0)));
+    _cameraCenter = _cameraEye + vector_normalize(quaternion_rotate_vector(_cameraRot, (vector_float3){0,0,-1}));
+    _cameraUp = vector_normalize(quaternion_rotate_vector(_cameraRot, (vector_float3){0,1,0}));
 
     vector_float3 ev = _cameraEye;
     vector_float3 cv = _cameraCenter;

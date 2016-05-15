@@ -12,6 +12,7 @@
 #import "GSTerrainChunkStore.h"
 #import "GSCamera.h"
 #import "GSBoxedVector.h"
+#import "GSVectorUtils.h"
 #import "GSNeighborhood.h"
 #import "GSTerrainModifyBlockOperation.h"
 

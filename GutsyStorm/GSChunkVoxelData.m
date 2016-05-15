@@ -18,6 +18,8 @@
 #import "GSTerrainJournal.h"
 #import "GSTerrainJournalEntry.h"
 #import "GSTerrainGenerator.h"
+#import "GSBox.h"
+#import "GSVectorUtils.h"
 
 
 #define VOXEL_MAGIC ('lxov')
@@ -198,7 +200,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 - (BOOL)validateVoxelData:(nonnull NSData *)data error:(NSError **)error
 {
     NSParameterAssert(data);
-
+    
     const struct GSChunkVoxelHeader *header = [data bytes];
     
     if (!header) {
@@ -244,7 +246,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         }
         return NO;
     }
-    
+
     if (header->len != BUFFER_SIZE_IN_BYTES(GSChunkSizeIntVec3)) {
         if (error) {
             NSString *desc = [NSString stringWithFormat:@"Unexpected number of bytes in voxel data: found %lu " \
@@ -275,16 +277,23 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     NSParameterAssert(data);
     
     vector_long3 p;
-    
+    GSIntAABB chunkBox = {GSZeroIntVec3, GSChunkSizeIntVec3};
+
+    GSVoxel *voxels = (GSVoxel *)[data mutableData];
+    vector_long3 offsetVoxelBox = data.offsetFromChunkLocalSpace;
+    GSIntAABB voxelBox = { GSZeroIntVec3, data.dimensions };
+
     // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
+    FOR_Y_COLUMN_IN_BOX(p, chunkBox)
     {
         // Get the y value of the highest non-empty voxel in the chunk.
         long heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z)];
+            vector_long3 chunkLocalPos = { p.x, heightOfHighestVoxel, p.z };
+            vector_long3 q = chunkLocalPos + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             
             if(voxel->opaque) {
                 break;
@@ -293,20 +302,29 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         
         for(p.y = 0; p.y < GSChunkSizeIntVec3.y; ++p.y)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+            vector_long3 q = p + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
     
     // Determine voxels in the chunk which are exposed to air on top.
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
+    FOR_Y_COLUMN_IN_BOX(p, chunkBox)
     {
         // Find a voxel which is empty and is directly above a cube voxel.
         p.y = CHUNK_SIZE_Y-1;
-        GSVoxelType prevType = ((GSVoxel *)[data pointerToValueAtPosition:p])->type;
+        
+        GSVoxelType prevType;
+        {
+            vector_long3 q = p + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
+            prevType = voxel->type;
+        }
+
         for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+            vector_long3 q = p + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             voxel->exposedToAirOnTop = isExposedToAirOnTop(voxel->type, prevType);
             prevType = voxel->type;
         }
@@ -319,7 +337,11 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 {
     NSParameterAssert(data);
     vector_long3 p;
-    vector_long3 editPosLocal = GSMakeIntegerVector3(editPos.x - minP.x, editPos.y - minP.y, editPos.z - minP.z);
+    vector_long3 editPosLocal = vector_long(editPos - minP);
+    
+    GSVoxel *voxels = (GSVoxel *)[data mutableData];
+    vector_long3 offsetVoxelBox = data.offsetFromChunkLocalSpace;
+    GSIntAABB voxelBox = { GSZeroIntVec3, data.dimensions };
     
     // If the old block was inside then changing it cannot change the outside-ness of the block or any blocks below it.
     // Outside-ness only changes when there is a change to a block which is outside. For example, adding or removing a
@@ -333,7 +355,9 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         long heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:GSMakeIntegerVector3(p.x, heightOfHighestVoxel, p.z)];
+            vector_long3 chunkLocalPos = (vector_long3){p.x, heightOfHighestVoxel, p.z};
+            vector_long3 q = chunkLocalPos + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             
             if(voxel->opaque) {
                 break;
@@ -342,22 +366,30 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         
         for(p.y = 0; p.y < GSChunkSizeIntVec3.y; ++p.y)
         {
-            GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+            vector_long3 q = p + offsetVoxelBox;
+            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
+
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
     
     // Determine voxels in the chunk which are exposed to air on top.
-    // We need only updpate the modified block and the block below it.
+    // We need only update the modified block and the block below it.
     for(p = editPosLocal; p.y >= editPosLocal.y - 1; --p.y)
     {
         BOOL exposedToAirOnTop = YES;
-        GSVoxel *voxel = (GSVoxel *)[data pointerToValueAtPosition:p];
+        
+        vector_long3 q = p + offsetVoxelBox;
+        GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
         
         if (p.y < CHUNK_SIZE_Y-1) {
             vector_long3 aboveP = p;
             aboveP.y = p.y + 1;
-            GSVoxelType typeOfBlockAbove = ((GSVoxel *)[data pointerToValueAtPosition:aboveP])->type;
+            
+            q = aboveP + offsetVoxelBox;
+            GSVoxel *aboveVoxel = &voxels[INDEX_BOX(q, voxelBox)];
+            GSVoxelType typeOfBlockAbove = aboveVoxel->type;
+
             exposedToAirOnTop = isExposedToAirOnTop(voxel->type, typeOfBlockAbove);
         }
         
@@ -373,11 +405,12 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                                                    journal:(nonnull GSTerrainJournal *)journal
 {
     vector_float3 thisMinP = self.minP;
-    vector_long3 p, a, b;
-    a = GSMakeIntegerVector3(-2, 0, -2);
-    b = GSMakeIntegerVector3(GSChunkSizeIntVec3.x+2, GSChunkSizeIntVec3.y, GSChunkSizeIntVec3.z+2);
+    vector_long3 p;
+    vector_long3 border = (vector_long3){2, 0, 2};
+    GSIntAABB chunkBox = { .mins = GSZeroIntVec3, .maxs = GSChunkSizeIntVec3};
+    GSIntAABB box = { .mins = chunkBox.mins - border, .maxs = chunkBox.maxs + border};
 
-    const size_t count = (b.x-a.x) * (b.y-a.y) * (b.z-a.z);
+    const size_t count = (box.maxs.x-box.mins.x) * (box.maxs.y-box.mins.y) * (box.maxs.z-box.mins.z);
     GSVoxel *voxels = malloc(count * sizeof(GSVoxel));
 
     if (!voxels) {
@@ -386,7 +419,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 
     // Generate voxels for the region of the chunk, plus a 1 block wide border.
     // Note that whether the block is outside or not is calculated later.
-    [generator generateWithDestination:voxels count:count minCorner:a maxCorner:b offsetToWorld:thisMinP];
+    [generator generateWithDestination:voxels count:count region:&box offsetToWorld:thisMinP];
 
     GSMutableBuffer *data;
     
@@ -394,11 +427,9 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
     data = [[GSMutableBuffer alloc] initWithDimensions:GSChunkSizeIntVec3];
     GSVoxel *buf = (GSVoxel *)[data mutableData];
 
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
+    FOR_Y_COLUMN_IN_BOX(p, chunkBox)
     {
-        memcpy(&buf[INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)],
-               &voxels[INDEX_BOX(p, a, b)],
-               GSChunkSizeIntVec3.y * sizeof(GSVoxel));
+        memcpy(&buf[INDEX_BOX(p, chunkBox)], &voxels[INDEX_BOX(p, box)], chunkBox.maxs.y * sizeof(GSVoxel));
     }
 
     free(voxels);
@@ -408,12 +439,12 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
         for(GSTerrainJournalEntry *entry in journal.journalEntries)
         {
             vector_long3 worldPos = [entry.position integerVectorValue];
-            vector_long3 localPos = worldPos - GSMakeIntegerVector3(thisMinP.x, thisMinP.y, thisMinP.z);
+            vector_long3 localPos = worldPos - vector_long(thisMinP);
 
-            if (localPos.x >= 0 && localPos.x < GSChunkSizeIntVec3.x &&
-                localPos.y >= 0 && localPos.y < GSChunkSizeIntVec3.y &&
-                localPos.z >= 0 && localPos.z < GSChunkSizeIntVec3.z) {
-                buf[INDEX_BOX(localPos, GSZeroIntVec3, GSChunkSizeIntVec3)] = entry.value;
+            if (localPos.x >= chunkBox.mins.x && localPos.x < chunkBox.maxs.x &&
+                localPos.y >= chunkBox.mins.y && localPos.y < chunkBox.maxs.y &&
+                localPos.z >= chunkBox.mins.z && localPos.z < chunkBox.maxs.z) {
+                buf[INDEX_BOX(localPos, chunkBox)] = entry.value;
             }
         }
     }
@@ -448,7 +479,7 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
                                   operation:(GSVoxelBitwiseOp)op
 {
     NSParameterAssert(vector_equal(GSMinCornerForChunkAtPoint(pos), minP));
-    vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
+    vector_long3 chunkLocalPos = vector_long(pos-minP);
     GSTerrainBufferElement newValue = *((GSTerrainBufferElement *)&newBlock);
     GSVoxel oldBlock = [self voxelAtLocalPosition:chunkLocalPos];
     GSTerrainBuffer *modified = [self.voxels copyWithEditAtPosition:chunkLocalPos value:newValue operation:op];

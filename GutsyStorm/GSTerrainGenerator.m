@@ -8,6 +8,8 @@
 
 #import "GSTerrainGenerator.h"
 #import "GSNoise.h"
+#import "GSBox.h"
+#import "GSVectorUtils.h"
 
 
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(a[0]))
@@ -332,15 +334,13 @@ static struct GSPostProcessingRuleSet replacementRuleSets[] =
 
 static BOOL typeMatchesCharacter(GSVoxelType type, char c);
 static BOOL cellPositionMatchesRule(struct GSPostProcessingRule * _Nonnull rule, vector_long3 clp,
-                                    GSVoxel *voxels, vector_long3 minP, vector_long3 maxP);
+                                    GSVoxel *voxels, GSIntAABB * _Nonnull box);
 static struct GSPostProcessingRule * _Nullable findRuleForCellPosition(size_t numRules,
                                                                        struct GSPostProcessingRule * _Nonnull rules,
                                                                        vector_long3 clp,
                                                                        GSVoxel * _Nonnull voxels,
-                                                                       vector_long3 minP,
-                                                                       vector_long3 maxP);
-static void postProcessingInnerLoop(vector_long3 maxP,
-                                    vector_long3 minP,
+                                                                       GSIntAABB * _Nonnull box);
+static void postProcessingInnerLoop(GSIntAABB * _Nonnull box,
                                     vector_long3 p,
                                     GSVoxel * _Nonnull voxelsIn,
                                     GSVoxel * _Nonnull voxelsOut,
@@ -349,8 +349,7 @@ static void postProcessingInnerLoop(vector_long3 maxP,
 static void postProcessVoxels(struct GSPostProcessingRuleSet * _Nonnull ruleSet,
                               GSVoxel * _Nonnull voxelsIn,
                               GSVoxel * _Nonnull voxelsOut,
-                              vector_long3 minP,
-                              vector_long3 maxP);
+                              GSIntAABB * _Nonnull box);
 static float groundGradient(float terrainHeight, vector_float3 p);
 static void generateTerrainVoxel(GSNoise * _Nonnull noiseSource0, GSNoise * _Nonnull noiseSource1,
                                  float terrainHeight, vector_float3 p, GSVoxel * _Nonnull outVoxel);
@@ -377,18 +376,20 @@ static void generateTerrainVoxel(GSNoise * _Nonnull noiseSource0, GSNoise * _Non
 
 - (void)generateWithDestination:(nonnull GSVoxel *)voxels
                           count:(NSUInteger)count
-                      minCorner:(vector_long3)minP
-                      maxCorner:(vector_long3)maxP
+                         region:(nonnull GSIntAABB *)box
                   offsetToWorld:(vector_float3)offsetToWorld
 {
+    NSParameterAssert(voxels);
+    NSParameterAssert(box);
+    
     const static float terrainHeight = 40.0f;
     vector_long3 clp;
     
     // First, generate voxels for a region of terrain.
-    FOR_BOX(clp, minP, maxP)
+    FOR_BOX(clp, *box)
     {
         vector_float3 worldPosition = vector_make(clp.x, clp.y, clp.z) + offsetToWorld;
-        GSVoxel *voxel = &voxels[INDEX_BOX(clp, minP, maxP)];
+        GSVoxel *voxel = &voxels[INDEX_BOX(clp, *box)];
         generateTerrainVoxel(_noiseSource0, _noiseSource1, terrainHeight, worldPosition, voxel);
     }
     
@@ -406,11 +407,11 @@ static void generateTerrainVoxel(GSNoise * _Nonnull noiseSource0, GSNoise * _Non
         [NSException raise:NSMallocException format:@"Out of memory allocating temp2."];
     }
     
-    postProcessVoxels(&replacementRuleSets[0], voxels, temp1, minP, maxP);
+    postProcessVoxels(&replacementRuleSets[0], voxels, temp1, box);
     
     for(size_t i=1; i<ARRAY_LEN(replacementRuleSets); ++i)
     {
-        postProcessVoxels(&replacementRuleSets[i], temp1, temp2, minP, maxP);
+        postProcessVoxels(&replacementRuleSets[i], temp1, temp2, box);
         SWAP(temp1, temp2);
     }
     
@@ -446,12 +447,13 @@ static BOOL typeMatchesCharacter(GSVoxelType type, char c)
 }
 
 static BOOL cellPositionMatchesRule(struct GSPostProcessingRule * _Nonnull rule, vector_long3 clp,
-                                    GSVoxel * _Nonnull voxels, vector_long3 minP, vector_long3 maxP)
+                                    GSVoxel * _Nonnull voxels, GSIntAABB * _Nonnull box)
 {
     assert(rule);
-    assert(clp.x >= minP.x && clp.x < maxP.x);
-    assert(clp.y >= minP.y && clp.y < maxP.y);
-    assert(clp.z >= minP.z && clp.z < maxP.z);
+    assert(box);
+    assert(clp.x >= box->mins.x && clp.x < box->maxs.x);
+    assert(clp.y >= box->mins.y && clp.y < box->maxs.y);
+    assert(clp.z >= box->mins.z && clp.z < box->maxs.z);
     
     for(long z=-1; z<=1; ++z)
     {
@@ -460,9 +462,9 @@ static BOOL cellPositionMatchesRule(struct GSPostProcessingRule * _Nonnull rule,
             if(x==0 && z==0) { // (0,0) refers to the target block, so the value in the diagram doesn't matter.
                 continue;
             }
-            
-            vector_long3 p = GSMakeIntegerVector3(x+clp.x, clp.y, z+clp.z);
-            GSVoxelType type = voxels[INDEX_BOX(p, minP, maxP)].type;
+
+            vector_long3 p = { x+clp.x, clp.y, z+clp.z };
+            GSVoxelType type = voxels[INDEX_BOX(p, *box)].type;
             long idx = 3*(-z+1) + (x+1);
             assert(idx >= 0 && idx < 9);
             char c = rule->diagram[idx];
@@ -480,14 +482,14 @@ static struct GSPostProcessingRule * _Nullable findRuleForCellPosition(size_t nu
                                                                        struct GSPostProcessingRule * _Nonnull rules,
                                                                        vector_long3 clp,
                                                                        GSVoxel * _Nonnull voxels,
-                                                                       vector_long3 minP,
-                                                                       vector_long3 maxP)
+                                                                       GSIntAABB * _Nonnull box)
 {
     assert(rules);
+    assert(box);
     
     for(size_t i=0; i<numRules; ++i)
     {
-        if(cellPositionMatchesRule(&rules[i], clp, voxels, minP, maxP)) {
+        if(cellPositionMatchesRule(&rules[i], clp, voxels, box)) {
             return &rules[i];
         }
     }
@@ -495,23 +497,24 @@ static struct GSPostProcessingRule * _Nullable findRuleForCellPosition(size_t nu
     return NULL;
 }
 
-static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector_long3 p,
+static void postProcessingInnerLoop(GSIntAABB * _Nonnull box, vector_long3 p,
                                     GSVoxel * _Nonnull voxelsIn, GSVoxel * _Nonnull voxelsOut,
                                     struct GSPostProcessingRuleSet * _Nonnull ruleSet,
                                     GSVoxelType * _Nonnull prevType_p)
 {
+    assert(box);
     assert(voxelsIn);
     assert(voxelsOut);
     assert(ruleSet);
     assert(prevType_p);
     
-    const size_t idx = INDEX_BOX(p, minP, maxP);
+    const size_t idx = INDEX_BOX(p, *box);
     GSVoxel *voxel = &voxelsIn[idx];
     GSVoxelType prevType = *prevType_p;
     
     if(voxel->type == VOXEL_TYPE_EMPTY && (prevType == ruleSet->appliesAboveBlockType)) {
         // Find and apply the first post-processing rule which matches this position.
-        struct GSPostProcessingRule *rule = findRuleForCellPosition(ruleSet->count, ruleSet->rules, p, voxelsIn, minP, maxP);
+        struct GSPostProcessingRule *rule = findRuleForCellPosition(ruleSet->count, ruleSet->rules, p, voxelsIn, box);
         if(rule) {
             GSVoxel replacement = rule->replacement;
             replacement.tex = voxel->tex;
@@ -527,38 +530,39 @@ static void postProcessingInnerLoop(vector_long3 maxP, vector_long3 minP, vector
 
 static void postProcessVoxels(struct GSPostProcessingRuleSet * _Nonnull ruleSet,
                               GSVoxel * _Nonnull voxelsIn, GSVoxel * _Nonnull voxelsOut,
-                              vector_long3 minP, vector_long3 maxP)
+                              GSIntAABB * _Nonnull box)
 {
     assert(ruleSet);
     assert(voxelsIn);
     assert(voxelsOut);
+    assert(box);
     
     vector_long3 p = {0};
     
     // Copy all voxels directly and then, below, replace a few according to the processing rules.
-    const size_t numVoxels = (maxP.x-minP.x) * (maxP.y-minP.y) * (maxP.z-minP.z);
+    const size_t numVoxels = (box->maxs.x-box->mins.x) * (box->maxs.y-box->mins.y) * (box->maxs.z-box->mins.z);
     memcpy(voxelsOut, voxelsIn, numVoxels * sizeof(GSVoxel));
     
-    vector_long3 a = {minP.x+1, minP.y+1, minP.z+1};
-    vector_long3 b = {maxP.x-1, maxP.y-1, maxP.z-1};
+    vector_long3 inset = { 1, 1, 1};
+    GSIntAABB insetBox = { .mins = box->mins + inset, .maxs = box->maxs - inset };
     
-    FOR_Y_COLUMN_IN_BOX(p, a, b)
+    FOR_Y_COLUMN_IN_BOX(p, insetBox)
     {
         if(ruleSet->upsideDown) {
             // Find a voxel which is empty and is directly below a cube voxel.
             p.y = CHUNK_SIZE_Y-1;
-            GSVoxelType prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
+            GSVoxelType prevType = voxelsIn[INDEX_BOX(p, *box)].type;
             for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
             {
-                postProcessingInnerLoop(maxP, minP, p, voxelsIn, voxelsOut, ruleSet, &prevType);
+                postProcessingInnerLoop(box, p, voxelsIn, voxelsOut, ruleSet, &prevType);
             }
         } else {
             // Find a voxel which is empty and is directly above a cube voxel.
             p.y = 0;
-            GSVoxelType prevType = voxelsIn[INDEX_BOX(p, minP, maxP)].type;
+            GSVoxelType prevType = voxelsIn[INDEX_BOX(p, *box)].type;
             for(p.y = 1; p.y < CHUNK_SIZE_Y; ++p.y)
             {
-                postProcessingInnerLoop(maxP, minP, p, voxelsIn, voxelsOut, ruleSet, &prevType);
+                postProcessingInnerLoop(box, p, voxelsIn, voxelsOut, ruleSet, &prevType);
             }
         }
     }

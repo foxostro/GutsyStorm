@@ -10,6 +10,7 @@
 #import "GSGrid.h"
 #import "GSGridSlot.h"
 #import "GSVoxel.h"
+#import "GSVectorUtils.h"
 
 @interface GSGridTests : XCTestCase
 

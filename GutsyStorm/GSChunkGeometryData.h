@@ -11,6 +11,7 @@
 #import "GSVoxel.h"
 #import "GSTerrainVertex.h"
 #import "GSBoxedTerrainVertex.h"
+#import "GSAABB.h"
 
 
 @class GSNeighborhood;
@@ -51,8 +52,7 @@ _Static_assert(CHUNK_SIZE_Y % GSNumGeometrySubChunks == 0,
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving;
 
 - (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight
-                     invalidatedAreaMinP:(vector_long3)affectedAreaMinP
-                     invalidatedAreaMaxP:(vector_long3)affectedAreaMaxP;
+                       invalidatedRegion:(GSIntAABB)invalidatedRegion;
 
 /* Copy the chunk vertex buffer to a new buffer and return it.
  * Return the number of vertices in the buffer in `count'

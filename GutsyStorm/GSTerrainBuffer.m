@@ -7,12 +7,12 @@
 //
 
 #import "GSTerrainBuffer.h"
-#import "GSVoxel.h"
 #import "GSErrorCodes.h"
 #import "SyscallWrappers.h"
 #import "GSNeighborhood.h"
-#import "GSVoxel.h" // for INDEX_BOX
 #import "GSStopwatch.h"
+#import "GSVectorUtils.h"
+#import "GSBox.h"
 
 
 /* Get points to sample for voxel lighting. */
@@ -131,13 +131,13 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
 {
     assert(_data);
 
-    vector_long3 dim = self.dimensions;
+    GSIntAABB selfBox = { GSZeroIntVec3, _dimensions };
     vector_long3 p = chunkLocalPos + _offsetFromChunkLocalSpace;
 
-    if(p.x >= 0 && p.x < dim.x &&
-       p.y >= 0 && p.y < dim.y &&
-       p.z >= 0 && p.z < dim.z) {
-        return _data[INDEX_BOX(p, GSZeroIntVec3, dim)];
+    if(p.x >= selfBox.mins.x && p.x < selfBox.maxs.x &&
+       p.y >= selfBox.mins.y && p.y < selfBox.maxs.y &&
+       p.z >= selfBox.mins.z && p.z < selfBox.maxs.z) {
+        return _data[INDEX_BOX(p, selfBox)];
     } else {
         return 0;
     }
@@ -213,23 +213,26 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     });
 }
 
-- (nonnull instancetype)copySubBufferWithMinCorner:(vector_long3)srcMinP maxCorner:(vector_long3)srcMaxP
+- (nonnull instancetype)copySubBufferFromSubrange:(GSIntAABB * _Nonnull)srcBox
 {
-    NSParameterAssert(srcMaxP.y - srcMinP.y == CHUNK_SIZE_Y);
+    NSParameterAssert(srcBox && (srcBox->maxs.y - srcBox->mins.y == CHUNK_SIZE_Y));
     
-    vector_long3 p = GSZeroIntVec3, newDimensions = srcMaxP - srcMinP;
+    vector_long3 p = GSZeroIntVec3, newDimensions = srcBox->maxs - srcBox->mins;
     GSTerrainBufferElement *dstBuf = [[self class] allocateBufferWithLength:BUFFER_SIZE_IN_BYTES(newDimensions)];
+    
+    GSIntAABB thisBufferBox = { GSZeroIntVec3, _dimensions };
+    GSIntAABB relSrcBox = { GSZeroIntVec3, newDimensions };
 
-    FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, newDimensions)
+    FOR_Y_COLUMN_IN_BOX(p, relSrcBox)
     {
-        vector_long3 srcPos = p + srcMinP + _offsetFromChunkLocalSpace;
+        vector_long3 srcPos = p + srcBox->mins + _offsetFromChunkLocalSpace;
         assert(srcPos.x >= 0 && srcPos.y >= 0 && srcPos.z >= 0);
         assert(srcPos.x < _dimensions.x && srcPos.y < _dimensions.y && srcPos.z < _dimensions.z);
 
-        size_t srcOffset = INDEX_BOX(srcPos, GSZeroIntVec3, _dimensions);
+        size_t srcOffset = INDEX_BOX(srcPos, thisBufferBox);
         assert(srcOffset < _dimensions.x*_dimensions.y*_dimensions.z);
 
-        size_t dstOffset = INDEX_BOX(p, GSZeroIntVec3, newDimensions);
+        size_t dstOffset = INDEX_BOX(p, relSrcBox);
         assert(dstOffset < newDimensions.x*newDimensions.y*newDimensions.z);
 
         memcpy(dstBuf + dstOffset, _data + srcOffset, newDimensions.y * sizeof(GSTerrainBufferElement));
@@ -244,16 +247,16 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
                                          value:(GSTerrainBufferElement)newValue
                                      operation:(GSVoxelBitwiseOp)op
 {
-    vector_long3 dim = self.dimensions;
+    GSIntAABB selfBox = { GSZeroIntVec3, _dimensions };
     vector_long3 p = chunkLocalPos + _offsetFromChunkLocalSpace;
 
-    assert(chunkLocalPos.x >= 0 && chunkLocalPos.x < dim.x);
-    assert(chunkLocalPos.y >= 0 && chunkLocalPos.y < dim.y);
-    assert(chunkLocalPos.z >= 0 && chunkLocalPos.z < dim.z);
+    assert(chunkLocalPos.x >= selfBox.mins.x && chunkLocalPos.x < selfBox.maxs.x);
+    assert(chunkLocalPos.y >= selfBox.mins.y && chunkLocalPos.y < selfBox.maxs.y);
+    assert(chunkLocalPos.z >= selfBox.mins.z && chunkLocalPos.z < selfBox.maxs.z);
 
-    GSTerrainBufferElement *modifiedData = [[self class] cloneBuffer:_data len:BUFFER_SIZE_IN_BYTES(dim)];
+    GSTerrainBufferElement *modifiedData = [[self class] cloneBuffer:_data len:BUFFER_SIZE_IN_BYTES(_dimensions)];
     
-    size_t idx = INDEX_BOX(p, GSZeroIntVec3, dim);
+    size_t idx = INDEX_BOX(p, selfBox);
     
     switch(op)
     {
@@ -270,7 +273,8 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
         break;
     }
 
-    GSTerrainBuffer *buffer = [[GSTerrainBuffer alloc] initWithDimensions:dim takeOwnershipOfAlignedData:modifiedData];
+    GSTerrainBuffer *buffer = [[GSTerrainBuffer alloc] initWithDimensions:_dimensions
+                                               takeOwnershipOfAlignedData:modifiedData];
 
     return buffer;
 }

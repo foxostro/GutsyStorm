@@ -8,6 +8,7 @@
 
 #import "GSVoxelNeighborhood.h"
 #import "GSSunlightUtils.h"
+#import "GSBox.h"
 
 @implementation GSVoxelNeighborhood
 
@@ -83,7 +84,9 @@
 - (nonnull GSVoxel *)newVoxelBufferReturningCount:(size_t *)outCount
 {
     static const size_t count = (3*CHUNK_SIZE_X)*(3*CHUNK_SIZE_Z)*CHUNK_SIZE_Y;
-    
+    GSIntAABB combinedBox = { GSCombinedMinP, GSCombinedMaxP };
+    GSIntAABB chunkBox = {GSZeroIntVec3, GSChunkSizeIntVec3};
+
     // Allocate a buffer large enough to hold a copy of the entire neighborhood's voxels
     GSVoxel *combinedVoxelData = malloc(count*sizeof(GSVoxel));
     if(!combinedVoxelData) {
@@ -107,19 +110,14 @@
     {
         GSChunkVoxelData *neighbor = (GSChunkVoxelData *)[self neighborAtIndex:i];
         const GSVoxel *data = (const GSVoxel *)[neighbor.voxels data];
-        long offsetX = offsetsX[i];
-        long offsetZ = offsetsZ[i];
+        vector_long3 offset = (vector_long3){ offsetsX[i], 0, offsetsZ[i] };
         
         vector_long3 p;
-        FOR_Y_COLUMN_IN_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3)
-        {
-            assert(p.x >= 0 && p.x < GSChunkSizeIntVec3.x);
-            assert(p.y >= 0 && p.y < GSChunkSizeIntVec3.y);
-            assert(p.z >= 0 && p.z < GSChunkSizeIntVec3.z);
-            
-            size_t dstIdx = INDEX_BOX(GSMakeIntegerVector3(p.x+offsetX, p.y, p.z+offsetZ), GSCombinedMinP, GSCombinedMaxP);
-            size_t srcIdx = INDEX_BOX(p, GSZeroIntVec3, GSChunkSizeIntVec3);
-            
+        FOR_Y_COLUMN_IN_BOX(p, chunkBox)
+        {   
+            size_t dstIdx = INDEX_BOX(p + offset, combinedBox);
+            size_t srcIdx = INDEX_BOX(p, chunkBox);
+
             assert(dstIdx < count);
             assert(srcIdx < (CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z));
             assert(sizeof(combinedVoxelData[0]) == sizeof(data[0]));
@@ -138,18 +136,19 @@
 /* Generate and return sunlight data for the entire voxel neighborhood. */
 - (nonnull GSTerrainBuffer *)newSunlightBuffer
 {
-    vector_long3 border = GSMakeIntegerVector3(CHUNK_LIGHTING_MAX+1, 0, CHUNK_LIGHTING_MAX+1);
-    vector_long3 nSunMinP = GSZeroIntVec3 - border;
-    vector_long3 nSunMaxP = GSChunkSizeIntVec3 + border;
-    vector_long3 nSunDim = nSunMaxP - nSunMinP;
+    GSIntAABB voxelBox = { .mins = GSCombinedMinP, .maxs = GSCombinedMaxP };
+    vector_long3 oneBorder = {1, 0, 1};
+    vector_long3 border = (vector_long3){CHUNK_LIGHTING_MAX, 0, CHUNK_LIGHTING_MAX} + oneBorder;
+    GSIntAABB nSunBox = { .mins = GSZeroIntVec3 - border, .maxs = GSChunkSizeIntVec3 + border };
+    vector_long3 nSunDim = nSunBox.maxs - nSunBox.mins;
     
-    assert(nSunMinP.x >= GSCombinedMinP.x &&
-           nSunMinP.y >= GSCombinedMinP.y &&
-           nSunMinP.z >= GSCombinedMinP.z);
+    assert(nSunBox.mins.x >= voxelBox.mins.x &&
+           nSunBox.mins.y >= voxelBox.mins.y &&
+           nSunBox.mins.z >= voxelBox.mins.z);
     
-    assert(nSunMaxP.x <= GSCombinedMaxP.x &&
-           nSunMaxP.y <= GSCombinedMaxP.y &&
-           nSunMaxP.z <= GSCombinedMaxP.z);
+    assert(nSunBox.maxs.x <= voxelBox.maxs.x &&
+           nSunBox.maxs.y <= voxelBox.maxs.y &&
+           nSunBox.maxs.z <= voxelBox.maxs.z);
     
     size_t voxelCount = 0;
     GSVoxel *voxels = [self newVoxelBufferReturningCount:&voxelCount];
@@ -159,32 +158,29 @@
     GSTerrainBufferElement *sunlight = [GSTerrainBuffer allocateBufferWithLength:nSunLen];
     bzero(sunlight, nSunLen); // Initially, set every element in the buffer to zero.
     
-    GSSunlightSeed(voxels, voxelCount,
-                   GSCombinedMinP, GSCombinedMaxP,
-                   sunlight, nSunCount,
-                   nSunMinP, nSunMaxP,
-                   nSunMinP, nSunMaxP);
+    GSSunlightSeed(voxels, voxelCount, voxelBox,
+                   sunlight, nSunCount, nSunBox,
+                   nSunBox);
     
     // Every block above the elevation of the highest opaque block will be fully and directly lit.
     // We can take advantage of this to avoid a lot of work.
-    vector_long3 maxBoxPoint = nSunMaxP;
-    maxBoxPoint.y = GSFindElevationOfHighestOpaqueBlock(voxels, voxelCount, GSCombinedMinP, GSCombinedMaxP);
+    vector_long3 maxBoxPoint = nSunBox.maxs;
+    maxBoxPoint.y = GSFindElevationOfHighestOpaqueBlock(voxels, voxelCount, voxelBox);
+    GSIntAABB blurBox = { .mins = nSunBox.mins, .maxs = maxBoxPoint };
     
-    GSSunlightBlur(voxels, voxelCount,
-                   GSCombinedMinP, GSCombinedMaxP,
-                   sunlight, nSunCount,
-                   nSunMinP, nSunMaxP,
-                   nSunMinP, maxBoxPoint,
-                   NULL, NULL);
+    GSSunlightBlur(voxels, voxelCount, voxelBox,
+                   sunlight, nSunCount, nSunBox,
+                   blurBox,
+                   GSZeroIntVec3, // Pass zero because we don't care.
+                   NULL);
     
     free(voxels);
     
     GSTerrainBuffer *neighborhoodSunlight = [[GSTerrainBuffer alloc] initWithDimensions:nSunDim
                                                              takeOwnershipOfAlignedData:sunlight];
     
-    vector_long3 a = -GSMakeIntegerVector3(1, 0, 1);
-    vector_long3 b = GSMakeIntegerVector3(1, 0, 1) + GSChunkSizeIntVec3;
-    GSTerrainBuffer *centerChunkSunlight = [neighborhoodSunlight copySubBufferWithMinCorner:a maxCorner:b];
+    GSIntAABB finalBox = { -oneBorder, oneBorder + GSChunkSizeIntVec3 };
+    GSTerrainBuffer *centerChunkSunlight = [neighborhoodSunlight copySubBufferFromSubrange:&finalBox];
     
     return centerChunkSunlight;
 }

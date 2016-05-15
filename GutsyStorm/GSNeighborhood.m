@@ -7,6 +7,7 @@
 //
 
 #import "GSNeighborhood.h"
+#import "GSVectorUtils.h"
 
 
 @implementation GSNeighborhood

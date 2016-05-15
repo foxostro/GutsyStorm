@@ -8,6 +8,7 @@
 
 #import "GSVoxelNeighborhood.h"
 #import "GSChunkSunlightData.h"
+#import "GSAABB.h"
 
 @interface GSSunlightNeighborhood : GSNeighborhood<GSChunkSunlightData *>
 
@@ -22,8 +23,7 @@
  * correct for the entire neighborhood.
  */
 - (nonnull GSTerrainBuffer *)newSunlightBufferWithEditAtPoint:(vector_float3)editPos
-removingLight:(BOOL)mode
-                                             affectedAreaMinP:(vector_long3 * _Nullable)affectedAreaMinP
-                                             affectedAreaMaxP:(vector_long3 * _Nullable)affectedAreaMaxP;
+                                                removingLight:(BOOL)mode
+                                               affectedRegion:(GSIntAABB * _Nullable)affectedRegion;
 
 @end

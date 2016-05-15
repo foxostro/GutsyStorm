@@ -13,6 +13,8 @@
 #import "GSVoxelNeighborhood.h"
 #import "GSTerrainBuffer.h"
 #import "GSTerrainGenerator.h"
+#import "GSBox.h"
+#import "GSVectorUtils.h"
 
 
 @interface GSChunkSunlightDataTests_TerrainGenerator : GSTerrainGenerator
@@ -22,12 +24,11 @@
 
 - (void)generateWithDestination:(nonnull GSVoxel *)voxels
                           count:(NSUInteger)count
-                      minCorner:(vector_long3)minP
-                      maxCorner:(vector_long3)maxP
+                         region:(nonnull GSIntAABB *)box
                   offsetToWorld:(vector_float3)offsetToWorld
 {
     vector_long3 clp;
-    FOR_BOX(clp, minP, maxP)
+    FOR_BOX(clp, *box)
     {
         BOOL isEmpty = YES;
         
@@ -38,7 +39,7 @@
             isEmpty = NO;
         }
         
-        NSUInteger idx = INDEX_BOX(clp, minP, maxP);
+        NSUInteger idx = INDEX_BOX(clp, *box);
         voxels[idx].type = isEmpty ? VOXEL_TYPE_EMPTY : VOXEL_TYPE_CUBE;
         voxels[idx].opaque = isEmpty ? 0 : 1;
     }
@@ -214,7 +215,8 @@
 {
     // Make an edit to the voxels, generate a sunlight chunk in two different ways and check that they're the same.
     
-    vector_long3 p = GSZeroIntVec3, minP = GSZeroIntVec3, maxP = GSChunkSizeIntVec3;
+    vector_long3 p = GSZeroIntVec3;
+    GSIntAABB chunkBox = { GSZeroIntVec3, GSChunkSizeIntVec3 };
 
     GSChunkVoxelData *voxels1 = [sunChunk.neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     
@@ -233,9 +235,12 @@
 
     GSVoxelNeighborhood *neighborhood = [sunChunk.neighborhood copyReplacing:voxels1 withNeighbor:voxels2];
 
-    vector_long3 a = GSMakeIntegerVector3(-1, 0, -1);
-    vector_long3 b = GSMakeIntegerVector3(1, 0, 1) + GSChunkSizeIntVec3;
-    GSTerrainBuffer *sunlight = [[neighborhood newSunlightBuffer] copySubBufferWithMinCorner:a maxCorner:b];
+    vector_long3 border = {1, 0, 1};
+    GSIntAABB sliceBox = {
+        .mins = -border,
+        .maxs = border + GSChunkSizeIntVec3
+    };
+    GSTerrainBuffer *sunlight = [[neighborhood newSunlightBuffer] copySubBufferFromSubrange:&sliceBox];
 
     GSChunkSunlightData *sunChunk2 = [sunChunk copyReplacingSunlightData:sunlight neighborhood:neighborhood];
     GSChunkSunlightData *sunChunk3 = [[GSChunkSunlightData alloc] initWithMinP:vector_make(0, 0, 0)
@@ -245,7 +250,7 @@
                                                                   neighborhood:neighborhood
                                                                   allowLoading:NO];
 
-    FOR_BOX(p, minP, maxP)
+    FOR_BOX(p, chunkBox)
     {
         XCTAssertEqual([neighborhood voxelAtPoint:p].opaque, [voxels2 voxelAtLocalPosition:p].opaque);
         XCTAssertEqual([neighborhood voxelAtPoint:p].outside, [voxels2 voxelAtLocalPosition:p].outside);

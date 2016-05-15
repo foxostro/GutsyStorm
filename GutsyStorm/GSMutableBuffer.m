@@ -7,6 +7,8 @@
 //
 
 #import "GSMutableBuffer.h"
+#import "GSBox.h"
+
 
 @implementation GSMutableBuffer
 
@@ -25,19 +27,6 @@
 - (nonnull GSTerrainBufferElement *)mutableData
 {
     return _data;
-}
-
-- (nonnull GSTerrainBufferElement *)pointerToValueAtPosition:(vector_long3)chunkLocalPos
-{
-    NSParameterAssert(_data);
-
-    vector_long3 dim = self.dimensions;
-    vector_long3 p = chunkLocalPos + _offsetFromChunkLocalSpace;
-
-    assert(p.x >= 0 && p.x < dim.x &&
-           p.y >= 0 && p.y < dim.y &&
-           p.z >= 0 && p.z < dim.z);
-    return &_data[INDEX_BOX(p, GSZeroIntVec3, dim)];
 }
 
 @end

@@ -10,6 +10,8 @@
 #import "GSTerrainJournal.h"
 #import "GSTerrainGenerator.h"
 #import "GSChunkVoxelData.h"
+#import "GSBox.h"
+#import "GSVectorUtils.h"
 
 
 static const GSVoxel empty = {
@@ -42,14 +44,13 @@ static const int level = 10;
 
 - (void)generateWithDestination:(nonnull GSVoxel *)voxels
                           count:(NSUInteger)count
-                      minCorner:(vector_long3)minP
-                      maxCorner:(vector_long3)maxP
+                         region:(nonnull GSIntAABB *)box
                   offsetToWorld:(vector_float3)offsetToWorld
 {
     vector_long3 clp;
-    FOR_BOX(clp, minP, maxP)
+    FOR_BOX(clp, *box)
     {
-        voxels[INDEX_BOX(clp, minP, maxP)] = (clp.y > level) ? empty : cube;
+        voxels[INDEX_BOX(clp, *box)] = (clp.y > level) ? empty : cube;
     }
 }
 
@@ -109,8 +110,9 @@ static const int level = 10;
 {
     GSChunkVoxelData *modifiedChunk = [chunk copyWithEditAtPoint:vector_make(2, 15, 2) block:cube operation:Set];
     
-    vector_long3 p = GSZeroIntVec3, minP = GSZeroIntVec3, maxP = GSChunkSizeIntVec3;
-    FOR_BOX(p, minP, maxP)
+    vector_long3 p = GSZeroIntVec3;
+    GSIntAABB chunkBox = { GSZeroIntVec3, GSChunkSizeIntVec3 };
+    FOR_BOX(p, chunkBox)
     {
         if (p.x == 2 && p.y == 15 && p.z == 2) {
             XCTAssertNotEqual([chunk voxelAtLocalPosition:p].type, [modifiedChunk voxelAtLocalPosition:p].type);
@@ -133,8 +135,9 @@ static const int level = 10;
 {
     GSChunkVoxelData *modifiedChunk = [chunk copyWithEditAtPoint:vector_make(2, 1, 2) block:empty operation:Set];
     
-    vector_long3 p = GSZeroIntVec3, minP = GSZeroIntVec3, maxP = GSChunkSizeIntVec3;
-    FOR_BOX(p, minP, maxP)
+    vector_long3 p = GSZeroIntVec3;
+    GSIntAABB chunkBox = { GSZeroIntVec3, GSChunkSizeIntVec3 };
+    FOR_BOX(p, chunkBox)
     {
         if (p.x == 2 && p.y == 1 && p.z == 2) {
             XCTAssertNotEqual([chunk voxelAtLocalPosition:p].type, [modifiedChunk voxelAtLocalPosition:p].type);

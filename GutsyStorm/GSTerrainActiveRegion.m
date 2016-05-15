@@ -8,13 +8,13 @@
 
 #import "GSTerrainActiveRegion.h"
 #import "GSFrustum.h"
-#import "GSVoxel.h"
 #import "GSBoxedVector.h"
 #import "GSCamera.h"
 #import "GSTerrainChunkStore.h"
 #import "GSChunkVAO.h"
 #import "GSActivity.h"
 #import "GSReaderWriterLock.h"
+#import "GSBox.h"
 
 
 static const uint64_t GSChunkCreationBudget = 10 * NSEC_PER_MSEC; // chosen arbitrarily
@@ -197,17 +197,17 @@ static int chunkInFrustum(GSFrustum *frustum, vector_float3 p)
     NSMutableArray<GSBoxedVector *> *points = [NSMutableArray<GSBoxedVector *> new];
     
     GSFrustum *frustum = _camera.frustum;
-    const vector_float3 center = _camera.cameraEye;
-    const long activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
-    const long activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
-    const long activeRegionSizeY = _activeRegionExtent.y/CHUNK_SIZE_Y;
-    
-    vector_long3 p, minP, maxP;
-    
-    minP = GSMakeIntegerVector3(-activeRegionExtentX, 0, -activeRegionExtentZ);
-    maxP = GSMakeIntegerVector3(activeRegionExtentX, activeRegionSizeY, activeRegionExtentZ);
-    
-    FOR_BOX(p, minP, maxP)
+    vector_float3 center = _camera.cameraEye;
+    long activeRegionExtentX = _activeRegionExtent.x/CHUNK_SIZE_X;
+    long activeRegionExtentZ = _activeRegionExtent.z/CHUNK_SIZE_Z;
+    long activeRegionSizeY = _activeRegionExtent.y/CHUNK_SIZE_Y;
+    GSIntAABB activeRegion = {
+        .mins = { -activeRegionExtentX, 0, -activeRegionExtentZ },
+        .maxs = { activeRegionExtentX, activeRegionSizeY, activeRegionExtentZ }
+    };
+
+    vector_long3 p;
+    FOR_BOX(p, activeRegion)
     {
         vector_float3 p1 = (vector_float3){center.x + p.x*CHUNK_SIZE_X, p.y*CHUNK_SIZE_Y, center.z + p.z*CHUNK_SIZE_Z};
         vector_float3 centerP = (vector_float3){floorf(p1.x / CHUNK_SIZE_X) * CHUNK_SIZE_X + CHUNK_SIZE_X/2,

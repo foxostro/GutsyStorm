@@ -8,7 +8,7 @@
 
 #import "GSBoxedTerrainVertex.h"
 #import "GSTerrainBuffer.h" // for GSTerrainBufferElement, needed by Voxel.h
-#import "GSVoxel.h"
+#import "GSVectorUtils.h"
 #import "GSFace.h"
 #import "GSVoxelNeighborhood.h"
 #import "GSChunkVoxelData.h"
@@ -161,7 +161,7 @@
     assert(vertexList);
     assert(voxelData);
 
-    vector_long3 chunkLocalPos = GSMakeIntegerVector3(pos.x-minP.x, pos.y-minP.y, pos.z-minP.z);
+    vector_long3 chunkLocalPos = vector_long(pos-minP);
     GSVoxel voxel = [[voxelData neighborAtIndex:CHUNK_NEIGHBOR_CENTER] voxelAtLocalPosition:chunkLocalPos];
 
     for(GSFace *face in _faces[voxel.upsideDown?1:0][voxel.dir])

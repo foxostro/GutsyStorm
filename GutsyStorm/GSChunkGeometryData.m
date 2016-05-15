@@ -23,6 +23,7 @@
 #import "GSBlockMeshInsideCorner.h"
 #import "GSBlockMeshOutsideCorner.h"
 #import "GSBoxedVector.h"
+#import "GSBox.h"
 
 
 #define GEO_MAGIC ('moeg')
@@ -39,23 +40,24 @@ struct GSChunkGeometryHeader
 };
 
 
-static inline vector_float3 subChunkMinCorner(vector_float3 minP, NSUInteger i)
+static inline GSFloatAABB subChunkBoxFloat(vector_float3 minP, NSUInteger i)
 {
-    return minP + vector_make(0, CHUNK_SIZE_Y * i / GSNumGeometrySubChunks, 0);
+    GSFloatAABB result;
+    result.mins = minP + (vector_float3){0, CHUNK_SIZE_Y * i / GSNumGeometrySubChunks, 0};
+    result.maxs = result.mins + (vector_float3){CHUNK_SIZE_X, CHUNK_SIZE_Y / GSNumGeometrySubChunks, CHUNK_SIZE_Z};
+    return result;
 }
 
 
-static inline vector_float3 subChunkMaxCorner(vector_float3 minP, NSUInteger i)
+static inline GSIntAABB subChunkBoxInt(vector_float3 minP, NSUInteger i)
 {
-    return subChunkMinCorner(minP, i) + vector_make(CHUNK_SIZE_X, CHUNK_SIZE_Y / GSNumGeometrySubChunks, CHUNK_SIZE_Z);
+    GSFloatAABB box = subChunkBoxFloat(minP, i);
+    return (GSIntAABB){ vector_long(box.mins), vector_long(box.maxs) };
 }
 
 
 static NSArray<GSBoxedTerrainVertex *> * _Nonnull
-createVertices(GSChunkSunlightData * _Nonnull sunlight,
-               vector_float3 chunkMinP,
-               vector_float3 minCorner,
-               vector_float3 maxCorner);
+createVertices(GSChunkSunlightData * _Nonnull sunlight, vector_float3 chunkMinP, NSUInteger i);
 
 
 static void applyLightToVertices(size_t numChunkVerts,
@@ -129,10 +131,7 @@ static void applyLightToVertices(size_t numChunkVerts,
         if (failedToLoadFromFile) {
             for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
             {
-                _vertices[i] = createVertices(sunlight,
-                                              minCorner,
-                                              subChunkMinCorner(minCorner, i),
-                                              subChunkMaxCorner(minCorner, i));
+                _vertices[i] = createVertices(sunlight, minCorner, i);
             }
             GSStopwatchTraceStep(@"Done generating triangles.");
 
@@ -204,11 +203,10 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 - (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight
-                     invalidatedAreaMinP:(vector_long3)invalidatedAreaMinP
-                     invalidatedAreaMaxP:(vector_long3)invalidatedAreaMaxP
+                       invalidatedRegion:(GSIntAABB)invalidatedRegion
 {
     NSParameterAssert(sunlight);
-    
+
     if (!_vertices) {
         return [[[self class] alloc] initWithMinP:minP
                                            folder:_folder
@@ -220,21 +218,15 @@ static void applyLightToVertices(size_t numChunkVerts,
 
     BOOL invalidatedSubChunk[GSNumGeometrySubChunks];
     {
-        struct { vector_float3 mins, maxs; } a, b;
-
-        a.mins = GSCastToFloat3(invalidatedAreaMinP) + minP;
-        a.maxs = GSCastToFloat3(invalidatedAreaMaxP) + minP;
+        GSFloatAABB a = {
+            .mins = vector_float(invalidatedRegion.mins) + minP,
+            .maxs = vector_float(invalidatedRegion.maxs) + minP
+        };
 
         for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
         {
-            b.mins = subChunkMinCorner(minP, i);
-            b.maxs = subChunkMaxCorner(minP, i);
-            
-            BOOL intersects = (a.mins.x <= b.maxs.x) && (a.maxs.x >= b.mins.x) &&
-                              (a.mins.y <= b.maxs.y) && (a.maxs.y >= b.mins.y) &&
-                              (a.mins.z <= b.maxs.z) && (a.maxs.z >= b.mins.z);
-            
-            invalidatedSubChunk[i] = intersects;
+            GSFloatAABB b = subChunkBoxFloat(minP, i);
+            invalidatedSubChunk[i] = GSFloatAABBIntersects(a, b);
         }
     }
     
@@ -243,11 +235,10 @@ static void applyLightToVertices(size_t numChunkVerts,
     {
         NSArray<GSBoxedTerrainVertex *> *vertices;
 
-        if (invalidatedSubChunk[i]) {
-            vertices = createVertices(sunlight,
-                                      minP,
-                                      subChunkMinCorner(minP, i),
-                                      subChunkMaxCorner(minP, i));
+        // Regenerate vertices for the sub-chunk if we determined they have been invalidated, and also if we don't have
+        // any vertices recorded for the sub-chunk at all.
+        if (invalidatedSubChunk[i] || (!_vertices[i])) {
+            vertices = createVertices(sunlight, minP, i);
         } else {
             vertices = _vertices[i];
         }
@@ -446,16 +437,15 @@ static void applyLightToVertices(size_t numChunkVerts,
 @end
 
 static NSArray<GSBoxedTerrainVertex *> * _Nonnull
-createVertices(GSChunkSunlightData * _Nonnull sunlight,
-               vector_float3 chunkMinP,
-               vector_float3 minCorner,
-               vector_float3 maxCorner)
+createVertices(GSChunkSunlightData * _Nonnull sunlight, vector_float3 chunkMinP, NSUInteger i)
 {
     assert(sunlight);
-    
+
+    GSIntAABB box = subChunkBoxInt(chunkMinP, i);
+
     static GSBlockMesh *factories[NUM_VOXEL_TYPES] = {nil};
     static dispatch_once_t onceToken;
-    
+
     dispatch_once(&onceToken, ^{
         factories[VOXEL_TYPE_CUBE]           = [[GSBlockMeshCube alloc] init];
         factories[VOXEL_TYPE_RAMP]           = [[GSBlockMeshRamp alloc] init];
@@ -469,9 +459,9 @@ createVertices(GSChunkSunlightData * _Nonnull sunlight,
     // Iterate over all voxels in the chunk and generate geometry.
     NSMutableArray<GSBoxedTerrainVertex *> *vertices = [[NSMutableArray alloc] init];
     vector_float3 pos;
-    FOR_BOX(pos, minCorner, maxCorner)
+    FOR_BOX(pos, box)
     {
-        vector_long3 chunkLocalPos = GSCastToIntegerVector3(pos - chunkMinP);
+        vector_long3 chunkLocalPos = vector_long(pos - chunkMinP);
         GSVoxel voxel = [center voxelAtLocalPosition:chunkLocalPos];
         GSVoxelType type = voxel.type;
         
@@ -499,7 +489,7 @@ static void applyLightToVertices(size_t numChunkVerts,
     {
         GSTerrainVertex *v = &vertsBuffer[i];
         
-        vector_float3 vertexPos = vector_make(v->position[0], v->position[1], v->position[2]);
+        vector_float3 vertexPos = (vector_float3){v->position[0], v->position[1], v->position[2]};
         vector_long3 normal = (vector_long3){v->normal[0], v->normal[1], v->normal[2]};
 
         uint8_t sunlightValue = [sunlight lightForVertexAtPoint:vertexPos

@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "GSVoxel.h"
+#import "GSAABB.h"
 
 
 @interface GSTerrainGenerator : NSObject
@@ -18,8 +19,7 @@
 
 - (void)generateWithDestination:(nonnull GSVoxel *)voxels
                           count:(NSUInteger)count
-                      minCorner:(vector_long3)minP
-                      maxCorner:(vector_long3)maxP
+                         region:(nonnull GSIntAABB *)box
                   offsetToWorld:(vector_float3)offsetToWorld;
 
 @end
