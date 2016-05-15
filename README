@@ -1,17 +1,20 @@
 Gutsy Storm is the codename for an otherwise nameless game project which
 is basically me having fun with blocky/voxel, procedurally generated terrain
-similar to Minecraft. This is not intended to be a Minecraft clone. Instead,
-the plan is to use Minecraft-like terrain and terrain editing functionality for
-an Action-RPG style game. So, this will eventually be a bit of a Diablo clone
-with a Minecraft-style voxel world.
-
-GutsyStormCocoa is my effort to restart the Gutsy Storm project with the game
-written in Cocoa/Objective-C from the ground up. This was done in responsive
-to the truly horrendous performance I was getting out of Python even after
-investing a considerable amount of effort toward performance optimizations.
+similar to Minecraft. This is not intended to be a Minecraft clone. Right now
+I'm enjoying just messing around with the core engine code. Eventually, the plan
+is to use Minecraft-like terrain and terrain editing functionality for an
+Action-RPG style game. So, this will eventually be a bit of a Diablo clone with
+a Minecraft-style voxel world. In any case, there's a vast distance between
+where the application is today and that eventual goal.
 
 Author: Andrew Fox <foxostro@gmail.com>
 Project Home: <http://github.com/foxostro/GutsyStormCocoa>
+
+
+Getting Started
+===============
+To build the game, just open it in Xcode and run! There is no bootstrap step.
+There are no external dependencies.
 
 
 System Requirements for Using Gutsy Storm
@@ -19,10 +22,6 @@ System Requirements for Using Gutsy Storm
 The game has been tested on three machines:
  * MacBookPro5,1
  * MacBookPro11,2
- * iMac??,? (yeah, I'll have to look up the model string)
-
-The game uses a large amount of memory and this could impair performance on your
-machine.
 
 In normal circumstances, there is a working set of voxel and geometry data
 which must be held in memory at all times and a set of data which is held purely
@@ -44,7 +43,17 @@ If the frame rate is very low then there are two things you might want to try:
 Also, the active region size controls the draw distance of the terrain, so
 reducing this value can improve performance by reducing load to the GPU.
 
+Additionally, geometry for each chunk in the active region is uploaded to the
+GPU the first time the chunk is drawn. This can cause an unacceptably low frame
+rate while the active region is being generated. In this case, once chunk
+generation is finished, the frame rate will return to normal. This issue can be
+considered a performance bug as I can probably schedule VAO creation more
+effectively.
 
-Getting Started
-===============
-To build the game, just open it in Xcode and run! There is no bootstrap step.
+
+Benchmarking
+============
+To run a suite of performnace benchmarks, set the boolean "Benchmark" default to
+YES. This facility exists because it was much more convenient to make my own
+performance benchmark test harness than to get Xcode to actually run my XCTest
+performance tests in Release mode.
