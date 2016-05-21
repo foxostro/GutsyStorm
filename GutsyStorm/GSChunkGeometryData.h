@@ -6,22 +6,17 @@
 //  Copyright © 2012-2016 Andrew Fox. All rights reserved.
 //
 
-#import <Cocoa/Cocoa.h>
+#import <Foundation/Foundation.h>
 #import "GSGridItem.h"
 #import "GSVoxel.h"
 #import "GSTerrainVertex.h"
 #import "GSBoxedTerrainVertex.h"
-#import "GSAABB.h"
+#import "GSTerrainGeometryUtils.h"
 
 
 @class GSNeighborhood;
 @class GSBlockMesh;
 @class GSChunkSunlightData;
-
-
-#define GSNumGeometrySubChunks (16)
-_Static_assert(CHUNK_SIZE_Y % GSNumGeometrySubChunks == 0,
-               "Chunk size must be evenly divisible by the number of geometry sub-chunks");
 
 
 @interface GSChunkGeometryData : NSObject <GSGridItem>
