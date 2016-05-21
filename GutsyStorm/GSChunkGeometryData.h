@@ -11,7 +11,7 @@
 #import "GSVoxel.h"
 #import "GSTerrainVertex.h"
 #import "GSBoxedTerrainVertex.h"
-#import "GSTerrainGeometryUtils.h"
+#import "GSTerrainGeometry.h"
 
 
 @class GSNeighborhood;

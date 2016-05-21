@@ -1,5 +1,5 @@
 //
-//  GSTerrainGeometryUtils.h
+//  GSTerrainGeometry.h
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 5/21/16.

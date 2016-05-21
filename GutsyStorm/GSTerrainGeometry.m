@@ -1,12 +1,12 @@
 //
-//  GSTerrainGeometryUtils.m
+//  GSTerrainGeometry.m
 //  GutsyStorm
 //
 //  Created by Andrew Fox on 5/21/16.
 //  Copyright © 2016 Andrew Fox. All rights reserved.
 //
 
-#import "GSTerrainGeometryUtils.h"
+#import "GSTerrainGeometry.h"
 #import "GSChunkVoxelData.h"
 #import "GSChunkSunlightData.h"
 #import "GSTerrainBuffer.h"

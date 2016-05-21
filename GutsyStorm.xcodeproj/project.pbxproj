@@ -42,7 +42,7 @@
 		6F7ACC0B1CC46FAF0084BAC5 /* GSTerrainJournalEntry.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F7ACC071CC46FAF0084BAC5 /* GSTerrainJournalEntry.m */; };
 		6F7ACC0C1CC46FAF0084BAC5 /* GSTerrainJournal.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F7ACC091CC46FAF0084BAC5 /* GSTerrainJournal.m */; };
 		6F7ACC101CC4700A0084BAC5 /* GSActivity.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F7ACC0F1CC4700A0084BAC5 /* GSActivity.m */; };
-		6F877ED41CF0D0B500107A2E /* GSTerrainGeometryUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F877ED31CF0D0B500107A2E /* GSTerrainGeometryUtils.m */; };
+		6F877ED41CF0D0B500107A2E /* GSTerrainGeometry.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F877ED31CF0D0B500107A2E /* GSTerrainGeometry.m */; };
 		6F8793CB1CD99C6C008B4FFB /* GSSunlightNeighborhood.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F8793CA1CD99C6C008B4FFB /* GSSunlightNeighborhood.m */; };
 		6F8793CE1CD99D29008B4FFB /* GSVoxelNeighborhood.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F8793CD1CD99D29008B4FFB /* GSVoxelNeighborhood.m */; };
 		6F8793D11CD9A1AF008B4FFB /* GSSunlightUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F8793D01CD9A1AF008B4FFB /* GSSunlightUtils.m */; };
@@ -169,8 +169,8 @@
 		6F7ACC0A1CC46FAF0084BAC5 /* GSTerrainJournal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainJournal.h; sourceTree = "<group>"; };
 		6F7ACC0E1CC4700A0084BAC5 /* GSActivity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSActivity.h; sourceTree = "<group>"; };
 		6F7ACC0F1CC4700A0084BAC5 /* GSActivity.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSActivity.m; sourceTree = "<group>"; };
-		6F877ED21CF0D0B500107A2E /* GSTerrainGeometryUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainGeometryUtils.h; sourceTree = "<group>"; };
-		6F877ED31CF0D0B500107A2E /* GSTerrainGeometryUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainGeometryUtils.m; sourceTree = "<group>"; };
+		6F877ED21CF0D0B500107A2E /* GSTerrainGeometry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainGeometry.h; sourceTree = "<group>"; };
+		6F877ED31CF0D0B500107A2E /* GSTerrainGeometry.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainGeometry.m; sourceTree = "<group>"; };
 		6F8793C91CD99C6C008B4FFB /* GSSunlightNeighborhood.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSSunlightNeighborhood.h; sourceTree = "<group>"; };
 		6F8793CA1CD99C6C008B4FFB /* GSSunlightNeighborhood.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSSunlightNeighborhood.m; sourceTree = "<group>"; };
 		6F8793CC1CD99D29008B4FFB /* GSVoxelNeighborhood.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSVoxelNeighborhood.h; sourceTree = "<group>"; };
@@ -525,6 +525,8 @@
 				6F084A241CD6BD7B0029DB6F /* GSTerrainGenerator.m */,
 				AC5B2802151E2C1D0045B6E4 /* GSTerrainChunkStore.h */,
 				AC5B2803151E2C1D0045B6E4 /* GSTerrainChunkStore.m */,
+				6F877ED21CF0D0B500107A2E /* GSTerrainGeometry.h */,
+				6F877ED31CF0D0B500107A2E /* GSTerrainGeometry.m */,
 			);
 			name = Util;
 			sourceTree = "<group>";
@@ -564,8 +566,6 @@
 				AC3BDE94170016CF0005E6C2 /* GSChunkSunlightData.m */,
 				4A2310C2153E110400A4EBE6 /* GSChunkGeometryData.h */,
 				4A2310C3153E110400A4EBE6 /* GSChunkGeometryData.m */,
-				6F877ED21CF0D0B500107A2E /* GSTerrainGeometryUtils.h */,
-				6F877ED31CF0D0B500107A2E /* GSTerrainGeometryUtils.m */,
 				ACDD767416F6E556008169D1 /* GSChunkVAO.h */,
 				ACDD767516F6E557008169D1 /* GSChunkVAO.m */,
 			);
@@ -714,7 +714,7 @@
 				6F7ACC0C1CC46FAF0084BAC5 /* GSTerrainJournal.m in Sources */,
 				6F6AA69E1CB1CAF20039F8A4 /* GSVAOHolder.m in Sources */,
 				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,
-				6F877ED41CF0D0B500107A2E /* GSTerrainGeometryUtils.m in Sources */,
+				6F877ED41CF0D0B500107A2E /* GSTerrainGeometry.m in Sources */,
 				13C8BE191602854300403815 /* GSNeighborhood.m in Sources */,
 				13C8BE1D16038DC000403815 /* GSTerrainActiveRegion.m in Sources */,
 				AC3767A2163DFB4000BAE03F /* GSErrorCodes.m in Sources */,
