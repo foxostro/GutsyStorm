@@ -20,8 +20,57 @@
 #import "GSBlockMeshOutsideCorner.h"
 
 
-NSArray<GSBoxedTerrainVertex *> * _Nonnull
-GSTerrainGenerateGeometry(GSChunkSunlightData * _Nonnull sunlight, vector_float3 chunkMinP, NSUInteger i)
+void GSTerrainGeometryDestroy(GSTerrainGeometry * _Nullable geometry)
+{
+    if (geometry) {
+        free(geometry->vertices);
+        free(geometry);
+    }
+}
+
+
+GSTerrainGeometry * _Nonnull GSTerrainGeometryCopy(GSTerrainGeometry * _Nonnull original)
+{
+    assert(original);
+
+    GSTerrainGeometry *geometry = malloc(sizeof(GSTerrainGeometry));
+    if(!geometry) {
+        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry'"];
+    }
+
+    geometry->capacity = original->capacity;
+    geometry->count = original->count;
+    geometry->vertices = malloc(sizeof(GSTerrainVertex) * original->capacity);
+    if(!geometry->vertices) {
+        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry->vertices'"];
+    }
+
+    memcpy(geometry->vertices, original->vertices, sizeof(GSTerrainVertex) * original->count);
+
+    return geometry;
+}
+
+
+void GSTerrainGeometryAddVertex(GSTerrainGeometry * _Nonnull geometry, GSTerrainVertex vertex)
+{
+    assert(geometry);
+    assert(geometry->count <= geometry->capacity);
+    
+    if ((geometry->count == geometry->capacity) || (geometry->capacity == 0)) {
+        geometry->capacity = (geometry->capacity == 0) ? 1 : (geometry->capacity * 2);
+        geometry->vertices = reallocf(geometry->vertices, geometry->capacity * sizeof(GSTerrainVertex));
+        if(!geometry->vertices) {
+            [NSException raise:NSMallocException format:@"Out of memory while enlarging geometry->vertices."];
+        }
+    }
+
+    geometry->vertices[geometry->count] = vertex;
+    geometry->count++;
+}
+
+
+GSTerrainGeometry * _Nonnull GSTerrainGeometryCreate(GSChunkSunlightData * _Nonnull sunlight,
+                                                     vector_float3 chunkMinP, NSUInteger i)
 {
     assert(sunlight);
     
@@ -83,5 +132,23 @@ GSTerrainGenerateGeometry(GSChunkSunlightData * _Nonnull sunlight, vector_float3
         vertex.v = v;
     }
     
-    return vertices;
+    GSTerrainGeometry *geometry = malloc(sizeof(GSTerrainGeometry));
+    if(!geometry) {
+        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry'"];
+    }
+    
+    geometry->capacity = vertices.count;
+    geometry->count = 0;
+    geometry->vertices = malloc(sizeof(GSTerrainVertex) * geometry->capacity);
+    if(!geometry->vertices) {
+        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry->vertices'"];
+    }
+    
+    for(GSBoxedTerrainVertex *vertex in vertices)
+    {
+        GSTerrainVertex v = vertex.v;
+        GSTerrainGeometryAddVertex(geometry, v);
+    }
+
+    return geometry;
 }

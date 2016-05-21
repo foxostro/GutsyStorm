@@ -93,7 +93,7 @@ struct GSChunkGeometryHeader
         if (failedToLoadFromFile) {
             for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
             {
-                _vertices[i] = GSTerrainGenerateGeometry(sunlight, minCorner, i);
+                _vertices[i] = GSTerrainGeometryCreate(sunlight, minCorner, i);
             }
             GSStopwatchTraceStep(@"Done generating triangles.");
 
@@ -117,7 +117,7 @@ struct GSChunkGeometryHeader
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
                               folder:(nullable NSURL *)folder
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
-                            vertices:(NSArray * __strong _Nonnull [GSNumGeometrySubChunks])vertices
+                            vertices:(GSTerrainGeometry * _Nonnull [GSNumGeometrySubChunks])vertices
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving
 {
@@ -136,7 +136,7 @@ struct GSChunkGeometryHeader
         
         for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
         {
-            _vertices[i] = vertices[i];
+            _vertices[i] = GSTerrainGeometryCopy(vertices[i]);
         }
         
         NSString *fileName = [[self class] fileNameForGeometryDataFromMinP:minCorner];
@@ -162,6 +162,14 @@ struct GSChunkGeometryHeader
 - (nonnull instancetype)copyWithZone:(nullable NSZone *)zone
 {
     return self; // all geometry objects are immutable, so return self instead of deep copying
+}
+
+- (void)dealloc
+{
+    for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
+    {
+        GSTerrainGeometryDestroy(_vertices[i]);
+    }
 }
 
 - (nonnull instancetype)copyWithSunlight:(nonnull GSChunkSunlightData *)sunlight
@@ -192,17 +200,17 @@ struct GSChunkGeometryHeader
         }
     }
     
-    NSArray<GSBoxedTerrainVertex *> *updatedVertices[GSNumGeometrySubChunks] = {nil};
+    GSTerrainGeometry *updatedVertices[GSNumGeometrySubChunks] = {NULL};
     for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
     {
-        NSArray<GSBoxedTerrainVertex *> *vertices;
+        GSTerrainGeometry *vertices;
 
         // Regenerate vertices for the sub-chunk if we determined they have been invalidated, and also if we don't have
         // any vertices recorded for the sub-chunk at all.
         if (invalidatedSubChunk[i] || (!_vertices[i])) {
-            vertices = GSTerrainGenerateGeometry(sunlight, minP, i);
+            vertices = GSTerrainGeometryCreate(sunlight, minP, i);
         } else {
-            vertices = _vertices[i];
+            vertices = GSTerrainGeometryCopy(_vertices[i]);
         }
 
         updatedVertices[i] = vertices;
@@ -318,13 +326,11 @@ struct GSChunkGeometryHeader
 {
     NSParameterAssert(sunlight);
     
-    NSMutableArray *entireVertices = [[NSMutableArray alloc] init];
+    GLsizei numChunkVerts = 0;
     for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
     {
-        [entireVertices addObjectsFromArray:_vertices[i]];
+        numChunkVerts += _vertices[i]->count;
     }
-
-    const GLsizei numChunkVerts = (GLsizei)[entireVertices count];
 
     const uint32_t len = numChunkVerts * sizeof(GSTerrainVertex);
     const size_t capacity = sizeof(struct GSChunkGeometryHeader) + len;
@@ -345,10 +351,15 @@ struct GSChunkGeometryHeader
     header->len = len;
 
     // Take the vertices array and generate raw buffers for OpenGL to consume.
-    for(GLsizei i=0; i<numChunkVerts; ++i)
+    GLsizei vertIdx = 0;
+    for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
     {
-        GSBoxedTerrainVertex *v = entireVertices[i];
-        vertsBuffer[i] = v.v;
+        size_t count = _vertices[i]->count;
+        if (count > 0) {
+            assert(vertIdx < numChunkVerts);
+            memcpy(&vertsBuffer[vertIdx], _vertices[i]->vertices, sizeof(GSTerrainVertex) * count);
+            vertIdx += count;
+        }
     }
     
     _data = data;

@@ -11,9 +11,9 @@
 
 #import "GSVoxel.h" // for CHUNK_SIZE_Y
 #import "GSAABB.h"
+#import "GSTerrainVertex.h"
 
 
-@class GSBoxedTerrainVertex;
 @class GSChunkSunlightData;
 
 
@@ -38,5 +38,16 @@ static inline GSIntAABB GSGeometrySubchunkBoxInt(vector_float3 minP, NSUInteger 
 }
 
 
-NSArray<GSBoxedTerrainVertex *> * _Nonnull
-GSTerrainGenerateGeometry(GSChunkSunlightData * _Nonnull sunlight, vector_float3 chunkMinP, NSUInteger i);
+typedef struct
+{
+    GSTerrainVertex * _Nullable vertices;
+    size_t capacity;
+    size_t count;
+} GSTerrainGeometry;
+
+
+GSTerrainGeometry * _Nonnull GSTerrainGeometryCreate(GSChunkSunlightData * _Nonnull sunlight,
+                                                     vector_float3 chunkMinP, NSUInteger i);
+void GSTerrainGeometryDestroy(GSTerrainGeometry * _Nullable geometry);
+GSTerrainGeometry * _Nonnull GSTerrainGeometryCopy(GSTerrainGeometry * _Nonnull original);
+void GSTerrainGeometryAddVertex(GSTerrainGeometry * _Nonnull geometry, GSTerrainVertex vertex);

@@ -22,7 +22,7 @@
 @interface GSChunkGeometryData : NSObject <GSGridItem>
 {
 @private
-    NSArray<GSBoxedTerrainVertex *> *_vertices[GSNumGeometrySubChunks];
+    GSTerrainGeometry * _Nullable _vertices[GSNumGeometrySubChunks];
 
     NSData *_data;
     NSURL *_folder;
@@ -42,7 +42,7 @@
 - (nonnull instancetype)initWithMinP:(vector_float3)minCorner
                               folder:(nullable NSURL *)folder
                             sunlight:(nonnull GSChunkSunlightData *)sunlight
-                            vertices:(NSArray * __strong _Nonnull [GSNumGeometrySubChunks])vertices
+                            vertices:(GSTerrainGeometry * _Nonnull [GSNumGeometrySubChunks])vertices
                       groupForSaving:(nonnull dispatch_group_t)groupForSaving
                       queueForSaving:(nonnull dispatch_queue_t)queueForSaving;
 
