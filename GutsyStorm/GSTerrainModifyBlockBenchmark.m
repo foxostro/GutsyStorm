@@ -57,7 +57,7 @@ extern uint64_t dispatch_benchmark(size_t count, void (^block)(void));
     bzero(&cube, sizeof(GSVoxel));
     cube.opaque = YES;
     cube.dir = VOXEL_DIR_NORTH;
-    cube.type = VOXEL_TYPE_CUBE;
+    cube.type = VOXEL_TYPE_GROUND;
     
     bzero(&empty, sizeof(GSVoxel));
     empty.opaque = NO;

@@ -260,7 +260,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         bzero(&block, sizeof(GSVoxel));
         block.opaque = YES;
         block.dir = VOXEL_DIR_NORTH;
-        block.type = VOXEL_TYPE_CUBE;
+        block.type = VOXEL_TYPE_GROUND;
         
         GSTerrainModifyBlockOperation *placeBlock;
         placeBlock = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore

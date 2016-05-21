@@ -30,7 +30,7 @@ static const GSVoxel cube = {
     .opaque = 1,
     .upsideDown = 0,
     .dir = VOXEL_DIR_NORTH,
-    .type = VOXEL_TYPE_CUBE,
+    .type = VOXEL_TYPE_GROUND,
     .tex = VOXEL_TEX_DIRT,
 };
 

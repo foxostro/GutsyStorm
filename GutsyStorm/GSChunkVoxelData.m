@@ -37,10 +37,7 @@ struct GSChunkVoxelHeader
 
 static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOfBlockAbove)
 {
-    return (voxelType!=VOXEL_TYPE_EMPTY         && typeOfBlockAbove==VOXEL_TYPE_EMPTY)          ||
-           (voxelType==VOXEL_TYPE_CUBE          && typeOfBlockAbove==VOXEL_TYPE_CORNER_OUTSIDE) ||
-           (voxelType==VOXEL_TYPE_CORNER_INSIDE && typeOfBlockAbove==VOXEL_TYPE_CORNER_OUTSIDE) ||
-           (voxelType==VOXEL_TYPE_CUBE          && typeOfBlockAbove==VOXEL_TYPE_RAMP);
+    return (voxelType!=VOXEL_TYPE_EMPTY && typeOfBlockAbove==VOXEL_TYPE_EMPTY);
 }
 
 

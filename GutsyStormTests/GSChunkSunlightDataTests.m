@@ -40,7 +40,7 @@
         }
         
         NSUInteger idx = INDEX_BOX(clp, *box);
-        voxels[idx].type = isEmpty ? VOXEL_TYPE_EMPTY : VOXEL_TYPE_CUBE;
+        voxels[idx].type = isEmpty ? VOXEL_TYPE_EMPTY : VOXEL_TYPE_GROUND;
         voxels[idx].opaque = isEmpty ? 0 : 1;
     }
 }
@@ -221,7 +221,7 @@
     GSChunkVoxelData *voxels1 = [sunChunk.neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
     
     GSVoxel cube = {0};
-    cube.type = VOXEL_TYPE_CUBE;
+    cube.type = VOXEL_TYPE_GROUND;
     cube.opaque = 1;
     GSChunkVoxelData *voxels2 = [voxels1 copyWithEditAtPoint:vector_make(7, 32, 7) block:cube operation:Set];
     

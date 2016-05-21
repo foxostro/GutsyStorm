@@ -135,9 +135,9 @@ typedef GLuint index_t;
             static dispatch_once_t onceToken;
             dispatch_once(&onceToken, ^{
                 // Verify that vertex attribute formats are consistent with in-memory storage.
-                assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, position));
-                assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, texCoord));
-                assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertexNoNormal, color));
+                assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, position));
+                assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, texCoord));
+                assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, color));
             });
 #endif
             

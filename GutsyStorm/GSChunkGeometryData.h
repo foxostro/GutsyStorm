@@ -9,8 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "GSGridItem.h"
 #import "GSVoxel.h"
-#import "GSTerrainVertex.h"
-#import "GSTerrainGeometry.h"
+#import "GSTerrainGeometryGenerator.h"
 
 
 @class GSNeighborhood;

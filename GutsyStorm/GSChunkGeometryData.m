@@ -12,6 +12,7 @@
 #import "SyscallWrappers.h"
 #import "GSActivity.h"
 #import "GSErrorCodes.h"
+#import "GSTerrainGeometryGenerator.h"
 
 
 #define GEO_MAGIC ('moeg')
@@ -93,7 +94,9 @@ struct GSChunkGeometryHeader
         if (failedToLoadFromFile) {
             for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
             {
-                _vertices[i] = GSTerrainGeometryCreate(sunlight, minCorner, i);
+                GSTerrainGeometry *geometry = GSTerrainGeometryCreate();
+                GSTerrainGeometryGenerate(geometry, sunlight, minCorner, i);
+                _vertices[i] = geometry;
             }
             GSStopwatchTraceStep(@"Done generating triangles.");
 
@@ -195,7 +198,7 @@ struct GSChunkGeometryHeader
 
         for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
         {
-            GSFloatAABB b = GSGeometrySubchunkBoxFloat(minP, i);
+            GSFloatAABB b = GSTerrainGeometrySubchunkBoxFloat(minP, i);
             invalidatedSubChunk[i] = GSFloatAABBIntersects(a, b);
         }
     }
@@ -208,7 +211,9 @@ struct GSChunkGeometryHeader
         // Regenerate vertices for the sub-chunk if we determined they have been invalidated, and also if we don't have
         // any vertices recorded for the sub-chunk at all.
         if (invalidatedSubChunk[i] || (!_vertices[i])) {
-            vertices = GSTerrainGeometryCreate(sunlight, minP, i);
+            GSTerrainGeometry *geometry = GSTerrainGeometryCreate();
+            GSTerrainGeometryGenerate(geometry, sunlight, minP, i);
+            vertices = geometry;
         } else {
             vertices = GSTerrainGeometryCopy(_vertices[i]);
         }

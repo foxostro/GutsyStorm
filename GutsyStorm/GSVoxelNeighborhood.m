@@ -65,7 +65,7 @@
             .opaque=YES,
             .upsideDown=NO,
             .dir=VOXEL_DIR_NORTH,
-            .type=VOXEL_TYPE_CUBE,
+            .type=VOXEL_TYPE_GROUND,
             .tex=VOXEL_TEX_DIRT};
     } else if(p.y >= CHUNK_SIZE_Y) {
         // Space above the world is always empty.

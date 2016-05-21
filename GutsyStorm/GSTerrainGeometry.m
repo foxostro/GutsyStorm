@@ -7,11 +7,24 @@
 //
 
 #import "GSTerrainGeometry.h"
-#import "GSChunkVoxelData.h"
-#import "GSChunkSunlightData.h"
-#import "GSTerrainBuffer.h"
-#import "GSVoxelNeighborhood.h"
-#import "GSBox.h"
+
+
+GSTerrainGeometry * _Nonnull GSTerrainGeometryCreate(void)
+{
+    GSTerrainGeometry *geometry = malloc(sizeof(GSTerrainGeometry));
+    if(!geometry) {
+        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry'"];
+    }
+    
+    geometry->capacity = 1;
+    geometry->count = 0;
+    geometry->vertices = malloc(sizeof(GSTerrainVertex) * geometry->capacity);
+    if(!geometry->vertices) {
+        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry->vertices'"];
+    }
+    
+    return geometry;
+}
 
 
 void GSTerrainGeometryDestroy(GSTerrainGeometry * _Nullable geometry)
@@ -45,9 +58,10 @@ GSTerrainGeometry * _Nonnull GSTerrainGeometryCopy(GSTerrainGeometry * _Nonnull 
 }
 
 
-void GSTerrainGeometryAddVertex(GSTerrainGeometry * _Nonnull geometry, GSTerrainVertex vertex)
+void GSTerrainGeometryAddVertex(GSTerrainGeometry * _Nonnull geometry, GSTerrainVertex * _Nonnull vertex)
 {
     assert(geometry);
+    assert(vertex);
     assert(geometry->count <= geometry->capacity);
     
     if ((geometry->count == geometry->capacity) || (geometry->capacity == 0)) {
@@ -58,30 +72,6 @@ void GSTerrainGeometryAddVertex(GSTerrainGeometry * _Nonnull geometry, GSTerrain
         }
     }
 
-    geometry->vertices[geometry->count] = vertex;
+    geometry->vertices[geometry->count] = *vertex;
     geometry->count++;
-}
-
-
-GSTerrainGeometry * _Nonnull GSTerrainGeometryCreate(GSChunkSunlightData * _Nonnull sunlight,
-                                                     vector_float3 chunkMinP, NSUInteger i)
-{
-    assert(sunlight);
-
-    GSTerrainGeometry *geometry = malloc(sizeof(GSTerrainGeometry));
-    if(!geometry) {
-        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry'"];
-    }
-
-    geometry->capacity = 0;
-    geometry->count = 0;
-    geometry->vertices = malloc(sizeof(GSTerrainVertex) * geometry->capacity);
-    if(!geometry->vertices) {
-        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry->vertices'"];
-    }
-
-//        GSTerrainVertex v = vertex.v;
-//        GSTerrainGeometryAddVertex(geometry, v);
-
-    return geometry;
 }
