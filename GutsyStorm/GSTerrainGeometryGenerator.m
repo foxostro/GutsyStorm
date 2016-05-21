@@ -178,7 +178,8 @@ static void polygonizeTetrahedron(GSTerrainGeometry * _Nonnull geometry,
 
 
 static inline GSCubeVertex getCubeVertex(vector_float3 chunkMinP,
-                                         GSChunkVoxelData * _Nonnull voxels,
+                                         GSVoxel * _Nonnull voxels,
+                                         GSIntAABB voxelBox,
                                          GSChunkSunlightData * _Nonnull sunlight,
                                          vector_float3 cellPos)
 {
@@ -189,7 +190,7 @@ static inline GSCubeVertex getCubeVertex(vector_float3 chunkMinP,
 
     GSCubeVertex vertex = {
         .p = cellPos,
-        .voxel = [voxels voxelAtLocalPosition:chunkLocalPos],
+        .voxel = voxels[INDEX_BOX(chunkLocalPos, voxelBox)],
         .light = [sunlight.sunlight valueAtPosition:chunkLocalPos],
     };
 
@@ -198,15 +199,17 @@ static inline GSCubeVertex getCubeVertex(vector_float3 chunkMinP,
 
 
 void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
+                               GSVoxel * _Nonnull voxels,
+                               GSIntAABB voxelBox,
                                GSChunkSunlightData * _Nonnull sunlight,
                                vector_float3 chunkMinP,
                                NSUInteger subchunkIndex)
 {
     assert(geometry);
+    assert(voxels);
     assert(sunlight);
     
     static const float L = 0.5f;
-    GSChunkVoxelData *voxels = [sunlight.neighborhood neighborAtIndex:CHUNK_NEIGHBOR_CENTER];
 
     // Get the sub-chunk bounding box and offset to align with the grid cells used for the tetrahedra.
     GSIntAABB ibounds = GSTerrainGeometrySubchunkBoxInt(chunkMinP, subchunkIndex);
@@ -219,14 +222,14 @@ void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
     FOR_BOX(pos, bounds)
     {
         GSCubeVertex cube[8] = {
-            getCubeVertex(chunkMinP, voxels, sunlight, pos + vector_make(-L, -L, +L)),
-            getCubeVertex(chunkMinP, voxels, sunlight, pos + vector_make(+L, -L, +L)),
-            getCubeVertex(chunkMinP, voxels, sunlight, pos + vector_make(+L, -L, -L)),
-            getCubeVertex(chunkMinP, voxels, sunlight, pos + vector_make(-L, -L, -L)),
-            getCubeVertex(chunkMinP, voxels, sunlight, pos + vector_make(-L, +L, +L)),
-            getCubeVertex(chunkMinP, voxels, sunlight, pos + vector_make(+L, +L, +L)),
-            getCubeVertex(chunkMinP, voxels, sunlight, pos + vector_make(+L, +L, -L)),
-            getCubeVertex(chunkMinP, voxels, sunlight, pos + vector_make(-L, +L, -L))
+            getCubeVertex(chunkMinP, voxels, voxelBox, sunlight, pos + vector_make(-L, -L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, sunlight, pos + vector_make(+L, -L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, sunlight, pos + vector_make(+L, -L, -L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, sunlight, pos + vector_make(-L, -L, -L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, sunlight, pos + vector_make(-L, +L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, sunlight, pos + vector_make(+L, +L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, sunlight, pos + vector_make(+L, +L, -L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, sunlight, pos + vector_make(-L, +L, -L))
         };
         
         static const size_t tetrahedra[6][4] = {

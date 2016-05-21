@@ -126,7 +126,7 @@
         }
     }
     
-    if (count) {
+    if (outCount) {
         *outCount = count;
     }
     

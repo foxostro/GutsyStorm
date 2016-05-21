@@ -40,6 +40,8 @@ static inline GSIntAABB GSTerrainGeometrySubchunkBoxInt(vector_float3 minP, NSUI
 
 
 void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
+                               GSVoxel * _Nonnull voxels,
+                               GSIntAABB voxelBox,
                                GSChunkSunlightData * _Nonnull sunlight,
                                vector_float3 chunkMinP,
                                NSUInteger subchunkIndex);

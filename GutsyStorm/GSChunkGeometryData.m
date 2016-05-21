@@ -9,6 +9,7 @@
 #import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSChunkSunlightData.h"
+#import "GSVoxelNeighborhood.h"
 #import "SyscallWrappers.h"
 #import "GSActivity.h"
 #import "GSErrorCodes.h"
@@ -92,12 +93,17 @@ struct GSChunkGeometryHeader
         }
 
         if (failedToLoadFromFile) {
+            GSVoxel *voxels = [sunlight.neighborhood newVoxelBufferReturningCount:NULL];
+            GSIntAABB voxelBox = { .mins = GSCombinedMinP, .maxs = GSCombinedMaxP };
+
             for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
             {
                 GSTerrainGeometry *geometry = GSTerrainGeometryCreate();
-                GSTerrainGeometryGenerate(geometry, sunlight, minCorner, i);
+                GSTerrainGeometryGenerate(geometry, voxels, voxelBox, sunlight, minCorner, i);
                 _vertices[i] = geometry;
             }
+
+            free(voxels);
             GSStopwatchTraceStep(@"Done generating triangles.");
 
             [self generateDataWithSunlight:sunlight minP:minP];
@@ -202,8 +208,11 @@ struct GSChunkGeometryHeader
             invalidatedSubChunk[i] = GSFloatAABBIntersects(a, b);
         }
     }
-    
+
+    GSVoxel *voxels = [sunlight.neighborhood newVoxelBufferReturningCount:NULL];
+    GSIntAABB voxelBox = { .mins = GSCombinedMinP, .maxs = GSCombinedMaxP };
     GSTerrainGeometry *updatedVertices[GSNumGeometrySubChunks] = {NULL};
+
     for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
     {
         GSTerrainGeometry *vertices;
@@ -212,7 +221,7 @@ struct GSChunkGeometryHeader
         // any vertices recorded for the sub-chunk at all.
         if (invalidatedSubChunk[i] || (!_vertices[i])) {
             GSTerrainGeometry *geometry = GSTerrainGeometryCreate();
-            GSTerrainGeometryGenerate(geometry, sunlight, minP, i);
+            GSTerrainGeometryGenerate(geometry, voxels, voxelBox, sunlight, minP, i);
             vertices = geometry;
         } else {
             vertices = GSTerrainGeometryCopy(_vertices[i]);
@@ -220,6 +229,8 @@ struct GSChunkGeometryHeader
 
         updatedVertices[i] = vertices;
     }
+
+    free(voxels);
 
     return [[[self class] alloc] initWithMinP:minP
                                        folder:_folder
