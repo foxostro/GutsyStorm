@@ -9,7 +9,6 @@
 #import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSChunkSunlightData.h"
-#import "GSTerrainBuffer.h"
 #import "SyscallWrappers.h"
 #import "GSActivity.h"
 #import "GSErrorCodes.h"
@@ -27,12 +26,6 @@ struct GSChunkGeometryHeader
     GLsizei numChunkVerts;
     uint32_t len;
 };
-
-
-static void applyLightToVertices(size_t numChunkVerts,
-                                 GSTerrainVertex * _Nonnull vertsBuffer,
-                                 GSTerrainBuffer * _Nonnull sunlight,
-                                 vector_float3 minP);
 
 
 @interface GSChunkGeometryData ()
@@ -357,9 +350,6 @@ static void applyLightToVertices(size_t numChunkVerts,
         GSBoxedTerrainVertex *v = entireVertices[i];
         vertsBuffer[i] = v.v;
     }
-
-    // Iterate over all vertices and calculate lighting.
-    applyLightToVertices(numChunkVerts, vertsBuffer, sunlight.sunlight, minCorner);
     
     _data = data;
 }
@@ -404,34 +394,3 @@ static void applyLightToVertices(size_t numChunkVerts,
 }
 
 @end
-
-
-static void applyLightToVertices(size_t numChunkVerts,
-                                 GSTerrainVertex * _Nonnull vertsBuffer,
-                                 GSTerrainBuffer * _Nonnull sunlight,
-                                 vector_float3 minP)
-{
-    assert(vertsBuffer);
-    assert(sunlight);
-
-    for(GLsizei i=0; i<numChunkVerts; ++i)
-    {
-        GSTerrainVertex *v = &vertsBuffer[i];
-        
-        vector_float3 vertexPos = (vector_float3){v->position[0], v->position[1], v->position[2]};
-        vector_long3 normal = (vector_long3){v->normal[0], v->normal[1], v->normal[2]};
-
-        uint8_t sunlightValue = [sunlight lightForVertexAtPoint:vertexPos
-                                                     withNormal:normal
-                                                           minP:minP];
-
-        vector_float4 color = {0};
-
-        color.y = 204.0f * (sunlightValue / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
-
-        v->color[0] = color.x;
-        v->color[1] = color.y;
-        v->color[2] = color.z;
-        v->color[3] = color.w;
-    }
-}
