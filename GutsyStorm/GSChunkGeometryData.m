@@ -289,7 +289,7 @@ struct GSChunkGeometryHeader
     return YES;
 }
 
-- (nonnull GSTerrainVertexNoNormal *)copyVertsReturningCount:(nonnull GLsizei *)outCount
+- (nonnull GSTerrainVertex *)copyVertsReturningCount:(nonnull GLsizei *)outCount
 {
     NSParameterAssert(outCount);
 
@@ -307,16 +307,12 @@ struct GSChunkGeometryHeader
         [NSException raise:NSGenericException format:@"Unexpected length for geometry data."];
     }
 
-    GSTerrainVertexNoNormal *vertsCopy = malloc(count * sizeof(GSTerrainVertexNoNormal));
+    GSTerrainVertex *vertsCopy = malloc(count * sizeof(GSTerrainVertex));
     if(!vertsCopy) {
         [NSException raise:NSMallocException format:@"Out of memory allocating vertsCopy in -copyVertsToBuffer:."];
     }
     
-    for(size_t i = 0; i < count; ++i)
-    {
-        // This works because we have ensured the memory layouts of the two structs are very similar.
-        memcpy(&vertsCopy[i], &vertsBuffer[i], sizeof(GSTerrainVertexNoNormal));
-    }
+    memcpy(vertsCopy, vertsBuffer, count * sizeof(GSTerrainVertex));
 
     *outCount = count;
     return vertsCopy;

@@ -13,7 +13,6 @@
 #import "GSChunkVAO.h"
 #import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
-#import "GSBoxedTerrainVertex.h"
 #import "GSVBOHolder.h"
 #import "GSVAOHolder.h"
 #import "GSActivity.h"
@@ -37,7 +36,7 @@ typedef GLuint index_t;
     GLsizei _numIndicesForDrawing;
     GSVBOHolder *_ibo;
     GSVAOHolder *_vao;
-    GSTerrainVertexNoNormal *_vertsBuffer;
+    GSTerrainVertex *_vertsBuffer;
     GLsizeiptr _bufferSize;
     BOOL _initializedYet;
 }
@@ -86,7 +85,7 @@ typedef GLuint index_t;
         _glContext = context;
         minP = geometry.minP;
         _vertsBuffer = [geometry copyVertsReturningCount:&_numIndicesForDrawing];
-        _bufferSize = _numIndicesForDrawing * sizeof(GSTerrainVertexNoNormal);
+        _bufferSize = _numIndicesForDrawing * sizeof(GSTerrainVertex);
     }
 
     return self;
@@ -142,11 +141,11 @@ typedef GLuint index_t;
             });
 #endif
             
-            const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, position);
-            const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, texCoord);
-            const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertexNoNormal, color);
+            const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertex, position);
+            const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertex, texCoord);
+            const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertex, color);
             
-            const GLsizei stride = sizeof(GSTerrainVertexNoNormal);
+            const GLsizei stride = sizeof(GSTerrainVertex);
             glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
             glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
             glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);

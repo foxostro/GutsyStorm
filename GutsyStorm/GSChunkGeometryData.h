@@ -10,7 +10,6 @@
 #import "GSGridItem.h"
 #import "GSVoxel.h"
 #import "GSTerrainVertex.h"
-#import "GSBoxedTerrainVertex.h"
 #import "GSTerrainGeometry.h"
 
 
@@ -52,6 +51,6 @@
 /* Copy the chunk vertex buffer to a new buffer and return it.
  * Return the number of vertices in the buffer in `count'
  */
-- (nonnull GSTerrainVertexNoNormal *)copyVertsReturningCount:(nonnull GLsizei *)count;
+- (nonnull GSTerrainVertex *)copyVertsReturningCount:(nonnull GLsizei *)count;
 
 @end
