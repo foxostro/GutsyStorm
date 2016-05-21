@@ -9,6 +9,7 @@
 #import "GSIntegerVector3.h"
 #import "GSChunkGeometryData.h"
 #import "GSChunkSunlightData.h"
+#import "GSTerrainBuffer.h"
 #import "GSVoxelNeighborhood.h"
 #import "SyscallWrappers.h"
 #import "GSActivity.h"
@@ -95,11 +96,17 @@ struct GSChunkGeometryHeader
         if (failedToLoadFromFile) {
             GSVoxel *voxels = [sunlight.neighborhood newVoxelBufferReturningCount:NULL];
             GSIntAABB voxelBox = { .mins = GSCombinedMinP, .maxs = GSCombinedMaxP };
+            
+            GSTerrainBufferElement *light = [sunlight.sunlight data];
+            GSIntAABB lightBox = {
+                .mins = GSZeroIntVec3 - GSMakeIntegerVector3(1, 0, 1),
+                .maxs = GSChunkSizeIntVec3 + GSMakeIntegerVector3(1, 0, 1)
+            };
 
             for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
             {
                 GSTerrainGeometry *geometry = GSTerrainGeometryCreate();
-                GSTerrainGeometryGenerate(geometry, voxels, voxelBox, sunlight, minCorner, i);
+                GSTerrainGeometryGenerate(geometry, voxels, voxelBox, light, lightBox, minCorner, i);
                 _vertices[i] = geometry;
             }
 
@@ -211,6 +218,13 @@ struct GSChunkGeometryHeader
 
     GSVoxel *voxels = [sunlight.neighborhood newVoxelBufferReturningCount:NULL];
     GSIntAABB voxelBox = { .mins = GSCombinedMinP, .maxs = GSCombinedMaxP };
+    
+    GSTerrainBufferElement *light = [sunlight.sunlight data];
+    GSIntAABB lightBox = {
+        .mins = GSZeroIntVec3 - GSMakeIntegerVector3(1, 0, 1),
+        .maxs = GSChunkSizeIntVec3 + GSMakeIntegerVector3(1, 0, 1)
+    };
+    
     GSTerrainGeometry *updatedVertices[GSNumGeometrySubChunks] = {NULL};
 
     for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
@@ -221,7 +235,7 @@ struct GSChunkGeometryHeader
         // any vertices recorded for the sub-chunk at all.
         if (invalidatedSubChunk[i] || (!_vertices[i])) {
             GSTerrainGeometry *geometry = GSTerrainGeometryCreate();
-            GSTerrainGeometryGenerate(geometry, voxels, voxelBox, sunlight, minP, i);
+            GSTerrainGeometryGenerate(geometry, voxels, voxelBox, light, lightBox, minP, i);
             vertices = geometry;
         } else {
             vertices = GSTerrainGeometryCopy(_vertices[i]);

@@ -11,6 +11,7 @@
 
 #import "GSVoxel.h" // for CHUNK_SIZE_Y
 #import "GSAABB.h"
+#import "GSTerrainBuffer.h" // for GSTerrainBufferElement
 #import "GSTerrainVertex.h"
 #import "GSTerrainGeometry.h"
 
@@ -42,6 +43,7 @@ static inline GSIntAABB GSTerrainGeometrySubchunkBoxInt(vector_float3 minP, NSUI
 void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
                                GSVoxel * _Nonnull voxels,
                                GSIntAABB voxelBox,
-                               GSChunkSunlightData * _Nonnull sunlight,
+                               GSTerrainBufferElement * _Nonnull light,
+                               GSIntAABB lightBox,
                                vector_float3 chunkMinP,
                                NSUInteger subchunkIndex);
