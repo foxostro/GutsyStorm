@@ -26,55 +26,70 @@ typedef struct
 } GSCubeVertex;
 
 
+static inline vector_float3 vertexPosition(GSCubeVertex a1, GSCubeVertex a2)
+{
+    return vector_mix(a1.p, a2.p, (vector_float3){0.5, 0.5, 0.5});
+}
+
+
+static inline vector_float4 vertexColor(GSCubeVertex a1, GSCubeVertex a2)
+{
+    vector_float4 color = {0, 0, 0, 1};
+    color.y = 204.0f * ((a1.light + a2.light) / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
+    return color;
+}
+
+
+static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry, vector_float3 p,
+                              vector_float4 c, int tex, vector_float3 n)
+{
+    static const vector_float3 globalOffset = {-0.5, 0.0, -0.5};
+    p = p + globalOffset;
+    
+    vector_float3 texCoord = vector_make(p.x, p.z, tex);
+    
+    if (n.y == 0) {
+        if (n.x != 0) {
+            texCoord = vector_make(p.z, p.y, 1);
+        } else {
+            texCoord = vector_make(p.x, p.y, 1);
+        }
+    } else if (n.y > 0) {
+        texCoord = vector_make(p.x, p.z, tex);
+    } else {
+        texCoord = vector_make(p.x, p.z, 1);
+    }
+
+    GSTerrainVertex v = {
+        .position = {p.x, p.y, p.z},
+        .color = {c.x, c.y, c.z, c.w},
+        .texCoord = {texCoord.x, texCoord.y, texCoord.z},
+        .normal = {n.x, n.y, n.z}
+    };
+
+    GSTerrainGeometryAddVertex(geometry, &v);
+}
+
+
 static void addTri(GSTerrainGeometry * _Nonnull geometry,
                    GSCubeVertex a1, GSCubeVertex a2,
                    GSCubeVertex b1, GSCubeVertex b2,
                    GSCubeVertex c1, GSCubeVertex c2)
 {
-    assert(geometry);
-
-    vector_float3 pa = vector_mix(a1.p, a2.p, (vector_float3){0.5, 0.5, 0.5});
-    vector_float3 pb = vector_mix(b1.p, b2.p, (vector_float3){0.5, 0.5, 0.5});
-    vector_float3 pc = vector_mix(c1.p, c2.p, (vector_float3){0.5, 0.5, 0.5});
+    vector_float3 pa = vertexPosition(a1, a2);
+    vector_float3 pb = vertexPosition(b1, b2);
+    vector_float3 pc = vertexPosition(c1, c2);
     
     // One normal for the entire face.
     vector_float3 normal = vector_cross(pb-pa, pc-pa);
     
-    // Calculate colors for each vertex.
-    vector_float4 ca = {0, 0, 0, 1};
-    ca.y = 204.0f * ((a1.light + a2.light) / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
+    vector_float4 ca = vertexColor(a1, a2);
+    vector_float4 cb = vertexColor(b1, b2);
+    vector_float4 cc = vertexColor(c1, c2);
     
-    vector_float4 cb = {0, 0, 0, 1};
-    cb.y = 204.0f * ((b1.light + b2.light) / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
-    
-    vector_float4 cc = {0, 0, 0, 1};
-    cc.y = 204.0f * ((c1.light + c2.light) / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
-
-    // Assemble into the three vertices.
-    GSTerrainVertex va = {
-        .position = {pa.x, pa.y, pa.z},
-        .color = {ca.x, ca.y, ca.z, ca.w},
-        .texCoord = {0, 0, 0},
-        .normal = {normal.x, normal.y, normal.z}
-    };
-    
-    GSTerrainVertex vb = {
-        .position = {pb.x, pb.y, pb.z},
-        .color = {cb.x, cb.y, cb.z, cb.w},
-        .texCoord = {0, 0, 0},
-        .normal = {normal.x, normal.y, normal.z}
-    };
-    
-    GSTerrainVertex vc = {
-        .position = {pc.x, pc.y, pc.z},
-        .color = {cc.x, cc.y, cc.z, cc.w},
-        .texCoord = {0, 0, 0},
-        .normal = {normal.x, normal.y, normal.z}
-    };
-
-    GSTerrainGeometryAddVertex(geometry, &va);
-    GSTerrainGeometryAddVertex(geometry, &vb);
-    GSTerrainGeometryAddVertex(geometry, &vc);
+    emitVertex(geometry, pa, ca, a1.voxel.tex, normal);
+    emitVertex(geometry, pb, cb, b1.voxel.tex, normal);
+    emitVertex(geometry, pc, cc, c1.voxel.tex, normal);
 }
 
 
