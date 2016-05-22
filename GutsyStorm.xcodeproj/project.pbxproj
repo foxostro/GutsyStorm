@@ -51,6 +51,8 @@
 		6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */; };
 		6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184B1BD33F8400CD21FB /* text.frag.txt */; };
 		6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6F90184C1BD33F8400CD21FB /* text.vert.txt */; };
+		6FA11A261CF2502A0086B6CB /* tritable.def in Resources */ = {isa = PBXBuildFile; fileRef = 6FA11A241CF2502A0086B6CB /* tritable.def */; };
+		6FA11A271CF2502A0086B6CB /* edgetable.def in Resources */ = {isa = PBXBuildFile; fileRef = 6FA11A251CF2502A0086B6CB /* edgetable.def */; };
 		6FAC70B41CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */; };
 		6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6FAE2A371CC6F42D000D2E9A /* Defaults.plist */; };
 		6FCD25CB1CD56B86005FC566 /* GSTerrainModifyBlockOperationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD25CA1CD56B86005FC566 /* GSTerrainModifyBlockOperationTests.m */; };
@@ -177,6 +179,8 @@
 		6F9018481BD31EE300CD21FB /* crosshairs.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = crosshairs.vert.txt; sourceTree = "<group>"; };
 		6F90184B1BD33F8400CD21FB /* text.frag.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.frag.txt; sourceTree = "<group>"; };
 		6F90184C1BD33F8400CD21FB /* text.vert.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = text.vert.txt; sourceTree = "<group>"; };
+		6FA11A241CF2502A0086B6CB /* tritable.def */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = tritable.def; sourceTree = "<group>"; };
+		6FA11A251CF2502A0086B6CB /* edgetable.def */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = edgetable.def; sourceTree = "<group>"; };
 		6FAC70B21CD7B78B00F87554 /* GSTerrainModifyBlockOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainModifyBlockOperation.h; sourceTree = "<group>"; };
 		6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainModifyBlockOperation.m; sourceTree = "<group>"; };
 		6FAE2A371CC6F42D000D2E9A /* Defaults.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Defaults.plist; sourceTree = "<group>"; };
@@ -403,6 +407,7 @@
 		6F434A181CE81C1000504BD2 /* 3rd Party */ = {
 			isa = PBXGroup;
 			children = (
+				6FA11A231CF250080086B6CB /* paulbourke */,
 				6F434A171CE81C0700504BD2 /* FeepingCreature */,
 			);
 			name = "3rd Party";
@@ -417,6 +422,15 @@
 				6F7ACC0A1CC46FAF0084BAC5 /* GSTerrainJournal.h */,
 			);
 			name = Journal;
+			sourceTree = "<group>";
+		};
+		6FA11A231CF250080086B6CB /* paulbourke */ = {
+			isa = PBXGroup;
+			children = (
+				6FA11A241CF2502A0086B6CB /* tritable.def */,
+				6FA11A251CF2502A0086B6CB /* edgetable.def */,
+			);
+			name = paulbourke;
 			sourceTree = "<group>";
 		};
 		AC202CC6151E57A000D91067 /* Math */ = {
@@ -615,6 +629,7 @@
 			files = (
 				4A2CD0011513C3FC006C6551 /* InfoPlist.strings in Resources */,
 				6F90184A1BD31EE300CD21FB /* crosshairs.vert.txt in Resources */,
+				6FA11A261CF2502A0086B6CB /* tritable.def in Resources */,
 				6F9018491BD31EE300CD21FB /* crosshairs.frag.txt in Resources */,
 				4A2CD0071513C3FC006C6551 /* Credits.rtf in Resources */,
 				6FEE3F4E1BCF92800076E5B9 /* cursor.vert.txt in Resources */,
@@ -623,6 +638,7 @@
 				6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */,
 				AC9CCD751519B8AA0081964D /* terrain.vert.txt in Resources */,
 				6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */,
+				6FA11A271CF2502A0086B6CB /* edgetable.def in Resources */,
 				ACF27B03151AE486009FCAB9 /* terrain.png in Resources */,
 				6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */,
 				6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */,

@@ -6,8 +6,6 @@
 //  Copyright © 2016 Andrew Fox. All rights reserved.
 //
 
-// Marching Tetrahedra algorithm based on article at <http://paulbourke.net/geometry/polygonise/>.
-
 #import "GSTerrainGeometryGenerator.h"
 #import "GSTerrainGeometry.h"
 #import "GSChunkVoxelData.h"
@@ -18,15 +16,22 @@
 #import "GSVectorUtils.h"
 
 
-typedef struct
-{
+typedef struct {
     vector_float3 p;
-    GSVoxel *voxel;
+    const GSVoxel *voxel;
     int light;
 } GSCubeVertex;
 
 
-static GSVoxel gEmpty = {
+typedef struct {
+    size_t v1, v2;
+} GSPair;
+
+
+static const int NUM_CUBE_EDGES = 12;
+static const int NUM_CUBE_VERTS = 8;
+
+static const GSVoxel gEmpty = {
     .outside = 1,
     .torch = 0,
     .exposedToAirOnTop = 1,
@@ -51,7 +56,7 @@ static inline float clampf(float value, float min, float max)
 static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
                                  vector_float3 vertexPos,
                                  vector_float3 chunkMinP,
-                                 float aoRayContributions[8],
+                                 float aoRayContributions[NUM_CUBE_VERTS],
                                  GSVoxel * _Nonnull voxels,
                                  GSIntAABB * _Nonnull voxelBox)
 {
@@ -59,7 +64,7 @@ static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
     float escaped = 0;
     float *pcontribution = aoRayContributions;
 
-    // Cast rays from the vertex to neighboring voxels and count what proportion of the escape.
+    // Cast rays from the vertex to neighboring cells and count what proportion of the rays escape.
     // Modify each neighbor's contribution to the occlusion factor by the angle between the ray and the face normal.
     // These contributions are computed once per face.
     for(float dx = -0.5f; dx <= 0.5f; dx += 1.0f)
@@ -95,8 +100,6 @@ static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
 static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry, vector_float3 p,
                               vector_uchar4 c, int tex, vector_float3 n)
 {
-    assert(p.y < 60);
-
     vector_float3 texCoord = vector_make(p.x, p.z, tex);
     
     if (n.y == 0) {
@@ -114,8 +117,7 @@ static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry, vector_floa
     GSTerrainVertex v = {
         .position = {p.x, p.y, p.z},
         .color = {c.x, c.y, c.z, c.w},
-        .texCoord = {texCoord.x, texCoord.y, texCoord.z},
-        .normal = {n.x, n.y, n.z}
+        .texCoord = {texCoord.x, texCoord.y, texCoord.z}
     };
 
     GSTerrainGeometryAddVertex(geometry, &v);
@@ -139,7 +141,7 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
     
     // Modify each neighbor's contribution to the ambient occlusion factor by the angle between the ray and the face
     // normal. These contributions are computed once per face and are used on each vertex.
-    float aoRayContributions[8];
+    float aoRayContributions[NUM_CUBE_VERTS];
     float *contribution = &aoRayContributions[0];
     for(float dx = -0.5f; dx <= 0.5f; dx += 1.0f)
     {
@@ -164,158 +166,66 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
 }
 
 
-static void polygonizeTetrahedron(GSTerrainGeometry * _Nonnull geometry,
-                                  vector_float3 chunkMinP,
-                                  GSVoxel * _Nonnull voxels,
-                                  GSIntAABB * _Nonnull voxelBox,
-                                  GSCubeVertex cube[8],
-                                  const size_t tetrahedron[4])
+static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
+                               GSCubeVertex cube[NUM_CUBE_VERTS],
+                               vector_float3 chunkMinP,
+                               GSVoxel * _Nonnull voxels,
+                               GSIntAABB * _Nonnull voxelBox)
 {
+    // Based on Paul Bourke's Marching Cubes algorithm at <http://paulbourke.net/geometry/polygonise/>.
+    // The edge and tri tables come directly from the sample code in the article.
+
     assert(geometry);
     
-    unsigned index = 0;
+    static const unsigned edgeTable[256] = {
+#include "edgetable.def"
+    };
+
+    static const int triTable[256][16] = {
+#include "tritable.def"
+    };
     
-    for(int i = 0; i < 4; ++i)
+    // Build an index to look into the tables. Examine each of the eight neighboring cells and set a bit in the index
+    // to '0' or '1' depending on whether the neighboring voxel is empty or not-empty.
+    unsigned index = 0;
+    for(size_t i = 0; i < NUM_CUBE_VERTS; ++i)
     {
-        if (cube[tetrahedron[i]].voxel->type != VOXEL_TYPE_EMPTY)
-        {
+        if (cube[i].voxel->type != VOXEL_TYPE_EMPTY) {
             index |= (1 << i);
         }
     }
     
-    switch(index)
+    // If all neighbors are empty then there's nothing to do. Bail out early.
+    if (edgeTable[index] == 0) {
+        return;
+    }
+    
+    // For each intersection between the surface and the cube, record the indices of the two cube vertices on either
+    // side of the intersection. We interpolate the vertices later, when emitting triangles.
+    GSPair vertexList[NUM_CUBE_EDGES] = {0};
     {
-        case 0x00:
-        case 0x0F:
-            break;
-            
-        case 0x01:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[0]], cube[tetrahedron[1]],
-                   cube[tetrahedron[0]], cube[tetrahedron[3]],
-                   cube[tetrahedron[0]], cube[tetrahedron[2]]);
-            break;
-            
-        case 0x02:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[1]], cube[tetrahedron[0]],
-                   cube[tetrahedron[1]], cube[tetrahedron[2]],
-                   cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            break;
-            
-        case 0x04:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[2]], cube[tetrahedron[0]],
-                   cube[tetrahedron[2]], cube[tetrahedron[3]],
-                   cube[tetrahedron[2]], cube[tetrahedron[1]]);
-            break;
-            
-        case 0x08:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[3]], cube[tetrahedron[1]],
-                   cube[tetrahedron[3]], cube[tetrahedron[2]],
-                   cube[tetrahedron[3]], cube[tetrahedron[0]]);
-            break;
-            
-        case 0x03:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[3]], cube[tetrahedron[0]],
-                   cube[tetrahedron[2]], cube[tetrahedron[0]],
-                   cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[2]], cube[tetrahedron[0]],
-                   cube[tetrahedron[2]], cube[tetrahedron[1]],
-                   cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            break;
-            
-        case 0x05:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[3]], cube[tetrahedron[0]],
-                   cube[tetrahedron[1]], cube[tetrahedron[2]],
-                   cube[tetrahedron[1]], cube[tetrahedron[0]]);
-            
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[1]], cube[tetrahedron[2]],
-                   cube[tetrahedron[3]], cube[tetrahedron[0]],
-                   cube[tetrahedron[2]], cube[tetrahedron[3]]);
-            break;
-            
-        case 0x09:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[0]], cube[tetrahedron[1]],
-                   cube[tetrahedron[1]], cube[tetrahedron[3]],
-                   cube[tetrahedron[0]], cube[tetrahedron[2]]);
-            
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[1]], cube[tetrahedron[3]],
-                   cube[tetrahedron[3]], cube[tetrahedron[2]],
-                   cube[tetrahedron[0]], cube[tetrahedron[2]]);
-            break;
-            
-        case 0x06:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[0]], cube[tetrahedron[1]],
-                   cube[tetrahedron[0]], cube[tetrahedron[2]],
-                   cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[1]], cube[tetrahedron[3]],
-                   cube[tetrahedron[0]], cube[tetrahedron[2]],
-                   cube[tetrahedron[3]], cube[tetrahedron[2]]);
-            break;
-            
-        case 0x0C:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[1]], cube[tetrahedron[3]],
-                   cube[tetrahedron[2]], cube[tetrahedron[0]],
-                   cube[tetrahedron[3]], cube[tetrahedron[0]]);
-            
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[2]], cube[tetrahedron[0]],
-                   cube[tetrahedron[1]], cube[tetrahedron[3]],
-                   cube[tetrahedron[2]], cube[tetrahedron[1]]);
-            break;
-            
-        case 0x0A:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[3]], cube[tetrahedron[0]],
-                   cube[tetrahedron[1]], cube[tetrahedron[0]],
-                   cube[tetrahedron[1]], cube[tetrahedron[2]]);
-            
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[1]], cube[tetrahedron[2]],
-                   cube[tetrahedron[2]], cube[tetrahedron[3]],
-                   cube[tetrahedron[3]], cube[tetrahedron[0]]);
-            break;
-            
-        case 0x07:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[3]], cube[tetrahedron[0]],
-                   cube[tetrahedron[3]], cube[tetrahedron[2]],
-                   cube[tetrahedron[3]], cube[tetrahedron[1]]);
-            break;
-            
-        case 0x0B:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[2]], cube[tetrahedron[1]],
-                   cube[tetrahedron[2]], cube[tetrahedron[3]],
-                   cube[tetrahedron[2]], cube[tetrahedron[0]]);
-            break;
-            
-        case 0x0D:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[1]], cube[tetrahedron[0]],
-                   cube[tetrahedron[1]], cube[tetrahedron[3]],
-                   cube[tetrahedron[1]], cube[tetrahedron[2]]);
-            break;
-            
-        case 0x0E:
-            addTri(geometry, chunkMinP, voxels, voxelBox,
-                   cube[tetrahedron[0]], cube[tetrahedron[1]],
-                   cube[tetrahedron[0]], cube[tetrahedron[2]],
-                   cube[tetrahedron[0]], cube[tetrahedron[3]]);
-            break;
+        static const size_t intersect1[NUM_CUBE_EDGES] = {0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3};
+        static const size_t intersect2[NUM_CUBE_EDGES] = {1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7};
+        
+        for(size_t i = 0; i < NUM_CUBE_EDGES; ++i)
+        {
+            if (edgeTable[index] & (1 << i)) {
+                vertexList[i] = (GSPair){ intersect1[i], intersect2[i] };
+            }
+        }
+    }
+
+    for(size_t i = 0; triTable[index][i] != -1; i += 3)
+    {
+        GSPair a = vertexList[triTable[index][i+2]];
+        GSPair b = vertexList[triTable[index][i+1]];
+        GSPair c = vertexList[triTable[index][i+0]];
+
+        addTri(geometry,
+               chunkMinP, voxels, voxelBox,
+               cube[a.v1], cube[a.v2],
+               cube[b.v1], cube[b.v2],
+               cube[c.v1], cube[c.v2]);
     }
 }
 
@@ -359,7 +269,7 @@ void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
     
     static const float L = 0.5f;
 
-    // Get the sub-chunk bounding box and offset to align with the grid cells used for the tetrahedra.
+    // Get the sub-chunk bounding box and offset to align with the grid cells used.
     GSIntAABB ibounds = GSTerrainGeometrySubchunkBoxInt(chunkMinP, subchunkIndex);
     GSFloatAABB bounds = {
         .mins = vector_float(ibounds.mins) + vector_make(L, L, L),
@@ -369,7 +279,7 @@ void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
     vector_float3 pos;
     FOR_BOX(pos, bounds)
     {
-        GSCubeVertex cube[8] = {
+        GSCubeVertex cube[NUM_CUBE_VERTS] = {
             getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(-L, -L, +L)),
             getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(+L, -L, +L)),
             getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(+L, -L, -L)),
@@ -379,19 +289,7 @@ void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
             getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(+L, +L, -L)),
             getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(-L, +L, -L))
         };
-        
-        static const size_t tetrahedra[6][4] = {
-            { 0, 7, 3, 2 },
-            { 0, 7, 2, 6 },
-            { 0, 4, 7, 6 },
-            { 0, 1, 6, 2 },
-            { 0, 4, 6, 1 },
-            { 5, 1, 6, 4 }
-        };
-        
-        for(int i = 0; i < 6; ++i)
-        {
-            polygonizeTetrahedron(geometry, chunkMinP, voxels, &voxelBox, cube, tetrahedra[i]);
-        }
+
+        polygonizeGridCell(geometry, cube, chunkMinP, voxels, &voxelBox);
     }
 }
