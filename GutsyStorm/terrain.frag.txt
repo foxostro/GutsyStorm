@@ -18,8 +18,5 @@ vec4 fog(vec4 color, vec4 fcolor, float depth, float density)
 void main(void)
 {
     vec4 texcolor = texture2DArray(tex, gl_TexCoord[0].stp);
-    
-    vec4 sunlight = vec4(vec3(gl_Color.g), 1.0);
-    
-    gl_FragColor = fog(texcolor * sunlight, fogColor, gl_FragCoord.z / gl_FragCoord.w, fogDensity);
+    gl_FragColor = fog(texcolor * gl_Color, fogColor, gl_FragCoord.z / gl_FragCoord.w, fogDensity);
 }
