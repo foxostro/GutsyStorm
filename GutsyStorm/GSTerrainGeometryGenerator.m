@@ -26,6 +26,18 @@ typedef struct
 } GSCubeVertex;
 
 
+static GSVoxel gEmpty = {
+    .outside = 1,
+    .torch = 0,
+    .exposedToAirOnTop = 1,
+    .opaque = 0,
+    .upsideDown = 0,
+    .dir = 0,
+    .type = VOXEL_TYPE_EMPTY,
+    .tex = 0
+};
+
+
 static inline vector_float3 vertexPosition(GSCubeVertex a1, GSCubeVertex a2)
 {
     return vector_mix(a1.p, a2.p, (vector_float3){0.5, 0.5, 0.5});
@@ -85,6 +97,8 @@ static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
 static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry, vector_float3 p,
                               vector_uchar4 c, int tex, vector_float3 n)
 {
+    assert(p.y < 60);
+
     vector_float3 texCoord = vector_make(p.x, p.z, tex);
     
     if (n.y == 0) {
@@ -316,12 +330,19 @@ static inline GSCubeVertex getCubeVertex(vector_float3 chunkMinP,
                                          vector_float3 cellPos)
 {
     vector_long3 chunkLocalPos = vector_long(cellPos - chunkMinP);
-    GSCubeVertex vertex = {
-        .p = cellPos,
-        .voxel = &voxels[INDEX_BOX(chunkLocalPos, voxelBox)],
-        .light = light[INDEX_BOX(chunkLocalPos, *lightBox)],
-    };
-    return vertex;
+    if (chunkLocalPos.y >= CHUNK_SIZE_Y) {
+        return (GSCubeVertex){
+            .p = cellPos,
+            .voxel = &gEmpty,
+            .light = CHUNK_LIGHTING_MAX
+        };
+    } else {
+        return (GSCubeVertex){
+            .p = cellPos,
+            .voxel = &voxels[INDEX_BOX(chunkLocalPos, voxelBox)],
+            .light = light[INDEX_BOX(chunkLocalPos, *lightBox)],
+        };
+    }
 }
 
 
