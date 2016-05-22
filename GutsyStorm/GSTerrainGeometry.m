@@ -36,28 +36,6 @@ void GSTerrainGeometryDestroy(GSTerrainGeometry * _Nullable geometry)
 }
 
 
-GSTerrainGeometry * _Nonnull GSTerrainGeometryCopy(GSTerrainGeometry * _Nonnull original)
-{
-    assert(original);
-
-    GSTerrainGeometry *geometry = malloc(sizeof(GSTerrainGeometry));
-    if(!geometry) {
-        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry'"];
-    }
-
-    geometry->capacity = original->capacity;
-    geometry->count = original->count;
-    geometry->vertices = malloc(sizeof(GSTerrainVertex) * original->capacity);
-    if(!geometry->vertices) {
-        [NSException raise:NSMallocException format:@"Out of memory while allocating `geometry->vertices'"];
-    }
-
-    memcpy(geometry->vertices, original->vertices, sizeof(GSTerrainVertex) * original->count);
-
-    return geometry;
-}
-
-
 void GSTerrainGeometryAddVertex(GSTerrainGeometry * _Nonnull geometry, GSTerrainVertex * _Nonnull vertex)
 {
     assert(geometry);

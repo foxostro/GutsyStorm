@@ -152,7 +152,7 @@ struct GSChunkGeometryHeader
         
         for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
         {
-            _vertices[i] = GSTerrainGeometryCopy(vertices[i]);
+            _vertices[i] = vertices[i];
         }
         
         NSString *fileName = [[self class] fileNameForGeometryDataFromMinP:minCorner];
@@ -238,7 +238,9 @@ struct GSChunkGeometryHeader
             GSTerrainGeometryGenerate(geometry, voxels, voxelBox, light, lightBox, minP, i);
             vertices = geometry;
         } else {
-            vertices = GSTerrainGeometryCopy(_vertices[i]);
+            // Ownership passes to the new chunk object.
+            vertices = _vertices[i];
+            _vertices[i] = NULL;
         }
 
         updatedVertices[i] = vertices;

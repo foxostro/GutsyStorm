@@ -22,5 +22,4 @@ typedef struct
 
 GSTerrainGeometry * _Nonnull GSTerrainGeometryCreate(void);
 void GSTerrainGeometryDestroy(GSTerrainGeometry * _Nullable geometry);
-GSTerrainGeometry * _Nonnull GSTerrainGeometryCopy(GSTerrainGeometry * _Nonnull original);
 void GSTerrainGeometryAddVertex(GSTerrainGeometry * _Nonnull geometry, GSTerrainVertex * _Nonnull vertex);
