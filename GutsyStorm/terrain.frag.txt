@@ -5,6 +5,8 @@ const vec4 fogColor = vec4(0.7, 0.7, 0.7, 1.0);
 const float fogDensity = 0.003;
 
 uniform sampler2DArray tex;
+varying vec4 vPos;
+varying vec3 vNormal;
 
 
 vec4 fog(vec4 color, vec4 fcolor, float depth, float density)
@@ -15,11 +17,23 @@ vec4 fog(vec4 color, vec4 fcolor, float depth, float density)
 }
 
 
-void main(void)
+vec3 getTriPlanarBlend(vec3 _wNorm)
 {
-    vec4 texcolor = texture2DArray(tex, gl_TexCoord[0].stp);
-    
+    // in wNorm is the world-space normal of the fragment
+    vec3 blending = abs( _wNorm );
+    blending = normalize(max(blending, 0.00001)); // Force weights to sum to 1.0
+    float b = (blending.x + blending.y + blending.z);
+    blending /= vec3(b, b, b);
+    return blending;
+}
+
+void main(){
+    vec3 blending = getTriPlanarBlend(vNormal);
+    vec3 xaxis = texture2DArray(tex, vec3(vPos.yz, gl_TexCoord[0].p)).rgb;
+    vec3 yaxis = texture2DArray(tex, vec3(vPos.xz, gl_TexCoord[0].p)).rgb;
+    vec3 zaxis = texture2DArray(tex, vec3(vPos.xy, gl_TexCoord[0].p)).rgb;
+    vec4 texcolor = vec4(vec3(xaxis * blending.x + yaxis * blending.y + zaxis * blending.z), 1.0);
+
     vec4 sunlight = vec4(vec3(gl_Color.g), 1.0);
-    
     gl_FragColor = fog(texcolor * sunlight, fogColor, gl_FragCoord.z / gl_FragCoord.w, fogDensity);
 }

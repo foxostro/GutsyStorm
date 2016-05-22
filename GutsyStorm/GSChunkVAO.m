@@ -117,6 +117,7 @@ typedef GLuint index_t;
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
         
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ibo.handle);
         
@@ -130,26 +131,17 @@ typedef GLuint index_t;
             glDeleteBuffers(1, &vbo);
             glDeleteVertexArraysAPPLE(1, &vao);
         } else {
-
-#ifndef NDEBUG
-            static dispatch_once_t onceToken;
-            dispatch_once(&onceToken, ^{
-                // Verify that vertex attribute formats are consistent with in-memory storage.
-                assert(sizeof(GLfloat) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, position));
-                assert(sizeof(GLshort) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, texCoord));
-                assert(sizeof(GLubyte) == SIZEOF_STRUCT_ARRAY_ELEMENT(GSTerrainVertex, color));
-            });
-#endif
-            
             const GLvoid *offsetVertex   = (const GLvoid *)offsetof(GSTerrainVertex, position);
             const GLvoid *offsetTexCoord = (const GLvoid *)offsetof(GSTerrainVertex, texCoord);
             const GLvoid *offsetColor    = (const GLvoid *)offsetof(GSTerrainVertex, color);
+            const GLvoid *offsetNormal   = (const GLvoid *)offsetof(GSTerrainVertex, normal);
             
             const GLsizei stride = sizeof(GSTerrainVertex);
             glVertexPointer(  3, GL_FLOAT,         stride, offsetVertex);
-            glTexCoordPointer(3, GL_SHORT,         stride, offsetTexCoord);
+            glTexCoordPointer(3, GL_FLOAT,         stride, offsetTexCoord);
             glColorPointer(   4, GL_UNSIGNED_BYTE, stride, offsetColor);
-            
+            glNormalPointer(     GL_FLOAT,         stride, offsetNormal);
+
             glBindVertexArrayAPPLE(0);
             
             _vao = [[GSVAOHolder alloc] initWithHandle:vao context:_glContext];

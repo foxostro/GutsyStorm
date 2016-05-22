@@ -12,5 +12,6 @@ typedef struct
 {
     GLfloat position[3];
     GLubyte color[4];
-    GLshort texCoord[3];
+    GLfloat texCoord[3];
+    GLfloat normal[3];
 } GSTerrainVertex;

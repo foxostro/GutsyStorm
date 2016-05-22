@@ -26,21 +26,55 @@ typedef struct
 } GSCubeVertex;
 
 
-static inline void addVertex(GSTerrainGeometry * _Nonnull geometry, GSCubeVertex p1, GSCubeVertex p2)
+static void addTri(GSTerrainGeometry * _Nonnull geometry,
+                   GSCubeVertex a1, GSCubeVertex a2,
+                   GSCubeVertex b1, GSCubeVertex b2,
+                   GSCubeVertex c1, GSCubeVertex c2)
 {
     assert(geometry);
+
+    vector_float3 pa = vector_mix(a1.p, a2.p, (vector_float3){0.5, 0.5, 0.5});
+    vector_float3 pb = vector_mix(b1.p, b2.p, (vector_float3){0.5, 0.5, 0.5});
+    vector_float3 pc = vector_mix(c1.p, c2.p, (vector_float3){0.5, 0.5, 0.5});
     
-    vector_float3 pos = vector_mix(p1.p, p2.p, (vector_float3){0.5, 0.5, 0.5});
+    // One normal for the entire face.
+    vector_float3 normal = vector_cross(pb-pa, pc-pa);
+    
+    // Calculate colors for each vertex.
+    vector_float4 ca = {0, 0, 0, 1};
+    ca.y = 204.0f * ((a1.light + a2.light) / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
+    
+    vector_float4 cb = {0, 0, 0, 1};
+    cb.y = 204.0f * ((b1.light + b2.light) / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
+    
+    vector_float4 cc = {0, 0, 0, 1};
+    cc.y = 204.0f * ((c1.light + c2.light) / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
 
-    vector_float4 color = {0, 0, 0, 1};
-    color.y = 204.0f * ((p1.light + p2.light) / (float)CHUNK_LIGHTING_MAX) + 51.0f; // sunlight in the green channel
-
-    GSTerrainVertex vertex = {
-        .position = {pos.x, pos.y, pos.z},
-        .color = {color.x, color.y, color.z, color.w},
-        .texCoord = {0, 0, 0}, // AFOX_TODO: texture coordinates
+    // Assemble into the three vertices.
+    GSTerrainVertex va = {
+        .position = {pa.x, pa.y, pa.z},
+        .color = {ca.x, ca.y, ca.z, ca.w},
+        .texCoord = {0, 0, 0},
+        .normal = {normal.x, normal.y, normal.z}
     };
-    GSTerrainGeometryAddVertex(geometry, &vertex);
+    
+    GSTerrainVertex vb = {
+        .position = {pb.x, pb.y, pb.z},
+        .color = {cb.x, cb.y, cb.z, cb.w},
+        .texCoord = {0, 0, 0},
+        .normal = {normal.x, normal.y, normal.z}
+    };
+    
+    GSTerrainVertex vc = {
+        .position = {pc.x, pc.y, pc.z},
+        .color = {cc.x, cc.y, cc.z, cc.w},
+        .texCoord = {0, 0, 0},
+        .normal = {normal.x, normal.y, normal.z}
+    };
+
+    GSTerrainGeometryAddVertex(geometry, &va);
+    GSTerrainGeometryAddVertex(geometry, &vb);
+    GSTerrainGeometryAddVertex(geometry, &vc);
 }
 
 
@@ -67,111 +101,131 @@ static void polygonizeTetrahedron(GSTerrainGeometry * _Nonnull geometry,
             break;
             
         case 0x01:
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[1]]);
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[2]]);
+            addTri(geometry,
+                   cube[tetrahedron[0]], cube[tetrahedron[1]],
+                   cube[tetrahedron[0]], cube[tetrahedron[3]],
+                   cube[tetrahedron[0]], cube[tetrahedron[2]]);
             break;
             
         case 0x02:
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
+            addTri(geometry,
+                   cube[tetrahedron[1]], cube[tetrahedron[0]],
+                   cube[tetrahedron[1]], cube[tetrahedron[2]],
+                   cube[tetrahedron[1]], cube[tetrahedron[3]]);
             break;
             
         case 0x04:
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[1]]);
+            addTri(geometry,
+                   cube[tetrahedron[2]], cube[tetrahedron[0]],
+                   cube[tetrahedron[2]], cube[tetrahedron[3]],
+                   cube[tetrahedron[2]], cube[tetrahedron[1]]);
             break;
             
         case 0x08:
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[1]]);
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[0]]);
+            addTri(geometry,
+                   cube[tetrahedron[3]], cube[tetrahedron[1]],
+                   cube[tetrahedron[3]], cube[tetrahedron[2]],
+                   cube[tetrahedron[3]], cube[tetrahedron[0]]);
             break;
             
         case 0x03:
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
+            addTri(geometry,
+                   cube[tetrahedron[3]], cube[tetrahedron[0]],
+                   cube[tetrahedron[2]], cube[tetrahedron[0]],
+                   cube[tetrahedron[1]], cube[tetrahedron[3]]);
             
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[1]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
+            addTri(geometry,
+                   cube[tetrahedron[2]], cube[tetrahedron[0]],
+                   cube[tetrahedron[2]], cube[tetrahedron[1]],
+                   cube[tetrahedron[1]], cube[tetrahedron[3]]);
             break;
             
         case 0x05:
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[0]]);
+            addTri(geometry,
+                   cube[tetrahedron[3]], cube[tetrahedron[0]],
+                   cube[tetrahedron[1]], cube[tetrahedron[2]],
+                   cube[tetrahedron[1]], cube[tetrahedron[0]]);
             
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[3]]);
+            addTri(geometry,
+                   cube[tetrahedron[1]], cube[tetrahedron[2]],
+                   cube[tetrahedron[3]], cube[tetrahedron[0]],
+                   cube[tetrahedron[2]], cube[tetrahedron[3]]);
             break;
             
         case 0x09:
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[1]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[2]]);
+            addTri(geometry,
+                   cube[tetrahedron[0]], cube[tetrahedron[1]],
+                   cube[tetrahedron[1]], cube[tetrahedron[3]],
+                   cube[tetrahedron[0]], cube[tetrahedron[2]]);
             
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[2]]);
+            addTri(geometry,
+                   cube[tetrahedron[1]], cube[tetrahedron[3]],
+                   cube[tetrahedron[3]], cube[tetrahedron[2]],
+                   cube[tetrahedron[0]], cube[tetrahedron[2]]);
             break;
             
         case 0x06:
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[1]]);
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
+            addTri(geometry,
+                   cube[tetrahedron[0]], cube[tetrahedron[1]],
+                   cube[tetrahedron[0]], cube[tetrahedron[2]],
+                   cube[tetrahedron[1]], cube[tetrahedron[3]]);
             
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[2]]);
+            addTri(geometry,
+                   cube[tetrahedron[1]], cube[tetrahedron[3]],
+                   cube[tetrahedron[0]], cube[tetrahedron[2]],
+                   cube[tetrahedron[3]], cube[tetrahedron[2]]);
             break;
             
         case 0x0C:
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[0]]);
+            addTri(geometry,
+                   cube[tetrahedron[1]], cube[tetrahedron[3]],
+                   cube[tetrahedron[2]], cube[tetrahedron[0]],
+                   cube[tetrahedron[3]], cube[tetrahedron[0]]);
             
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[1]]);
+            addTri(geometry,
+                   cube[tetrahedron[2]], cube[tetrahedron[0]],
+                   cube[tetrahedron[1]], cube[tetrahedron[3]],
+                   cube[tetrahedron[2]], cube[tetrahedron[1]]);
             break;
             
         case 0x0A:
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[2]]);
+            addTri(geometry,
+                   cube[tetrahedron[3]], cube[tetrahedron[0]],
+                   cube[tetrahedron[1]], cube[tetrahedron[0]],
+                   cube[tetrahedron[1]], cube[tetrahedron[2]]);
             
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[0]]);
+            addTri(geometry,
+                   cube[tetrahedron[1]], cube[tetrahedron[2]],
+                   cube[tetrahedron[2]], cube[tetrahedron[3]],
+                   cube[tetrahedron[3]], cube[tetrahedron[0]]);
             break;
             
         case 0x07:
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[3]], cube[tetrahedron[1]]);
+            addTri(geometry,
+                   cube[tetrahedron[3]], cube[tetrahedron[0]],
+                   cube[tetrahedron[3]], cube[tetrahedron[2]],
+                   cube[tetrahedron[3]], cube[tetrahedron[1]]);
             break;
             
         case 0x0B:
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[1]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[2]], cube[tetrahedron[0]]);
+            addTri(geometry,
+                   cube[tetrahedron[2]], cube[tetrahedron[1]],
+                   cube[tetrahedron[2]], cube[tetrahedron[3]],
+                   cube[tetrahedron[2]], cube[tetrahedron[0]]);
             break;
             
         case 0x0D:
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[0]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[3]]);
-            addVertex(geometry, cube[tetrahedron[1]], cube[tetrahedron[2]]);
+            addTri(geometry,
+                   cube[tetrahedron[1]], cube[tetrahedron[0]],
+                   cube[tetrahedron[1]], cube[tetrahedron[3]],
+                   cube[tetrahedron[1]], cube[tetrahedron[2]]);
             break;
             
         case 0x0E:
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[1]]);
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[2]]);
-            addVertex(geometry, cube[tetrahedron[0]], cube[tetrahedron[3]]);
+            addTri(geometry,
+                   cube[tetrahedron[0]], cube[tetrahedron[1]],
+                   cube[tetrahedron[0]], cube[tetrahedron[2]],
+                   cube[tetrahedron[0]], cube[tetrahedron[3]]);
             break;
     }
 }
