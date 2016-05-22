@@ -44,6 +44,6 @@ void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
                                GSVoxel * _Nonnull voxels,
                                GSIntAABB voxelBox,
                                GSTerrainBufferElement * _Nonnull light,
-                               GSIntAABB lightBox,
+                               GSIntAABB * _Nonnull lightBox,
                                vector_float3 chunkMinP,
                                NSUInteger subchunkIndex);

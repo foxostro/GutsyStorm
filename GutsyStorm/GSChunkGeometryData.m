@@ -106,7 +106,7 @@ struct GSChunkGeometryHeader
             for(NSUInteger i=0; i<GSNumGeometrySubChunks; ++i)
             {
                 GSTerrainGeometry *geometry = GSTerrainGeometryCreate();
-                GSTerrainGeometryGenerate(geometry, voxels, voxelBox, light, lightBox, minCorner, i);
+                GSTerrainGeometryGenerate(geometry, voxels, voxelBox, light, &lightBox, minCorner, i);
                 _vertices[i] = geometry;
             }
 
@@ -235,7 +235,7 @@ struct GSChunkGeometryHeader
         // any vertices recorded for the sub-chunk at all.
         if (invalidatedSubChunk[i] || (!_vertices[i])) {
             GSTerrainGeometry *geometry = GSTerrainGeometryCreate();
-            GSTerrainGeometryGenerate(geometry, voxels, voxelBox, light, lightBox, minP, i);
+            GSTerrainGeometryGenerate(geometry, voxels, voxelBox, light, &lightBox, minP, i);
             vertices = geometry;
         } else {
             // Ownership passes to the new chunk object.
