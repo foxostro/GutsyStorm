@@ -87,19 +87,6 @@ static inline size_t BUFFER_SIZE_IN_BYTES(vector_long3 dimensions)
  */
 - (GSTerrainBufferElement)valueAtPosition:(vector_long3)chunkLocalP;
 
-/* Given a specific vertex position in the chunk, and a normal for that vertex, get the contribution of the (lighting)
- * buffer on the vertex.
- *
- * vertexPosInWorldSpace -- Vertex position in world space.
- * normal -- Vertex normal
- * minP -- Minimum corner of the chunk. This is the offset between world-space and chunk-local-space.
- *
- * As the lighting buffer has no knowledge of the neighboring chunks, expect values on the border to be incorrect.
- */
-- (GSTerrainBufferElement)lightForVertexAtPoint:(vector_float3)vertexPosInWorldSpace
-                                     withNormal:(vector_long3)normal
-                                           minP:(vector_float3)minP;
-
 /* Saves the buffer contents to file asynchronously on the specified dispatch queue abd group.
  * Sticks the header to the front of the file, if one is provided.
  */

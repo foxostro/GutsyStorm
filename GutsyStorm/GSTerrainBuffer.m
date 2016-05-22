@@ -15,10 +15,6 @@
 #import "GSBox.h"
 
 
-/* Get points to sample for voxel lighting. */
-static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector_long3 normal);
-
-
 @implementation GSTerrainBuffer
 
 @synthesize offsetFromChunkLocalSpace = _offsetFromChunkLocalSpace;
@@ -143,35 +139,6 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
     }
 }
 
-- (GSTerrainBufferElement)lightForVertexAtPoint:(vector_float3)vertexPosInWorldSpace
-                                     withNormal:(vector_long3)normal
-                                           minP:(vector_float3)minP
-{
-    static const size_t count = 4;
-    vector_float3 sample[count];
-    float light;
-    int i;
-
-    assert(_data);
-
-    samplingPoints(count, sample, normal);
-
-    for(light = 0.0f, i = 0; i < count; ++i)
-    {
-        vector_long3 clp = GSMakeIntegerVector3(truncf(sample[i].x + vertexPosInWorldSpace.x - minP.x),
-                                                truncf(sample[i].y + vertexPosInWorldSpace.y - minP.y),
-                                                truncf(sample[i].z + vertexPosInWorldSpace.z - minP.z));
-
-        assert(clp.x >= -1 && clp.x <= CHUNK_SIZE_X);
-        assert(clp.y >= -1 && clp.y <= CHUNK_SIZE_Y);
-        assert(clp.z >= -1 && clp.z <= CHUNK_SIZE_Z);
-
-        light += [self valueAtPosition:clp] / (float)count;
-    }
-    
-    return light;
-}
-
 - (void)saveToFile:(nonnull NSURL *)url
              queue:(nonnull dispatch_queue_t)queue
              group:(nonnull dispatch_group_t)group
@@ -286,50 +253,3 @@ static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector
 }
 
 @end
-
-
-static void samplingPoints(size_t count, vector_float3 * _Nonnull sample, vector_long3 n)
-{
-    assert(count == 4);
-    assert(sample);
-
-    const float a = 0.5f;
-
-    if(n.x==1 && n.y==0 && n.z==0) {
-        sample[0] = vector_make(+a, -a, -a);
-        sample[1] = vector_make(+a, -a, +a);
-        sample[2] = vector_make(+a, +a, -a);
-        sample[3] = vector_make(+a, +a, +a);
-    } else if(n.x==-1 && n.y==0 && n.z==0) {
-        sample[0] = vector_make(-a, -a, -a);
-        sample[1] = vector_make(-a, -a, +a);
-        sample[2] = vector_make(-a, +a, -a);
-        sample[3] = vector_make(-a, +a, +a);
-    } else if(n.x==0 && n.y==1 && n.z==0) {
-        sample[0] = vector_make(-a, +a, -a);
-        sample[1] = vector_make(-a, +a, +a);
-        sample[2] = vector_make(+a, +a, -a);
-        sample[3] = vector_make(+a, +a, +a);
-    } else if(n.x==0 && n.y==-1 && n.z==0) {
-        sample[0] = vector_make(-a, -a, -a);
-        sample[1] = vector_make(-a, -a, +a);
-        sample[2] = vector_make(+a, -a, -a);
-        sample[3] = vector_make(+a, -a, +a);
-    } else if(n.x==0 && n.y==0 && n.z==1) {
-        sample[0] = vector_make(-a, -a, +a);
-        sample[1] = vector_make(-a, +a, +a);
-        sample[2] = vector_make(+a, -a, +a);
-        sample[3] = vector_make(+a, +a, +a);
-    } else if(n.x==0 && n.y==0 && n.z==-1) {
-        sample[0] = vector_make(-a, -a, -a);
-        sample[1] = vector_make(-a, +a, -a);
-        sample[2] = vector_make(+a, -a, -a);
-        sample[3] = vector_make(+a, +a, -a);
-    } else {
-        assert(!"shouldn't get here");
-        sample[0] = vector_make(0, 0, 0);
-        sample[1] = vector_make(0, 0, 0);
-        sample[2] = vector_make(0, 0, 0);
-        sample[3] = vector_make(0, 0, 0);
-    }
-}
