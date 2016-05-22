@@ -28,28 +28,6 @@ typedef enum
 } GSVoxelType;
 
 
-/* The direction of the voxel. Affects the orientation of the mesh and traversibility. */
-typedef enum
-{
-    VOXEL_DIR_NORTH=0, // ( 0, 0, +1)
-    VOXEL_DIR_EAST,    // (+1, 0,  0)
-    VOXEL_DIR_SOUTH,   // ( 0, 0, -1)
-    VOXEL_DIR_WEST,    // (-1, 0,  0)
-    NUM_VOXEL_DIRECTIONS
-} GSVoxelDirection;
-
-_Static_assert(0 == (int)VOXEL_DIR_NORTH, "The ordering of GSVoxelDirection matters.");
-_Static_assert(1 == (int)VOXEL_DIR_EAST,  "The ordering of GSVoxelDirection matters.");
-_Static_assert(2 == (int)VOXEL_DIR_SOUTH, "The ordering of GSVoxelDirection matters.");
-_Static_assert(3 == (int)VOXEL_DIR_WEST,  "The ordering of GSVoxelDirection matters.");
-
-
-static inline vector_float4 GSQuaternionForVoxelDirection(GSVoxelDirection dir)
-{
-    return quaternion_make_with_angle_and_axis((int)dir * M_PI_2, 0, 1, 0);
-}
-
-
 /* The texture to use for the voxel mesh. */
 typedef enum
 {
@@ -75,20 +53,17 @@ typedef struct
     /* Indicates the voxel transmits light as if it were air. (used by the lighting engine) */
     uint8_t opaque:1;
 
-    /* Indicates the voxel piece is upside down. */
-    uint8_t upsideDown:1;
-
-    /* The direction of the voxel. (rotation around the Y-axis) Affects the orientation of the mesh and traversibility. */
-    uint8_t dir:2;
-
     /* The voxel type affects the mesh which is used when drawing it. */
     uint8_t type:3;
 
     /* Voxel texture. This is used as an index into the terrain texture array. */
     uint8_t tex:2;
+    
+    /* Reserved for future expansion. */
+    uint8 reserved:6;
 } GSVoxel;
 
-_Static_assert(NUM_VOXEL_DIRECTIONS <= (1<<2), "NUM_VOXEL_DIRECTIONS must be able to work with a 2-bit `dir' field.");
+_Static_assert(sizeof(GSVoxel) == 2,           "GSVoxel must fit into two bytes.");
 _Static_assert(NUM_VOXEL_TYPES <= (1<<3),      "NUM_VOXEL_TYPES must be able to work with a 3-bit `type' field.");
 _Static_assert(NUM_VOXEL_TEXTURES <= (1<<2),   "NUM_VOXEL_TEXTURES must be able to work with a 2-bit `tex' field.");
 

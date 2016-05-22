@@ -63,8 +63,6 @@
         return (GSVoxel){.outside=NO,
             .exposedToAirOnTop=NO,
             .opaque=YES,
-            .upsideDown=NO,
-            .dir=VOXEL_DIR_NORTH,
             .type=VOXEL_TYPE_GROUND,
             .tex=VOXEL_TEX_DIRT};
     } else if(p.y >= CHUNK_SIZE_Y) {
@@ -72,8 +70,6 @@
         return (GSVoxel){.outside=YES,
             .exposedToAirOnTop=YES,
             .opaque=NO,
-            .upsideDown=NO,
-            .dir=VOXEL_DIR_NORTH,
             .type=VOXEL_TYPE_EMPTY,
             .tex=0};
     } else {

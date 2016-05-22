@@ -259,7 +259,6 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         GSVoxel block;
         bzero(&block, sizeof(GSVoxel));
         block.opaque = YES;
-        block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_GROUND;
         
         GSTerrainModifyBlockOperation *placeBlock;
@@ -279,7 +278,6 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
     if(_cursor.cursorIsActive) {
         GSVoxel block;
         bzero(&block, sizeof(GSVoxel));
-        block.dir = VOXEL_DIR_NORTH;
         block.type = VOXEL_TYPE_EMPTY;
         
         GSTerrainModifyBlockOperation *placeBlock;

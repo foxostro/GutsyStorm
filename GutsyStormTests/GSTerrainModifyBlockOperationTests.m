@@ -41,12 +41,10 @@
     
     bzero(&cube, sizeof(GSVoxel));
     cube.opaque = YES;
-    cube.dir = VOXEL_DIR_NORTH;
     cube.type = VOXEL_TYPE_GROUND;
     
     bzero(&empty, sizeof(GSVoxel));
     empty.opaque = NO;
-    empty.dir = VOXEL_DIR_NORTH;
     empty.type = VOXEL_TYPE_EMPTY;
     
     // Make sure chunk gets loaded before we enter -measureBlock:.

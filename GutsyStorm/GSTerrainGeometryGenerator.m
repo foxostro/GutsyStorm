@@ -31,8 +31,6 @@ static GSVoxel gEmpty = {
     .torch = 0,
     .exposedToAirOnTop = 1,
     .opaque = 0,
-    .upsideDown = 0,
-    .dir = 0,
     .type = VOXEL_TYPE_EMPTY,
     .tex = 0
 };

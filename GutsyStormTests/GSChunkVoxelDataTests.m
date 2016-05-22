@@ -18,8 +18,6 @@ static const GSVoxel empty = {
     .outside = 0,
     .exposedToAirOnTop = 0,
     .opaque = 0,
-    .upsideDown = 0,
-    .dir = VOXEL_DIR_NORTH,
     .type = VOXEL_TYPE_EMPTY,
     .tex = VOXEL_TEX_DIRT,
 };
@@ -28,8 +26,6 @@ static const GSVoxel cube = {
     .outside = 0,
     .exposedToAirOnTop = 0,
     .opaque = 1,
-    .upsideDown = 0,
-    .dir = VOXEL_DIR_NORTH,
     .type = VOXEL_TYPE_GROUND,
     .tex = VOXEL_TEX_DIRT,
 };
