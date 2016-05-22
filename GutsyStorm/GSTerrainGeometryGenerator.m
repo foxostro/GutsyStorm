@@ -43,21 +43,18 @@ static inline vector_float4 vertexColor(GSCubeVertex a1, GSCubeVertex a2)
 static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry, vector_float3 p,
                               vector_float4 c, int tex, vector_float3 n)
 {
-    static const vector_float3 globalOffset = {-0.5, 0.0, -0.5};
-    p = p + globalOffset;
-    
     vector_float3 texCoord = vector_make(p.x, p.z, tex);
     
     if (n.y == 0) {
         if (n.x != 0) {
-            texCoord = vector_make(p.z, p.y, 1);
+            texCoord = vector_make(p.z, p.y, VOXEL_TEX_DIRT);
         } else {
-            texCoord = vector_make(p.x, p.y, 1);
+            texCoord = vector_make(p.x, p.y, VOXEL_TEX_DIRT);
         }
     } else if (n.y > 0) {
         texCoord = vector_make(p.x, p.z, tex);
     } else {
-        texCoord = vector_make(p.x, p.z, 1);
+        texCoord = vector_make(p.x, p.z, VOXEL_TEX_DIRT);
     }
 
     GSTerrainVertex v = {
