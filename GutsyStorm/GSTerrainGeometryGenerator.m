@@ -56,36 +56,34 @@ static inline float clampf(float value, float min, float max)
 static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
                                  vector_float3 vertexPos,
                                  vector_float3 chunkMinP,
-                                 float aoRayContributions[NUM_CUBE_VERTS],
+                                 vector_float3 normal,
                                  GSVoxel * _Nonnull voxels,
                                  GSIntAABB * _Nonnull voxelBox)
 {
     float count = 0;
     float escaped = 0;
-    float *pcontribution = aoRayContributions;
 
     // Cast rays from the vertex to neighboring cells and count what proportion of the rays escape.
     // Modify each neighbor's contribution to the occlusion factor by the angle between the ray and the face normal.
     // These contributions are computed once per face.
-    for(float dx = -0.5f; dx <= 0.5f; dx += 1.0f)
+    for(float dx = -1; dx <= 1; dx += 1.0f)
     {
-        for(float dy = -0.5f; dy <= 0.5f; dy += 1.0f)
+        for(float dy = -1; dy <= 1; dy += 1.0f)
         {
-            for(float dz = -0.5f; dz <= 0.5f; dz += 1.0f)
+            for(float dz = -1; dz <= 1; dz += 1.0f)
             {
-                float contribution = *pcontribution;
-                
+                vector_float3 lightDir = {dx, dy, dz};
+
+                float contribution = vector_dot(normal, lightDir) / vector_length(lightDir);
+
                 if (contribution > 0) {
                     // Did this ray escape the cell?
-                    vector_float3 lightDir = {dx, dy, dz};
                     vector_long3 aoSamplePoint = vector_long(vertexPos - chunkMinP + lightDir);
                     BOOL escape = !voxels[INDEX_BOX(aoSamplePoint, *voxelBox)].opaque;
 
                     escaped += escape ? contribution : 0;
                     count += contribution;
                 }
-                
-                pcontribution++;
             }
         }
     }
@@ -139,26 +137,9 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
     // One normal for the entire face.
     vector_float3 normal = vector_normalize(vector_cross(pb-pa, pc-pa));
     
-    // Modify each neighbor's contribution to the ambient occlusion factor by the angle between the ray and the face
-    // normal. These contributions are computed once per face and are used on each vertex.
-    float aoRayContributions[NUM_CUBE_VERTS];
-    float *contribution = &aoRayContributions[0];
-    for(float dx = -0.5f; dx <= 0.5f; dx += 1.0f)
-    {
-        for(float dy = -0.5f; dy <= 0.5f; dy += 1.0f)
-        {
-            for(float dz = -0.5f; dz <= 0.5f; dz += 1.0f)
-            {
-                vector_float3 lightDir = {dx, dy, dz};
-                *contribution = vector_dot(normal, lightDir) / vector_length(lightDir);
-                contribution++;
-            }
-        }
-    }
-    
-    vector_uchar4 ca = vertexColor(a1, a2, pa, chunkMinP, aoRayContributions, voxels, voxelBox);
-    vector_uchar4 cb = vertexColor(b1, b2, pb, chunkMinP, aoRayContributions, voxels, voxelBox);
-    vector_uchar4 cc = vertexColor(c1, c2, pc, chunkMinP, aoRayContributions, voxels, voxelBox);
+    vector_uchar4 ca = vertexColor(a1, a2, pa, chunkMinP, normal, voxels, voxelBox);
+    vector_uchar4 cb = vertexColor(b1, b2, pb, chunkMinP, normal, voxels, voxelBox);
+    vector_uchar4 cc = vertexColor(c1, c2, pc, chunkMinP, normal, voxels, voxelBox);
     
     emitVertex(geometry, pa, ca, a1.voxel->tex, normal);
     emitVertex(geometry, pb, cb, b1.voxel->tex, normal);
