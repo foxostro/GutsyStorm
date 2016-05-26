@@ -34,10 +34,10 @@ static const int NUM_CUBE_VERTS = 8;
 static const GSVoxel gEmpty = {
     .outside = 1,
     .torch = 0,
-    .exposedToAirOnTop = 1,
     .opaque = 0,
     .type = VOXEL_TYPE_EMPTY,
-    .tex = 0
+    .texTop = 0,
+    .texSide = 0
 };
 
 
@@ -96,20 +96,20 @@ static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
 
 
 static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry, vector_float3 p,
-                              vector_uchar4 c, int tex, vector_float3 n)
+                              vector_uchar4 c, int texTop, int texSide, vector_float3 n)
 {
-    vector_float3 texCoord = vector_make(p.x, p.z, tex);
+    vector_float3 texCoord = vector_make(p.x, p.z, 0);
     
     if (n.y == 0) {
         if (n.x != 0) {
-            texCoord = vector_make(p.z, p.y, VOXEL_TEX_DIRT);
+            texCoord = vector_make(p.z, p.y, texSide);
         } else {
-            texCoord = vector_make(p.x, p.y, VOXEL_TEX_DIRT);
+            texCoord = vector_make(p.x, p.y, texSide);
         }
     } else if (n.y > 0) {
-        texCoord = vector_make(p.x, p.z, tex);
+        texCoord = vector_make(p.x, p.z, texTop);
     } else {
-        texCoord = vector_make(p.x, p.z, VOXEL_TEX_DIRT);
+        texCoord = vector_make(p.x, p.z, texSide);
     }
 
     GSTerrainVertex v = {
@@ -126,24 +126,37 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
                    vector_float3 chunkMinP,
                    GSVoxel * _Nonnull voxels,
                    GSIntAABB * _Nonnull voxelBox,
-                   GSCubeVertex a1, GSCubeVertex a2,
-                   GSCubeVertex b1, GSCubeVertex b2,
-                   GSCubeVertex c1, GSCubeVertex c2)
+                   GSCubeVertex v1[3],
+                   GSCubeVertex v2[3],
+                   int texTop,
+                   int texSide)
 {
-    vector_float3 pa = vertexPosition(a1, a2);
-    vector_float3 pb = vertexPosition(b1, b2);
-    vector_float3 pc = vertexPosition(c1, c2);
+    vector_float3 p[3];
+    vector_uchar4 c[3];
+    GSVoxel faceVoxel[3];
+
+    for(int i = 0; i < 3; ++i)
+    {
+        p[i] = vertexPosition(v1[i], v2[i]);
+    }
     
     // One normal for the entire face.
-    vector_float3 normal = vector_normalize(vector_cross(pb-pa, pc-pa));
+    vector_float3 normal = vector_normalize(vector_cross(p[1]-p[0], p[2]-p[0]));
     
-    vector_uchar4 ca = vertexColor(a1, a2, pa, chunkMinP, normal, voxels, voxelBox);
-    vector_uchar4 cb = vertexColor(b1, b2, pb, chunkMinP, normal, voxels, voxelBox);
-    vector_uchar4 cc = vertexColor(c1, c2, pc, chunkMinP, normal, voxels, voxelBox);
-    
-    emitVertex(geometry, pa, ca, a1.voxel->tex, normal);
-    emitVertex(geometry, pb, cb, b1.voxel->tex, normal);
-    emitVertex(geometry, pc, cc, c1.voxel->tex, normal);
+    for(int i = 0; i < 3; ++i)
+    {
+        c[i] = vertexColor(v1[i], v2[i], p[i], chunkMinP, normal, voxels, voxelBox);
+    }
+
+    for(int i = 0; i < 3; ++i)
+    {
+        faceVoxel[i] = (v1[i].voxel->type != VOXEL_TYPE_GROUND) ? *v2[i].voxel : *v1[i].voxel;
+    }
+
+    for(int i = 0; i < 3; ++i)
+    {
+        emitVertex(geometry, p[i], c[i], texTop, texSide, normal);
+    }
 }
 
 
@@ -171,7 +184,7 @@ static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
     unsigned index = 0;
     for(size_t i = 0; i < NUM_CUBE_VERTS; ++i)
     {
-        if (cube[i].voxel->type != VOXEL_TYPE_EMPTY) {
+        if (cube[i].voxel->type == VOXEL_TYPE_GROUND) {
             index |= (1 << i);
         }
     }
@@ -196,17 +209,37 @@ static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
         }
     }
 
+    // Select the texture for the face.
+    // TODO: We should examine the top face of the cube of neighbor voxels in order to determine the texture to use.
+    // Right now, we search the cube for any adjacent voxel that isn't empty (there's at least one) and use whatever
+    // textures it has. Instead, we should split the cube into faces and examine the voxel neighbors of each face to
+    // determine which texture to use.
+    int texTop, texSide;
+    for(int i = 0; i < NUM_CUBE_VERTS; ++i)
+    {
+        if (cube[i].voxel->type == VOXEL_TYPE_GROUND) {
+            texTop = cube[i].voxel->texTop;
+            texSide = cube[i].voxel->texSide;
+        }
+    }
+
     for(size_t i = 0; triTable[index][i] != -1; i += 3)
     {
-        GSPair a = vertexList[triTable[index][i+2]];
-        GSPair b = vertexList[triTable[index][i+1]];
-        GSPair c = vertexList[triTable[index][i+0]];
+        GSPair pairs[3] = {
+            vertexList[triTable[index][i+2]],
+            vertexList[triTable[index][i+1]],
+            vertexList[triTable[index][i+0]]
+        };
+        
+        GSCubeVertex v1[3], v2[3];
 
-        addTri(geometry,
-               chunkMinP, voxels, voxelBox,
-               cube[a.v1], cube[a.v2],
-               cube[b.v1], cube[b.v2],
-               cube[c.v1], cube[c.v2]);
+        for(int j = 0; j < 3; ++j)
+        {
+            v1[j] = cube[pairs[j].v1];
+            v2[j] = cube[pairs[j].v2];
+        }
+
+        addTri(geometry, chunkMinP, voxels, voxelBox, v1, v2, texTop, texSide);
     }
 }
 

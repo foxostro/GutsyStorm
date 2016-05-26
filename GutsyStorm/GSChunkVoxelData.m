@@ -35,12 +35,6 @@ struct GSChunkVoxelHeader
 };
 
 
-static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOfBlockAbove)
-{
-    return (voxelType!=VOXEL_TYPE_EMPTY && typeOfBlockAbove==VOXEL_TYPE_EMPTY);
-}
-
-
 @interface GSChunkVoxelData ()
 
 - (BOOL)validateVoxelData:(nonnull NSData *)data error:(NSError **)error;
@@ -304,28 +298,6 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
-    
-    // Determine voxels in the chunk which are exposed to air on top.
-    FOR_Y_COLUMN_IN_BOX(p, chunkBox)
-    {
-        // Find a voxel which is empty and is directly above a cube voxel.
-        p.y = CHUNK_SIZE_Y-1;
-        
-        GSVoxelType prevType;
-        {
-            vector_long3 q = p + offsetVoxelBox;
-            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
-            prevType = voxel->type;
-        }
-
-        for(p.y = CHUNK_SIZE_Y-2; p.y >= 0; --p.y)
-        {
-            vector_long3 q = p + offsetVoxelBox;
-            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
-            voxel->exposedToAirOnTop = isExposedToAirOnTop(voxel->type, prevType);
-            prevType = voxel->type;
-        }
-    }
 }
 
 - (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
@@ -368,29 +340,6 @@ static inline BOOL isExposedToAirOnTop(GSVoxelType voxelType, GSVoxelType typeOf
 
             voxel->outside = (p.y >= heightOfHighestVoxel);
         }
-    }
-    
-    // Determine voxels in the chunk which are exposed to air on top.
-    // We need only update the modified block and the block below it.
-    for(p = editPosLocal; p.y >= editPosLocal.y - 1; --p.y)
-    {
-        BOOL exposedToAirOnTop = YES;
-        
-        vector_long3 q = p + offsetVoxelBox;
-        GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
-        
-        if (p.y < CHUNK_SIZE_Y-1) {
-            vector_long3 aboveP = p;
-            aboveP.y = p.y + 1;
-            
-            q = aboveP + offsetVoxelBox;
-            GSVoxel *aboveVoxel = &voxels[INDEX_BOX(q, voxelBox)];
-            GSVoxelType typeOfBlockAbove = aboveVoxel->type;
-
-            exposedToAirOnTop = isExposedToAirOnTop(voxel->type, typeOfBlockAbove);
-        }
-        
-        voxel->exposedToAirOnTop = exposedToAirOnTop;
     }
 }
 

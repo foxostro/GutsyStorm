@@ -60,18 +60,22 @@
     
     if(p.y < 0) {
         // Space below the world is always made of solid cubes.
-        return (GSVoxel){.outside=NO,
-            .exposedToAirOnTop=NO,
+        return (GSVoxel){
+            .outside=NO,
             .opaque=YES,
             .type=VOXEL_TYPE_GROUND,
-            .tex=VOXEL_TEX_DIRT};
+            .texTop=VOXEL_TEX_DIRT,
+            .texSide=VOXEL_TEX_DIRT
+        };
     } else if(p.y >= CHUNK_SIZE_Y) {
         // Space above the world is always empty.
-        return (GSVoxel){.outside=YES,
-            .exposedToAirOnTop=YES,
+        return (GSVoxel){
+            .outside=YES,
             .opaque=NO,
             .type=VOXEL_TYPE_EMPTY,
-            .tex=0};
+            .texTop=0,
+            .texSide=0
+        };
     } else {
         return [[self neighborVoxelAtPoint:&p] voxelAtLocalPosition:p];
     }

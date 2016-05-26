@@ -12,7 +12,7 @@
 #import "GSVoxel.h" // for GSVoxelBitwiseOp
 
 
-typedef uint16_t GSTerrainBufferElement;
+typedef uint32_t GSTerrainBufferElement;
 
 
 static inline size_t BUFFER_SIZE_IN_BYTES(vector_long3 dimensions)

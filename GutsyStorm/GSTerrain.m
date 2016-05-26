@@ -32,6 +32,10 @@
 int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
 
+_Static_assert(sizeof(GSVoxel) == sizeof(GSTerrainBufferElement),
+               "GSVoxel must be the same size as GSTerrainBufferElement.");
+
+
 @implementation GSTerrain
 {
     GSCamera *_camera;
@@ -158,7 +162,7 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
 
         _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle mainBundle] pathForResource:@"terrain"
                                                                                                   ofType:@"png"]
-                                                      numTextures:4];
+                                                      numTextures:3];
 
         _chunkStore = [[GSTerrainChunkStore alloc] initWithJournal:journal
                                                        cacheFolder:cacheFolder
@@ -260,6 +264,8 @@ int checkGLErrors(void); // TODO: find a new home for checkGLErrors()
         bzero(&block, sizeof(GSVoxel));
         block.opaque = YES;
         block.type = VOXEL_TYPE_GROUND;
+        block.texTop = VOXEL_TEX_DIRT;
+        block.texSide = VOXEL_TEX_DIRT;
         
         GSTerrainModifyBlockOperation *placeBlock;
         placeBlock = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore

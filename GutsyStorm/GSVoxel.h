@@ -47,25 +47,27 @@ typedef struct
     /* Indicates a torch is placed on this block. It is a light source. */
     uint8_t torch:1;
 
-    /* Indicates the block above the one for this vertex is an empty, air block. */
-    uint8_t exposedToAirOnTop:1;
-
     /* Indicates the voxel transmits light as if it were air. (used by the lighting engine) */
     uint8_t opaque:1;
 
     /* The voxel type affects the mesh which is used when drawing it. */
     uint8_t type:3;
 
-    /* Voxel texture. This is used as an index into the terrain texture array. */
-    uint8_t tex:2;
+    /* This is the texture used on the top of the voxel.
+     * This is used as an index into the terrain texture array.
+     */
+    uint8_t texTop;
     
-    /* Reserved for future expansion. */
-    uint8 reserved:6;
+    /* This is the texture used on the side of the voxel.
+     * This is used as an index into the terrain texture array.
+     */
+    uint8_t texSide;
+    
+    uint8_t reserved;
 } GSVoxel;
 
-_Static_assert(sizeof(GSVoxel) == 2,           "GSVoxel must fit into two bytes.");
+
 _Static_assert(NUM_VOXEL_TYPES <= (1<<3),      "NUM_VOXEL_TYPES must be able to work with a 3-bit `type' field.");
-_Static_assert(NUM_VOXEL_TEXTURES <= (1<<2),   "NUM_VOXEL_TEXTURES must be able to work with a 2-bit `tex' field.");
 
 
 typedef enum
