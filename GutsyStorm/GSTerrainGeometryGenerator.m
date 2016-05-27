@@ -67,6 +67,7 @@ static inline float clampf(float value, float min, float max)
 static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
                                  vector_float3 vertexPos,
                                  vector_float3 chunkMinP,
+                                 vector_float3 normal,
                                  GSVoxel * _Nonnull voxels,
                                  GSIntAABB * _Nonnull voxelBox)
 {
@@ -175,7 +176,7 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
     
     for(int i = 0; i < 3; ++i)
     {
-        c[i] = vertexColor(v1[i], v2[i], p[i], chunkMinP, voxels, voxelBox);
+        c[i] = vertexColor(v1[i], v2[i], p[i], chunkMinP, normal, voxels, voxelBox);
     }
 
     for(int i = 0; i < 3; ++i)
