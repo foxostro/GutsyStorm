@@ -77,6 +77,9 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxe
     assert(sunCount);
     
     GSIntAABB actualAffectedRegion = { .mins = editPosClp, .maxs = editPosClp };
+    
+    blurBox.mins = vector_max(blurBox.mins, sunlightBox.mins + GSMakeIntegerVector3(1, 1, 1));
+    blurBox.maxs = vector_min(blurBox.maxs, sunlightBox.maxs - GSMakeIntegerVector3(1, 1, 1));
 
     // Blur phase.
     // Find blocks that have not had light propagated to them yet and are directly adjacent to blocks at X light.
@@ -87,11 +90,7 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxe
         vector_long3 p;
         FOR_BOX(p, blurBox)
         {
-            GSVoxel voxel = {0};
-            size_t voxelIdx = INDEX_BOX(p, voxelBox);
-            if (voxelIdx < voxelCount) { // Voxels that are out of bounds are assumed to be set to zero.
-                voxel = voxels[voxelIdx];
-            }
+            GSVoxel voxel = voxels[INDEX_BOX(p, voxelBox)];
             
             if(voxel.opaque || voxel.outside) {
                 continue;
@@ -135,12 +134,6 @@ BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
     for(GSVoxelFace i=0; i<FACE_NUM_FACES; ++i)
     {
         vector_long3 a = p + GSOffsetForVoxelFace[i];
-        
-        if(a.x < sunlightBox.mins.x || a.x >= sunlightBox.maxs.x ||
-           a.z < sunlightBox.mins.z || a.z >= sunlightBox.maxs.z ||
-           a.y < sunlightBox.mins.y || a.y >= sunlightBox.maxs.y) {
-            continue; // The point is out of bounds, so bail out.
-        }
         
         size_t voxelIdx = INDEX_BOX(a, voxelBox);
         assert(voxelIdx < voxCount);
