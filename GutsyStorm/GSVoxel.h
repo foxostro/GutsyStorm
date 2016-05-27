@@ -33,7 +33,6 @@ typedef enum
 {
     VOXEL_TEX_GRASS=0,
     VOXEL_TEX_DIRT,
-    VOXEL_TEX_SIDE,
     VOXEL_TEX_STONE,
     NUM_VOXEL_TEXTURES
 } GSVoxelTexture;
@@ -56,18 +55,18 @@ typedef struct
     /* This is the texture used on the top of the voxel.
      * This is used as an index into the terrain texture array.
      */
-    uint8_t texTop;
-    
+    uint8_t texTop:3;
+
     /* This is the texture used on the side of the voxel.
      * This is used as an index into the terrain texture array.
      */
-    uint8_t texSide;
-    
-    uint8_t reserved;
+    uint8_t texSide:3;
 } GSVoxel;
+// TODO: Break GSVoxel up into several structures based on what data tends to be used together
 
 
-_Static_assert(NUM_VOXEL_TYPES <= (1<<3),      "NUM_VOXEL_TYPES must be able to work with a 3-bit `type' field.");
+_Static_assert(NUM_VOXEL_TYPES <= (1<<3),    "NUM_VOXEL_TYPES must be representable in three bits.");
+_Static_assert(NUM_VOXEL_TEXTURES <= (1<<3), "NUM_VOXEL_TEXTURES must be representable in three bits.");
 
 
 typedef enum

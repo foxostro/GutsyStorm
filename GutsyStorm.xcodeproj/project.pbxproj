@@ -55,6 +55,7 @@
 		6FA11A271CF2502A0086B6CB /* edgetable.def in Resources */ = {isa = PBXBuildFile; fileRef = 6FA11A251CF2502A0086B6CB /* edgetable.def */; };
 		6FAC70B41CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */; };
 		6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6FAE2A371CC6F42D000D2E9A /* Defaults.plist */; };
+		6FAF97C01CF7FEF000640E70 /* terrain.gif in Resources */ = {isa = PBXBuildFile; fileRef = 6FAF97BF1CF7FEF000640E70 /* terrain.gif */; };
 		6FCD25CB1CD56B86005FC566 /* GSTerrainModifyBlockOperationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD25CA1CD56B86005FC566 /* GSTerrainModifyBlockOperationTests.m */; };
 		6FD400B61CD1C3F200C5117E /* GSGridSlot.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FD400B51CD1C3F200C5117E /* GSGridSlot.m */; };
 		6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */; };
@@ -80,7 +81,6 @@
 		ACE8F00C16FE6A7D00ABA2AD /* GSMutableBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = ACE8F00B16FE6A7D00ABA2AD /* GSMutableBuffer.m */; };
 		ACE99D70151FE922006055F6 /* snoise3.c in Sources */ = {isa = PBXBuildFile; fileRef = ACE99D6F151FE922006055F6 /* snoise3.c */; };
 		ACF27B00151AE27E009FCAB9 /* GSTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */; };
-		ACF27B03151AE486009FCAB9 /* terrain.png in Resources */ = {isa = PBXBuildFile; fileRef = ACF27B02151AE486009FCAB9 /* terrain.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -184,6 +184,7 @@
 		6FAC70B21CD7B78B00F87554 /* GSTerrainModifyBlockOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainModifyBlockOperation.h; sourceTree = "<group>"; };
 		6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainModifyBlockOperation.m; sourceTree = "<group>"; };
 		6FAE2A371CC6F42D000D2E9A /* Defaults.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Defaults.plist; sourceTree = "<group>"; };
+		6FAF97BF1CF7FEF000640E70 /* terrain.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = terrain.gif; sourceTree = "<group>"; };
 		6FCD25CA1CD56B86005FC566 /* GSTerrainModifyBlockOperationTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainModifyBlockOperationTests.m; sourceTree = "<group>"; };
 		6FD400B41CD1C3F200C5117E /* GSGridSlot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridSlot.h; sourceTree = "<group>"; };
 		6FD400B51CD1C3F200C5117E /* GSGridSlot.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridSlot.m; sourceTree = "<group>"; };
@@ -233,7 +234,6 @@
 		ACE99D72151FED59006055F6 /* snoise3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = snoise3.h; sourceTree = "<group>"; };
 		ACF27AFE151AE27E009FCAB9 /* GSTextureArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTextureArray.h; sourceTree = "<group>"; };
 		ACF27AFF151AE27E009FCAB9 /* GSTextureArray.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTextureArray.m; sourceTree = "<group>"; };
-		ACF27B02151AE486009FCAB9 /* terrain.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = terrain.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -338,7 +338,7 @@
 		4A2CCFFD1513C3FC006C6551 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
-				ACF27B02151AE486009FCAB9 /* terrain.png */,
+				6FAF97BF1CF7FEF000640E70 /* terrain.gif */,
 				ACB67D81152D8804005D3144 /* Shaders */,
 				4A2CCFFE1513C3FC006C6551 /* GutsyStorm-Info.plist */,
 				4A2CCFFF1513C3FC006C6551 /* InfoPlist.strings */,
@@ -635,11 +635,11 @@
 				6FEE3F4E1BCF92800076E5B9 /* cursor.vert.txt in Resources */,
 				4A2CD00D1513C3FD006C6551 /* MainMenu.xib in Resources */,
 				AC9CCD741519B8AA0081964D /* terrain.frag.txt in Resources */,
+				6FAF97C01CF7FEF000640E70 /* terrain.gif in Resources */,
 				6FEE3F4D1BCF92800076E5B9 /* cursor.frag.txt in Resources */,
 				AC9CCD751519B8AA0081964D /* terrain.vert.txt in Resources */,
 				6F90184D1BD33F8400CD21FB /* text.frag.txt in Resources */,
 				6FA11A271CF2502A0086B6CB /* edgetable.def in Resources */,
-				ACF27B03151AE486009FCAB9 /* terrain.png in Resources */,
 				6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */,
 				6F90184E1BD33F8400CD21FB /* text.vert.txt in Resources */,
 			);

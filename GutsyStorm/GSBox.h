@@ -13,6 +13,10 @@
 #import "GSAABB.h"
 
 
+// TODO: Index into arrays of GSVoxel using bit-interleaved morton key's instead of linear addressing.
+//       I expect this to greatly improve locality of reference when processing voxels for lighting and geometry.
+
+
 #define FOR_BOX(p, box) for((p).x = (box).mins.x; (p).x < (box).maxs.x; ++(p).x) \
                                    for((p).y = (box).mins.y; (p).y < (box).maxs.y; ++(p).y) \
                                        for((p).z = (box).mins.z; (p).z < (box).maxs.z; ++(p).z)

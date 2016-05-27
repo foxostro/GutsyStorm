@@ -160,9 +160,9 @@ _Static_assert(sizeof(GSVoxel) == sizeof(GSTerrainBufferElement),
         
         _terrainShader = [self newTerrainShader];
 
-        _textureArray = [[GSTextureArray alloc] initWithImagePath:[[NSBundle mainBundle] pathForResource:@"terrain"
-                                                                                                  ofType:@"png"]
-                                                      numTextures:3];
+        _textureArray = [[GSTextureArray alloc] initWithImage:[NSImage imageNamed:@"terrain"]
+                                                     tileSize:NSMakeSize(12,12)
+                                                   tileBorder:1];
 
         _chunkStore = [[GSTerrainChunkStore alloc] initWithJournal:journal
                                                        cacheFolder:cacheFolder

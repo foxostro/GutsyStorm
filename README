@@ -80,3 +80,8 @@ to the console when a user action occurs and to log how long each intermediate
 step takes to run. Note that this functionality is disabled when the app is
 built with the GS_STOPWATCH_TRACE_STEP_ENABLED macro set to 0, which is the
 default. See GSActivity.h for details.
+
+
+Misc. Notes
+===========
+Tileset artwork comes from the article at <http://blog.project-retrograde.com/2013/05/marching-squares/>.

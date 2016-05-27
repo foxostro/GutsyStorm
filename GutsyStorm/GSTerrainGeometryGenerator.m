@@ -28,6 +28,17 @@ typedef struct {
 } GSPair;
 
 
+typedef enum {
+    TOP,
+    BOTTOM,
+    NORTH,
+    EAST,
+    SOUTH,
+    WEST,
+    NUM_CUBE_FACES
+} GSCubeFace;
+
+
 static const int NUM_CUBE_EDGES = 12;
 static const int NUM_CUBE_VERTS = 8;
 
@@ -56,7 +67,6 @@ static inline float clampf(float value, float min, float max)
 static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
                                  vector_float3 vertexPos,
                                  vector_float3 chunkMinP,
-                                 vector_float3 normal,
                                  GSVoxel * _Nonnull voxels,
                                  GSIntAABB * _Nonnull voxelBox)
 {
@@ -96,26 +106,26 @@ static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
 
 
 static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry, vector_float3 p,
-                              vector_uchar4 c, int texTop, int texSide, vector_float3 n)
+                              vector_uchar4 c, int tex, vector_float3 n)
 {
     vector_float3 texCoord = vector_make(p.x, p.z, 0);
     
     if (n.y == 0) {
         if (n.x != 0) {
-            texCoord = vector_make(p.z, p.y, texSide);
+            texCoord = vector_make(p.z, p.y, 0);
         } else {
-            texCoord = vector_make(p.x, p.y, texSide);
+            texCoord = vector_make(p.x, p.y, 0);
         }
     } else if (n.y > 0) {
-        texCoord = vector_make(p.x, p.z, texTop);
+        texCoord = vector_make(p.x, p.z, 0);
     } else {
-        texCoord = vector_make(p.x, p.z, texSide);
+        texCoord = vector_make(p.x, p.z, 0);
     }
 
     GSTerrainVertex v = {
         .position = {p.x, p.y, p.z},
         .color = {c.x, c.y, c.z, c.w},
-        .texCoord = {texCoord.x, texCoord.y, texCoord.z}
+        .texCoord = {texCoord.x, texCoord.y, tex}
     };
 
     GSTerrainGeometryAddVertex(geometry, &v);
@@ -128,8 +138,7 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
                    GSIntAABB * _Nonnull voxelBox,
                    GSCubeVertex v1[3],
                    GSCubeVertex v2[3],
-                   int texTop,
-                   int texSide)
+                   int texForFace[NUM_CUBE_FACES])
 {
     vector_float3 p[3];
     vector_uchar4 c[3];
@@ -143,9 +152,30 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
     // One normal for the entire face.
     vector_float3 normal = vector_normalize(vector_cross(p[1]-p[0], p[2]-p[0]));
     
+    // Select a texture from `texForFace' by examining the normal.
+    int tex = texForFace[0];
+    
+    GSCubeFace dir;
+    if (normal.y == 0) {
+        if (normal.z > 1) {
+            dir = NORTH;
+        } else if (normal.z < 1) {
+            dir = SOUTH;
+        } else if(normal.x > 1) {
+            dir = EAST;
+        } else {
+            dir = WEST;
+        }
+    } else if (normal.y > 0) {
+        dir = TOP;
+    } else {
+        dir = BOTTOM;
+    }
+    tex = texForFace[dir];
+    
     for(int i = 0; i < 3; ++i)
     {
-        c[i] = vertexColor(v1[i], v2[i], p[i], chunkMinP, normal, voxels, voxelBox);
+        c[i] = vertexColor(v1[i], v2[i], p[i], chunkMinP, voxels, voxelBox);
     }
 
     for(int i = 0; i < 3; ++i)
@@ -155,10 +185,39 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
 
     for(int i = 0; i < 3; ++i)
     {
-        emitVertex(geometry, p[i], c[i], texTop, texSide, normal);
+        emitVertex(geometry, p[i], c[i], tex, normal);
     }
 }
 
+
+static inline int tileIdForVoxelTex(int vt)
+{
+    // TODO: We need two textures each for dirt, grass, and stone.
+    // TODO: We need two textures for water too.
+    // TODO: the terrain generator should randomly choose the variant version sometimes.
+    int tex;
+
+    switch(vt)
+    {
+        case VOXEL_TEX_DIRT:
+            tex = 2;
+            break;
+            
+        case VOXEL_TEX_GRASS:
+            tex = 4;
+            break;
+            
+        case VOXEL_TEX_STONE:
+            tex = 6;
+            break;
+            
+        default:
+            tex = 0; // water
+            break;
+    }
+
+    return tex;
+}
 
 static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
                                GSCubeVertex cube[NUM_CUBE_VERTS],
@@ -209,17 +268,53 @@ static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
         }
     }
 
-    // Select the texture for the face.
-    // TODO: We should examine the top face of the cube of neighbor voxels in order to determine the texture to use.
-    // Right now, we search the cube for any adjacent voxel that isn't empty (there's at least one) and use whatever
-    // textures it has. Instead, we should split the cube into faces and examine the voxel neighbors of each face to
-    // determine which texture to use.
-    int texTop, texSide;
-    for(int i = 0; i < NUM_CUBE_VERTS; ++i)
+    // Select the texture to use on each cube of the face.
+    int texForFace[NUM_CUBE_FACES];
     {
-        if (cube[i].voxel->type == VOXEL_TYPE_GROUND) {
-            texTop = cube[i].voxel->texTop;
-            texSide = cube[i].voxel->texSide;
+        static const size_t adjacentCubeVertsForFace[NUM_CUBE_FACES][4] = { // TODO: Examine these again. I think some of them are wrong.
+            {3, 2, 1, 0}, // TOP
+            {4, 5, 6, 7}, // BOTTOM
+            {6, 7, 2, 3}, // NORTH
+            {5, 6, 1, 2}, // EAST
+            {4, 5, 1, 0}, // SOUTH
+            {7, 4, 0, 3}  // WEST
+        };
+        
+        int materialsTop[NUM_CUBE_VERTS];
+        int materialsSide[NUM_CUBE_VERTS];
+
+        for(int i = 0; i < NUM_CUBE_VERTS; ++i)
+        {
+            materialsTop[i] = tileIdForVoxelTex(cube[i].voxel->texTop);
+            materialsSide[i] = tileIdForVoxelTex(cube[i].voxel->texSide);
+        }
+
+        for(GSCubeFace face = 0; face < NUM_CUBE_FACES; ++face)
+        {
+            int sTL = materialsTop[adjacentCubeVertsForFace[face][0]];
+            int sTR = materialsTop[adjacentCubeVertsForFace[face][1]];
+            int sBR = materialsTop[adjacentCubeVertsForFace[face][2]];
+            int sBL = materialsTop[adjacentCubeVertsForFace[face][3]];
+            
+            // 'h' stands for half.
+            int hTL = sTL >> 1;
+            int hTR = sTR >> 1;
+            int hBL = sBL >> 1;
+            int hBR = sBR >> 1;
+            
+            // Tile selection algorithm comes form <http://blog.project-retrograde.com/2013/05/marching-squares/>.
+            int saddle = ( (sTL & 1) + (sTR & 1) + (sBL & 1) + (sBR & 1) + 1 ) >> 2;;
+            int shape = (hTL & 1) | (hTR & 1) << 1 | (hBL & 1) << 2 | (hBR & 1) << 3;
+            int ring = ( hTL + hTR + hBL + hBR ) >> 2;
+            
+            int row = (ring << 1) | saddle;
+            int col = shape - (ring & 1);
+            int idx = row*15+col;
+            
+//            int tileID = shape | (saddle << 4) | (ring << 5); // TODO: get this working
+//            assert(tileID == idx);
+
+            texForFace[face] = idx;
         }
     }
 
@@ -239,7 +334,7 @@ static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
             v2[j] = cube[pairs[j].v2];
         }
 
-        addTri(geometry, chunkMinP, voxels, voxelBox, v1, v2, texTop, texSide);
+        addTri(geometry, chunkMinP, voxels, voxelBox, v1, v2, texForFace);
     }
 }
 
