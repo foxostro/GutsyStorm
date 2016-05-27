@@ -191,35 +191,6 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
 }
 
 
-static inline int tileIdForVoxelTex(int vt)
-{
-    // TODO: We need two textures each for dirt, grass, and stone.
-    // TODO: We need two textures for water too.
-    // TODO: the terrain generator should randomly choose the variant version sometimes.
-    int tex;
-
-    switch(vt)
-    {
-        case VOXEL_TEX_DIRT:
-            tex = 2;
-            break;
-            
-        case VOXEL_TEX_GRASS:
-            tex = 4;
-            break;
-            
-        case VOXEL_TEX_STONE:
-            tex = 6;
-            break;
-            
-        default:
-            tex = 0; // water
-            break;
-    }
-
-    return tex;
-}
-
 static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
                                GSCubeVertex cube[NUM_CUBE_VERTS],
                                vector_float3 chunkMinP,
@@ -286,8 +257,8 @@ static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
 
         for(int i = 0; i < NUM_CUBE_VERTS; ++i)
         {
-            materialsTop[i] = tileIdForVoxelTex(cube[i].voxel->texTop);
-            materialsSide[i] = tileIdForVoxelTex(cube[i].voxel->texSide);
+            materialsTop[i] = cube[i].voxel->texTop;
+            materialsSide[i] = cube[i].voxel->texSide;
         }
 
         for(GSCubeFace face = 0; face < NUM_CUBE_FACES; ++face)

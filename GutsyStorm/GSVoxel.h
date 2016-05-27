@@ -31,9 +31,14 @@ typedef enum
 /* The texture to use for the voxel mesh. */
 typedef enum
 {
-    VOXEL_TEX_GRASS=0,
-    VOXEL_TEX_DIRT,
-    VOXEL_TEX_STONE,
+    VOXEL_TEX_WATER_0,
+    VOXEL_TEX_WATER_1,
+    VOXEL_TEX_DIRT_0,
+    VOXEL_TEX_DIRT_1,
+    VOXEL_TEX_GRASS_0,
+    VOXEL_TEX_GRASS_1,
+    VOXEL_TEX_STONE_0,
+    VOXEL_TEX_STONE_1,
     NUM_VOXEL_TEXTURES
 } GSVoxelTexture;
 

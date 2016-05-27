@@ -133,6 +133,6 @@ static void generateTerrainVoxel(GSNoise * _Nonnull noiseSource0, GSNoise * _Non
     outVoxel->torch = NO;
     outVoxel->opaque = groundLayer || floatingMountain;
     outVoxel->type = (groundLayer || floatingMountain) ? VOXEL_TYPE_GROUND : VOXEL_TYPE_EMPTY;
-    outVoxel->texSide = VOXEL_TEX_DIRT;
-    outVoxel->texTop = VOXEL_TEX_GRASS;
+    outVoxel->texSide = ((rand()%99) <= 30) ? VOXEL_TEX_DIRT_0 : VOXEL_TEX_DIRT_1;
+    outVoxel->texTop = ((rand()%99) <= 10) ? VOXEL_TEX_GRASS_0 : VOXEL_TEX_GRASS_1;
 }
