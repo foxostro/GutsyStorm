@@ -280,7 +280,7 @@ static inline void determineTexForFace(GSCubeVertex cube[NUM_CUBE_VERTS], int te
         int col = shape - (ring & 1);
         int idx = row*15+col;
         
-        texForFace[face] = (face == WEST) ? idx : 0;
+        texForFace[face] = idx;
     }
 }
 
