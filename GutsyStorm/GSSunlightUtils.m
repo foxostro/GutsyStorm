@@ -101,10 +101,13 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxe
             // Is there an adjacent block of the right light level?
             for(GSVoxelFace i=0; i<FACE_NUM_FACES; ++i)
             {
-                vector_long3 a = p + GSOffsetForVoxelFace[i];                
+                vector_long3 a = p + GSOffsetForVoxelFace[i];
+                
                 size_t voxelIdx = INDEX_BOX(a, voxelBox);
+                assert(voxelIdx < voxCount);
+                
                 size_t sunlightIdx = INDEX_BOX(a, sunlightBox);
-
+                assert(sunlightIdx < sunCount);
                 if (!(voxels[voxelIdx].opaque) && (sunlight[sunlightIdx] == lightLevel)) {
                     adj = YES;
                     break;
