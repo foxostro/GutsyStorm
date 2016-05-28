@@ -133,6 +133,30 @@ static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry, vector_floa
 }
 
 
+static inline GSCubeFace determineDirectionFromFaceNormal(vector_float3 normal)
+{
+    GSCubeFace dir;
+    
+    if (normal.y > 0) {
+        dir = TOP;
+    } else if (normal.y < 0) {
+        dir = BOTTOM;
+    } else {
+        if (normal.z > 0) {
+            dir = NORTH;
+        } else if (normal.z < 0) {
+            dir = SOUTH;
+        } else if(normal.x > 0) {
+            dir = EAST;
+        } else {
+            dir = WEST;
+        }
+    }
+    
+    return dir;
+}
+
+
 static void addTri(GSTerrainGeometry * _Nonnull geometry,
                    vector_float3 chunkMinP,
                    GSVoxel * _Nonnull voxels,
@@ -154,25 +178,8 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
     vector_float3 normal = vector_normalize(vector_cross(p[1]-p[0], p[2]-p[0]));
     
     // Select a texture from `texForFace' by examining the normal.
-    int tex = texForFace[0];
-    
-    GSCubeFace dir;
-    if (normal.y == 0) {
-        if (normal.z > 1) {
-            dir = NORTH;
-        } else if (normal.z < 1) {
-            dir = SOUTH;
-        } else if(normal.x > 1) {
-            dir = EAST;
-        } else {
-            dir = WEST;
-        }
-    } else if (normal.y > 0) {
-        dir = TOP;
-    } else {
-        dir = BOTTOM;
-    }
-    tex = texForFace[dir];
+    GSCubeFace dir = determineDirectionFromFaceNormal(normal);
+    int tex = texForFace[dir];
     
     for(int i = 0; i < 3; ++i)
     {
