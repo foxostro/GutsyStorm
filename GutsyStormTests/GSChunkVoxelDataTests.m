@@ -16,18 +16,18 @@
 
 static const GSVoxel empty = {
     .outside = 0,
-    .exposedToAirOnTop = 0,
     .opaque = 0,
     .type = VOXEL_TYPE_EMPTY,
-    .tex = VOXEL_TEX_DIRT,
+    .texTop = VOXEL_TEX_GRASS_0,
+    .texSide = VOXEL_TEX_DIRT_0
 };
 
 static const GSVoxel cube = {
     .outside = 0,
-    .exposedToAirOnTop = 0,
     .opaque = 1,
     .type = VOXEL_TYPE_GROUND,
-    .tex = VOXEL_TEX_DIRT,
+    .texTop = VOXEL_TEX_GRASS_0,
+    .texSide = VOXEL_TEX_DIRT_0
 };
 
 static const int level = 10;
@@ -98,7 +98,6 @@ static const int level = 10;
     GSVoxel block;
     
     block = [chunk voxelAtLocalPosition:GSMakeIntegerVector3(1, level, 1)];
-    XCTAssertEqual(block.exposedToAirOnTop, 1);
     XCTAssertEqual(block.outside, 1);
 }
 
