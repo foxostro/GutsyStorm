@@ -200,71 +200,41 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
 
 static inline void determineTexForFace(GSCubeVertex cube[NUM_CUBE_VERTS], int texForFace[NUM_CUBE_FACES])
 {
-    // Adjacent cube vertices for each face of the cube
-    static const GSPair adj[NUM_CUBE_FACES][4] = {
-        {{7,3},{6,2},{5,1},{4,0}}, // TOP
-        {{0,4},{1,5},{2,6},{3,7}}, // BOTTOM
-        {{0,3},{1,2},{5,6},{4,7}}, // NORTH
-        {{2,3},{1,0},{5,4},{6,7}}, // EAST
-        {{3,0},{2,1},{6,5},{7,4}}, // SOUTH
-        {{3,2},{0,1},{4,5},{7,6}}, // WEST
+    // Cube vertices for the six faces of the cube.
+    static const size_t adj[NUM_CUBE_FACES][4] = {
+        {3,2,1,0}, // TOP
+        {4,5,6,7}, // BOTTOM
+        {3,2,6,7}, // NORTH
+        {3,0,4,7}, // EAST
+        {0,1,5,4}, // SOUTH
+        {2,1,5,6}, // WEST
     };
-    
+
     int materialsTop[NUM_CUBE_VERTS];
     int materialsSide[NUM_CUBE_VERTS];
-    
+
     for(int i = 0; i < NUM_CUBE_VERTS; ++i)
     {
-        materialsTop[i] = cube[i].voxel->texTop;
-        materialsSide[i] = cube[i].voxel->texSide;
+        GSVoxel voxel = *cube[i].voxel;
+        materialsTop[i] = voxel.texTop;
+        materialsSide[i] = voxel.texSide;
     }
-    
+
     for(GSCubeFace face = 0; face < NUM_CUBE_FACES; ++face)
     {
-#if 0
-        // Leading end of the four edges for this face.
-        size_t a1 = adj[face][0].v1;
-        size_t b1 = adj[face][1].v1;
-        size_t c1 = adj[face][2].v1;
-        size_t d1 = adj[face][3].v1;
-        
-        // Trailing end of the four edges for this face.
-        size_t a2 = adj[face][0].v2;
-        size_t b2 = adj[face][1].v2;
-        size_t c2 = adj[face][2].v2;
-        size_t d2 = adj[face][3].v2;
-        
-        // The types of voxels at the leading end.
-        int vTL = cube[a1].voxel->type;
-        int vTR = cube[b1].voxel->type;
-        int vBR = cube[c1].voxel->type;
-        int vBL = cube[d1].voxel->type;
-        
-        // Pick the cube vertex indices to use by going for the first cube vertx that is for a "ground" block.
-        size_t iTL = (vTL == VOXEL_TYPE_GROUND) ? a1 : a2;
-        size_t iTR = (vTR == VOXEL_TYPE_GROUND) ? b1 : b2;
-        size_t iBR = (vBR == VOXEL_TYPE_GROUND) ? c1 : c2;
-        size_t iBL = (vBL == VOXEL_TYPE_GROUND) ? d1 : d2;
-#else
-        // Trailing end of the four edges for this face.
-        size_t a2 = adj[face][0].v2;
-        size_t b2 = adj[face][1].v2;
-        size_t c2 = adj[face][2].v2;
-        size_t d2 = adj[face][3].v2;
-        
-        // Pick the cube vertex indices to use by going for the first cube vertx that is for a "ground" block.
-        size_t iTL = a2;
-        size_t iTR = b2;
-        size_t iBR = c2;
-        size_t iBL = d2;
-#endif
-        
+        // Indices for this cube face.
+        size_t iTL = adj[face][0];
+        size_t iTR = adj[face][1];
+        size_t iBR = adj[face][2];
+        size_t iBL = adj[face][3];
+
         // Look up the materials for the chosen vertices.
-        int sTL = ((face == TOP) ? materialsTop : materialsSide)[iTL];
-        int sTR = ((face == TOP) ? materialsTop : materialsSide)[iTR];
-        int sBR = ((face == TOP) ? materialsTop : materialsSide)[iBR];
-        int sBL = ((face == TOP) ? materialsTop : materialsSide)[iBL];
-        
+        BOOL top = (face == TOP);
+        int sTL = (top ? materialsTop : materialsSide)[iTL];
+        int sTR = (top ? materialsTop : materialsSide)[iTR];
+        int sBR = (top ? materialsTop : materialsSide)[iBR];
+        int sBL = (top ? materialsTop : materialsSide)[iBL];
+
         // Tile selection algorithm below comes from <http://blog.project-retrograde.com/2013/05/marching-squares/>.
         // 'h' stands for half.
         int hTL = sTL >> 1;
