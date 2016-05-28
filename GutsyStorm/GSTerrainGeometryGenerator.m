@@ -214,9 +214,9 @@ static inline void determineTexForFace(GSCubeVertex cube[NUM_CUBE_VERTS], int te
         {{7,3},{6,2},{5,1},{4,0}}, // TOP
         {{0,4},{1,5},{2,6},{3,7}}, // BOTTOM
         {{0,3},{1,2},{5,6},{4,7}}, // NORTH
-        {{6,7},{2,3},{1,0},{5,4}}, // EAST
+        {{2,3},{1,0},{5,4},{6,7}}, // EAST
         {{3,0},{2,1},{6,5},{7,4}}, // SOUTH
-        {{4,5},{0,1},{3,2},{7,6}}, // WEST
+        {{6,7},{2,3},{1,0},{5,4}}, // WEST
     };
     
     int materialsTop[NUM_CUBE_VERTS];
@@ -289,7 +289,7 @@ static inline void determineTexForFace(GSCubeVertex cube[NUM_CUBE_VERTS], int te
         int col = shape - (ring & 1);
         int idx = row*15+col;
         
-        texForFace[face] = (face == NORTH) ? idx : 0;
+        texForFace[face] = (face == EAST) ? idx : 0;
     }
 }
 
