@@ -95,24 +95,10 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxe
             if(voxel.opaque || voxel.outside) {
                 continue;
             }
-
-            BOOL adj = NO;
             
-            // Is there an adjacent block of the right light level?
-            for(GSVoxelFace i=0; i<FACE_NUM_FACES; ++i)
-            {
-                vector_long3 a = p + GSOffsetForVoxelFace[i];
-                
-                size_t voxelIdx = INDEX_BOX(a, voxelBox);
-                assert(voxelIdx < voxCount);
-                
-                size_t sunlightIdx = INDEX_BOX(a, sunlightBox);
-                assert(sunlightIdx < sunCount);
-                if (!(voxels[voxelIdx].opaque) && (sunlight[sunlightIdx] == lightLevel)) {
-                    adj = YES;
-                    break;
-                }
-            }
+            BOOL adj = GSSunlightAdjacent(p, lightLevel,
+                                          voxels, voxelCount, voxelBox,
+                                          sunlight, sunCount, sunlightBox);
 
             if(adj) {
                 size_t sunlightIdx = INDEX_BOX(p, sunlightBox);
@@ -132,4 +118,32 @@ void GSSunlightBlur(GSVoxel * _Nonnull voxels, size_t voxelCount, GSIntAABB voxe
     if (outAffectedRegion) {
         *outAffectedRegion = actualAffectedRegion;
     }
+}
+
+BOOL GSSunlightAdjacent(vector_long3 p, int lightLevel,
+                        GSVoxel * _Nonnull voxels, size_t voxCount,
+                        GSIntAABB voxelBox,
+                        GSTerrainBufferElement * _Nonnull sunlight, size_t sunCount,
+                        GSIntAABB sunlightBox)
+{
+    assert(voxels);
+    assert(voxCount);
+    assert(sunlight);
+    assert(sunCount);
+
+    for(GSVoxelFace i=0; i<FACE_NUM_FACES; ++i)
+    {
+        vector_long3 a = p + GSOffsetForVoxelFace[i];
+        
+        size_t voxelIdx = INDEX_BOX(a, voxelBox);
+        assert(voxelIdx < voxCount);
+        
+        size_t sunlightIdx = INDEX_BOX(a, sunlightBox);
+        assert(sunlightIdx < sunCount);
+        if (!(voxels[voxelIdx].opaque) && (sunlight[sunlightIdx] == lightLevel)) {
+            return YES;
+        }
+    }
+    
+    return NO;
 }
