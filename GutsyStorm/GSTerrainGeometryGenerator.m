@@ -270,11 +270,17 @@ static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
 
         for(GSCubeFace face = 0; face < NUM_CUBE_FACES; ++face)
         {
-            int sTL = materialsTop[adjacentCubeVertsForFace[face][0]];
-            int sTR = materialsTop[adjacentCubeVertsForFace[face][1]];
-            int sBR = materialsTop[adjacentCubeVertsForFace[face][2]];
-            int sBL = materialsTop[adjacentCubeVertsForFace[face][3]];
-            
+            size_t iTL = adjacentCubeVertsForFace[face][0];
+            size_t iTR = adjacentCubeVertsForFace[face][1];
+            size_t iBR = adjacentCubeVertsForFace[face][2];
+            size_t iBL = adjacentCubeVertsForFace[face][3];
+
+            // Look up the materials for the chosen vertices.
+            int sTL = ((face == TOP) ? materialsTop : materialsSide)[iTL];
+            int sTR = ((face == TOP) ? materialsTop : materialsSide)[iTR];
+            int sBR = ((face == TOP) ? materialsTop : materialsSide)[iBR];
+            int sBL = ((face == TOP) ? materialsTop : materialsSide)[iBL];
+
             // 'h' stands for half.
             int hTL = sTL >> 1;
             int hTR = sTR >> 1;
