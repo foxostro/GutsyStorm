@@ -265,7 +265,7 @@ _Static_assert(sizeof(GSVoxel) == sizeof(GSTerrainBufferElement),
         block.opaque = YES;
         block.type = VOXEL_TYPE_GROUND;
         block.texTop = VOXEL_TEX_DIRT_0;
-        block.texSide = VOXEL_TEX_DIRT_0;
+        block.texSide = VOXEL_TEX_GRASS_0;
         
         GSTerrainModifyBlockOperation *placeBlock;
         placeBlock = [[GSTerrainModifyBlockOperation alloc] initWithChunkStore:_chunkStore
