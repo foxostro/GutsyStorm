@@ -202,21 +202,12 @@ static inline void determineTexForFace(GSCubeVertex cube[NUM_CUBE_VERTS], int te
 {
     // Adjacent cube vertices for each face of the cube
     static const GSPair adj[NUM_CUBE_FACES][4] = {
-        /*
-         {3, 2, 1, 0}, // TOP
-         {4, 5, 6, 7}, // BOTTOM
-         {6, 7, 2, 3}, // NORTH
-         {5, 6, 1, 2}, // EAST
-         {4, 5, 1, 0}, // SOUTH
-         {7, 4, 0, 3}  // WEST
-         */
-        
         {{7,3},{6,2},{5,1},{4,0}}, // TOP
         {{0,4},{1,5},{2,6},{3,7}}, // BOTTOM
         {{0,3},{1,2},{5,6},{4,7}}, // NORTH
         {{2,3},{1,0},{5,4},{6,7}}, // EAST
         {{3,0},{2,1},{6,5},{7,4}}, // SOUTH
-        {{6,7},{2,3},{1,0},{5,4}}, // WEST
+        {{3,2},{0,1},{4,5},{7,6}}, // WEST
     };
     
     int materialsTop[NUM_CUBE_VERTS];
@@ -289,7 +280,7 @@ static inline void determineTexForFace(GSCubeVertex cube[NUM_CUBE_VERTS], int te
         int col = shape - (ring & 1);
         int idx = row*15+col;
         
-        texForFace[face] = (face == EAST) ? idx : 0;
+        texForFace[face] = (face == WEST) ? idx : 0;
     }
 }
 
