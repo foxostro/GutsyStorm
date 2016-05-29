@@ -41,10 +41,6 @@ struct GSChunkVoxelHeader
 
 - (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data;
 
-- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
-                  editPos:(vector_float3)editPos
-                 oldBlock:(GSVoxel)oldBlock;
-
 - (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainGenerator *)generator
                                                    journal:(nonnull GSTerrainJournal *)journal;
 
@@ -174,9 +170,7 @@ struct GSChunkVoxelHeader
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
         GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
-        [self markOutsideVoxels:dataWithUpdatedOutside
-                        editPos:editPos
-                       oldBlock:oldBlock];
+        [self markOutsideVoxels:dataWithUpdatedOutside];
         _voxels = dataWithUpdatedOutside;
     }
     
@@ -279,66 +273,47 @@ struct GSChunkVoxelHeader
     FOR_Y_COLUMN_IN_BOX(p, chunkBox)
     {
         // Get the y value of the highest non-empty voxel in the chunk.
-        long heightOfHighestVoxel;
+        GSVoxel highestVoxel;
+        int heightOfHighestVoxel;
         for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
         {
             vector_long3 chunkLocalPos = { p.x, heightOfHighestVoxel, p.z };
             vector_long3 q = chunkLocalPos + offsetVoxelBox;
-            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
-            
-            if(voxel->opaque) {
+            GSVoxel voxel = voxels[INDEX_BOX(q, voxelBox)];
+
+            if(voxel.type != VOXEL_TYPE_EMPTY) {
+                highestVoxel = voxel;
                 break;
             }
         }
-        
-        for(p.y = 0; p.y < GSChunkSizeIntVec3.y; ++p.y)
+
+        // In order for Marching Squares to work properly on the top face we need to ensure that the top face of the
+        // Marching Cubes cell contains the materials we'd see if we looked straight down at the chunk from above.
+        // We take the 3D volume of voxel textures and squish / project the texture for the highest voxel in a column
+        // onto a 2D plane upon which we run marching squares. The values of 2D plane being represented by having each
+        // column in the 3D volume of voxels contain the same value.
+        //
+        // However, if all voxels in the column do use the same value then we cannot have overlapping Y-levels use
+        // different ground textures. To fix this problem, we change the "collapsed value" every time the column
+        // transitions between empty and not-empty.
+        //
+        // In effect, we're going to be running Marching Squares on a collection of planes parallel to the XZ plan, all
+        // stacked on top of one another.
+        int prevTexTop = highestVoxel.texTop;
+        BOOL prevWasEmpty = YES;
+        for(p.y = CHUNK_SIZE_Y-1; p.y >= 0; --p.y)
         {
             vector_long3 q = p + offsetVoxelBox;
             GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             voxel->outside = (p.y >= heightOfHighestVoxel);
-        }
-    }
-}
-
-- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
-                  editPos:(vector_float3)editPos
-                 oldBlock:(GSVoxel)oldBlock
-{
-    NSParameterAssert(data);
-    vector_long3 p;
-    vector_long3 editPosLocal = vector_long(editPos - minP);
-    
-    GSVoxel *voxels = (GSVoxel *)[data mutableData];
-    vector_long3 offsetVoxelBox = data.offsetFromChunkLocalSpace;
-    GSIntAABB voxelBox = { GSZeroIntVec3, data.dimensions };
-    
-    // If the old block was inside then changing it cannot change the outside-ness of the block or any blocks below it.
-    // Outside-ness only changes when there is a change to a block which is outside. For example, adding or removing a
-    // block in a cave has no effect on outside-ness of blocks. Adding a block outside can make the blocks below it
-    // become inside blocks. Removing a block outside can make blocks beneath it become outside blocks.
-    if (oldBlock.outside) {
-        p = editPosLocal;
-        p.y = 0;
-        
-        // Get the y value of the highest non-empty voxel in the chunk.
-        long heightOfHighestVoxel;
-        for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
-        {
-            vector_long3 chunkLocalPos = (vector_long3){p.x, heightOfHighestVoxel, p.z};
-            vector_long3 q = chunkLocalPos + offsetVoxelBox;
-            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
             
-            if(voxel->opaque) {
-                break;
+            BOOL isEmpty = voxel->type == VOXEL_TYPE_EMPTY;
+            if (isEmpty == prevWasEmpty) {
+                voxel->texTop = prevTexTop;
+            } else {
+                prevTexTop = voxel->texTop;
+                prevWasEmpty = isEmpty;
             }
-        }
-        
-        for(p.y = 0; p.y < GSChunkSizeIntVec3.y; ++p.y)
-        {
-            vector_long3 q = p + offsetVoxelBox;
-            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
-
-            voxel->outside = (p.y >= heightOfHighestVoxel);
         }
     }
 }

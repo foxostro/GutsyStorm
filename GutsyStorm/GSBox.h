@@ -18,11 +18,11 @@
 
 
 #define FOR_BOX(p, box) for((p).x = (box).mins.x; (p).x < (box).maxs.x; ++(p).x) \
-                                   for((p).y = (box).mins.y; (p).y < (box).maxs.y; ++(p).y) \
-                                       for((p).z = (box).mins.z; (p).z < (box).maxs.z; ++(p).z)
+                           for((p).y = (box).mins.y; (p).y < (box).maxs.y; ++(p).y) \
+                               for((p).z = (box).mins.z; (p).z < (box).maxs.z; ++(p).z)
 
 #define FOR_Y_COLUMN_IN_BOX(p, box) for((p).y = (box).mins.y, (p).x = (box).mins.x; (p).x < (box).maxs.x; ++(p).x) \
-                                             for((p).z = (box).mins.z; (p).z < (box).maxs.z; ++(p).z)
+                                        for((p).z = (box).mins.z; (p).z < (box).maxs.z; ++(p).z)
 
 
 static inline long INDEX_BOX(vector_long3 p, GSIntAABB box)
@@ -33,18 +33,5 @@ static inline long INDEX_BOX(vector_long3 p, GSIntAABB box)
     // Columns in the y-axis are contiguous in memory.
     return ((p.x-box.mins.x)*sizeY*sizeZ) + ((p.z-box.mins.z)*sizeY) + (p.y-box.mins.y);
 }
-
-
-static inline vector_long3 GSBoxDimensionsInt(GSIntAABB box)
-{
-    return box.maxs - box.mins;
-}
-
-
-static inline vector_float3 GSBoxDimensionsFloat(GSFloatAABB box)
-{
-    return box.maxs - box.mins;
-}
-
 
 #endif /* GSBox_h */
