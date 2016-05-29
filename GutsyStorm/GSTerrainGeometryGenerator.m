@@ -198,7 +198,9 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
 }
 
 
-static inline void determineTexForFace(GSCubeVertex cube[NUM_CUBE_VERTS], int texForFace[NUM_CUBE_FACES])
+static inline void determineTexForFace(GSCubeVertex cube[NUM_CUBE_VERTS],
+                                       int texForFace[NUM_CUBE_FACES],
+                                       GSCubeVertex topFaceProjected[4])
 {
     // Cube vertices for the six faces of the cube.
     static const size_t adj[NUM_CUBE_FACES][4] = {
@@ -210,14 +212,17 @@ static inline void determineTexForFace(GSCubeVertex cube[NUM_CUBE_VERTS], int te
         {2,1,5,6}, // WEST
     };
 
-    int materialsTop[NUM_CUBE_VERTS];
+    int materialsTop[NUM_CUBE_VERTS] = {6};
     int materialsSide[NUM_CUBE_VERTS];
 
     for(int i = 0; i < NUM_CUBE_VERTS; ++i)
     {
-        GSVoxel voxel = *cube[i].voxel;
-        materialsTop[i] = voxel.texTop;
-        materialsSide[i] = voxel.texSide;
+        materialsSide[i] = cube[i].voxel->texSide;
+    }
+    
+    for(int i = 0; i < 4; ++i)
+    {
+        materialsTop[i] = topFaceProjected[i].voxel->texTop;
     }
 
     for(GSCubeFace face = 0; face < NUM_CUBE_FACES; ++face)
@@ -259,7 +264,8 @@ static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
                                GSCubeVertex cube[NUM_CUBE_VERTS],
                                vector_float3 chunkMinP,
                                GSVoxel * _Nonnull voxels,
-                               GSIntAABB * _Nonnull voxelBox)
+                               GSIntAABB * _Nonnull voxelBox,
+                               GSCubeVertex topFaceProjected[4])
 {
     // Based on Paul Bourke's Marching Cubes algorithm at <http://paulbourke.net/geometry/polygonise/>.
     // The edge and tri tables come directly from the sample code in the article.
@@ -306,7 +312,7 @@ static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
 
     // Select the texture to use on each cube of the face.
     int texForFace[NUM_CUBE_FACES];
-    determineTexForFace(cube, texForFace);
+    determineTexForFace(cube, texForFace, topFaceProjected);
 
     for(size_t i = 0; triTable[index][i] != -1; i += 3)
     {
@@ -389,6 +395,33 @@ void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
             getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(-L, +L, -L))
         };
 
-        polygonizeGridCell(geometry, cube, chunkMinP, voxels, &voxelBox);
+        GSCubeVertex topFaceProjected[4] = {
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(-L, -L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(+L, -L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(+L, -L, -L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(-L, -L, -L)),
+        };
+        
+        vector_float3 offsets[4] = {
+            vector_make(-L, -L, +L),
+            vector_make(+L, -L, +L),
+            vector_make(+L, -L, -L),
+            vector_make(-L, -L, -L)
+        };
+
+        for(int i = 0; i < 4; ++i)
+        {
+            for(vector_float3 p = vector_make(pos.x, voxelBox.maxs.y, pos.z); p.y >= voxelBox.mins.y; --p.y)
+            {
+                topFaceProjected[i] = getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, p + offsets[i]);
+                int type = topFaceProjected[i].voxel->type;
+
+                if (type == VOXEL_TYPE_GROUND) {
+                    break;
+                }
+            }
+        }
+
+        polygonizeGridCell(geometry, cube, chunkMinP, voxels, &voxelBox, topFaceProjected);
     }
 }
