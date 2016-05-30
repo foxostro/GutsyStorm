@@ -10,9 +10,9 @@
 
 @interface GSTextureArray : NSObject
 
-- (nonnull instancetype)initWithImage:(nonnull NSImage *)srcImage
-                             tileSize:(NSSize)tileSize
-                           tileBorder:(NSUInteger)border;
+- (nonnull instancetype)initWithPath:(nonnull NSString *)path
+                            tileSize:(NSSize)tileSize
+                          tileBorder:(NSUInteger)border;
 - (void)bind;
 - (void)unbind;
 
