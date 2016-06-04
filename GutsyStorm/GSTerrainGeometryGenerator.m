@@ -17,7 +17,11 @@
 
 
 typedef struct {
-    vector_float3 p;
+    // Vertex position is relative to the position of the cell.
+    // The two are separated so as to reduce numerical inaccuracy.
+    vector_float3 cellRelativeVertexPos;
+
+    vector_float3 worldPos;
     const GSVoxel *voxel;
     int light;
 } GSCubeVertex;
@@ -41,6 +45,7 @@ typedef enum {
 
 static const int NUM_CUBE_EDGES = 12;
 static const int NUM_CUBE_VERTS = 8;
+static const float L = 0.5f;
 
 static const GSVoxel gEmpty = {
     .outside = 1,
@@ -52,12 +57,6 @@ static const GSVoxel gEmpty = {
 };
 
 
-static inline vector_float3 vertexPosition(GSCubeVertex a1, GSCubeVertex a2)
-{
-    return vector_mix(a1.p, a2.p, (vector_float3){0.5, 0.5, 0.5});
-}
-
-
 static inline float clampf(float value, float min, float max)
 {
     return MIN(MAX(value, min), max);
@@ -65,7 +64,7 @@ static inline float clampf(float value, float min, float max)
 
 
 static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
-                                 vector_float3 vertexPos,
+                                 vector_float3 worldPos,
                                  vector_float3 chunkMinP,
                                  vector_float3 normal,
                                  GSVoxel * _Nonnull voxels,
@@ -89,7 +88,7 @@ static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
 
                 if (contribution > 0) {
                     // Did this ray escape the cell?
-                    vector_long3 aoSamplePoint = vector_long(vertexPos - chunkMinP + lightDir);
+                    vector_long3 aoSamplePoint = vector_long(worldPos - chunkMinP + lightDir);
                     BOOL escape = !voxels[INDEX_BOX(aoSamplePoint, *voxelBox)].opaque;
 
                     escaped += escape ? contribution : 0;
@@ -106,25 +105,26 @@ static vector_uchar4 vertexColor(GSCubeVertex v1, GSCubeVertex v2,
 }
 
 
-static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry, vector_float3 p,
+static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry,
+                              vector_float3 worldPos, vector_float3 cellRelativeVertexPos,
                               vector_uchar4 c, int tex, vector_float3 n)
 {
-    vector_float3 texCoord = vector_make(p.x, p.z, 0);
+    vector_float3 texCoord = vector_make(cellRelativeVertexPos.x, cellRelativeVertexPos.z, 0);
     
     if (n.y == 0) {
         if (n.x != 0) {
-            texCoord = vector_make(p.z, p.y, 0);
+            texCoord = vector_make(cellRelativeVertexPos.z, cellRelativeVertexPos.y, 0);
         } else {
-            texCoord = vector_make(p.x, p.y, 0);
+            texCoord = vector_make(cellRelativeVertexPos.x, cellRelativeVertexPos.y, 0);
         }
     } else if (n.y > 0) {
-        texCoord = vector_make(p.x, p.z, 0);
+        texCoord = vector_make(cellRelativeVertexPos.x, cellRelativeVertexPos.z, 0);
     } else {
-        texCoord = vector_make(p.x, p.z, 0);
+        texCoord = vector_make(cellRelativeVertexPos.x, cellRelativeVertexPos.z, 0);
     }
 
     GSTerrainVertex v = {
-        .position = {p.x, p.y, p.z},
+        .position = {worldPos.x, worldPos.y, worldPos.z},
         .color = {c.x, c.y, c.z, c.w},
         .texCoord = {texCoord.x, texCoord.y, tex}
     };
@@ -165,17 +165,22 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
                    GSCubeVertex v2[3],
                    int texForFace[NUM_CUBE_FACES])
 {
-    vector_float3 p[3];
+    vector_float3 worldPos[3];
+    vector_float3 cellRelativeVertexPos[3];
     vector_uchar4 c[3];
     GSVoxel faceVoxel[3];
 
     for(int i = 0; i < 3; ++i)
     {
-        p[i] = vertexPosition(v1[i], v2[i]);
+        worldPos[i] = vector_mix(v1[i].worldPos, v2[i].worldPos, (vector_float3){0.5, 0.5, 0.5});
+
+        cellRelativeVertexPos[i] = vector_mix(v1[i].cellRelativeVertexPos, v2[i].cellRelativeVertexPos,
+                                              (vector_float3){0.5, 0.5, 0.5});
     }
     
     // One normal for the entire face.
-    vector_float3 normal = vector_normalize(vector_cross(p[1]-p[0], p[2]-p[0]));
+    vector_float3 normal = vector_normalize(vector_cross(cellRelativeVertexPos[1]-cellRelativeVertexPos[0],
+                                                         cellRelativeVertexPos[2]-cellRelativeVertexPos[0]));
     
     // Select a texture from `texForFace' by examining the normal.
     GSCubeFace dir = determineDirectionFromFaceNormal(normal);
@@ -183,7 +188,7 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
     
     for(int i = 0; i < 3; ++i)
     {
-        c[i] = vertexColor(v1[i], v2[i], p[i], chunkMinP, normal, voxels, voxelBox);
+        c[i] = vertexColor(v1[i], v2[i], worldPos[i], chunkMinP, normal, voxels, voxelBox);
     }
 
     for(int i = 0; i < 3; ++i)
@@ -193,7 +198,7 @@ static void addTri(GSTerrainGeometry * _Nonnull geometry,
 
     for(int i = 0; i < 3; ++i)
     {
-        emitVertex(geometry, p[i], c[i], tex, normal);
+        emitVertex(geometry, worldPos[i], cellRelativeVertexPos[i], c[i], tex, normal);
     }
 }
 
@@ -333,18 +338,22 @@ static inline GSCubeVertex getCubeVertex(vector_float3 chunkMinP,
                                          GSIntAABB voxelBox,
                                          GSTerrainBufferElement * _Nonnull light,
                                          GSIntAABB * _Nonnull lightBox,
-                                         vector_float3 cellPos)
+                                         vector_float3 cellPos,
+                                         vector_float3 cellRelativeVertexPos)
 {
-    vector_long3 chunkLocalPos = vector_long(cellPos - chunkMinP);
+    vector_float3 worldPos = cellPos + cellRelativeVertexPos;
+    vector_long3 chunkLocalPos = vector_long(worldPos - chunkMinP);
     if (chunkLocalPos.y >= CHUNK_SIZE_Y) {
         return (GSCubeVertex){
-            .p = cellPos,
+            .cellRelativeVertexPos = cellRelativeVertexPos + vector_make(L, L, L),
+            .worldPos = worldPos,
             .voxel = &gEmpty,
             .light = CHUNK_LIGHTING_MAX
         };
     } else {
         return (GSCubeVertex){
-            .p = cellPos,
+            .cellRelativeVertexPos = cellRelativeVertexPos + vector_make(L, L, L),
+            .worldPos = worldPos,
             .voxel = &voxels[INDEX_BOX(chunkLocalPos, voxelBox)],
             .light = light[INDEX_BOX(chunkLocalPos, *lightBox)],
         };
@@ -365,8 +374,6 @@ void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
     assert(light);
     assert(lightBox);
     
-    static const float L = 0.5f;
-    
     // Get the sub-chunk bounding box and offset to align with the grid cells used.
     GSIntAABB ibounds = GSTerrainGeometrySubchunkBoxInt(chunkMinP, subchunkIndex);
     GSFloatAABB bounds = {
@@ -378,14 +385,14 @@ void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
     FOR_BOX(pos, bounds)
     {
         GSCubeVertex cube[NUM_CUBE_VERTS] = {
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(-L, -L, +L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(+L, -L, +L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(+L, -L, -L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(-L, -L, -L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(-L, +L, +L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(+L, +L, +L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(+L, +L, -L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos + vector_make(-L, +L, -L))
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, -L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, -L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, -L, -L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, -L, -L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, +L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, +L, +L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, +L, -L)),
+            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, +L, -L))
         };
 
         polygonizeGridCell(geometry, cube, chunkMinP, voxels, &voxelBox);

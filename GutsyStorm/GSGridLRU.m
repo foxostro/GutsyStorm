@@ -8,33 +8,75 @@
 
 #import "GSGridLRU.h"
 
+
+struct GSGridLRUList {
+    struct GSGridLRUList *prev, *next;
+    __unsafe_unretained NSObject<NSCopying> *object;
+};
+
+
 @implementation GSGridLRU
 {
-    NSMutableArray<NSObject<NSCopying> *> *_list;
+    struct GSGridLRUList *_head, *_tail;
+    NSMutableDictionary<NSObject<NSCopying> *, NSValue *> *_dictFastLookup;
     NSMutableDictionary<NSObject<NSCopying> *, GSGridBucket *> *_dictBucket;
 }
 
 - (nonnull instancetype)init
 {
     if (self = [super init]) {
-        _list = [NSMutableArray new];
+        _head = NULL;
+        _tail = NULL;
+        _dictFastLookup = [NSMutableDictionary new];
         _dictBucket = [NSMutableDictionary new];
     }
     return self;
+}
+
+- (void)dealloc
+{
+    [self removeAllObjects];
 }
 
 - (void)referenceObject:(nonnull NSObject<NSCopying> *)object bucket:(nonnull GSGridBucket *)bucket
 {
     NSParameterAssert(object);
     NSParameterAssert(bucket);
+    
+    struct GSGridLRUList *node;
+    NSValue *boxedNode = [_dictFastLookup objectForKey:object];
 
-    NSUInteger index = [_list indexOfObject:object];
+    if (boxedNode) {
+        node = [boxedNode pointerValue];
+        assert(node);
 
-    if (NSNotFound != index) {
-        [_list removeObjectAtIndex:index];
+        // Remove the node from it's current position in the list.
+        if (node == _head) {
+            _head = _head->next;
+        }
+        if (node == _tail) {
+            _tail = _tail->prev;
+        }
+        if (node->next) {
+            node->next->prev = node->prev;
+        }
+    } else {
+        node = calloc(sizeof(struct GSGridLRUList), 1);
+        node->object = object;
     }
-
-    [_list insertObject:object atIndex:0];
+    
+    // Insert the node at the beginning of the list. It becomes the new head.
+    node->prev = NULL;
+    node->next = _head;
+    if (_head) {
+        _head->prev = node;
+    }
+    if (!_tail) {
+        _tail = node;
+    }
+    _head = node;
+    
+    [_dictFastLookup setObject:[NSValue valueWithPointer:node] forKey:object];
     [_dictBucket setObject:bucket forKey:object];
 }
 
@@ -44,15 +86,27 @@
     NSParameterAssert(outObject);
     NSParameterAssert(outBucket);
     
-    NSObject<NSCopying> *object = [_list lastObject];
-    
-    if (!object) {
+    if (!_tail) {
         return NO;
     }
 
-    GSGridBucket *bucket = [_dictBucket objectForKey:object];
+    NSObject<NSCopying> *object = _tail->object;
+    assert(object);
 
-    [_list removeLastObject];
+    GSGridBucket *bucket = [_dictBucket objectForKey:object];
+    
+    // Remove the tail item from the list.
+    struct GSGridLRUList *node = _tail;
+    if (_tail->prev) {
+        _tail->prev->next = NULL;
+    }
+    _tail = _tail->prev;
+    if (node == _head) {
+        _head = _tail;
+    }
+    free(node);
+
+    [_dictFastLookup removeObjectForKey:object];
     [_dictBucket removeObjectForKey:object];
 
     *outObject = object;
@@ -63,19 +117,45 @@
 - (void)removeObject:(nonnull NSObject<NSCopying> *)object
 {
     NSParameterAssert(object);
+
+    NSValue *boxedNode = [_dictFastLookup objectForKey:object];
     
-    NSUInteger index = [_list indexOfObject:object];
-    
-    if (NSNotFound != index) {
-        [_list removeObjectAtIndex:index];
+    if (boxedNode) {
+        struct GSGridLRUList *node = [boxedNode pointerValue];
+        assert(node);
+
+        // Remove the node from it's current position in the list.
+        if (node == _head) {
+            _head = _head->next;
+        }
+        if (node == _tail) {
+            _tail = node->prev;
+        }
+        if (node->next) {
+            node->next->prev = node->prev;
+        }
+        free(node);
     }
 
+    [_dictFastLookup removeObjectForKey:object];
     [_dictBucket removeObjectForKey:object];
 }
 
 - (void)removeAllObjects
 {
-    [_list removeAllObjects];
+    struct GSGridLRUList *node = _head;
+
+    while(node)
+    {
+        struct GSGridLRUList *tofree = node;
+        node = node->next;
+        free(tofree);
+    }
+
+    _head = NULL;
+    _tail = NULL;
+
+    [_dictFastLookup removeAllObjects];
     [_dictBucket removeAllObjects];
 }
 

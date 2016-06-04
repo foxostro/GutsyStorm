@@ -15,6 +15,10 @@
 #import "GSBox.h"
 
 
+static dispatch_semaphore_t gSemaFileDescriptorLimit;
+static const long OPEN_FILE_LIMIT = 100; // Don't open more than this many file descriptors open at once for saving.
+
+
 @implementation GSTerrainBuffer
 
 @synthesize offsetFromChunkLocalSpace = _offsetFromChunkLocalSpace;
@@ -146,8 +150,22 @@
 {
     NSParameterAssert(url);
     NSParameterAssert([url isFileURL]);
+    
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        struct rlimit limit = {0};
+        
+        if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+            raiseExceptionForPOSIXError(errno, @"Failed to retrieve RLIMIT_NOFILE.");
+        }
+        
+        // RLIMIT_NOFILE is almost certainly higher than OPEN_FILE_LIMIT, but why not simply verify that it's valid?
+        gSemaFileDescriptorLimit = dispatch_semaphore_create(MIN(OPEN_FILE_LIMIT, limit.rlim_cur));
+    });
 
     dispatch_group_enter(group);
+    
+    dispatch_semaphore_wait(gSemaFileDescriptorLimit, DISPATCH_TIME_FOREVER);
 
     dispatch_data_t dd;
     
@@ -170,6 +188,7 @@
 
         dispatch_write(fd, dd, queue, ^(dispatch_data_t data, int error) {
             Close(fd);
+            dispatch_semaphore_signal(gSemaFileDescriptorLimit);
 
             if(error) {
                 raiseExceptionForPOSIXError(error, [NSString stringWithFormat:@"error with write(fd=%u)", fd]);

@@ -35,11 +35,19 @@ struct GSChunkVoxelHeader
 };
 
 
+static void markOutsideVoxelsInColumn(GSVoxel * _Nonnull voxels, GSIntAABB voxelBox,
+                                      vector_long3 offsetVoxelBox, vector_long3 column);
+
+
 @interface GSChunkVoxelData ()
 
 - (BOOL)validateVoxelData:(nonnull NSData *)data error:(NSError **)error;
 
 - (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data;
+
+- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
+                  editPos:(vector_float3)editPos
+                 oldBlock:(GSVoxel)oldBlock;
 
 - (nonnull GSTerrainBuffer *)newTerrainBufferWithGenerator:(nonnull GSTerrainGenerator *)generator
                                                    journal:(nonnull GSTerrainJournal *)journal;
@@ -170,7 +178,9 @@ struct GSChunkVoxelHeader
         _queueForSaving = queueForSaving; // dispatch queue used for saving changes to chunks
         _folder = folder;
         GSMutableBuffer *dataWithUpdatedOutside = [GSMutableBuffer newMutableBufferWithBuffer:data];
-        [self markOutsideVoxels:dataWithUpdatedOutside];
+        [self markOutsideVoxels:dataWithUpdatedOutside
+                        editPos:editPos
+                       oldBlock:oldBlock];
         _voxels = dataWithUpdatedOutside;
     }
     
@@ -268,54 +278,27 @@ struct GSChunkVoxelHeader
     vector_long3 offsetVoxelBox = data.offsetFromChunkLocalSpace;
     GSIntAABB voxelBox = { GSZeroIntVec3, data.dimensions };
 
-    // Determine voxels in the chunk which are outside. That is, voxels which are directly exposed to the sky from above.
+    // Determine voxels in the chunk which are outside. That is, voxels directly exposed to the sky from above.
     // We assume here that the chunk is the height of the world.
     FOR_Y_COLUMN_IN_BOX(p, chunkBox)
     {
-        // Get the y value of the highest non-empty voxel in the chunk.
-        GSVoxel highestVoxel;
-        int heightOfHighestVoxel;
-        for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
-        {
-            vector_long3 chunkLocalPos = { p.x, heightOfHighestVoxel, p.z };
-            vector_long3 q = chunkLocalPos + offsetVoxelBox;
-            GSVoxel voxel = voxels[INDEX_BOX(q, voxelBox)];
-
-            if(voxel.type != VOXEL_TYPE_EMPTY) {
-                highestVoxel = voxel;
-                break;
-            }
-        }
-
-        // In order for Marching Squares to work properly on the top face we need to ensure that the top face of the
-        // Marching Cubes cell contains the materials we'd see if we looked straight down at the chunk from above.
-        // We take the 3D volume of voxel textures and squish / project the texture for the highest voxel in a column
-        // onto a 2D plane upon which we run marching squares. The values of 2D plane being represented by having each
-        // column in the 3D volume of voxels contain the same value.
-        //
-        // However, if all voxels in the column do use the same value then we cannot have overlapping Y-levels use
-        // different ground textures. To fix this problem, we change the "collapsed value" every time the column
-        // transitions between empty and not-empty.
-        //
-        // In effect, we're going to be running Marching Squares on a collection of planes parallel to the XZ plan, all
-        // stacked on top of one another.
-        int prevTexTop = highestVoxel.texTop;
-        BOOL prevWasEmpty = YES;
-        for(p.y = CHUNK_SIZE_Y-1; p.y >= 0; --p.y)
-        {
-            vector_long3 q = p + offsetVoxelBox;
-            GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
-            voxel->outside = (p.y >= heightOfHighestVoxel);
-            
-            BOOL isEmpty = voxel->type == VOXEL_TYPE_EMPTY;
-            if (isEmpty == prevWasEmpty) {
-                voxel->texTop = prevTexTop;
-            } else {
-                prevTexTop = voxel->texTop;
-                prevWasEmpty = isEmpty;
-            }
-        }
+        markOutsideVoxelsInColumn(voxels, voxelBox, offsetVoxelBox, p);
     }
+}
+
+- (void)markOutsideVoxels:(nonnull GSMutableBuffer *)data
+                  editPos:(vector_float3)editPos
+                 oldBlock:(GSVoxel)oldBlock
+{
+    NSParameterAssert(data);
+    
+    GSVoxel *voxels = (GSVoxel *)[data mutableData];
+    GSIntAABB voxelBox = { GSZeroIntVec3, data.dimensions };
+    vector_long3 offsetVoxelBox = data.offsetFromChunkLocalSpace;
+    vector_long3 editPosLocal = vector_long(editPos - minP);
+    vector_long3 columnPos = GSMakeIntegerVector3(editPosLocal.x, 0, editPosLocal.z);
+    
+    markOutsideVoxelsInColumn(voxels, voxelBox, offsetVoxelBox, columnPos);
 }
 
 /* Computes voxelData which represents the voxel terrain values for the points between minP and maxP. The chunk is
@@ -423,3 +406,53 @@ struct GSChunkVoxelHeader
 }
 
 @end
+
+
+// For the specified voxel columnm, mark outside voxels and mark the voxel top textures. 
+static void markOutsideVoxelsInColumn(GSVoxel * _Nonnull voxels, GSIntAABB voxelBox,
+                                      vector_long3 offsetVoxelBox, vector_long3 p)
+{
+    // Get the y value of the highest non-empty voxel in the chunk.
+    GSVoxel highestVoxel;
+    int heightOfHighestVoxel;
+    for(heightOfHighestVoxel = CHUNK_SIZE_Y-1; heightOfHighestVoxel >= 0; --heightOfHighestVoxel)
+    {
+        vector_long3 chunkLocalPos = { p.x, heightOfHighestVoxel, p.z };
+        vector_long3 q = chunkLocalPos + offsetVoxelBox;
+        GSVoxel voxel = voxels[INDEX_BOX(q, voxelBox)];
+        
+        if(voxel.type != VOXEL_TYPE_EMPTY) {
+            highestVoxel = voxel;
+            break;
+        }
+    }
+    
+    // In order for Marching Squares to work properly on the top face we need to ensure that the top face of the
+    // Marching Cubes cell contains the materials we'd see if we looked straight down at the chunk from above.
+    // We take the 3D volume of voxel textures and squish / project the texture for the highest voxel in a column
+    // onto a 2D plane upon which we run marching squares. The values of 2D plane being represented by having each
+    // column in the 3D volume of voxels contain the same value.
+    //
+    // However, if all voxels in the column do use the same value then we cannot have overlapping Y-levels use
+    // different ground textures. To fix this problem, we change the "collapsed value" every time the column
+    // transitions between empty and not-empty.
+    //
+    // In effect, we're going to be running Marching Squares on a collection of planes parallel to the XZ plan, all
+    // stacked on top of one another.
+    int prevTexTop = highestVoxel.texTop;
+    BOOL prevWasEmpty = YES;
+    for(p.y = CHUNK_SIZE_Y-1; p.y >= 0; --p.y)
+    {
+        vector_long3 q = p + offsetVoxelBox;
+        GSVoxel *voxel = &voxels[INDEX_BOX(q, voxelBox)];
+        voxel->outside = (p.y >= heightOfHighestVoxel);
+        
+        BOOL isEmpty = voxel->type == VOXEL_TYPE_EMPTY;
+        if (isEmpty == prevWasEmpty) {
+            voxel->texTop = prevTexTop;
+        } else {
+            prevTexTop = voxel->texTop;
+            prevWasEmpty = isEmpty;
+        }
+    }
+}
