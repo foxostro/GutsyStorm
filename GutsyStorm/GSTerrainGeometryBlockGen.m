@@ -96,6 +96,25 @@ static inline int getAdjacentVoxelType(GSCubeFace dir, vector_float3 pos, vector
     return adjacentVoxelType;
 }
 
+static inline int getTextureIndex(GSVoxelTexture tex)
+{
+    // These values depend on the structure of the texture atlas in terrain.png.
+    switch(tex)
+    {
+        case VOXEL_TEX_WATER_0: return 0;
+        case VOXEL_TEX_WATER_1: return 15;
+        case VOXEL_TEX_DIRT_0:  return 44;
+        case VOXEL_TEX_DIRT_1:  return 59;
+        case VOXEL_TEX_GRASS_0: return 60;
+        case VOXEL_TEX_GRASS_1: return 75;
+        case VOXEL_TEX_STONE_0: return 104;
+        case VOXEL_TEX_STONE_1: return 119;
+        default:
+            assert(false);
+            return 0;
+    }
+}
+
 void GSTerrainGeometryBlockGen(GSTerrainGeometry * _Nonnull geometry,
                                GSVoxel * _Nonnull voxels,
                                GSIntAABB voxelBox,
@@ -134,7 +153,7 @@ void GSTerrainGeometryBlockGen(GSTerrainGeometry * _Nonnull geometry,
                 texCoords[f] = (vector_float2){cornerSelect[f].x*0.5f+0.5f, 1-cornerSelect[f].y*0.5f+0.5f};
             }
             
-            addQuad(geometry, vertices, texCoords, 104);
+            addQuad(geometry, vertices, texCoords, getTextureIndex(VOXEL_TEX_STONE_0));
         }
     }
 }
