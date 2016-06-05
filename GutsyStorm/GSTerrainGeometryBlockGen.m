@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <simd/vector.h>
 #import "GSTerrainGeometryBlockGen.h"
 
 
@@ -55,29 +54,47 @@ static void addQuad(GSTerrainGeometry * _Nonnull geometry,
                     vector_float2 texCoords[4],
                     int tex)
 {
-    vector_uchar4 c[3];
-    
-    for(int i = 0; i < 3; ++i)
-    {
-        c[i] = 255; // TODO: lighting
-    }
-    
+    // TODO: apply lighting to the quad's vertices
+    vector_uchar4 colors[4] = {
+        {255, 255, 255, 255},
+        {255, 255, 255, 255},
+        {255, 255, 255, 255},
+        {255, 255, 255, 255}
+    };
+
     int vertexIndices[6] = {0, 1, 3, 1, 2, 3};
     for(int i = 0; i < 6; ++i)
     {
-        vector_float3 p = vertices[vertexIndices[i]];
-        vector_float2 uv = texCoords[vertexIndices[i]];
-        
+        int idx = vertexIndices[i];
+        vector_float3 pos = vertices[idx];
+        vector_float2 texCoord = texCoords[idx];
+        vector_uchar4 color = colors[idx];
+
         GSTerrainVertex v = {
-            .position = {p.x, p.y, p.z},
-            .color = {255, 255, 255, 255},
-            .texCoord = {uv.x, uv.y, tex}
+            .position = {pos.x, pos.y, pos.z},
+            .color = {color.x, color.y, color.z, color.w},
+            .texCoord = {texCoord.x, texCoord.y, tex}
         };
-        
+
         GSTerrainGeometryAddVertex(geometry, &v);
     }
 }
 
+
+static inline int getAdjacentVoxelType(GSCubeFace dir, vector_float3 pos, vector_float3 chunkMinP,
+                                       GSVoxel * _Nonnull voxels, GSIntAABB voxelBox)
+{
+    int adjacentVoxelType;
+    vector_long3 chunkLocalPos = vector_long(pos + normals[dir] - chunkMinP);
+
+    if (chunkLocalPos.y < CHUNK_SIZE_Y && chunkLocalPos.y >= 0) {
+        adjacentVoxelType = voxels[INDEX_BOX(chunkLocalPos, voxelBox)].type;
+    } else {
+        adjacentVoxelType = VOXEL_TYPE_EMPTY;
+    }
+
+    return adjacentVoxelType;
+}
 
 void GSTerrainGeometryBlockGen(GSTerrainGeometry * _Nonnull geometry,
                                GSVoxel * _Nonnull voxels,
@@ -88,12 +105,9 @@ void GSTerrainGeometryBlockGen(GSTerrainGeometry * _Nonnull geometry,
     assert(geometry);
     assert(voxels);
     
-    GSFloatAABB bounds = {
-        .mins = vector_float(ibounds.mins),
-        .maxs = vector_float(ibounds.maxs)
-    };
-    
     vector_float3 pos;
+    GSFloatAABB bounds = { .mins = vector_float(ibounds.mins), .maxs = vector_float(ibounds.maxs) };
+
     FOR_BOX(pos, bounds)
     {
         GSVoxel centerVoxel = voxels[INDEX_BOX(vector_long(pos - chunkMinP), voxelBox)];
@@ -104,9 +118,7 @@ void GSTerrainGeometryBlockGen(GSTerrainGeometry * _Nonnull geometry,
         
         for(int i = 0; i < NUM_CUBE_FACES; ++i)
         {
-            GSVoxel adjacentVoxel = voxels[INDEX_BOX(vector_long(pos + normals[i] - chunkMinP), voxelBox)];
-            
-            if (adjacentVoxel.type == VOXEL_TYPE_WALL) {
+            if (getAdjacentVoxelType(i, pos, chunkMinP, voxels, voxelBox) == VOXEL_TYPE_WALL) {
                 continue;
             }
             
