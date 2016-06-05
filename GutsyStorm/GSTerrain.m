@@ -263,7 +263,7 @@ _Static_assert(sizeof(GSVoxel) == sizeof(GSTerrainBufferElement),
         GSVoxel block;
         bzero(&block, sizeof(GSVoxel));
         block.opaque = YES;
-        block.type = VOXEL_TYPE_GROUND;
+        block.type = VOXEL_TYPE_WALL;
         block.texTop = VOXEL_TEX_DIRT_0;
         block.texSide = VOXEL_TEX_GRASS_0;
         

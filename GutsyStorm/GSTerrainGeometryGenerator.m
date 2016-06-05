@@ -332,6 +332,34 @@ static void polygonizeGridCell(GSTerrainGeometry * _Nonnull geometry,
     }
 }
 
+static void addQuad(GSTerrainGeometry * _Nonnull geometry,
+                    vector_float3 vertices[4],
+                    vector_float2 texCoords[4],
+                    int tex)
+{
+    vector_uchar4 c[3];
+
+    for(int i = 0; i < 3; ++i)
+    {
+        c[i] = 255; // TODO: lighting
+    }
+
+    int vertexIndices[6] = {0, 1, 3, 1, 2, 3};
+    for(int i = 0; i < 6; ++i)
+    {
+        vector_float3 p = vertices[vertexIndices[i]];
+        vector_float2 uv = texCoords[vertexIndices[i]];
+
+        GSTerrainVertex v = {
+            .position = {p.x, p.y, p.z},
+            .color = {255, 255, 255, 255},
+            .texCoord = {uv.x, uv.y, tex}
+        };
+        
+        GSTerrainGeometryAddVertex(geometry, &v);
+    }
+}
+
 
 static inline GSCubeVertex getCubeVertex(vector_float3 chunkMinP,
                                          GSVoxel * _Nonnull voxels,
@@ -376,25 +404,107 @@ void GSTerrainGeometryGenerate(GSTerrainGeometry * _Nonnull geometry,
     
     // Get the sub-chunk bounding box and offset to align with the grid cells used.
     GSIntAABB ibounds = GSTerrainGeometrySubchunkBoxInt(chunkMinP, subchunkIndex);
-    GSFloatAABB bounds = {
-        .mins = vector_float(ibounds.mins) + vector_make(L, L, L),
-        .maxs = vector_float(ibounds.maxs) + vector_make(L, L, L)
-    };
 
     vector_float3 pos;
-    FOR_BOX(pos, bounds)
-    {
-        GSCubeVertex cube[NUM_CUBE_VERTS] = {
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, -L, +L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, -L, +L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, -L, -L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, -L, -L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, +L, +L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, +L, +L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, +L, -L)),
-            getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, +L, -L))
-        };
 
-        polygonizeGridCell(geometry, cube, chunkMinP, voxels, &voxelBox);
+    {
+        GSFloatAABB marchingCubesBounds = {
+            .mins = vector_float(ibounds.mins) + vector_make(L, L, L),
+            .maxs = vector_float(ibounds.maxs) + vector_make(L, L, L)
+        };
+        
+        // Marching Cubes isosurface extraction for GROUND blocks.
+        FOR_BOX(pos, marchingCubesBounds)
+        {
+            GSCubeVertex cube[NUM_CUBE_VERTS] = {
+                getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, -L, +L)),
+                getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, -L, +L)),
+                getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, -L, -L)),
+                getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, -L, -L)),
+                getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, +L, +L)),
+                getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, +L, +L)),
+                getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(+L, +L, -L)),
+                getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(-L, +L, -L))
+            };
+            
+            polygonizeGridCell(geometry, cube, chunkMinP, voxels, &voxelBox);
+        }
+    }
+
+    {
+        static const vector_float3 normals[NUM_CUBE_FACES] = {
+            (vector_float3){ 0, +1,  0}, // TOP
+            (vector_float3){ 0, -1,  0}, // BOTTOM
+            (vector_float3){ 0,  0, +1}, // NORTH
+            (vector_float3){+1,  0,  0}, // EAST
+            (vector_float3){ 0,  0, -1}, // SOUTH
+            (vector_float3){-1,  0,  0}  // WEST
+        };
+        
+        static const vector_float3 tangents[NUM_CUBE_FACES] = {
+            (vector_float3){ 0,  0, +1}, // TOP
+            (vector_float3){-1,  0,  0}, // BOTTOM
+            (vector_float3){+1,  0,  0}, // NORTH
+            (vector_float3){ 0,  0, -1}, // EAST
+            (vector_float3){-1,  0,  0}, // SOUTH
+            (vector_float3){ 0,  0, +1}  // WEST
+        };
+        
+        static const vector_float3 bitangents[NUM_CUBE_FACES] = {
+            (vector_float3){+1,  0,  0}, // TOP
+            (vector_float3){ 0,  0, -1}, // BOTTOM
+            (vector_float3){ 0, +1,  0}, // NORTH
+            (vector_float3){ 0, +1,  0}, // EAST
+            (vector_float3){ 0, +1,  0}, // SOUTH
+            (vector_float3){ 0, +1,  0}  // WEST
+        };
+        
+        static const vector_float3 cornerSelect[4] = {
+            // n   b   t
+            { +1, +1, +1}, // Top Right
+            { +1, -1, +1}, // Top Left
+            { +1, -1, -1}, // Bottom Left
+            { +1, +1, -1}  // Bottom Right
+        };
+        
+        GSFloatAABB bounds = {
+            .mins = vector_float(ibounds.mins),
+            .maxs = vector_float(ibounds.maxs)
+        };
+        
+        FOR_BOX(pos, bounds)
+        {
+            GSCubeVertex central = getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, vector_make(0, 0, 0));
+            
+            if (central.voxel->type != VOXEL_TYPE_WALL) {
+                continue;
+            }
+            
+            GSCubeVertex adjacentCells[NUM_CUBE_FACES];
+            
+            for(int i = 0; i < NUM_CUBE_FACES; ++i)
+            {
+                adjacentCells[i] = getCubeVertex(chunkMinP, voxels, voxelBox, light, lightBox, pos, normals[i]);
+            }
+            
+            for(int i = 0; i < NUM_CUBE_FACES; ++i)
+            {
+                if (adjacentCells[i].voxel->type != VOXEL_TYPE_WALL) {
+                    vector_float3 n = normals[i];
+                    vector_float3 t = tangents[i];
+                    vector_float3 b = bitangents[i];
+                    vector_float3 vertices[4];
+                    vector_float2 texCoords[4];
+                    
+                    for(int f = 0; f < 4; ++f)
+                    {
+                        vertices[f] = pos + L*(n * cornerSelect[f].x + t * cornerSelect[f].y + b * cornerSelect[f].z);
+                        texCoords[f] = (vector_float2){cornerSelect[f].y*0.5f+0.5f, 1-cornerSelect[f].z*0.5f+0.5f};
+                    }
+                    
+                    addQuad(geometry, vertices, texCoords, 104);
+                }
+            }
+        }
     }
 }

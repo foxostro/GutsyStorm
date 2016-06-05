@@ -24,6 +24,7 @@ typedef enum
 {
     VOXEL_TYPE_EMPTY=0,
     VOXEL_TYPE_GROUND,
+    VOXEL_TYPE_WALL,
     NUM_VOXEL_TYPES
 } GSVoxelType;
 
