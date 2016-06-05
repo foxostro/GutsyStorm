@@ -56,6 +56,8 @@
 		6FA11A271CF2502A0086B6CB /* edgetable.def in Resources */ = {isa = PBXBuildFile; fileRef = 6FA11A251CF2502A0086B6CB /* edgetable.def */; };
 		6FAC70B41CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */; };
 		6FAE2A381CC6F42D000D2E9A /* Defaults.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6FAE2A371CC6F42D000D2E9A /* Defaults.plist */; };
+		6FBB3F0E1D04A6AD0023966B /* GSTerrainGeometryMarchingCubes.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FBB3F0D1D04A6AD0023966B /* GSTerrainGeometryMarchingCubes.m */; };
+		6FBB3F121D04A9780023966B /* GSTerrainGeometryBlockGen.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FBB3F111D04A9780023966B /* GSTerrainGeometryBlockGen.m */; };
 		6FCD25CB1CD56B86005FC566 /* GSTerrainModifyBlockOperationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD25CA1CD56B86005FC566 /* GSTerrainModifyBlockOperationTests.m */; };
 		6FD400B61CD1C3F200C5117E /* GSGridSlot.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FD400B51CD1C3F200C5117E /* GSGridSlot.m */; };
 		6FE185001BD7E9E7009A076D /* GSTextLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 6FE184FF1BD7E9E7009A076D /* GSTextLabel.m */; };
@@ -185,6 +187,11 @@
 		6FAC70B21CD7B78B00F87554 /* GSTerrainModifyBlockOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainModifyBlockOperation.h; sourceTree = "<group>"; };
 		6FAC70B31CD7B78B00F87554 /* GSTerrainModifyBlockOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainModifyBlockOperation.m; sourceTree = "<group>"; };
 		6FAE2A371CC6F42D000D2E9A /* Defaults.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Defaults.plist; sourceTree = "<group>"; };
+		6FBB3F0C1D04A6AD0023966B /* GSTerrainGeometryMarchingCubes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainGeometryMarchingCubes.h; sourceTree = "<group>"; };
+		6FBB3F0D1D04A6AD0023966B /* GSTerrainGeometryMarchingCubes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainGeometryMarchingCubes.m; sourceTree = "<group>"; };
+		6FBB3F101D04A9780023966B /* GSTerrainGeometryBlockGen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSTerrainGeometryBlockGen.h; sourceTree = "<group>"; };
+		6FBB3F111D04A9780023966B /* GSTerrainGeometryBlockGen.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainGeometryBlockGen.m; sourceTree = "<group>"; };
+		6FBB3F131D04ABE50023966B /* GSTerrainGeometryGeneratorInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GSTerrainGeometryGeneratorInternal.h; sourceTree = "<group>"; };
 		6FCD25CA1CD56B86005FC566 /* GSTerrainModifyBlockOperationTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSTerrainModifyBlockOperationTests.m; sourceTree = "<group>"; };
 		6FD400B41CD1C3F200C5117E /* GSGridSlot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GSGridSlot.h; sourceTree = "<group>"; };
 		6FD400B51CD1C3F200C5117E /* GSGridSlot.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GSGridSlot.m; sourceTree = "<group>"; };
@@ -268,6 +275,7 @@
 				6F7ACC0D1CC46FBF0084BAC5 /* Journal */,
 				ACE6ABEC16F9985F00DE88E3 /* Grid */,
 				6F2DE04D1CD86C6B00BD2719 /* Operations */,
+				6FBB3F0F1D04A6CB0023966B /* Geometry */,
 				ACDD767016F6623A008169D1 /* Util */,
 			);
 			name = Terrain;
@@ -433,6 +441,22 @@
 			name = paulbourke;
 			sourceTree = "<group>";
 		};
+		6FBB3F0F1D04A6CB0023966B /* Geometry */ = {
+			isa = PBXGroup;
+			children = (
+				6F877ED21CF0D0B500107A2E /* GSTerrainGeometry.h */,
+				6F877ED31CF0D0B500107A2E /* GSTerrainGeometry.m */,
+				6F877ED51CF114F300107A2E /* GSTerrainGeometryGenerator.h */,
+				6FBB3F131D04ABE50023966B /* GSTerrainGeometryGeneratorInternal.h */,
+				6F877ED61CF114F300107A2E /* GSTerrainGeometryGenerator.m */,
+				6FBB3F0C1D04A6AD0023966B /* GSTerrainGeometryMarchingCubes.h */,
+				6FBB3F0D1D04A6AD0023966B /* GSTerrainGeometryMarchingCubes.m */,
+				6FBB3F101D04A9780023966B /* GSTerrainGeometryBlockGen.h */,
+				6FBB3F111D04A9780023966B /* GSTerrainGeometryBlockGen.m */,
+			);
+			name = Geometry;
+			sourceTree = "<group>";
+		};
 		AC202CC6151E57A000D91067 /* Math */ = {
 			isa = PBXGroup;
 			children = (
@@ -516,10 +540,6 @@
 				AC5B2802151E2C1D0045B6E4 /* GSTerrainChunkStore.h */,
 				AC5B2803151E2C1D0045B6E4 /* GSTerrainChunkStore.m */,
 				6FEAEA7C1BDB75EA00C94A58 /* GSTerrainVertex.h */,
-				6F877ED21CF0D0B500107A2E /* GSTerrainGeometry.h */,
-				6F877ED31CF0D0B500107A2E /* GSTerrainGeometry.m */,
-				6F877ED51CF114F300107A2E /* GSTerrainGeometryGenerator.h */,
-				6F877ED61CF114F300107A2E /* GSTerrainGeometryGenerator.m */,
 			);
 			name = Util;
 			sourceTree = "<group>";
@@ -693,6 +713,7 @@
 				4AC7C9F91559E00000806635 /* GSCube.m in Sources */,
 				6F877ED41CF0D0B500107A2E /* GSTerrainGeometry.m in Sources */,
 				13C8BE191602854300403815 /* GSNeighborhood.m in Sources */,
+				6FBB3F121D04A9780023966B /* GSTerrainGeometryBlockGen.m in Sources */,
 				13C8BE1D16038DC000403815 /* GSTerrainActiveRegion.m in Sources */,
 				AC3767A2163DFB4000BAE03F /* GSErrorCodes.m in Sources */,
 				AC3767A6163DFD4200BAE03F /* GSTerrain.m in Sources */,
@@ -707,6 +728,7 @@
 				ACE8F00C16FE6A7D00ABA2AD /* GSMutableBuffer.m in Sources */,
 				AC3BDE8B16FFA5EE0005E6C2 /* GSVBOHolder.m in Sources */,
 				AC3BDE95170016CF0005E6C2 /* GSChunkSunlightData.m in Sources */,
+				6FBB3F0E1D04A6AD0023966B /* GSTerrainGeometryMarchingCubes.m in Sources */,
 				6F1B76EE1CE6C89000340D29 /* GSTerrainModifyBlockBenchmark.m in Sources */,
 				6F877ED71CF114F300107A2E /* GSTerrainGeometryGenerator.m in Sources */,
 			);
