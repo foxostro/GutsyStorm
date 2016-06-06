@@ -88,7 +88,7 @@ static inline void emitVertex(GSTerrainGeometry * _Nonnull geometry,
                               vector_float3 worldPos, vector_float3 cellRelativeVertexPos,
                               vector_uchar4 c, int tex, vector_float3 n)
 {
-    vector_float3 texCoord = {cellRelativeVertexPos.x, cellRelativeVertexPos.z, 0};
+    vector_float3 texCoord;
     
     if (n.y == 0) {
         if (n.x != 0) {

@@ -23,6 +23,7 @@ extern int checkGLErrors(void);
     NSParameterAssert(path);
 
     if (self = [super init]) {
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
         CGDataProviderRef dataProvider = CGDataProviderCreateWithFilename([path UTF8String]);
         CGImageRef imageRef = CGImageCreateWithPNGDataProvider(dataProvider, NULL, true, kCGRenderingIntentDefault);
 
@@ -35,8 +36,7 @@ extern int checkGLErrors(void);
         CGSize dstSize = CGSizeMake(tileSize.width, tileSize.height * numTiles);
 
         CGContextRef contextRef = CGBitmapContextCreate(NULL, dstSize.width, dstSize.height, 8, dstSize.width * 4,
-                                                        CGColorSpaceCreateDeviceRGB(),
-                                                        kCGImageAlphaPremultipliedLast);
+                                                        colorSpace, kCGImageAlphaPremultipliedLast);
         
         for(NSPoint src = NSMakePoint(0, 0), dst = NSMakePoint(0, 0); src.y < (height-1); src.y += step.height)
         {
@@ -49,6 +49,7 @@ extern int checkGLErrors(void);
                 CGImageRef subTileRef = CGImageCreateWithImageInRect(imageRef, srcRect);
                 CGRect dstRect = CGRectMake(dst.x, dst.y, tileSize.width, tileSize.height);
                 CGContextDrawImage(contextRef, dstRect, subTileRef);
+                CFRelease(subTileRef);
             }
         }
 
@@ -66,6 +67,11 @@ extern int checkGLErrors(void);
 
         glGenerateMipmap(GL_TEXTURE_2D_ARRAY_EXT);
         assert(checkGLErrors() == 0);
+        
+        CFRelease(contextRef);
+        CFRelease(imageRef);
+        CFRelease(dataProvider);
+        CFRelease(colorSpace);
     }
     
     return self;
